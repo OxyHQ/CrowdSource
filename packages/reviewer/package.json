@@ -54,7 +54,7 @@
     }
   },
   "dependencies": {
-    "@babel/plugin-transform-export-namespace-from": "^7.29.7",
+    "@babel/plugin-transform-export-namespace-from": "^8.0.1",
     "@expo/vector-icons": "^15.1.1",
     "@oxyhq/bloom": "^0.54.1",
     "@oxyhq/core": "^12.10.6",
