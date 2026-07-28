@@ -78,22 +78,25 @@ jobs:
       - name: Verify current main before production changes
         run: bash .github/scripts/require-current-main.sh
 
+      # `wrangler pages deploy` publishes into a project and cannot create one,
+      # so without this the very first push to a new repository fails with
+      # nothing to deploy into. Idempotent, so run N is a single GET.
+      - name: Ensure the Cloudflare Pages project exists
+        id: project
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PAGES_PROJECT_NAME: crowdsource-frontend
+          PAGES_PRODUCTION_BRANCH: main
+        run: bash .github/scripts/cloudflare-pages.sh ensure-project
+
       - name: Capture the current production deployment
         id: previous
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          set -euo pipefail
-          response="$(curl --fail --silent --show-error \
-            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/crowdsource-frontend/deployments?env=production&per_page=1")"
-          deployment_id="$(jq -r '.result[0].id // empty' <<<"$response")"
-          if [[ -z "$deployment_id" ]]; then
-            echo "::error::Cloudflare returned no current production deployment."
-            exit 1
-          fi
-          echo "deployment_id=$deployment_id" >>"$GITHUB_OUTPUT"
+          PAGES_PROJECT_NAME: crowdsource-frontend
+        run: bash .github/scripts/cloudflare-pages.sh capture-production
 
       - name: Deploy an immutable Cloudflare Pages preview
         id: preview
@@ -129,18 +132,23 @@ jobs:
           DEPLOYMENT_ORIGIN: ${{ steps.production.outputs.deployment-url }}
         run: WEB_ORIGIN="$DEPLOYMENT_ORIGIN" bash .github/scripts/smoke-frontend.sh
 
-      # crowdsource.oxy.so is an ordinary Cloudflare Pages custom domain: this
-      # project serves it directly, with no backend proxy in front. Asserting it
-      # here would therefore be asserting a Pages surface, and is worth adding to
-      # smoke-frontend.sh once the custom domain is actually attached — until
-      # then such an assertion would fail every run.
+      # Runs after the production smoke so the public hostname is only ever
+      # pointed at a release whose assets have already been verified. Idempotent,
+      # and self-healing if the domain is ever detached by hand.
+      - name: Attach the public custom domain
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PAGES_PROJECT_NAME: crowdsource-frontend
+          PAGES_CUSTOM_DOMAIN: crowdsource.oxy.so
+        run: bash .github/scripts/cloudflare-pages.sh attach-domain
 
       - name: Roll back Cloudflare Pages after a failed production smoke
         if: >-
           failure() &&
           steps.production.outcome == 'success' &&
           steps.production_smoke.outcome == 'failure' &&
-          steps.previous.outputs.deployment_id != ''
+          steps.previous.outputs.has_previous == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

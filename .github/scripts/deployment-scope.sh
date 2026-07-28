@@ -51,6 +51,7 @@ for path in "${changed_paths[@]}"; do
     frontend:packages/contracts/* | \
     frontend:.github/scripts/require-current-main.sh | \
     frontend:.github/scripts/smoke-frontend.sh | \
+    frontend:.github/scripts/cloudflare-pages.sh | \
     frontend:.github/scripts/validate-frontend-static-output.mjs)
       deploy=true
       break

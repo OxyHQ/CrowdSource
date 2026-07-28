@@ -2,10 +2,10 @@
 
 set -euo pipefail
 
-# No default: this script asserts a static hosting contract, and the caller is
-# the only thing that knows which deployment surface it means. A default would
-# silently point it at whatever host happens to be written here — including the
-# apex, which is served by the backend rather than by the Pages project.
+# No default: this script asserts a static hosting contract, and only the caller
+# knows which surface it means — the immutable preview URL, the exact production
+# deployment URL, or the public custom domain. A default would quietly assert
+# whichever host happened to be written here instead of the one under test.
 : "${WEB_ORIGIN:?WEB_ORIGIN is required; pass the exact deployment origin to smoke}"
 smoke_dir="$(mktemp -d)"
 temporary_root="$(realpath "${TMPDIR:-/tmp}")"
