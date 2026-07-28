@@ -227,16 +227,48 @@ if expect_exit "$case_dir" 0 "dns already correct"; then
   echo "ok: a correct DNS record is left alone"
 fi
 
-# The case with real blast radius. This zone carries the ecosystem's production
-# DNS, so a record pointing somewhere unexpected must stop the deploy rather
-# than be overwritten.
-case_dir="$(run_case dns-conflict ensure-dns-record \
+# The cases with real blast radius. This zone carries the ecosystem's production
+# DNS — mention.earth, api.oxy.so, every live backend — so a record this deploy
+# did not create must stop it rather than be overwritten.
+#
+# Each conflict case scripts one MORE response than a refusal needs. A refusal
+# leaves it unused; an implementation that overwrites consumes it and gets a
+# success, so the failure surfaces as "issued a write" naming the offending
+# behaviour, rather than as the stub running out of responses.
+conflict_write='200|{"success":true,"result":{"id":"rec-overwritten"}}'
+
+# Wrong record type entirely.
+case_dir="$(run_case dns-conflict-type ensure-dns-record \
   "$project
 $zone
-200|{\"success\":true,\"result\":[{\"type\":\"A\",\"content\":\"203.0.113.7\",\"proxied\":true}]}")"
-if expect_exit "$case_dir" 1 "dns conflict"; then
-  expect_no_write "$case_dir" "dns conflict"
-  echo "ok: a record this deploy did not create is refused, not overwritten"
+200|{\"success\":true,\"result\":[{\"type\":\"A\",\"content\":\"203.0.113.7\",\"proxied\":true}]}
+$conflict_write")"
+if expect_exit "$case_dir" 1 "conflicting record type"; then
+  expect_no_write "$case_dir" "conflicting record type"
+  echo "ok: an A record where a CNAME is needed is refused, not overwritten"
+fi
+
+# The sharpest shape: right type, right name, pointing somewhere else. This is
+# what a hand-made record for another service looks like.
+case_dir="$(run_case dns-conflict-target ensure-dns-record \
+  "$project
+$zone
+200|{\"success\":true,\"result\":[{\"type\":\"CNAME\",\"content\":\"someone-elses-project.pages.dev\",\"proxied\":true}]}
+$conflict_write")"
+if expect_exit "$case_dir" 1 "conflicting CNAME target"; then
+  expect_no_write "$case_dir" "conflicting CNAME target"
+  echo "ok: a CNAME pointing at a different target is refused, not repointed"
+fi
+
+# Right target, but somebody deliberately turned the proxy off.
+case_dir="$(run_case dns-conflict-unproxied ensure-dns-record \
+  "$project
+$zone
+200|{\"success\":true,\"result\":[{\"type\":\"CNAME\",\"content\":\"test-project-a1.pages.dev\",\"proxied\":false}]}
+$conflict_write")"
+if expect_exit "$case_dir" 1 "unproxied CNAME"; then
+  expect_no_write "$case_dir" "unproxied CNAME"
+  echo "ok: an unproxied record is reported rather than silently flipped"
 fi
 
 case_dir="$(run_case dns-zone-unreadable ensure-dns-record \

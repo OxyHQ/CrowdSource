@@ -108,6 +108,32 @@ jobs:
           wranglerVersion: '4.81.0'
           command: pages deploy packages/reviewer/dist --project-name=crowdsource-frontend --branch=candidate-${{ env.DEPLOY_SHA }}
 
+      # A Pages project that has never released has no certificate for its
+      # *.pages.dev names yet, so the first deployment can fail the TLS
+      # handshake for a few minutes. The gate is a FACT, not an error shape:
+      # `has_previous` is false only until a production deployment has ever
+      # succeeded, so once one has, this step never runs again and the same
+      # handshake failure stays immediately fatal in the smoke below — where it
+      # means a broken certificate rather than an unissued one.
+      - name: Wait for the first certificate on a project that has never released
+        if: steps.previous.outputs.has_previous == 'false'
+        env:
+          PREVIEW_ORIGIN: ${{ steps.preview.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            # Any HTTP response means the handshake completed, which is all this
+            # step is waiting for; the smoke that follows judges the content.
+            if curl --silent --output /dev/null --max-time 15 "$PREVIEW_ORIGIN/"; then
+              echo "TLS is serving after ${attempt} attempt(s)."
+              exit 0
+            fi
+            echo "::notice::No certificate yet for the new project; retrying in 15s (${attempt}/20)."
+            sleep 15
+          done
+          echo "::error::TLS did not come up within 5 minutes on a newly created Pages project."
+          exit 1
+
       - name: Smoke test the exact preview deployment
         env:
           WEB_ORIGIN: ${{ steps.preview.outputs.deployment-url }}
