@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "crowdsource.case.v1",
+  "applicationId": "app_mention",
+  "externalReportId": "mention_report_123",
+  "subject": {
+    "externalId": "post_987",
+    "type": "social.post",
+    "primaryResourceId": "res_post"
+  },
+  "principalBindings": [
+    {
+      "principalRef": "author_1",
+      "type": "oxy_user",
+      "bindingProofId": "binding_456"
+    }
+  ],
+  "resources": [
+    {
+      "id": "res_post",
+      "type": "text",
+      "role": "subject",
+      "language": "es",
+      "data": { "text": "Texto exacto reportado" },
+      "sha256": "...",
+      "authorPrincipalRef": "author_1"
+    },
+    {
+      "id": "res_image",
+      "type": "image",
+      "role": "attachment",
+      "asset": {
+        "uploadId": "upload_abc",
+        "mimeType": "image/jpeg",
+        "sha256": "..."
+      }
+    }
+  ],
+  "relations": [
+    {
+      "from": "res_post",
+      "type": "has_attachment",
+      "to": "res_image"
+    }
+  ],
+  "allegations": [{ "code": "harassment.targeted_abuse" }],
+  "policy": {
+    "policySetId": "mention.community",
+    "version": "2026.07"
+  },
+  "privacy": {
+    "retentionDays": 30,
+    "allowCommunityReview": true
+  }
+}

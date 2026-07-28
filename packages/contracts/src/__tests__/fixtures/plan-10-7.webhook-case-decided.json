@@ -1,0 +1,26 @@
+{
+  "id": "evt_01...",
+  "type": "case.decided",
+  "createdAt": "2026-07-28T18:30:00.000Z",
+  "organizationId": "org_01...",
+  "applicationId": "app_mention",
+  "data": {
+    "caseId": "case_01...",
+    "decision": {
+      "id": "dec_01...",
+      "revision": 1,
+      "status": "provisional",
+      "outcome": "violation",
+      "findings": [
+        {
+          "code": "harassment.targeted_abuse",
+          "severity": "medium",
+          "scope": "oxy_network",
+          "resourceIds": ["res_post"]
+        }
+      ],
+      "confidence": 0.91,
+      "recommendedActions": ["remove_or_restrict"]
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "crowdsource.case.v1",
+  "applicationId": "app_mention",
+  "externalReportId": "mention_report_123",
+  "source": {
+    "environment": "production",
+    "submittedAt": "2026-07-28T18:00:00.000Z"
+  },
+  "subject": {
+    "externalId": "post_987",
+    "type": "social.post",
+    "primaryResourceId": "res_post",
+    "permalink": "https://mention.earth/..."
+  },
+  "principalBindings": [
+    {
+      "principalRef": "author_1",
+      "type": "oxy_user",
+      "externalPrincipalId": "mention_user_55",
+      "bindingProofId": "bind_01...",
+      "boundAt": "2026-07-20T11:00:00.000Z"
+    },
+    {
+      "principalRef": "reporter_1",
+      "type": "oxy_user",
+      "bindingProofId": "bind_02..."
+    }
+  ],
+  "resources": [
+    {
+      "id": "res_post",
+      "type": "text",
+      "role": "subject",
+      "language": "es-ES",
+      "data": {
+        "text": "Contenido exacto reportado",
+        "formatting": "plain"
+      },
+      "sha256": "sha256:...",
+      "createdAt": "2026-07-28T17:55:00.000Z",
+      "authorPrincipalRef": "author_1"
+    },
+    {
+      "id": "res_image",
+      "type": "image",
+      "role": "attachment",
+      "asset": {
+        "uploadId": "upload_01...",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 220144,
+        "width": 1200,
+        "height": 900,
+        "sha256": "sha256:..."
+      }
+    },
+    {
+      "id": "res_parent",
+      "type": "text",
+      "role": "context",
+      "language": "es-ES",
+      "data": {
+        "text": "Mensaje anterior necesario para interpretar la respuesta"
+      },
+      "sha256": "sha256:..."
+    }
+  ],
+  "relations": [
+    {
+      "from": "res_post",
+      "type": "has_attachment",
+      "to": "res_image"
+    },
+    {
+      "from": "res_post",
+      "type": "replies_to",
+      "to": "res_parent"
+    }
+  ],
+  "allegations": [
+    {
+      "code": "harassment.targeted_abuse",
+      "resourceIds": ["res_post"],
+      "reporterPrincipalRef": "reporter_1",
+      "details": "Contexto opcional del denunciante"
+    }
+  ],
+  "policy": {
+    "policySetId": "mention.community",
+    "version": "2026.07",
+    "locale": "es-ES"
+  },
+  "privacy": {
+    "retentionDays": 30,
+    "allowCommunityReview": true,
+    "containsPersonalData": false,
+    "sensitivityHint": "standard"
+  },
+  "urgency": {
+    "hint": "normal",
+    "reach": 120,
+    "activeDistribution": true
+  },
+  "metadata": {
+    "visibility": "public",
+    "contentVersion": 3
+  }
+}

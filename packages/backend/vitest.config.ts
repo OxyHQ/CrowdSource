@@ -10,6 +10,15 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: [path.resolve(backendRoot, 'vitest.setup.ts')],
+    // Starts the MongoDB replica set the integration tests run against and
+    // publishes its URI before any worker forks. See the file for why a replica
+    // set specifically.
+    globalSetup: [path.resolve(backendRoot, 'vitest.globalSetup.ts')],
+    // Downloading and starting a mongod on a cold cache is slower than the
+    // default 60s allows, and a timeout there looks like a broken test rather
+    // than a slow one.
+    testTimeout: 30_000,
+    hookTimeout: 120_000,
     include: [path.resolve(backendRoot, 'src/__tests__/**/*.test.ts')],
     coverage: {
       provider: 'v8',

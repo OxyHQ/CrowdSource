@@ -28,5 +28,9 @@
     "outDir": "./dist"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  // Tests are excluded from the EMITTING project so they never reach `dist/`
+  // and therefore never reach the published tarball. They are still fully
+  // type-checked — `tsconfig.test.json` covers them and `bun run lint` runs
+  // both projects, so excluding them here costs no coverage.
+  "exclude": ["node_modules", "dist", "src/__tests__"]
 }

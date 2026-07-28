@@ -4,8 +4,33 @@ CrowdSource's Express service — the modular monolith that will own tenancy,
 ingestion, evidence, cases, sortition, review, consensus, decisions, webhook
 delivery and the Oxy Trust reputation bridge.
 
-Today it is a skeleton: it validates its configuration, serves health endpoints
-and nothing else. Modules mount in `src/app.ts` as they are built.
+Built so far: **tenancy** (organizations, applications, service credentials,
+scopes), **service-credential authentication and tenant context**, the
+**ingestion** write path for `POST /v1/reports` with its idempotency indexes, and
+the **transactional outbox** row every domain write commits alongside. Evidence,
+cases, policy registry, triage, sortition, review, consensus, decision, webhook
+delivery and the reputation bridge are not written; modules mount in `src/app.ts`
+as they are built.
+
+Two things are deliberately absent rather than stubbed. Full **Case Envelope
+validation** (§7.2 steps 2-7) belongs to `@oxyhq/crowdsource-contracts`;
+ingestion validates the request and stores the envelope without pretending to
+have checked a schema it has never seen. The **outbox dispatcher** is not built
+either, so rows accumulate as `pending` — which is the safe direction: the row is
+the durable record, and the queue that will read it is only a dispatch hint.
+
+## Surfaces
+
+| Method | Route | Auth | Scope |
+| --- | --- | --- | --- |
+| GET | `/health/live`, `/health/ready` | none | — |
+| POST | `/v1/reports` | service credential | `crowdsource:reports:write` |
+| GET | `/v1/reports/{reportId}` | service credential | `crowdsource:reports:read` |
+
+Creating organizations, applications and credentials is a **domain service**
+(`src/modules/tenancy/provisioning.service.ts`), not an HTTP surface. The
+Developer Console (§4.2) is what will call it, and shipping routes for it before
+the console exists would mean unauthenticated tenant creation in production.
 
 ## Structure
 
@@ -23,6 +48,20 @@ and nothing else. Modules mount in `src/app.ts` as they are built.
 - `src/db/tenantScope.ts` — the tenant isolation boundary. Mongo has no Row
   Level Security, so isolation holds only while every tenant-owned query goes
   through here.
+- `src/db/collections.ts` — the only way this service reaches a collection.
+  Declares tenant-owned collections (every read and write takes a
+  `TenantContext`) and the few that cannot be scoped by the tenant because they
+  define it, each of which states its reason in source.
+- `src/db/driverEscapes.ts` + `src/__tests__/collectionBoundary.test.ts` — the
+  gate on the above. Nothing in Mongo stops a query that forgets its tenant
+  filter, so the build fails when a module outside `src/db` reaches the driver.
+- `src/db/transaction.ts` — transactions, and the duplicate-key classification
+  that lets idempotency be a unique index instead of a racy read-then-write.
+- `src/http/` — the §10.5 error convention and the one place a failure becomes a
+  response.
+- `src/modules/` — the modular monolith. `tenancy` owns the tenant and where
+  `applicationId` comes from; `ingestion` owns the report write path; `outbox`
+  owns the durable event row.
 - `src/utils/database.ts` — connection, retry and drain.
 - `src/routes/health.routes.ts` — liveness and readiness, kept separate so a
   draining task, or one that lost its database, fails readiness while still
@@ -59,3 +98,11 @@ bun run build    # tsc -> dist/ (this is what the ECS image runs)
 bun run lint     # tsc --noEmit
 bun run test     # vitest
 ```
+
+The suite starts a **disposable MongoDB replica set** (`mongodb-memory-server`,
+a devDependency) rather than using the local one, and the integration tests run
+against it — a mocked driver can be made to agree with any claim about a unique
+index or a transaction, which is exactly why it must not be what those claims are
+tested against. `src/__tests__/support/tenants.ts` refuses to run if that replica
+set did not start, so a suite that silently fell back to a developer's local Mongo
+fails instead of passing against the wrong server.

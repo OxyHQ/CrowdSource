@@ -138,7 +138,7 @@ bun run dev:reviewer        # reviewer app (Expo tunnel)
 bun run build               # contracts, backend, SDKs
 bun run build:reviewer      # reviewer static web export
 bun run check               # doctor + workflows + security audit + build + typecheck + lint
-bun run test                # backend (vitest) + reviewer (jest)
+bun run test                # contracts + backend (vitest) + reviewer (jest)
 ```
 
 ## Planning

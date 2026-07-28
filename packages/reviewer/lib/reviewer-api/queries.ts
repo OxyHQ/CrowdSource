@@ -1,0 +1,255 @@
+/**
+ * React Query bindings for the Reviewer API.
+ *
+ * Every response passes through a projection in `redaction.ts` before it becomes
+ * app state, and every assignment payload is additionally scanned for the fields
+ * PLAN §9.1 forbids. The scan reports paths only: the values it would otherwise
+ * report are case material, and case material does not go to logs.
+ */
+
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseInfiniteQueryResult,
+  type UseMutationResult,
+  type UseQueryResult,
+} from '@tanstack/react-query';
+import { useCallback } from 'react';
+
+import { createScopedLogger } from '@/lib/logger';
+
+import { clearActiveAssignment, setActiveAssignment } from './active-assignment';
+import {
+  getAssignment,
+  getHistory,
+  getReviewerProfile,
+  getTraining,
+  postNextAssignment,
+  postOnboarding,
+  postRecusal,
+  postReview,
+  putReviewerPreferences,
+} from './client';
+import { isAssignmentNotHeld, isReviewerApiUnavailable } from './errors';
+import {
+  projectAssignmentPackage,
+  projectHistoryPage,
+  projectReviewerProfile,
+  projectTrainingState,
+  scanForForbiddenFields,
+} from './redaction';
+import type {
+  AssignmentPackage,
+  OnboardingSubmission,
+  RecusalSubmission,
+  ReviewHistoryPage,
+  ReviewSubmission,
+  ReviewerPreferences,
+  ReviewerProfile,
+  TrainingState,
+} from './types';
+
+const logger = createScopedLogger('ReviewerApi');
+
+export const reviewerQueryKeys = {
+  profile: ['reviewer', 'profile'] as const,
+  training: ['reviewer', 'training'] as const,
+  history: ['reviewer', 'history'] as const,
+};
+
+/**
+ * An unavailable endpoint and a lost assignment are answers, not transient
+ * failures. Retrying either only delays the screen that already knows what to
+ * say about them.
+ */
+function reviewerQueryRetry(failureCount: number, error: unknown): boolean {
+  if (isReviewerApiUnavailable(error) || isAssignmentNotHeld(error)) {
+    return false;
+  }
+  return failureCount < 2;
+}
+
+/**
+ * Projects an assignment payload and raises the alarm if the server sent a field
+ * §9.1 forbids.
+ *
+ * The projection is the enforcement — the forbidden fields are dropped whether
+ * or not anyone is watching. This warning exists so that a backend regression is
+ * visible while it is still cheap to fix.
+ */
+function ingestAssignment(payload: unknown): AssignmentPackage {
+  const forbiddenPaths = scanForForbiddenFields(payload);
+  if (forbiddenPaths.length > 0) {
+    logger.warn('Assignment payload carried fields a reviewer must not see; dropped', {
+      // Paths only. Never values.
+      paths: forbiddenPaths,
+    });
+  }
+  return projectAssignmentPackage(payload);
+}
+
+export function useReviewerProfile(): UseQueryResult<ReviewerProfile, Error> {
+  return useQuery<ReviewerProfile, Error>({
+    queryKey: reviewerQueryKeys.profile,
+    queryFn: async () => projectReviewerProfile(await getReviewerProfile()),
+    retry: reviewerQueryRetry,
+  });
+}
+
+export function useTrainingState(): UseQueryResult<TrainingState, Error> {
+  return useQuery<TrainingState, Error>({
+    queryKey: reviewerQueryKeys.training,
+    queryFn: async () => projectTrainingState(await getTraining()),
+    retry: reviewerQueryRetry,
+  });
+}
+
+export function useReviewHistory(): UseInfiniteQueryResult<
+  { pages: ReviewHistoryPage[]; pageParams: (string | null)[] },
+  Error
+> {
+  return useInfiniteQuery<
+    ReviewHistoryPage,
+    Error,
+    { pages: ReviewHistoryPage[]; pageParams: (string | null)[] },
+    readonly string[],
+    string | null
+  >({
+    queryKey: reviewerQueryKeys.history,
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => projectHistoryPage(await getHistory(pageParam)),
+    getNextPageParam: (lastPage: ReviewHistoryPage) => lastPage.nextCursor,
+    retry: reviewerQueryRetry,
+  });
+}
+
+/**
+ * PLAN §4.1 — "Revisar siguiente caso" REQUESTS an assignment. The reviewer
+ * expresses availability; the server decides which case, or that there is none.
+ *
+ * A `null` result is a legitimate answer: no case currently matches this
+ * reviewer's categories, languages, consent and exposure headroom. It is not an
+ * error and must not be presented as one.
+ */
+export function useRequestNextAssignment(): UseMutationResult<
+  AssignmentPackage | null,
+  Error,
+  void
+> {
+  return useMutation({
+    mutationFn: async () => {
+      const payload = await postNextAssignment();
+      if (payload === null || payload === undefined || payload === '') {
+        return null;
+      }
+      return ingestAssignment(payload);
+    },
+    onSuccess: (assignment) => {
+      setActiveAssignment(assignment);
+    },
+  });
+}
+
+/**
+ * Re-fetches the open assignment by the id it already holds.
+ *
+ * This is a REFRESH of something the server already handed out, not a lookup:
+ * the id comes from the in-memory assignment, never from a route parameter or
+ * anything a person could type.
+ */
+export function useRefreshAssignment(): UseMutationResult<AssignmentPackage, Error, string> {
+  return useMutation({
+    mutationFn: async (assignmentId: string) => ingestAssignment(await getAssignment(assignmentId)),
+    onSuccess: (assignment) => {
+      setActiveAssignment(assignment);
+    },
+    onError: (error) => {
+      if (isAssignmentNotHeld(error)) {
+        clearActiveAssignment();
+      }
+    },
+  });
+}
+
+export function useSubmitReview(): UseMutationResult<
+  void,
+  Error,
+  { assignmentId: string; review: ReviewSubmission }
+> {
+  return useMutation({
+    mutationFn: async ({ assignmentId, review }) => {
+      await postReview(assignmentId, review);
+    },
+    onSuccess: () => {
+      // The case leaves the device the moment the review is in. Nothing about it
+      // is worth keeping, and the reviewer must not be able to revisit a vote.
+      clearActiveAssignment();
+    },
+  });
+}
+
+/**
+ * PLAN §13.7 — recusal is never penalised, so it is never made harder than
+ * submitting. Same shape of call, same immediacy, no confirmation gauntlet.
+ */
+export function useRecuseFromAssignment(): UseMutationResult<
+  void,
+  Error,
+  { assignmentId: string; recusal: RecusalSubmission }
+> {
+  return useMutation({
+    mutationFn: async ({ assignmentId, recusal }) => {
+      await postRecusal(assignmentId, recusal);
+    },
+    onSuccess: () => {
+      clearActiveAssignment();
+    },
+  });
+}
+
+export function useUpdatePreferences(): UseMutationResult<
+  ReviewerProfile,
+  Error,
+  ReviewerPreferences
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (preferences) =>
+      projectReviewerProfile(await putReviewerPreferences(preferences)),
+    onSuccess: (profile) => {
+      // The response IS the new profile, so write it rather than invalidate: a
+      // reviewer who has just revoked consent for a category must not see the
+      // old value while a refetch is in flight.
+      queryClient.setQueryData(reviewerQueryKeys.profile, profile);
+    },
+  });
+}
+
+export function useCompleteOnboarding(): UseMutationResult<
+  ReviewerProfile,
+  Error,
+  OnboardingSubmission
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (submission) => projectReviewerProfile(await postOnboarding(submission)),
+    onSuccess: (profile) => {
+      queryClient.setQueryData(reviewerQueryKeys.profile, profile);
+    },
+  });
+}
+
+/**
+ * Clears the open assignment without telling the server anything.
+ *
+ * This is the wellbeing screen's immediate exit (PLAN §4.1). It is not a
+ * recusal — the assignment stays the reviewer's until it expires — it just stops
+ * the material being on screen right now, which is the point.
+ */
+export function useStopShowingCase(): () => void {
+  return useCallback(() => {
+    clearActiveAssignment();
+  }, []);
+}

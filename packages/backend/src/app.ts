@@ -1,9 +1,10 @@
 import compression from 'compression';
-import express, { type Express, type NextFunction, type Request, type Response } from 'express';
+import express, { type Express, Router } from 'express';
 import helmet from 'helmet';
 
+import { errorHandler, notFoundHandler } from './http/errorHandler';
+import { reportsRouter } from './modules/ingestion/reports.routes';
 import { healthRouter } from './routes/health.routes';
-import { logger } from './utils/logger';
 
 /**
  * Builds the HTTP application.
@@ -12,9 +13,10 @@ import { logger } from './utils/logger';
  * process-level handlers — `server.ts` owns all of that — so tests can exercise
  * the application without a runtime around it.
  *
- * The moderation modules of the plan (tenancy, ingestion, evidence, cases,
- * sortition, review, consensus, decision, webhook delivery, reputation bridge)
- * mount here as they are built. Nothing but health is served today.
+ * The moderation modules of the plan mount here as they are built. Today that is
+ * ingestion, behind the tenancy module's service-credential middleware;
+ * evidence, cases, policy registry, triage, sortition, review, consensus,
+ * decision, webhook delivery and the reputation bridge are not written.
  */
 export function createApp(): Express {
   const app = express();
@@ -30,18 +32,18 @@ export function createApp(): Express {
 
   app.use('/health', healthRouter);
 
-  app.use((_request: Request, response: Response) => {
-    response.status(404).json({
-      error: { code: 'not_found', message: 'No route matches this request.' },
-    });
-  });
+  /**
+   * The application API (§10.2). Every route below authenticates a SERVICE
+   * CREDENTIAL and derives its tenant from it. Reviewer and Trust & Safety
+   * routes are a different caller class — an Oxy session — and will mount on
+   * their own paths; neither may ever satisfy the other's middleware.
+   */
+  const v1: Router = Router();
+  v1.use(reportsRouter);
+  app.use('/v1', v1);
 
-  app.use((error: Error, _request: Request, response: Response, _next: NextFunction) => {
-    logger.error({ err: error }, 'Unhandled request error');
-    response.status(500).json({
-      error: { code: 'internal_error', message: 'The request could not be completed.' },
-    });
-  });
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }

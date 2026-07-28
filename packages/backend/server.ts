@@ -2,6 +2,7 @@ import http from 'node:http';
 
 import { createApp } from './src/app';
 import { config } from './src/config';
+import { ensureIndexes } from './src/db/collections';
 import { setRuntimeReady } from './src/routes/health.routes';
 import { connectToDatabase, disconnectFromDatabase } from './src/utils/database';
 import { logger } from './src/utils/logger';
@@ -38,6 +39,16 @@ async function start(): Promise<void> {
   // Refuse a deployment that could never honour the outbox, rather than
   // discovering it at the first transactional write.
   await assertTransactionalTopology();
+  /**
+   * Idempotency is a unique index (§12.7), so a task serving traffic without
+   * its indexes accepts duplicate reports while reporting perfect health. This
+   * runs before the listener for that reason and not as a convenience.
+   *
+   * It belongs to the migration runner once one exists; until then it lives
+   * here, because the alternative is a correctness guarantee that depends on
+   * somebody having remembered to create an index by hand.
+   */
+  await ensureIndexes();
 
   await new Promise<void>((resolve) => {
     server.listen(config.port, resolve);

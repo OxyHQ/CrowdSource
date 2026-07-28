@@ -1,0 +1,38 @@
+{
+  "id": "dec_01...",
+  "caseId": "case_01...",
+  "revision": 1,
+  "status": "final",
+  "outcome": "violation",
+  "contextSufficiency": "sufficient",
+  "confidence": 0.91,
+  "findings": [
+    {
+      "code": "harassment.targeted_abuse",
+      "resourceIds": ["res_post"],
+      "severity": "medium",
+      "scope": "oxy_network",
+      "attribution": "author",
+      "policyRuleIds": ["mention.harassment.2"]
+    }
+  ],
+  "recommendedActions": [
+    {
+      "action": "remove_or_restrict",
+      "targetResourceIds": ["res_post"]
+    }
+  ],
+  "jury": {
+    "size": 5,
+    "decisiveVotes": 5,
+    "winningVotes": 4,
+    "agreement": 0.8,
+    "specialistPresent": true
+  },
+  "policyVersions": {
+    "taxonomy": "2026.1",
+    "application": "mention.2026.07",
+    "oxyConduct": "oxy.2026.1"
+  },
+  "publishedAt": "2026-07-28T18:30:00.000Z"
+}
