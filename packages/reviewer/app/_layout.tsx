@@ -73,7 +73,7 @@ function AuthRouter() {
   }
 
   const inAuthGroup = segments[0] === '(auth)';
-  if (false && !isAuthenticated && !inAuthGroup) {
+  if (!isAuthenticated && !inAuthGroup) {
     return <Redirect href="/sign-in" />;
   }
   if (isAuthenticated && inAuthGroup) {
