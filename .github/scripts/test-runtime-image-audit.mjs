@@ -14,7 +14,7 @@ const auditScript = resolve(
   repositoryRoot,
   ".github/scripts/audit-runtime-image.mjs",
 );
-const fixtureRoot = await mkdtemp("/tmp/mention-runtime-audit-");
+const fixtureRoot = await mkdtemp("/tmp/crowdsource-runtime-audit-");
 
 async function writeJson(relativePath, value) {
   const outputPath = resolve(fixtureRoot, relativePath);
@@ -34,7 +34,7 @@ async function runAudit(
       AUDIT_ROOT: fixtureRoot,
       EXPECTED_RUNTIME_ENTRY: "packages/backend/dist/server.js",
       EXPECTED_WORKSPACE_PACKAGES:
-        "@mention/backend,@mention/shared-types",
+        "@crowdsource/backend,@oxyhq/crowdsource-contracts",
       ...extraEnvironment,
     },
     stdout: "pipe",
@@ -56,10 +56,10 @@ async function runAudit(
 
 try {
   await writeJson("packages/backend/package.json", {
-    name: "@mention/backend",
+    name: "@crowdsource/backend",
   });
   await writeJson("packages/shared-types/package.json", {
-    name: "@mention/shared-types",
+    name: "@oxyhq/crowdsource-contracts",
   });
   await mkdir(resolve(fixtureRoot, "packages/backend/dist"), {
     recursive: true,
@@ -73,8 +73,8 @@ try {
   await runAudit(true, "Runtime image audit passed");
   await runAudit(
     false,
-    "Required runtime command is missing from PATH: mention-missing-command",
-    { EXPECTED_RUNTIME_COMMANDS: "bun,mention-missing-command" },
+    "Required runtime command is missing from PATH: crowdsource-missing-command",
+    { EXPECTED_RUNTIME_COMMANDS: "bun,crowdsource-missing-command" },
   );
 
   await writeJson("node_modules/typescript/package.json", {
@@ -111,9 +111,9 @@ try {
   });
 
   await writeJson("packages/frontend/package.json", {
-    name: "@mention/frontend",
+    name: "@crowdsource/reviewer",
   });
-  await runAudit(false, "Unexpected workspace in final image: @mention/frontend");
+  await runAudit(false, "Unexpected workspace in final image: @crowdsource/reviewer");
 
   console.log("Runtime image audit fixture tests passed.");
 } finally {

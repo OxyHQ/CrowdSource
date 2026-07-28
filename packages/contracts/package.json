@@ -1,0 +1,41 @@
+{
+  "name": "@oxyhq/crowdsource-contracts",
+  "version": "0.1.0",
+  "description": "Versioned CrowdSource contracts: case envelope, resources, taxonomy, policies, reviews, decisions, webhooks and reputation events",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "crowdsource",
+    "moderation",
+    "contracts",
+    "typescript"
+  ],
+  "author": "OxyHQ",
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.5",
+    "typescript": "^5.9.3"
+  },
+  "files": [
+    "dist/**/*"
+  ]
+}

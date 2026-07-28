@@ -29,7 +29,7 @@ aws() {
     "failures": [],
     "services": [{
       "status": "ACTIVE",
-      "taskDefinition": "arn:aws:ecs:test:task-definition/mention-test:1",
+      "taskDefinition": "arn:aws:ecs:test:task-definition/crowdsource-test:1",
       "desiredCount": 1,
       "networkConfiguration": {
         "awsvpcConfiguration": {
@@ -40,14 +40,14 @@ aws() {
       "launchType": "FARGATE",
       "deployments": [
         {
-          "taskDefinition": "arn:aws:ecs:test:task-definition/mention-test:2",
+          "taskDefinition": "arn:aws:ecs:test:task-definition/crowdsource-test:2",
           "status": "PRIMARY",
           "rolloutState": "COMPLETED",
           "runningCount": 1,
           "desiredCount": 1
         },
         {
-          "taskDefinition": "arn:aws:ecs:test:task-definition/mention-test:1",
+          "taskDefinition": "arn:aws:ecs:test:task-definition/crowdsource-test:1",
           "status": "PRIMARY",
           "rolloutState": "COMPLETED",
           "runningCount": 1,
@@ -74,7 +74,7 @@ aws() {
             "$describe_count" == "2" ]]; then
         service_json="$(jq '
           .services[0].deployments |= map(
-              if .taskDefinition == "arn:aws:ecs:test:task-definition/mention-test:2"
+              if .taskDefinition == "arn:aws:ecs:test:task-definition/crowdsource-test:2"
               then
                 .rolloutState = "IN_PROGRESS"
                 | .desiredCount = 0
@@ -88,7 +88,7 @@ aws() {
         service_json="$(jq '
           .services[0].desiredCount = 0
           | .services[0].deployments |= map(
-              if .taskDefinition == "arn:aws:ecs:test:task-definition/mention-test:2"
+              if .taskDefinition == "arn:aws:ecs:test:task-definition/crowdsource-test:2"
               then .desiredCount = 0 | .runningCount = 0
               else .
               end
@@ -98,7 +98,7 @@ aws() {
               "$describe_count" == "2" ]]; then
         service_json="$(jq '
           .services[0].deployments |= map(
-              if .taskDefinition == "arn:aws:ecs:test:task-definition/mention-test:2"
+              if .taskDefinition == "arn:aws:ecs:test:task-definition/crowdsource-test:2"
               then .desiredCount = 0 | .runningCount = 0
               else .
               end
@@ -109,19 +109,19 @@ aws() {
       ;;
     "ecs describe-task-definition")
       printf '%s\n' '{
-        "family": "mention-test",
+        "family": "crowdsource-test",
         "networkMode": "awsvpc",
         "requiresCompatibilities": ["FARGATE"],
         "cpu": "256",
         "memory": "512",
         "containerDefinitions": [{
-          "name": "mention-test",
-          "image": "example.invalid/mention-test:old",
+          "name": "crowdsource-test",
+          "image": "example.invalid/crowdsource-test:old",
           "essential": true,
           "logConfiguration": {
             "logDriver": "awslogs",
             "options": {
-              "awslogs-group": "/ecs/mention-test",
+              "awslogs-group": "/ecs/crowdsource-test",
               "awslogs-stream-prefix": "ecs"
             }
           }
@@ -142,11 +142,11 @@ aws() {
         done
         jq -e '
           .containerDefinitions[]
-          | select(.name == "mention-test")
+          | select(.name == "crowdsource-test")
           | .secrets[]
           | select(
               .name == "INTERNAL_METRICS_TOKEN" and
-              .valueFrom == "arn:aws:ssm:test:123456789012:parameter/oxy/mention/INTERNAL_METRICS_TOKEN"
+              .valueFrom == "arn:aws:ssm:test:123456789012:parameter/oxy/crowdsource/INTERNAL_METRICS_TOKEN"
             )
         ' "$input_json" >/dev/null
         printf 'metrics:arn\n' >>"$DEPLOY_TEST_LOG"
@@ -164,16 +164,16 @@ aws() {
         done
         jq -e '
           .containerDefinitions[]
-          | select(.name == "mention-test")
+          | select(.name == "crowdsource-test")
           | .secrets[]
           | select(
-              .name == "MENTION_MCP_JWT_SECRET" and
-              .valueFrom == "arn:aws:ssm:test:123456789012:parameter/oxy/mention-mcp/MENTION_MCP_JWT_SECRET"
+              .name == "EXAMPLE_TASK_SECRET" and
+              .valueFrom == "arn:aws:ssm:test:123456789012:parameter/oxy/crowdsource/EXAMPLE_TASK_SECRET"
             )
         ' "$input_json" >/dev/null
         printf 'task-secret:arn\n' >>"$DEPLOY_TEST_LOG"
       fi
-      printf '%s\n' "arn:aws:ecs:test:task-definition/mention-test:2"
+      printf '%s\n' "arn:aws:ecs:test:task-definition/crowdsource-test:2"
       ;;
     "ecs update-service")
       local previous_argument=""
@@ -202,7 +202,7 @@ aws() {
       printf 'reconcile\n' >>"$DEPLOY_TEST_LOG"
       printf '%s\n' '{
         "failures": [],
-        "tasks": [{"taskArn": "arn:aws:ecs:test:task/mention-reconcile"}]
+        "tasks": [{"taskArn": "arn:aws:ecs:test:task/crowdsource-postdeploy"}]
       }'
       ;;
     "ecs describe-tasks")
@@ -212,7 +212,7 @@ aws() {
           "lastStatus": "STOPPED",
           "stoppedReason": "Essential container exited",
           "containers": [{
-            "name": "mention-test",
+            "name": "crowdsource-test",
             "exitCode": %s
           }]
         }]
@@ -270,10 +270,10 @@ run_release() {
   local -a release_environment=(
     AWS_REGION=test
     AWS_ACCOUNT_ID=123456789012
-    CLUSTER=mention-test
-    APP=mention-test
-    CONTAINER_NAME=mention-test
-    IMAGE_URI="example.invalid/mention-test@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    CLUSTER=crowdsource-test
+    APP=crowdsource-test
+    CONTAINER_NAME=crowdsource-test
+    IMAGE_URI="example.invalid/crowdsource-test@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     MAX_WAIT_SECS=5
     POLL_INTERVAL=1
     RUN_MIGRATIONS="$run_migrations"
@@ -282,12 +282,12 @@ run_release() {
   )
   if [[ "$inject_internal_metrics" == "true" ]]; then
     release_environment+=(
-      INTERNAL_METRICS_PARAMETER=/oxy/mention/INTERNAL_METRICS_TOKEN
+      INTERNAL_METRICS_PARAMETER=/oxy/crowdsource/INTERNAL_METRICS_TOKEN
     )
   fi
   if [[ "$inject_task_secret" == "true" ]]; then
     release_environment+=(
-      TASK_SECRET_OVERRIDES_JSON='{"MENTION_MCP_JWT_SECRET":"arn:aws:ssm:test:123456789012:parameter/oxy/mention-mcp/MENTION_MCP_JWT_SECRET"}'
+      TASK_SECRET_OVERRIDES_JSON='{"EXAMPLE_TASK_SECRET":"arn:aws:ssm:test:123456789012:parameter/oxy/crowdsource/EXAMPLE_TASK_SECRET"}'
     )
   fi
 
@@ -308,7 +308,7 @@ run_release() {
 run_release success true false true
 printf '%s\n' \
   metrics:arn \
-  'service:arn:aws:ecs:test:task-definition/mention-test:2:desired=1' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:2:desired=1' \
   smoke \
   reconcile \
   >"$test_directory/success/expected.log"
@@ -319,7 +319,7 @@ diff -u \
 run_release explicit-task-secret true false false 0 true
 printf '%s\n' \
   task-secret:arn \
-  'service:arn:aws:ecs:test:task-definition/mention-test:2:desired=1' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:2:desired=1' \
   smoke \
   reconcile \
   >"$test_directory/explicit-task-secret/expected.log"
@@ -329,11 +329,11 @@ diff -u \
 
 run_release reconciliation-failure false false false 1
 printf '%s\n' \
-  'service:arn:aws:ecs:test:task-definition/mention-test:2:desired=1' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:2:desired=1' \
   smoke \
   reconcile \
   tasklogs \
-  'service:arn:aws:ecs:test:task-definition/mention-test:1:desired=1' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:1:desired=1' \
   >"$test_directory/reconciliation-failure/expected.log"
 diff -u \
   "$test_directory/reconciliation-failure/expected.log" \
@@ -368,7 +368,7 @@ fi
 
 run_release transient-zero-deployment true false false 0 false 1 transient-zero-deployment
 printf '%s\n' \
-  'service:arn:aws:ecs:test:task-definition/mention-test:2:desired=1' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:2:desired=1' \
   smoke \
   reconcile \
   >"$test_directory/transient-zero-deployment/expected.log"
@@ -382,21 +382,21 @@ grep -F \
 
 run_release zero-service-during-deploy false false false 0 false 1 zero-service-during-deploy
 printf '%s\n' \
-  'service:arn:aws:ecs:test:task-definition/mention-test:2:desired=1' \
-  'service:arn:aws:ecs:test:task-definition/mention-test:1:desired=1' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:2:desired=1' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:1:desired=1' \
   >"$test_directory/zero-service-during-deploy/expected.log"
 diff -u \
   "$test_directory/zero-service-during-deploy/expected.log" \
   "$test_directory/zero-service-during-deploy/aws.log"
 grep -F \
-  "service mention-test reached desiredCount=0 during the deployment rollout" \
+  "service crowdsource-test reached desiredCount=0 during the deployment rollout" \
   "$test_directory/zero-service-during-deploy/output.log" \
   >/dev/null
 
 run_release completed-zero-deployment false false false 0 false 1 completed-zero-deployment
 printf '%s\n' \
-  'service:arn:aws:ecs:test:task-definition/mention-test:2:desired=1' \
-  'service:arn:aws:ecs:test:task-definition/mention-test:1:desired=1' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:2:desired=1' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:1:desired=1' \
   >"$test_directory/completed-zero-deployment/expected.log"
 diff -u \
   "$test_directory/completed-zero-deployment/expected.log" \

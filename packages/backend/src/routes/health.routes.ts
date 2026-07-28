@@ -1,39 +1,41 @@
 import { Router } from 'express';
+
 import { isDatabaseConnected } from '../utils/database';
-import { getRedisStats } from '../utils/redis';
-import { getRuntimeHealthState } from '../utils/runtimeHealth';
 
-const router = Router();
+/**
+ * Liveness and readiness.
+ *
+ * `/health/live` answers "is the process running"; `/health/ready` answers "may
+ * the load balancer send traffic here". They are separate because a task that
+ * has begun draining, or one that has lost its database, must fail readiness
+ * while still answering liveness — otherwise the orchestrator kills it instead
+ * of routing around it.
+ *
+ * Readiness re-reads the connection state on every request rather than caching
+ * a boot-time result, so a database that drops later is reflected immediately.
+ */
 
-router.get('/health/live', (_req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  // A process that can answer this request is alive. Draining is represented
-  // exclusively by readiness so an orchestrator does not mistake a graceful
-  // shutdown for a wedged process.
-  res.status(200).json({ status: 'alive' });
+let runtimeReady = false;
+
+/** Flipped by the process bootstrap once the server accepts connections. */
+export function setRuntimeReady(ready: boolean): void {
+  runtimeReady = ready;
+}
+
+export const healthRouter: Router = Router();
+
+healthRouter.get('/live', (_request, response) => {
+  response.status(200).json({ status: 'live' });
 });
 
-router.get('/health/ready', (_req, res) => {
-  const runtime = getRuntimeHealthState();
-  const mongoReady = isDatabaseConnected();
-  const redis = getRedisStats();
-  const ready =
-    runtime.phase === 'ready' &&
-    runtime.migrationsComplete &&
-    mongoReady;
-
-  res.setHeader('Cache-Control', 'no-store');
-  res.status(ready ? 200 : 503).json({
-    status: ready ? 'ready' : 'not_ready',
-    phase: runtime.phase,
-    dependencies: {
-      mongo: mongoReady ? 'ready' : 'unavailable',
-      migrations: runtime.migrationsComplete ? 'ready' : 'pending',
-      // Redis is intentionally non-blocking for HTTP readiness. Singleton jobs
-      // independently fail closed when they cannot hold the Redis lease.
-      redis: redis.connected ? 'ready' : 'degraded',
-    },
-  });
+healthRouter.get('/ready', (_request, response) => {
+  if (!runtimeReady) {
+    response.status(503).json({ status: 'not_ready', reason: 'starting_or_draining' });
+    return;
+  }
+  if (!isDatabaseConnected()) {
+    response.status(503).json({ status: 'not_ready', reason: 'database_unavailable' });
+    return;
+  }
+  response.status(200).json({ status: 'ready' });
 });
-
-export default router;

@@ -38,9 +38,9 @@ docker run \
   --env EXPECTED_RUNTIME_ENTRY \
   --env EXPECTED_WORKSPACE_PACKAGES \
   --env EXPECTED_RUNTIME_COMMANDS \
-  --volume "$audit_module:/tmp/mention-runtime-image-audit.mjs:ro" \
+  --volume "$audit_module:/tmp/crowdsource-runtime-image-audit.mjs:ro" \
   --entrypoint bun \
   "$image_uri" \
-  /tmp/mention-runtime-image-audit.mjs
+  /tmp/crowdsource-runtime-image-audit.mjs
 
 echo "Final runtime image passed non-root and dependency-boundary checks: $image_uri"

@@ -5,9 +5,9 @@ target="${1:-}"
 sha="${DEPLOY_SHA:-HEAD}"
 
 case "$target" in
-  backend | frontend | mcp) ;;
+  backend | frontend) ;;
   *)
-    echo "usage: deployment-scope.sh <backend|frontend|mcp>" >&2
+    echo "usage: deployment-scope.sh <backend|frontend>" >&2
     exit 2
     ;;
 esac
@@ -41,20 +41,14 @@ deploy=false
 for path in "${changed_paths[@]}"; do
   case "$target:$path" in
     backend:packages/backend/* | \
-    backend:packages/shared-types/* | \
+    backend:packages/contracts/* | \
     backend:.github/scripts/deploy-ecs-image.sh | \
     backend:.github/scripts/audit-runtime-image.sh | \
     backend:.github/scripts/require-current-main.sh | \
     backend:.github/scripts/smoke-crowdsource.sh | \
     backend:.github/scripts/assert-own-database.sh | \
-    mcp:packages/mcp/* | \
-    mcp:packages/shared-types/* | \
-    mcp:.github/scripts/deploy-ecs-image.sh | \
-    mcp:.github/scripts/audit-runtime-image.sh | \
-    mcp:.github/scripts/require-current-main.sh | \
-    mcp:.github/scripts/smoke-mcp.sh | \
-    frontend:packages/frontend/* | \
-    frontend:packages/shared-types/* | \
+    frontend:packages/reviewer/* | \
+    frontend:packages/contracts/* | \
     frontend:.github/scripts/require-current-main.sh | \
     frontend:.github/scripts/smoke-frontend.sh | \
     frontend:.github/scripts/validate-frontend-static-output.mjs)
@@ -62,7 +56,6 @@ for path in "${changed_paths[@]}"; do
       break
       ;;
     backend:package.json | backend:bun.lock | backend:bunfig.toml | backend:tsconfig.json | backend:.dockerignore | backend:patches/* | \
-    mcp:package.json | mcp:bun.lock | mcp:bunfig.toml | mcp:tsconfig.json | mcp:.dockerignore | mcp:patches/* | \
     frontend:package.json | frontend:bun.lock | frontend:bunfig.toml | frontend:tsconfig.json | frontend:patches/*)
       deploy=true
       break

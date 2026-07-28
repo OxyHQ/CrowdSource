@@ -1,0 +1,25 @@
+{
+  "app": {
+    "name": "CrowdSource"
+  },
+  "signIn": {
+    "tagline": "Community review of reported content, one case at a time.",
+    "action": "Sign in with Oxy",
+    "unconfigured": "Sign-in is unavailable: no Oxy client has been registered for this app yet."
+  },
+  "home": {
+    "signedInAs": "Signed in as {{name}}",
+    "noAssignments": "No review surfaces are available yet. Cases are assigned by the server; you can never search for or choose one."
+  },
+  "notFound": {
+    "title": "This page does not exist.",
+    "action": "Go home"
+  },
+  "error": {
+    "boundary": {
+      "title": "Something went wrong",
+      "message": "The screen could not be displayed. Nothing you were reviewing was submitted.",
+      "retry": "Try again"
+    }
+  }
+}

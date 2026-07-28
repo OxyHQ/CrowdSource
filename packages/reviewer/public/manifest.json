@@ -1,0 +1,10 @@
+{
+  "name": "CrowdSource",
+  "short_name": "CrowdSource",
+  "description": "CrowdSource — community review of reported content.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0B0B0F",
+  "theme_color": "#0B0B0F"
+}

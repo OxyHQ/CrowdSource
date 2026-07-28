@@ -178,10 +178,7 @@ for (const workflowName of workflowNames) {
         );
       }
 
-      if (
-        workflowName === "deploy-aws.yml" ||
-        workflowName === "deploy-mcp-aws.yml"
-      ) {
+      if (workflowName === "deploy-aws.yml") {
         const buildIndex = source.indexOf("Build and push immutable");
         const auditIndex = source.indexOf("audit-runtime-image.sh");
         const productionChangesIndex = source.indexOf(
@@ -211,7 +208,7 @@ for (const workflowName of workflowNames) {
       }
 
       if (workflowName === "deploy-frontends.yml") {
-        const buildIndex = source.indexOf("Build frontend");
+        const buildIndex = source.indexOf("Build reviewer");
         const staticValidationIndex = source.indexOf(
           "validate-frontend-static-output.mjs",
         );
@@ -242,16 +239,6 @@ for (const workflowName of workflowNames) {
         ) {
           failures.push(
             `${workflowName}: only a failed Pages smoke may roll back a Pages deployment`,
-          );
-        }
-
-        // crowdsource.oxy.so resolves to the ECS backend, which reverse-proxies
-        // the shell from this Pages project. Asserting the apex from the
-        // frontend release would let backend state fail or roll back a correct
-        // Pages deployment, so the apex host must not appear here at all.
-        if (/https:\/\/crowdsource\.oxy\.so(?![a-z0-9.-])/.test(source)) {
-          failures.push(
-            `${workflowName}: must not assert against the apex; it is served by the backend, so a Pages rollout can never be judged by it`,
           );
         }
       }

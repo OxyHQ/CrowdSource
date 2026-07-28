@@ -1,0 +1,32 @@
+{
+  // ---------------------------------------------------------------------------
+  // @oxyhq/crowdsource-contracts
+  //
+  // The versioned contracts every CrowdSource surface agrees on: the backend
+  // (Node/Bun, CommonJS), the reviewer and console clients (Metro/Expo bundler),
+  // the published SDKs, and third-party integrators. It is the only emitting
+  // leaf all of those consume at the same time, so its output must be safe for
+  // each.
+  //
+  // It emits CommonJS to `dist/` (with .d.ts declarations) because the backend
+  // imports it as a compiled CJS dependency and runs that emitted output in the
+  // Docker/ECS image. Metro happily consumes the same CJS + declarations, so a
+  // single CJS build serves both. Everything else inherits from the root base.
+  // ---------------------------------------------------------------------------
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // --- Intentional override of the root base: emit CommonJS for the backend.
+    // `node` resolution matches the CJS module format the backend runtime uses.
+    "module": "commonjs",
+    "moduleResolution": "node",
+
+    // --- Emit settings (the root base is type-check only / noEmit).
+    "noEmit": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

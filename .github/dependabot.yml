@@ -1,4 +1,4 @@
-# Dependabot configuration for the Mention monorepo.
+# Dependabot configuration for the CrowdSource monorepo.
 #
 # This repo uses Bun (`bun.lock`) with npm-style workspaces. Dependabot has no
 # native "bun" ecosystem, but the `npm` ecosystem reads `package.json` across
@@ -49,8 +49,7 @@ updates:
           - "minor"
           - "patch"
     # MANUALLY managed — do NOT let Dependabot touch the pinned ecosystem.
-    # These versions are coordinated across all Oxy apps (Mention, Allo,
-    # Homiio, accounts, console, inbox, …) and bumped by hand.
+    # These versions are coordinated across every Oxy app and bumped by hand.
     ignore:
       # Oxy platform SDK — pinned + aligned across the monorepo.
       - dependency-name: "@oxyhq/*"

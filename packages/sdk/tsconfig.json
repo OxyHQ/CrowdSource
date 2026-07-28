@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // CommonJS emit so Node consumers, the backend and bundlers all resolve the
+    // same build; `node` resolution matches that module format.
+    "module": "commonjs",
+    "moduleResolution": "node",
+
+    // --- Emit settings (the root base is type-check only / noEmit).
+    "noEmit": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    "baseUrl": ".",
+    "paths": {
+      "@oxyhq/crowdsource-contracts": ["../contracts/src"],
+      "@oxyhq/crowdsource-contracts/*": ["../contracts/src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [{ "path": "../contracts" }]
+}

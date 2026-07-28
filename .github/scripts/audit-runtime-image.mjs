@@ -138,7 +138,8 @@ for (const packageName of expectedWorkspacePackages) {
 }
 
 const bannedExactPackages = new Set([
-  "@mention/frontend",
+  "@crowdsource/reviewer",
+  "@crowdsource/console",
   "expo",
   "expo-router",
   "jest",

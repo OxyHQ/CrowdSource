@@ -44,56 +44,76 @@ if (Object.keys(rootManifest.dependencies || {}).length > 0) {
   failures.push("Runtime dependencies must live in their owning workspace, not the repository root.");
 }
 
-const frontendManifest = await readJson("packages/frontend/package.json");
+const reviewerManifest = await readJson("packages/reviewer/package.json");
 const installedExpo = await readJson("node_modules/expo/package.json");
 const installedBloom = await readJson("node_modules/@oxyhq/bloom/package.json");
 
-if (!String(frontendManifest.dependencies?.expo || "").startsWith("~56.")) {
-  failures.push(`Mention frontend must target Expo 56 (found ${String(frontendManifest.dependencies?.expo)}).`);
+if (!String(reviewerManifest.dependencies?.expo || "").startsWith("~56.")) {
+  failures.push(`The reviewer app must target Expo 56 (found ${String(reviewerManifest.dependencies?.expo)}).`);
 }
 if (!String(installedExpo.version || "").startsWith("56.")) {
   failures.push(`Installed Expo must be version 56.x (found ${String(installedExpo.version)}).`);
 }
-if (frontendManifest.dependencies?.react !== "19.2.3") {
-  failures.push(`Mention frontend must target React 19.2.3 (found ${String(frontendManifest.dependencies?.react)}).`);
+if (reviewerManifest.dependencies?.react !== "19.2.3") {
+  failures.push(`The reviewer app must target React 19.2.3 (found ${String(reviewerManifest.dependencies?.react)}).`);
 }
-if (frontendManifest.dependencies?.["react-native"] !== "0.85.3") {
+if (reviewerManifest.dependencies?.["react-native"] !== "0.85.3") {
   failures.push(
-    `Mention frontend must target React Native 0.85.3 (found ${String(frontendManifest.dependencies?.["react-native"])}).`,
+    `The reviewer app must target React Native 0.85.3 (found ${String(reviewerManifest.dependencies?.["react-native"])}).`,
   );
 }
 if (
-  frontendManifest.dependencies?.["@oxyhq/bloom"] !== "^0.54.1" ||
+  reviewerManifest.dependencies?.["@oxyhq/bloom"] !== "^0.54.1" ||
   rootManifest.overrides?.["@oxyhq/bloom"] !== "^0.54.1" ||
   installedBloom.version !== "0.54.1"
 ) {
   failures.push(
     `Bloom must stay aligned at manifest/override ^0.54.1 and installed 0.54.1 ` +
-      `(found ${String(frontendManifest.dependencies?.["@oxyhq/bloom"])}, ` +
+      `(found ${String(reviewerManifest.dependencies?.["@oxyhq/bloom"])}, ` +
       `${String(rootManifest.overrides?.["@oxyhq/bloom"])}, ${String(installedBloom.version)}).`,
   );
 }
 
-for (const packageName of ["backend", "frontend", "mcp"]) {
+// Every workspace that consumes the shared contracts must resolve them from
+// this repository, never from a published version that can drift behind it.
+for (const packageName of ["backend", "reviewer", "sdk", "sdk-express", "testing"]) {
   const manifest = await readJson(`packages/${packageName}/package.json`);
   const range =
-    manifest.dependencies?.["@mention/shared-types"] ??
-    manifest.devDependencies?.["@mention/shared-types"];
+    manifest.dependencies?.["@oxyhq/crowdsource-contracts"] ??
+    manifest.devDependencies?.["@oxyhq/crowdsource-contracts"];
 
   if (range !== "workspace:*") {
     failures.push(
-      `packages/${packageName}/package.json must declare @mention/shared-types as workspace:* (found ${String(range)}).`,
+      `packages/${packageName}/package.json must declare @oxyhq/crowdsource-contracts as workspace:* (found ${String(range)}).`,
     );
   }
 }
 
-const rootTsconfig = await readFile(resolve(repositoryRoot, "tsconfig.json"), "utf8");
-if (/packages\/agora(?:-shared)?/.test(rootTsconfig)) {
-  failures.push("tsconfig.json still references a removed Agora package.");
+// The image audit fails in BOTH directions, so the workspaces it expects must
+// track the Dockerfile's `--filter` arguments. A rename that updates one and not
+// the other passes locally and fails only during a production rollout.
+const runtimeWorkspaces = ["@crowdsource/backend", "@oxyhq/crowdsource-contracts"];
+const backendDockerfile = await readFile(
+  resolve(repositoryRoot, "packages/backend/Dockerfile"),
+  "utf8",
+);
+const deployWorkflow = await readFile(
+  resolve(repositoryRoot, ".github/workflows/deploy-aws.yml"),
+  "utf8",
+);
+for (const workspace of runtimeWorkspaces) {
+  if (!backendDockerfile.includes(`--filter ${workspace}`)) {
+    failures.push(`packages/backend/Dockerfile must build ${workspace} (--filter ${workspace} is missing).`);
+  }
+}
+if (!deployWorkflow.includes(`EXPECTED_WORKSPACE_PACKAGES: '${runtimeWorkspaces.join(",")}'`)) {
+  failures.push(
+    `deploy-aws.yml must set EXPECTED_WORKSPACE_PACKAGES to '${runtimeWorkspaces.join(",")}' so the image audit matches the Dockerfile.`,
+  );
 }
 
 if (failures.length > 0) {
-  console.error("Mention workspace doctor found configuration drift:\n");
+  console.error("CrowdSource workspace doctor found configuration drift:\n");
   for (const failure of failures) {
     console.error(`- ${failure}`);
   }
@@ -101,8 +121,8 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Mention workspace is reproducible: Bun ${Bun.version}, Node ${actualNodeVersion}, Expo ${installedExpo.version}, ` +
-    `Bloom ${installedBloom.version}, workspace dependencies and TypeScript references are aligned.`,
+  `CrowdSource workspace is reproducible: Bun ${Bun.version}, Node ${actualNodeVersion}, Expo ${installedExpo.version}, ` +
+    `Bloom ${installedBloom.version}, workspace dependencies and the runtime image scope are aligned.`,
 );
 
 async function readJson(relativePath) {

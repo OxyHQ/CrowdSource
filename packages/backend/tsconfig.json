@@ -1,6 +1,6 @@
 {
   // ---------------------------------------------------------------------------
-  // @mention/backend
+  // @crowdsource/backend
   //
   // Compiled with `tsc` to `dist/` (CommonJS) and THAT emitted output is what
   // the Docker/ECS image runs. The module format and emit layout below are a
@@ -12,7 +12,7 @@
   // ---------------------------------------------------------------------------
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "lib": ["ES2020", "DOM"],
+    "lib": ["ES2020"],
     "types": ["node"],
     // --- Intentional override of the root base: emit CommonJS for Node/Bun.
     // The ECS image executes the emitted `dist/**` as CommonJS; `node`
@@ -31,20 +31,15 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
 
-    // Resolve the workspace dependency to shared-types SOURCE during type-check
-    // so backend changes see un-built type updates immediately.
+    // Resolve the workspace dependency to contracts SOURCE during type-check so
+    // backend changes see un-built type updates immediately.
     "baseUrl": ".",
     "paths": {
-      "@mention/shared-types": ["../shared-types/src"],
-      "@mention/shared-types/*": ["../shared-types/src/*"]
+      "@oxyhq/crowdsource-contracts": ["../contracts/src"],
+      "@oxyhq/crowdsource-contracts/*": ["../contracts/src/*"]
     }
   },
-  "include": ["server.ts", "scripts/**/*.ts", "src/**/*.ts", "package.json"],
-  "exclude": [
-    "dist",
-    "src/__tests__",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ],
-  "references": [{ "path": "../shared-types" }]
+  "include": ["server.ts", "src/**/*.ts", "package.json"],
+  "exclude": ["dist", "src/__tests__", "**/*.test.ts", "**/*.spec.ts"],
+  "references": [{ "path": "../contracts" }]
 }

@@ -1,54 +1,47 @@
+import type { Connection } from 'mongoose';
 import mongoose from 'mongoose';
 
-export type MongoTransactionalTopology = 'replica_set' | 'mongos';
-
-export class MongoTransactionalTopologyError extends Error {
-  readonly code = 'MONGO_TRANSACTIONAL_TOPOLOGY_REQUIRED';
-
-  constructor(message: string) {
-    super(message);
-    this.name = 'MongoTransactionalTopologyError';
-  }
-}
-
-type MongoTopologyDatabase = Pick<mongoose.mongo.Db, 'admin'>;
-
-interface MongoHelloResponse {
-  msg?: unknown;
-  setName?: unknown;
-}
-
 /**
- * Verify that the connected Mongo deployment supports multi-document
- * transactions. The probe intentionally returns only a topology class and all
- * failure messages omit hosts, credentials, and connection URIs.
+ * Multi-document transactions require a replica set or a sharded cluster. A
+ * standalone `mongod` accepts every write this service makes today and then
+ * fails the FIRST time a domain write and its outbox event try to commit
+ * together — which is the moment the outbox stops being able to protect
+ * anything.
+ *
+ * That failure is expensive to diagnose later and free to detect now, so the
+ * topology is asserted at boot rather than discovered at runtime.
  */
-export async function assertMongoTransactionalTopology(
-  database: MongoTopologyDatabase | null | undefined = mongoose.connection.db,
-): Promise<MongoTransactionalTopology> {
+
+interface HelloResponse {
+  /** Present on a replica set member. */
+  setName?: unknown;
+  /** `isdbgrid` on a mongos router. */
+  msg?: unknown;
+}
+
+/** True when the connected deployment can run multi-document transactions. */
+export function supportsTransactions(hello: HelloResponse): boolean {
+  const isReplicaSet = typeof hello.setName === 'string' && hello.setName.length > 0;
+  const isShardedCluster = hello.msg === 'isdbgrid';
+  return isReplicaSet || isShardedCluster;
+}
+
+export async function assertTransactionalTopology(
+  connection: Connection = mongoose.connection,
+): Promise<void> {
+  const database = connection.db;
   if (!database) {
-    throw new MongoTransactionalTopologyError(
-      'Cannot verify MongoDB transaction support because there is no active database connection. Deployment stopped before migrations.',
+    throw new Error('Cannot inspect the MongoDB topology before a connection is open.');
+  }
+
+  const hello = (await database.admin().command({ hello: 1 })) as HelloResponse;
+
+  if (!supportsTransactions(hello)) {
+    throw new Error(
+      'MongoDB is a standalone deployment, which cannot run multi-document transactions. ' +
+        'The outbox pattern requires a domain write and its outbox event to commit together, ' +
+        'so moderation work would be silently lost. Connect to a replica set or a sharded ' +
+        "cluster (check with `mongosh --eval 'rs.status().set'`).",
     );
   }
-
-  let hello: MongoHelloResponse;
-  try {
-    hello = await database.admin().command({ hello: 1 });
-  } catch {
-    throw new MongoTransactionalTopologyError(
-      'Could not verify MongoDB transaction support with the hello command. Deployment stopped before migrations; check database reachability and command permissions.',
-    );
-  }
-
-  if (hello.msg === 'isdbgrid') {
-    return 'mongos';
-  }
-  if (typeof hello.setName === 'string' && hello.setName.trim().length > 0) {
-    return 'replica_set';
-  }
-
-  throw new MongoTransactionalTopologyError(
-    'MongoDB standalone topology detected. Multi-document transactions require a replica set or mongos. Deployment stopped before migrations; convert the database topology before retrying.',
-  );
 }

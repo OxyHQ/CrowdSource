@@ -65,9 +65,9 @@ jobs:
       - name: Verify current main before building
         run: bash .github/scripts/require-current-main.sh
 
-      # Runs before any AWS credential is issued: the migration one-shot below
-      # takes its database name from application source, not from the URI, so
-      # this is the only place the target database can be checked.
+      # Runs before any AWS credential is issued. The database this release is
+      # allowed to reach is declared in application source, so this is the
+      # earliest point the target can be checked — long before a task starts.
       - name: Verify this release targets its own database
         run: bash .github/scripts/assert-own-database.sh
 
@@ -113,7 +113,7 @@ jobs:
           # (packages/backend/package.json, and the `--filter` arguments in
           # packages/backend/Dockerfile). The audit fails in both directions, so
           # this must track the manifests, not the product name.
-          EXPECTED_WORKSPACE_PACKAGES: '@mention/backend,@mention/shared-types'
+          EXPECTED_WORKSPACE_PACKAGES: '@crowdsource/backend,@oxyhq/crowdsource-contracts'
         run: bash .github/scripts/audit-runtime-image.sh
 
       - name: Verify current main before production changes
@@ -121,22 +121,13 @@ jobs:
 
       - name: Sync GitHub secrets to SSM
         env:
-          ALIA_API_KEY: ${{ secrets.ALIA_API_KEY }}
-          INTERNAL_METRICS_TOKEN: ${{ secrets.INTERNAL_METRICS_TOKEN }}
-          IP_HASH_SALT: ${{ secrets.IP_HASH_SALT }}
+          # Only what the service actually reads (packages/backend/src/config).
+          # A parameter nothing consumes is a secret with no owner: it never
+          # rotates, and nothing fails when it goes stale. Each module adds its
+          # own here as it ships — REDIS_URL arrives with the first BullMQ queue,
+          # and it will need the shared-Valkey database-index guard back.
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          OXY_SERVICE_API_KEY: ${{ secrets.OXY_SERVICE_API_KEY }}
-          OXY_SERVICE_API_SECRET: ${{ secrets.OXY_SERVICE_API_SECRET }}
-          OXY_SERVICE_TOKEN: ${{ secrets.OXY_SERVICE_TOKEN }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          # KLIPY_APP_KEY is deliberately absent: the task definition pins
-          # GIF_LIBRARY_WRITE_ENABLED=false and carries no reference to the
-          # parameter, so syncing one would be dead config. Re-enabling that
-          # flag means restoring both together.
-          SSM_SECRET_ALLOWLIST: >-
-            ALIA_API_KEY INTERNAL_METRICS_TOKEN IP_HASH_SALT
-            MONGODB_URI OXY_SERVICE_API_KEY OXY_SERVICE_API_SECRET
-            OXY_SERVICE_TOKEN REDIS_URL
+          SSM_SECRET_ALLOWLIST: MONGODB_URI
         run: |
           set -euo pipefail
 
@@ -144,18 +135,6 @@ jobs:
             local value="${1:-}"
             [[ -n "$value" && "$value" != "-" ]]
           }
-
-          # Boot validation ties these two together, so a half-configured pair
-          # crash-loops the new tasks and burns the whole rollout window before
-          # the circuit breaker rolls it back.
-          oxy_key_set=false
-          oxy_secret_set=false
-          if is_set "$OXY_SERVICE_API_KEY"; then oxy_key_set=true; fi
-          if is_set "$OXY_SERVICE_API_SECRET"; then oxy_secret_set=true; fi
-          if [[ "$oxy_key_set" != "$oxy_secret_set" ]]; then
-            echo "::error::OXY_SERVICE_API_KEY and OXY_SERVICE_API_SECRET are validated together at boot; set both repo secrets or neither."
-            exit 1
-          fi
 
           # Every parameter written here is namespaced under /oxy/crowdsource/.
           # This app never writes the shared parameter namespace, which backs
@@ -167,17 +146,12 @@ jobs:
               continue
             fi
 
-            # This app still carries the forked Redis key names — the scheduler
-            # leader lock and the job-queue names are string literals in the
-            # source. Two Oxy backends pointed at the same Valkey database would
-            # elect one leader between them and consume each other's jobs, so
-            # the endpoint has to carry an explicit non-zero database index.
-            if [[ "$key" == "REDIS_URL" ]] &&
-               [[ ! "$value" =~ ^rediss?://[^/]+/[1-9][0-9]*$ ]]; then
-              echo "::error::REDIS_URL must name an explicit non-zero database index (for example redis://host:6379/1); refusing to share a database with another Oxy backend."
-              exit 1
-            fi
-
+            # Deliberately NO check on the database named in MONGODB_URI: the
+            # driver ignores it, because src/utils/database.ts supplies `dbName`
+            # from src/config/databaseIdentity.ts and that overrides the URI. A
+            # check on the URI's database component could not fail for a real
+            # reason, which is worse than no check. The real guard is
+            # assert-own-database.sh, which runs above against source.
             aws ssm put-parameter \
               --name "/oxy/$APP/$key" \
               --value "$value" \
@@ -193,10 +167,13 @@ jobs:
       - name: Register immutable task definition and deploy
         env:
           IMAGE_URI: ${{ env.ECR_REGISTRY }}/oxy/${{ env.APP }}@${{ steps.build.outputs.digest }}
-          RUN_MIGRATIONS: 'true'
-          INTERNAL_METRICS_PARAMETER: /oxy/crowdsource/INTERNAL_METRICS_TOKEN
-          POST_DEPLOY_TASK_COMMAND_JSON: >-
-            ["bun","packages/backend/dist/scripts/reconcile-engagement-projections.js"]
+          # No migration one-shot and no post-deploy task yet: the migration
+          # runner (`packages/backend/dist/scripts/migrate.js`) has not been
+          # rebuilt. Set RUN_MIGRATIONS back to 'true' in the same change that
+          # adds it, never before — the one-shot connects through the same
+          # `dbName` path the service does, so the database guard above already
+          # covers it.
+          RUN_MIGRATIONS: 'false'
           POST_DEPLOY_SMOKE_SCRIPT: .github/scripts/smoke-crowdsource.sh
         # ELB mutations belong in oxy-infra because the deploy role
         # intentionally lacks ELB access; the target group's health check path

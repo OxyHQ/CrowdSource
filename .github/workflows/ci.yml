@@ -39,6 +39,7 @@ jobs:
         run: |
           bash -n .github/scripts/*.sh
           bash .github/scripts/test-deploy-ecs-image.sh
+          bash .github/scripts/test-assert-own-database.sh
           bun .github/scripts/test-runtime-image-audit.mjs
 
   tests:
@@ -49,21 +50,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Bun's coverage reporter only accounts for loaded modules and does not
-          # expose a branch-threshold gate. Keep these suites complete rather than
-          # publishing a misleading shared-types/MCP percentage.
-          - package: shared-types
-            command: bun run --cwd packages/shared-types test
-            coverage: false
           - package: backend
             command: bun run --cwd packages/backend test:coverage -- --coverage.reportsDirectory="$RUNNER_TEMP/backend-coverage"
             coverage: true
-          - package: frontend
-            command: bun run --cwd packages/frontend test:coverage -- --coverageDirectory="$RUNNER_TEMP/frontend-coverage"
+          - package: reviewer
+            command: bun run --cwd packages/reviewer test:coverage -- --coverageDirectory="$RUNNER_TEMP/reviewer-coverage"
             coverage: true
-          - package: mcp
-            command: bun run --cwd packages/mcp test
-            coverage: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -75,8 +67,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install exact dependency graph
         run: bun install --frozen-lockfile --ignore-scripts
-      - name: Build shared runtime package
-        run: bun run build:shared-types
+      - name: Build shared contracts package
+        run: bun run build:contracts
       - name: Run complete package test suite
         run: ${{ matrix.command }}
       - name: Upload coverage summary
@@ -88,8 +80,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  frontend-bundle:
-    name: Frontend bundle budget
+  reviewer-bundle:
+    name: Reviewer bundle budget
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -103,26 +95,26 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install exact dependency graph
         run: bun install --frozen-lockfile --ignore-scripts
-      - name: Build shared runtime package
-        run: bun run build:shared-types
+      - name: Build shared contracts package
+        run: bun run build:contracts
       - name: Export production web bundle
-        run: bun run --cwd packages/frontend build:analyze
+        run: bun run --cwd packages/reviewer build:analyze
         env:
           NODE_ENV: production
           EXPO_PUBLIC_ENV: production
           EXPO_PUBLIC_API_URL: https://api.crowdsource.oxy.so
       - name: Validate static hosting contract
-        run: bun .github/scripts/validate-frontend-static-output.mjs packages/frontend/dist
+        run: bun .github/scripts/validate-frontend-static-output.mjs packages/reviewer/dist
       - name: Enforce bundle budgets
         run: >-
-          bun run --cwd packages/frontend analyze-bundle --
+          bun run --cwd packages/reviewer analyze-bundle --
           --ci
           --json "${{ runner.temp }}/crowdsource-bundle-report.json"
       - name: Upload bundle report
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: crowdsource-frontend-bundle-${{ github.sha }}
+          name: crowdsource-reviewer-bundle-${{ github.sha }}
           path: ${{ runner.temp }}/crowdsource-bundle-report.json
           if-no-files-found: warn
           retention-days: 14

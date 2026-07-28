@@ -1,0 +1,7 @@
+{
+  "name": "@crowdsource/console",
+  "version": "0.1.0",
+  "description": "CrowdSource developer and Trust & Safety console",
+  "license": "MIT",
+  "private": true
+}

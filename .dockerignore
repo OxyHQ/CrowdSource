@@ -29,12 +29,21 @@ package-lock.json
 **/*.jks
 **/*.keystore
 
-# Keep only the frontend manifest needed to validate the full workspace
-# lockfile. Bun's official workspace filters exclude its dependency graph.
-packages/frontend/*
-!packages/frontend/package.json
+# The backend image never contains the client or SDK workspaces. Keep only the
+# manifests needed to validate the full workspace lockfile — Bun's workspace
+# filters exclude their dependency graphs, and the runtime stage deletes the
+# directories outright.
+packages/reviewer/*
+!packages/reviewer/package.json
+packages/console/*
+!packages/console/package.json
+packages/sdk/*
+!packages/sdk/package.json
+packages/sdk-express/*
+!packages/sdk-express/package.json
+packages/testing/*
+!packages/testing/package.json
 
-# Retired local packages are not workspaces and must not inflate Docker build
-# contexts when their generated directories are still present locally.
-packages/agora/
-packages/agora-shared/
+# Local-only planning notes. Untracked, so .gitignore does not keep them out of
+# a build context.
+.plan/

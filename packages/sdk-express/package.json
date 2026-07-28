@@ -1,0 +1,37 @@
+{
+  "name": "@oxyhq/crowdsource-express",
+  "version": "0.1.0",
+  "description": "Express middleware for CrowdSource webhooks: raw body capture, HMAC verification, replay protection and typed events",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": ["crowdsource", "moderation", "webhooks", "express"],
+  "author": "OxyHQ",
+  "license": "MIT",
+  "dependencies": {
+    "@oxyhq/crowdsource-contracts": "workspace:*"
+  },
+  "peerDependencies": {
+    "express": ">=4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.5",
+    "typescript": "^5.9.3"
+  },
+  "files": ["dist/**/*"]
+}

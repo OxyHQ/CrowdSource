@@ -1,0 +1,25 @@
+{
+  "app": {
+    "name": "CrowdSource"
+  },
+  "signIn": {
+    "tagline": "Revisione comunitaria dei contenuti segnalati, un caso alla volta.",
+    "action": "Accedi con Oxy",
+    "unconfigured": "L'accesso non è disponibile: non è ancora stato registrato un client Oxy per questa applicazione."
+  },
+  "home": {
+    "signedInAs": "Accesso effettuato come {{name}}",
+    "noAssignments": "Non ci sono ancora superfici di revisione. I casi vengono assegnati dal server; non puoi cercarne o sceglierne uno."
+  },
+  "notFound": {
+    "title": "Questa pagina non esiste.",
+    "action": "Vai alla home"
+  },
+  "error": {
+    "boundary": {
+      "title": "Qualcosa è andato storto",
+      "message": "Non è stato possibile mostrare la schermata. Nulla di ciò che stavi revisionando è stato inviato.",
+      "retry": "Riprova"
+    }
+  }
+}

@@ -62,18 +62,18 @@ jobs:
       - name: Install exact dependency graph
         run: bun install --frozen-lockfile --ignore-scripts
 
-      - name: Build shared runtime package
-        run: bun run build:shared-types
+      - name: Build shared contracts package
+        run: bun run build:contracts
 
-      - name: Build frontend
-        run: bun run build:frontend
+      - name: Build reviewer
+        run: bun run build:reviewer
         env:
           NODE_ENV: production
           EXPO_PUBLIC_ENV: production
           EXPO_PUBLIC_API_URL: https://api.crowdsource.oxy.so
 
       - name: Validate static hosting contract
-        run: bun .github/scripts/validate-frontend-static-output.mjs packages/frontend/dist
+        run: bun .github/scripts/validate-frontend-static-output.mjs packages/reviewer/dist
 
       - name: Verify current main before production changes
         run: bash .github/scripts/require-current-main.sh
@@ -103,7 +103,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           packageManager: bun
           wranglerVersion: '4.81.0'
-          command: pages deploy packages/frontend/dist --project-name=crowdsource-frontend --branch=candidate-${{ env.DEPLOY_SHA }}
+          command: pages deploy packages/reviewer/dist --project-name=crowdsource-frontend --branch=candidate-${{ env.DEPLOY_SHA }}
 
       - name: Smoke test the exact preview deployment
         env:
@@ -121,7 +121,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           packageManager: bun
           wranglerVersion: '4.81.0'
-          command: pages deploy packages/frontend/dist --project-name=crowdsource-frontend --branch=main
+          command: pages deploy packages/reviewer/dist --project-name=crowdsource-frontend --branch=main
 
       - name: Smoke test the exact production deployment
         id: production_smoke
@@ -129,12 +129,11 @@ jobs:
           DEPLOYMENT_ORIGIN: ${{ steps.production.outputs.deployment-url }}
         run: WEB_ORIGIN="$DEPLOYMENT_ORIGIN" bash .github/scripts/smoke-frontend.sh
 
-      # The apex is served by the ECS backend, which reverse-proxies the shell
-      # from this Pages project. Asserting it here would judge a Pages rollout
-      # by backend state — a cold backend, a stale WEB_SHELL_ORIGIN or a
-      # not-yet-live DNS record would fail a frontend release that is correct.
-      # Apex integration belongs to whoever owns the proxy, which is the
-      # backend deploy. This job asserts only Pages surfaces.
+      # crowdsource.oxy.so is an ordinary Cloudflare Pages custom domain: this
+      # project serves it directly, with no backend proxy in front. Asserting it
+      # here would therefore be asserting a Pages surface, and is worth adding to
+      # smoke-frontend.sh once the custom domain is actually attached — until
+      # then such an assertion would fail every run.
 
       - name: Roll back Cloudflare Pages after a failed production smoke
         if: >-

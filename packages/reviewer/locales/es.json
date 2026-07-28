@@ -1,0 +1,25 @@
+{
+  "app": {
+    "name": "CrowdSource"
+  },
+  "signIn": {
+    "tagline": "Revisión comunitaria del contenido denunciado, caso a caso.",
+    "action": "Iniciar sesión con Oxy",
+    "unconfigured": "El inicio de sesión no está disponible: todavía no hay un cliente de Oxy registrado para esta aplicación."
+  },
+  "home": {
+    "signedInAs": "Sesión iniciada como {{name}}",
+    "noAssignments": "Todavía no hay superficies de revisión. El servidor asigna los casos; nunca puedes buscar ni elegir uno."
+  },
+  "notFound": {
+    "title": "Esta página no existe.",
+    "action": "Ir al inicio"
+  },
+  "error": {
+    "boundary": {
+      "title": "Algo ha salido mal",
+      "message": "No se ha podido mostrar la pantalla. No se ha enviado nada de lo que estabas revisando.",
+      "retry": "Reintentar"
+    }
+  }
+}

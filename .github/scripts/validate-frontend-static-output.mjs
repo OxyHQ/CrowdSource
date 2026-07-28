@@ -43,7 +43,7 @@ if (!(await exists(headersPath))) {
 
 if (await exists(resolve(outputDirectory, "_routes.json"))) {
   failures.push(
-    "_routes.json must not be published; Mention Pages is static and has no Worker",
+    "_routes.json must not be published; the Pages project is static and has no Worker",
   );
 }
 
