@@ -2,8 +2,11 @@
 
 set -euo pipefail
 
-API_ORIGIN="${API_ORIGIN:-https://api.mention.earth}"
-WEB_ORIGIN="${WEB_ORIGIN:-https://mention.earth}"
+# Every assertion runs against the API origin, which is the ECS service this
+# deploy just rolled out. The apex is a separate hosting surface and converges
+# on its own schedule, so asserting it here would make an unrelated surface
+# able to roll the backend back.
+API_ORIGIN="${API_ORIGIN:-https://api.crowdsource.oxy.so}"
 smoke_dir="$(mktemp -d)"
 temporary_root="$(realpath "${TMPDIR:-/tmp}")"
 smoke_dir="$(realpath "$smoke_dir")"
@@ -59,13 +62,11 @@ expect_status "$status" 200 "readiness"
 status="$(request anonymous-feed "$API_ORIGIN/feed/mtn?descriptor=for_you&limit=1")"
 expect_status "$status" 200 "anonymous feed"
 
-status="$(request webfinger "$WEB_ORIGIN/.well-known/webfinger?resource=acct:__smoke_missing__@mention.earth")"
-expect_status "$status" 404 "webfinger"
-expect_json_response webfinger
-
+# The ActivityPub routers mount unconditionally on /ap and resolve by username,
+# so an unknown account is a 404 regardless of the configured federation domain.
 status="$(request actor \
   --header 'Accept: application/activity+json' \
-  "$WEB_ORIGIN/ap/users/__smoke_missing__")"
+  "$API_ORIGIN/ap/users/__smoke_missing__")"
 expect_status "$status" 404 "ActivityPub actor"
 expect_json_response actor
 
@@ -74,8 +75,8 @@ status="$(request inbox \
   --header 'Accept: application/activity+json' \
   --header 'Content-Type: application/activity+json' \
   --data '{}' \
-  "$WEB_ORIGIN/ap/users/__smoke_missing__/inbox")"
+  "$API_ORIGIN/ap/users/__smoke_missing__/inbox")"
 expect_status "$status" 404 "ActivityPub inbox"
 expect_json_response inbox
 
-echo "Mention post-deploy smoke checks passed."
+echo "CrowdSource post-deploy smoke checks passed."

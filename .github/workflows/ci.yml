@@ -83,7 +83,7 @@ jobs:
         if: always() && matrix.coverage
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: mention-${{ matrix.package }}-coverage-${{ github.sha }}
+          name: crowdsource-${{ matrix.package }}-coverage-${{ github.sha }}
           path: ${{ runner.temp }}/${{ matrix.package }}-coverage/coverage-summary.json
           if-no-files-found: error
           retention-days: 14
@@ -110,19 +110,19 @@ jobs:
         env:
           NODE_ENV: production
           EXPO_PUBLIC_ENV: production
-          EXPO_PUBLIC_API_URL: https://api.mention.earth
+          EXPO_PUBLIC_API_URL: https://api.crowdsource.oxy.so
       - name: Validate static hosting contract
         run: bun .github/scripts/validate-frontend-static-output.mjs packages/frontend/dist
       - name: Enforce bundle budgets
         run: >-
           bun run --cwd packages/frontend analyze-bundle --
           --ci
-          --json "${{ runner.temp }}/mention-bundle-report.json"
+          --json "${{ runner.temp }}/crowdsource-bundle-report.json"
       - name: Upload bundle report
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: mention-frontend-bundle-${{ github.sha }}
-          path: ${{ runner.temp }}/mention-bundle-report.json
+          name: crowdsource-frontend-bundle-${{ github.sha }}
+          path: ${{ runner.temp }}/crowdsource-bundle-report.json
           if-no-files-found: warn
           retention-days: 14

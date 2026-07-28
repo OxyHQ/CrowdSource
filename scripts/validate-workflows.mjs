@@ -25,7 +25,33 @@ for (const workflowName of workflowNames) {
 
   if (document.errors.length === 0) {
     const workflow = document.toJS();
+
+    // This repository shares one AWS account, one ECS cluster and one SSM tree
+    // with every other Oxy backend, so a release here is one wrong identifier
+    // away from redeploying a different product. Pin the identifiers that
+    // select the blast radius: APP names the ECS service, the ECR repository
+    // and the /oxy/<app>/ parameter namespace all at once.
+    for (const parameterNamespace of source.match(/\/oxy\/[A-Za-z0-9_.-]+\//g) ||
+      []) {
+      if (parameterNamespace !== "/oxy/crowdsource/") {
+        failures.push(
+          `${workflowName}: ${parameterNamespace} is outside this app's /oxy/crowdsource/ namespace; a release must never read or write another Oxy app's parameters`,
+        );
+      }
+    }
+
     if (source.includes("configure-aws-credentials")) {
+      for (const [pinnedName, expectedValue] of [
+        ["APP", "crowdsource"],
+        ["CONTAINER_NAME", "crowdsource"],
+        ["CLUSTER", "oxy-cluster"],
+      ]) {
+        if (workflow?.env?.[pinnedName] !== expectedValue) {
+          failures.push(
+            `${workflowName}: AWS production workflows must pin env.${pinnedName} to ${expectedValue}; it selects the deployment target shared with every other Oxy backend`,
+          );
+        }
+      }
       for (const [jobName, job] of Object.entries(workflow?.jobs || {})) {
         if (job?.environment != null) {
           failures.push(
@@ -182,32 +208,6 @@ for (const workflowName of workflowNames) {
             );
           }
         }
-        if (
-          workflowName === "deploy-mcp-aws.yml" &&
-          (
-            !source.includes("TASK_SECRET_OVERRIDES_JSON") ||
-            !source.includes(
-              "parameter/oxy/mention-mcp/MENTION_MCP_JWT_SECRET",
-            )
-          )
-        ) {
-          failures.push(
-            `${workflowName}: the immutable MCP task definition must explicitly inject its JWT signing secret`,
-          );
-        }
-        if (
-          workflowName === "deploy-aws.yml" &&
-          (
-            !source.includes("TASK_SECRET_OVERRIDES_JSON") ||
-            !source.includes(
-              "parameter/oxy/mention/MENTION_MCP_JWT_SECRET",
-            )
-          )
-        ) {
-          failures.push(
-            `${workflowName}: the immutable backend task definition must explicitly inject its MCP JWT verification secret`,
-          );
-        }
       }
 
       if (workflowName === "deploy-frontends.yml") {
@@ -229,26 +229,29 @@ for (const workflowName of workflowNames) {
         }
 
         const productionSmokeIndex = source.indexOf("id: production_smoke");
-        const apexSmokeIndex = source.indexOf(
-          "Smoke test the apex after the backend rollout",
-        );
         const rollbackIndex = source.indexOf(
           "Roll back Cloudflare Pages after a failed production smoke",
         );
-        if (
-          productionSmokeIndex < 0 ||
-          apexSmokeIndex < productionSmokeIndex ||
-          rollbackIndex < apexSmokeIndex
-        ) {
+        if (productionSmokeIndex < 0 || rollbackIndex < productionSmokeIndex) {
           failures.push(
-            `${workflowName}: exact Pages smoke, apex convergence and rollback must remain separate and ordered`,
+            `${workflowName}: the exact Pages smoke and its rollback must remain separate and ordered`,
           );
         }
         if (
           !source.includes("steps.production_smoke.outcome == 'failure'")
         ) {
           failures.push(
-            `${workflowName}: an apex/backend race must not roll back a validated Pages deployment`,
+            `${workflowName}: only a failed Pages smoke may roll back a Pages deployment`,
+          );
+        }
+
+        // crowdsource.oxy.so resolves to the ECS backend, which reverse-proxies
+        // the shell from this Pages project. Asserting the apex from the
+        // frontend release would let backend state fail or roll back a correct
+        // Pages deployment, so the apex host must not appear here at all.
+        if (/https:\/\/crowdsource\.oxy\.so(?![a-z0-9.-])/.test(source)) {
+          failures.push(
+            `${workflowName}: must not assert against the apex; it is served by the backend, so a Pages rollout can never be judged by it`,
           );
         }
       }

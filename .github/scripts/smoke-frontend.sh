@@ -2,7 +2,11 @@
 
 set -euo pipefail
 
-WEB_ORIGIN="${WEB_ORIGIN:-https://mention.earth}"
+# No default: this script asserts a static hosting contract, and the caller is
+# the only thing that knows which deployment surface it means. A default would
+# silently point it at whatever host happens to be written here — including the
+# apex, which is served by the backend rather than by the Pages project.
+: "${WEB_ORIGIN:?WEB_ORIGIN is required; pass the exact deployment origin to smoke}"
 smoke_dir="$(mktemp -d)"
 temporary_root="$(realpath "${TMPDIR:-/tmp}")"
 smoke_dir="$(realpath "$smoke_dir")"
@@ -65,4 +69,4 @@ if ! grep -Eiq '^cache-control: .*immutable' "$smoke_dir/web-asset.headers"; the
   exit 1
 fi
 
-echo "Mention frontend post-deploy smoke checks passed."
+echo "CrowdSource frontend post-deploy smoke checks passed."

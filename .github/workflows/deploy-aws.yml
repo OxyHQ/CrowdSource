@@ -1,0 +1,223 @@
+name: Deploy CrowdSource Backend to AWS
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-crowdsource-backend
+  # Serialize production rollouts. Cancelling after `update-service` would leave
+  # an unmonitored deployment running in ECS.
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-west-2
+  AWS_ACCOUNT_ID: '237343248947'
+  ECR_REGISTRY: 237343248947.dkr.ecr.us-west-2.amazonaws.com
+  APP: crowdsource
+  CONTAINER_NAME: crowdsource
+  CLUSTER: oxy-cluster
+  DOCKERFILE: packages/backend/Dockerfile
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+
+jobs:
+  scope:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.filter.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          # The scope diff runs from the `deployed/backend` marker to the
+          # candidate, so this job needs the marker tags and the history that
+          # connects them to the candidate.
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Detect backend deployment scope
+        id: filter
+        run: bash .github/scripts/deployment-scope.sh backend
+
+  deploy:
+    needs: scope
+    if: needs.scope.outputs.deploy == 'true'
+    runs-on: ubuntu-24.04-arm
+    # Includes image build, migrations, rollout, smoke checks and a full
+    # rollback window if the production smoke check fails.
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 2
+
+      - name: Verify current main before building
+        run: bash .github/scripts/require-current-main.sh
+
+      # Runs before any AWS credential is issued: the migration one-shot below
+      # takes its database name from application source, not from the URI, so
+      # this is the only place the target database can be checked.
+      - name: Verify this release targets its own database
+        run: bash .github/scripts/assert-own-database.sh
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6
+        with:
+          role-to-assume: arn:aws:iam::237343248947:role/oxy-github-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build and push immutable backend image
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE }}
+          platforms: linux/arm64
+          push: true
+          # The SHA tag is the release record. `latest` is published alongside
+          # it because the Terraform task definition references
+          # oxy/crowdsource:latest — on a new repository that tag does not
+          # exist, so the service cannot pull an image after `terraform apply`
+          # until something publishes it. Neither tag is what a deploy resolves:
+          # every consumer below pins steps.build.outputs.digest.
+          tags: |
+            ${{ env.ECR_REGISTRY }}/oxy/${{ env.APP }}:${{ env.DEPLOY_SHA }}
+            ${{ env.ECR_REGISTRY }}/oxy/${{ env.APP }}:latest
+          cache-from: type=gha,scope=crowdsource-backend
+          cache-to: type=gha,mode=max,scope=crowdsource-backend
+          provenance: true
+          sbom: true
+
+      - name: Audit final backend runtime image
+        env:
+          IMAGE_URI: ${{ env.ECR_REGISTRY }}/oxy/${{ env.APP }}@${{ steps.build.outputs.digest }}
+          EXPECTED_RUNTIME_ENTRY: packages/backend/dist/server.js
+          # The workspace scope the repository actually publishes into the image
+          # (packages/backend/package.json, and the `--filter` arguments in
+          # packages/backend/Dockerfile). The audit fails in both directions, so
+          # this must track the manifests, not the product name.
+          EXPECTED_WORKSPACE_PACKAGES: '@mention/backend,@mention/shared-types'
+        run: bash .github/scripts/audit-runtime-image.sh
+
+      - name: Verify current main before production changes
+        run: bash .github/scripts/require-current-main.sh
+
+      - name: Sync GitHub secrets to SSM
+        env:
+          ALIA_API_KEY: ${{ secrets.ALIA_API_KEY }}
+          INTERNAL_METRICS_TOKEN: ${{ secrets.INTERNAL_METRICS_TOKEN }}
+          IP_HASH_SALT: ${{ secrets.IP_HASH_SALT }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          OXY_SERVICE_API_KEY: ${{ secrets.OXY_SERVICE_API_KEY }}
+          OXY_SERVICE_API_SECRET: ${{ secrets.OXY_SERVICE_API_SECRET }}
+          OXY_SERVICE_TOKEN: ${{ secrets.OXY_SERVICE_TOKEN }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          # KLIPY_APP_KEY is deliberately absent: the task definition pins
+          # GIF_LIBRARY_WRITE_ENABLED=false and carries no reference to the
+          # parameter, so syncing one would be dead config. Re-enabling that
+          # flag means restoring both together.
+          SSM_SECRET_ALLOWLIST: >-
+            ALIA_API_KEY INTERNAL_METRICS_TOKEN IP_HASH_SALT
+            MONGODB_URI OXY_SERVICE_API_KEY OXY_SERVICE_API_SECRET
+            OXY_SERVICE_TOKEN REDIS_URL
+        run: |
+          set -euo pipefail
+
+          is_set() {
+            local value="${1:-}"
+            [[ -n "$value" && "$value" != "-" ]]
+          }
+
+          # Boot validation ties these two together, so a half-configured pair
+          # crash-loops the new tasks and burns the whole rollout window before
+          # the circuit breaker rolls it back.
+          oxy_key_set=false
+          oxy_secret_set=false
+          if is_set "$OXY_SERVICE_API_KEY"; then oxy_key_set=true; fi
+          if is_set "$OXY_SERVICE_API_SECRET"; then oxy_secret_set=true; fi
+          if [[ "$oxy_key_set" != "$oxy_secret_set" ]]; then
+            echo "::error::OXY_SERVICE_API_KEY and OXY_SERVICE_API_SECRET are validated together at boot; set both repo secrets or neither."
+            exit 1
+          fi
+
+          # Every parameter written here is namespaced under /oxy/crowdsource/.
+          # This app never writes the shared parameter namespace, which backs
+          # every Oxy backend at once.
+          for key in $SSM_SECRET_ALLOWLIST; do
+            value="${!key:-}"
+            if ! is_set "$value"; then
+              echo "::warning::Skipping empty or placeholder secret $key; SSM unchanged."
+              continue
+            fi
+
+            # This app still carries the forked Redis key names — the scheduler
+            # leader lock and the job-queue names are string literals in the
+            # source. Two Oxy backends pointed at the same Valkey database would
+            # elect one leader between them and consume each other's jobs, so
+            # the endpoint has to carry an explicit non-zero database index.
+            if [[ "$key" == "REDIS_URL" ]] &&
+               [[ ! "$value" =~ ^rediss?://[^/]+/[1-9][0-9]*$ ]]; then
+              echo "::error::REDIS_URL must name an explicit non-zero database index (for example redis://host:6379/1); refusing to share a database with another Oxy backend."
+              exit 1
+            fi
+
+            aws ssm put-parameter \
+              --name "/oxy/$APP/$key" \
+              --value "$value" \
+              --type SecureString \
+              --overwrite \
+              >/dev/null
+            echo "Synced /oxy/$APP/$key"
+          done
+
+      - name: Re-verify current main before ECS rollout
+        run: bash .github/scripts/require-current-main.sh
+
+      - name: Register immutable task definition and deploy
+        env:
+          IMAGE_URI: ${{ env.ECR_REGISTRY }}/oxy/${{ env.APP }}@${{ steps.build.outputs.digest }}
+          RUN_MIGRATIONS: 'true'
+          INTERNAL_METRICS_PARAMETER: /oxy/crowdsource/INTERNAL_METRICS_TOKEN
+          POST_DEPLOY_TASK_COMMAND_JSON: >-
+            ["bun","packages/backend/dist/scripts/reconcile-engagement-projections.js"]
+          POST_DEPLOY_SMOKE_SCRIPT: .github/scripts/smoke-crowdsource.sh
+        # ELB mutations belong in oxy-infra because the deploy role
+        # intentionally lacks ELB access; the target group's health check path
+        # is owned there.
+        run: bash .github/scripts/deploy-ecs-image.sh
+
+  record-deployment:
+    # Runs only after a green production rollout, so a failed or rolled back
+    # release stays inside the next candidate's scope diff.
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # The only job in this workflow that may move the marker; the deploy job
+    # keeps a read-only token and no AWS job may hold one.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 1
+
+      - name: Record the deployed backend revision
+        run: bash .github/scripts/record-deployment.sh backend
