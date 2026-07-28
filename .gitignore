@@ -135,3 +135,6 @@ packages/backend/uploads/
 .claude/
 .opencode
 .superpowers
+
+# Working plan / checklist (local only, never pushed)
+.plan/
