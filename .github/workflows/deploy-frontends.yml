@@ -143,6 +143,20 @@ jobs:
           PAGES_CUSTOM_DOMAIN: crowdsource.oxy.so
         run: bash .github/scripts/cloudflare-pages.sh attach-domain
 
+      # Attaching the domain is only half of it: Cloudflare does not write the
+      # DNS record, so without this the attachment stays `pending` forever,
+      # waiting on a record nothing is going to create. Refuses to touch a
+      # record it did not write — this zone carries the ecosystem's production
+      # DNS.
+      - name: Ensure the public DNS record
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PAGES_PROJECT_NAME: crowdsource-frontend
+          PAGES_CUSTOM_DOMAIN: crowdsource.oxy.so
+          PAGES_DNS_ZONE: oxy.so
+        run: bash .github/scripts/cloudflare-pages.sh ensure-dns-record
+
       - name: Roll back Cloudflare Pages after a failed production smoke
         if: >-
           failure() &&

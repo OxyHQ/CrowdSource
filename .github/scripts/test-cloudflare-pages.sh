@@ -67,6 +67,7 @@ run_case() {
   PAGES_PROJECT_NAME=test-project \
   PAGES_PRODUCTION_BRANCH=main \
   PAGES_CUSTOM_DOMAIN=test.example \
+  PAGES_DNS_ZONE=example \
     bash "$script" "$subcommand" >"$case_dir/stdout" 2>&1
   local status=$?
   set -e
@@ -200,6 +201,60 @@ case_dir="$(run_case domain-list-fails attach-domain \
 if expect_exit "$case_dir" 1 "domain listing fails"; then
   expect_no_write "$case_dir" "domain listing fails"
   echo "ok: an unreadable domain list fails instead of blind-attaching"
+fi
+
+# The agent-side implementation resolves the CNAME target from the project
+# itself, so every case starts by answering that read.
+project='200|{"success":true,"result":{"subdomain":"test-project-a1.pages.dev"}}'
+zone='200|{"success":true,"result":[{"id":"zone-1"}]}'
+
+case_dir="$(run_case dns-absent ensure-dns-record \
+  "$project
+$zone
+200|{\"success\":true,\"result\":[]}
+200|{\"success\":true,\"result\":{\"id\":\"rec-1\"}}")"
+if expect_exit "$case_dir" 0 "dns absent"; then
+  expect_write "$case_dir" "dns absent"
+  echo "ok: a missing DNS record is created"
+fi
+
+case_dir="$(run_case dns-present ensure-dns-record \
+  "$project
+$zone
+200|{\"success\":true,\"result\":[{\"type\":\"CNAME\",\"content\":\"test-project-a1.pages.dev\",\"proxied\":true}]}")"
+if expect_exit "$case_dir" 0 "dns already correct"; then
+  expect_no_write "$case_dir" "dns already correct"
+  echo "ok: a correct DNS record is left alone"
+fi
+
+# The case with real blast radius. This zone carries the ecosystem's production
+# DNS, so a record pointing somewhere unexpected must stop the deploy rather
+# than be overwritten.
+case_dir="$(run_case dns-conflict ensure-dns-record \
+  "$project
+$zone
+200|{\"success\":true,\"result\":[{\"type\":\"A\",\"content\":\"203.0.113.7\",\"proxied\":true}]}")"
+if expect_exit "$case_dir" 1 "dns conflict"; then
+  expect_no_write "$case_dir" "dns conflict"
+  echo "ok: a record this deploy did not create is refused, not overwritten"
+fi
+
+case_dir="$(run_case dns-zone-unreadable ensure-dns-record \
+  "$project
+403|{\"success\":false,\"errors\":[{\"code\":1,\"message\":\"forbidden\"}]}")"
+if expect_exit "$case_dir" 1 "zone unreadable"; then
+  expect_no_write "$case_dir" "zone unreadable"
+  echo "ok: an unreadable zone fails instead of guessing"
+fi
+
+case_dir="$(run_case dns-write-denied ensure-dns-record \
+  "$project
+$zone
+200|{\"success\":true,\"result\":[]}
+403|{\"success\":false,\"errors\":[{\"code\":1,\"message\":\"forbidden\"}]}
+200|{\"success\":true,\"result\":[]}")"
+if expect_exit "$case_dir" 1 "dns write denied"; then
+  echo "ok: a token without DNS write fails loudly instead of silently skipping"
 fi
 
 if [[ "$failures" -gt 0 ]]; then
