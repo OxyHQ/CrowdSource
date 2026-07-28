@@ -41,6 +41,22 @@ export default function RecuseScreen() {
   const [reason, setReason] = useState<RecusalReason | null>(null);
   const [notes, setNotes] = useState('');
 
+  // Stepping back clears the assignment, so without this the screen would fall
+  // through to "no case is open" — which reads like the request was lost. Read
+  // from the mutation rather than a separate flag: a per-call `onSuccess` is
+  // dropped if the calling component unmounts, and `isSuccess` never is.
+  if (recuse.isSuccess) {
+    return (
+      <Screen title={t('recuse.title')}>
+        <Panel title={t('recuse.done.title')} description={t('recuse.done.body')}>
+          <Button variant="primary" onPress={() => router.replace('/')}>
+            {t('recuse.done.action')}
+          </Button>
+        </Panel>
+      </Screen>
+    );
+  }
+
   if (!assignment) {
     return (
       <Screen title={t('recuse.title')}>
@@ -58,13 +74,10 @@ export default function RecuseScreen() {
       return;
     }
     const trimmed = notes.trim();
-    recuse.mutate(
-      {
-        assignmentId: assignment.assignmentId,
-        recusal: { reason, ...(trimmed ? { notes: trimmed } : {}) },
-      },
-      { onSuccess: () => router.replace('/') },
-    );
+    recuse.mutate({
+      assignmentId: assignment.assignmentId,
+      recusal: { reason, ...(trimmed ? { notes: trimmed } : {}) },
+    });
   };
 
   return (

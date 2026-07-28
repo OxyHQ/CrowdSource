@@ -5,15 +5,11 @@
   "signIn": {
     "tagline": "Revisione comunitaria dei contenuti segnalati, un caso alla volta.",
     "action": "Accedi con Oxy",
-    "unconfigured": "L'accesso non è disponibile: non è ancora stato registrato un client Oxy per questa applicazione."
-  },
-  "home": {
-    "signedInAs": "Accesso effettuato come {{name}}",
-    "noAssignments": "Non ci sono ancora superfici di revisione. I casi vengono assegnati dal server; non puoi cercarne o sceglierne uno."
+    "unconfigured": "L'accesso non è disponibile: per questa applicazione non è ancora registrato alcun client Oxy."
   },
   "notFound": {
     "title": "Questa pagina non esiste.",
-    "action": "Vai alla home"
+    "action": "Torna all'inizio"
   },
   "error": {
     "boundary": {
@@ -21,5 +17,459 @@
       "message": "Non è stato possibile mostrare la schermata. Nulla di ciò che stavi revisionando è stato inviato.",
       "retry": "Riprova"
     }
+  },
+  "nav": {
+    "home": "Revisione",
+    "training": "Formazione",
+    "history": "Cronologia",
+    "reliability": "Affidabilità",
+    "wellbeing": "Benessere"
+  },
+  "state": {
+    "loading": "Caricamento…",
+    "unavailable": {
+      "title": "Questa parte del servizio non è ancora attiva",
+      "body": "La schermata è finita; a non essere ancora rilasciato è l'endpoint da cui legge. Non ti viene nascosto nulla e al suo posto non vengono mostrati dati di esempio.",
+      "endpointLabel": "In attesa di"
+    },
+    "unreachable": {
+      "title": "Non è stato possibile raggiungere il servizio",
+      "body": "Nessuna risposta da {{origin}}. Di solito è un problema di connessione, non un guasto del servizio di revisione."
+    },
+    "notHeld": {
+      "title": "Questo caso non è più assegnato a te",
+      "body": "Le assegnazioni scadono, e una scaduta viene riestratta per qualcun altro così che il caso non resti fermo. Non è andato perso nulla e non ti viene contato contro."
+    },
+    "error": {
+      "title": "Non ha funzionato",
+      "body": "La richiesta non è riuscita. Non è stato inviato nulla."
+    }
+  },
+  "home": {
+    "title": "Revisione",
+    "signedInAs": "Hai effettuato l'accesso come {{name}}",
+    "rule": "Non puoi scegliere cosa revisionare. Quando chiedi un caso, il server ne estrae uno compatibile con le tue categorie, lingue e consensi, e non vedi mai i casi che non ti sono stati assegnati.",
+    "openCase": {
+      "title": "Hai un caso aperto",
+      "body": "Resta disponibile solo per questa sessione. Chiudere l'app o ricaricare la pagina termina la seduta.",
+      "action": "Continua il caso"
+    },
+    "state": {
+      "title": "La tua situazione",
+      "exposure": "{{reviewed}} revisioni su {{limit}} oggi.",
+      "startOnboarding": "Leggi le regole e imposta le tue preferenze",
+      "continueTraining": "Guarda i tuoi progressi di calibrazione"
+    },
+    "request": {
+      "title": "Revisiona il prossimo caso",
+      "help": "Questo chiede un caso al server. Può rispondere che al momento non ce n'è nessuno per te.",
+      "action": "Revisiona il prossimo caso",
+      "noCase": "Al momento nessun caso è compatibile con te. È normale: riprova più tardi."
+    }
+  },
+  "reviewerState": {
+    "applicant": "Candidato. Completa regole, consensi e preferenze per iniziare la calibrazione.",
+    "calibrating": "In calibrazione. Ricevi casi di addestramento e gold case; le tue risposte non decidono ancora casi reali.",
+    "community_reviewer": "Revisore della comunità. Partecipi alle estrazioni standard per le tue categorie approvate.",
+    "trusted_reviewer": "Revisore di fiducia. Arrivi a casi più complessi e vieni estratto più spesso.",
+    "category_specialist": "Specialista di categoria. Revisioni categorie specifiche, escalation e alcuni disaccordi.",
+    "appeals_reviewer": "Revisore d'appello. Puoi far parte di giurie d'appello, mai di una che hai già revisionato.",
+    "suspended": "Sospeso. Non partecipi alle estrazioni finché la questione non si risolve o non ti ricalibri."
+  },
+  "blocker": {
+    "onboarding_incomplete": "Prima leggi le regole e imposta le tue preferenze.",
+    "suspended": "Il tuo account è sospeso dalle estrazioni.",
+    "eligibility_unmet": "Uno o più requisiti di idoneità non sono soddisfatti. Vedi quali in Affidabilità.",
+    "paused_by_reviewer": "Hai messo in pausa le assegnazioni. Puoi riattivarle in Benessere.",
+    "daily_limit_reached": "Hai raggiunto il limite giornaliero che ti sei dato.",
+    "break_required": "È in corso una pausa."
+  },
+  "eligibility": {
+    "oxy_account": "Un account Oxy attivo e autenticato",
+    "personhood": "Fiducia di personhood sufficiente per decidere casi reali",
+    "age": "Un'età compatibile con le tue categorie",
+    "language_region": "Una lingua e una regione culturale compatibili",
+    "training_current": "Formazione e calibrazione valide",
+    "sensitive_consent": "Consenso esplicito per il materiale sensibile",
+    "no_conflict": "Nessun legame con le persone o l'applicazione coinvolte",
+    "no_coordination_signals": "Nessun segnale di dispositivo condiviso o gruppo coordinato",
+    "no_prior_participation": "Nessun coinvolgimento precedente in questo caso o incidente",
+    "exposure_headroom": "Margine disponibile nei limiti di esposizione e riposo"
+  },
+  "category": {
+    "integrity": "Integrità",
+    "integrity.help": "Spam, truffe, frode, impersonificazione e manipolazione coordinata.",
+    "harassment": "Molestie",
+    "harassment.help": "Insulti, abusi mirati, molestie sessuali, doxxing e minacce credibili.",
+    "hate": "Odio",
+    "hate.help": "Disumanizzazione, epiteti d'odio, istigazione e attacchi a gruppi protetti.",
+    "violence": "Violenza",
+    "violence.help": "Violenza esplicita, minacce, istruzioni e celebrazione della violenza.",
+    "sexual_content": "Contenuti sessuali",
+    "sexual_content.help": "Nudità, atti espliciti e materiale non consensuale o di sfruttamento.",
+    "child_safety": "Tutela dei minori",
+    "child_safety.help": "Revisionata solo da specialisti formati.",
+    "self_harm": "Autolesionismo",
+    "self_harm.help": "Promozione, istruzioni e rischio imminente.",
+    "privacy": "Privacy",
+    "privacy.help": "Informazioni personali, materiale intimo ed esposizione della posizione di qualcuno.",
+    "commerce": "Commercio",
+    "commerce.help": "Articoli vietati, contraffazioni, annunci ingannevoli e prodotti pericolosi.",
+    "platform_abuse": "Abuso della piattaforma",
+    "platform_abuse.help": "Elusione dei blocchi, abuso del sistema di segnalazione e abuso di automazione.",
+    "other": "Altro",
+    "other.help": "Materiale specifico di una policy o non classificabile."
+  },
+  "language": {
+    "en-US": "Inglese",
+    "es-ES": "Spagnolo",
+    "it-IT": "Italiano"
+  },
+  "onboarding": {
+    "title": "Prima di revisionare qualsiasi cosa",
+    "subtitle": "Le regole, il tuo consenso e cosa sei disposto a guardare.",
+    "what": {
+      "title": "Di cosa si tratta",
+      "body": "Le applicazioni inviano qui le segnalazioni. I casi vengono estratti per piccole giurie di persone comuni, revisionati alla cieca e decisi per consenso. Una segnalazione non è un verdetto, e un verdetto non è una punizione: è l'applicazione a decidere cosa farne."
+    },
+    "rules": {
+      "title": "Le regole che stai accettando",
+      "help": "Non sono uno stile della casa. Sono ciò che rende il risultato degno di qualcosa.",
+      "accept": "Ho letto queste regole e le accetto."
+    },
+    "rule": {
+      "noChoosing": "Non scegli mai il caso che revisioni. Non c'è nessuna coda da sfogliare né alcun link a un caso.",
+      "blind": "Non ti verrà detto chi ha segnalato il materiale, chi lo ha creato, quante segnalazioni ha, né come ha votato il resto della giuria.",
+      "oneVote": "Una persona qualificata, un voto. La tua affidabilità incide su quanto spesso vieni estratto, mai su quanto pesa il tuo voto.",
+      "recusalFree": "Puoi restituire un caso in qualsiasi momento. Non ti viene mai contato contro.",
+      "confidential": "Ciò che vedi in un caso resta nel caso. Non salvarlo, non citarlo e non descriverlo altrove.",
+      "noSharing": "Non cercare di identificare nessuno dei coinvolti e non parlare con nessuno di un caso aperto."
+    },
+    "age": {
+      "title": "Età",
+      "help": "Alcune categorie hanno restrizioni di età. Questa è una dichiarazione, e il server la verifica sul tuo account Oxy.",
+      "confirm": "Ho l'età necessaria per le categorie che sto scegliendo."
+    },
+    "languages": {
+      "title": "Lingue in cui puoi revisionare",
+      "help": "Scegli solo lingue che leggi abbastanza bene da valutare intenzione, sarcasmo e modi di dire. Sbagliare qui è il modo più comune in cui una revisione va male."
+    },
+    "categories": {
+      "title": "Categorie che sei disposto a revisionare",
+      "help": "Vieni estratto solo per le categorie che accetti, e puoi cambiarlo in qualsiasi momento.",
+      "specialistNote": "La tutela dei minori non è offerta qui. La revisionano solo specialisti formati."
+    },
+    "sensitive": {
+      "title": "Materiale sensibile",
+      "help": "Alcune categorie comportano abitualmente materiale duro da guardare. Nulla di sensibile viene mai mostrato senza che tu lo chieda, e solo in una categoria per cui hai dato il consenso.",
+      "consentHelp": "Acconsento a che mi venga mostrato materiale sensibile in questa categoria.",
+      "needsCategory": "Accetta questa categoria qui sopra per poter acconsentire al suo materiale sensibile.",
+      "revocable": "Puoi revocare tutto questo in qualsiasi momento, dalla schermata Benessere, senza dover dare spiegazioni."
+    },
+    "action": "Salva e inizia la calibrazione"
+  },
+  "training": {
+    "title": "Formazione",
+    "subtitle": "Guide, calibrazione e a che punto sei.",
+    "calibration": {
+      "title": "Calibrazione",
+      "progress": "{{answered}} casi di calibrazione su {{required}} completati.",
+      "currentUntil": "La calibrazione è valida fino al {{date}}.",
+      "notCalibrated": "Non sei ancora calibrato.",
+      "goldNote": "I casi di calibrazione arrivano dalla stessa porta di quelli reali e sono indistinguibili. È voluto: è l'unica cosa che dà un senso al valore.",
+      "action": "Chiedi un caso"
+    },
+    "modules": {
+      "title": "Moduli",
+      "help": "Guide ed esempi per ogni categoria che revisioni.",
+      "empty": "Ancora nessun modulo.",
+      "completed": "Completato il {{date}}.",
+      "notCompleted": "Non completato.",
+      "expires": "Va ripetuto entro il {{date}}."
+    }
+  },
+  "history": {
+    "title": "Cronologia",
+    "subtitle": "Revisioni che hai completato.",
+    "empty": "Non hai ancora completato nessuna revisione.",
+    "submitted": "Inviata il {{date}} · {{language}}",
+    "yourOutcome": "Tu hai detto: {{outcome}}",
+    "decision": "Deciso: {{outcome}} il {{date}}",
+    "decisionPending": "Il caso è ancora aperto. Non ti viene mostrato come sta andando.",
+    "loadMore": "Carica altri"
+  },
+  "reliability": {
+    "title": "Affidabilità",
+    "subtitle": "I tuoi numeri. Di nessun altro, e nessun altro vede i tuoi.",
+    "state": {
+      "title": "Il tuo stato come revisore"
+    },
+    "standings": {
+      "title": "Per categoria e lingua",
+      "help": "L'affidabilità incide su quanto spesso vieni estratto e a quali casi arrivi. Non fa mai valere il tuo voto per più di uno.",
+      "empty": "Ancora nessun dato. Inizia quando avrai revisionato casi reali.",
+      "row": "{{language}} · {{reliability}}% di affidabilità · {{reviews}} revisioni",
+      "calibrated": "La calibrazione è valida.",
+      "needsCalibration": "La calibrazione è scaduta."
+    },
+    "eligibility": {
+      "title": "Idoneità",
+      "help": "Tutto questo deve valere nel momento in cui viene estratta una giuria.",
+      "met": "Soddisfatto — {{requirement}}",
+      "unmet": "Non soddisfatto — {{requirement}}"
+    },
+    "exposure": {
+      "title": "Esposizione",
+      "help": "I limiti esistono perché revisionare resti qualcosa che puoi continuare a fare.",
+      "break": "È in corso una pausa fino alle {{time}}."
+    }
+  },
+  "wellbeing": {
+    "title": "Benessere",
+    "subtitle": "Cosa vedi, quanto ne vedi e come fermarti.",
+    "exit": {
+      "title": "Togli il caso dallo schermo",
+      "body": "Questo rimuove subito il caso aperto da questo dispositivo. Non aspetta la rete.",
+      "action": "Smetti di mostrare questo caso",
+      "note": "Non è una ricusazione: il caso resta tuo finché non scade. Per restituirlo, usa «Fai un passo indietro su questo caso» nella schermata di revisione."
+    },
+    "availability": {
+      "title": "Assegnazioni",
+      "help": "Disattivandolo esci da tutte le estrazioni. Non ti viene contato contro.",
+      "on": "Sei disponibile per le assegnazioni.",
+      "off": "Non vieni estratto per nessun caso."
+    },
+    "limit": {
+      "title": "Limite giornaliero",
+      "help": "Il massimo di revisioni che vuoi ti vengano chieste in un giorno.",
+      "option": "{{limit}} al giorno"
+    },
+    "categories": {
+      "title": "Categorie",
+      "help": "Se togli una categoria smetti di essere estratto per quella, a partire dalla prossima estrazione."
+    },
+    "consent": {
+      "title": "Materiale sensibile",
+      "help": "Il consenso è per categoria e puoi revocarlo in qualsiasi momento, senza dare spiegazioni.",
+      "revocable": "Consenso dato. Deseleziona per revocarlo."
+    },
+    "languages": {
+      "title": "Lingue",
+      "help": "Solo le lingue che leggi abbastanza bene da valutare intenzione e modi di dire."
+    },
+    "save": "Salva le preferenze",
+    "saved": "Preferenze salvate.",
+    "support": {
+      "title": "Supporto",
+      "body": "Per questo rilascio non sono ancora stati configurati né risorse di supporto né un canale per le segnalazioni. Nel frattempo, segnala qualsiasi cosa inattesa o angosciante tramite il tuo canale di supporto Oxy abituale."
+    }
+  },
+  "review": {
+    "title": "Revisione del caso",
+    "subtitle": "{{category}} · {{language}}",
+    "noCase": {
+      "title": "Nessun caso aperto",
+      "body": "Un caso resta in memoria solo per una seduta, quindi ricaricare la pagina la termina. Chiedine un altro quando sei pronto.",
+      "action": "Torna a Revisione"
+    },
+    "submitted": {
+      "title": "Revisione inviata",
+      "body": "La tua revisione è registrata e il caso ha lasciato questo dispositivo. Non ti verrà detto come ha votato il resto della giuria; se la decisione potrà esserti comunicata, comparirà nella tua Cronologia.",
+      "action": "Torna a Revisione"
+    },
+    "hidden": {
+      "title": "Ciò che non ti viene mostrato",
+      "body": "Quante segnalazioni ha, chi l'ha segnalato, chi l'ha creato, la reputazione di chiunque, chi altro è in questa giuria e come ha votato. Niente di tutto questo arriva a questa schermata, e niente di tutto questo dovrebbe cambiare ciò che vedi nel materiale."
+    },
+    "material": {
+      "title": "Il materiale",
+      "expires": "Questa assegnazione scade alle {{time}}."
+    },
+    "watermark": {
+      "note": "Questo materiale porta un contrassegno legato alla tua assegnazione. Gli screenshot non si possono impedire su tutti i dispositivi e non sosteniamo il contrario: il contrassegno esiste perché una fuga di dati sia tracciabile."
+    },
+    "context": {
+      "title": "Contesto",
+      "help": "Solo ciò che serve per giudicare il materiale."
+    },
+    "step1": {
+      "label": "Passo 1 di 2 · Descrivi",
+      "contains": {
+        "title": "Cosa contiene questo materiale?",
+        "help": "Descrivi cosa c'è davvero, secondo la tua lettura. Non decidere ancora se viola qualcosa."
+      },
+      "resources": {
+        "title": "A quale parte si riferisce?",
+        "help": "Scegli gli elementi a cui si riferisce la tua descrizione.",
+        "item": "Elemento {{index}} · {{kind}}",
+        "empty": "Questo caso non ha materiale allegato."
+      },
+      "missing": {
+        "title": "Quale contesto manca?",
+        "help": "Di' cosa ti servirebbe per esserne certo. Rispondere onestamente qui vale più di un'ipotesi sicura di sé."
+      },
+      "certainty": {
+        "title": "Quanto sei certo di questa descrizione?",
+        "help": "Solo della descrizione, non di alcun verdetto."
+      }
+    },
+    "step2": {
+      "label": "Passo 2 di 2 · Valuta",
+      "allegation": {
+        "title": "L'accusa non verificata",
+        "help": "Questo è ciò che ha sostenuto chi ha segnalato. È un'affermazione, non un accertamento, e viene mostrata solo ora — dopo che hai descritto il materiale — perché non orientasse la descrizione."
+      },
+      "policy": {
+        "title": "La policy applicabile",
+        "version": "{{policySet}} · versione {{version}}",
+        "examples": "Esempi",
+        "exampleViolating": "Viola la policy: {{text}}",
+        "examplePermitted": "Consentito: {{text}}"
+      },
+      "outcome": {
+        "title": "Il tuo esito",
+        "help": "Giudica il materiale rispetto a questa policy, non rispetto a come ti sembra l'accusa."
+      },
+      "context": {
+        "title": "C'era abbastanza contesto per decidere?"
+      },
+      "findings": {
+        "title": "Accertamenti",
+        "help": "Indica le regole precise che ritieni violate. Lascia vuoto se non ne è violata nessuna.",
+        "code": "Codice di tassonomia: {{code}}",
+        "severity": "Gravità",
+        "confidence": "Confidenza",
+        "confidenceOption": "{{label}} ({{value}})"
+      },
+      "exceptions": {
+        "title": "Eccezioni",
+        "help": "Un'eccezione che si applica qui, se c'è."
+      },
+      "actions": {
+        "title": "Azione consigliata",
+        "help": "Un consiglio per l'applicazione. È l'applicazione a decidere cosa fa davvero."
+      },
+      "notes": {
+        "title": "Note",
+        "help": "Facoltativo. Ciò che servirebbe alla giuria o a un appello per capire il tuo ragionamento.",
+        "placeholder": "Nota facoltativa"
+      }
+    },
+    "action": {
+      "continue": "Continua al passo sulla policy",
+      "back": "Torna alla descrizione",
+      "submit": "Invia la revisione",
+      "recuse": "Fai un passo indietro su questo caso",
+      "recuseNote": "Fare un passo indietro non ti viene mai contato contro e non va giustificato. Il caso viene riestratto per qualcun altro."
+    },
+    "sensitive": {
+      "title": "Materiale sensibile, nascosto",
+      "body": "Non viene caricato finché non lo chiedi.",
+      "reveal": "Mostra questo materiale",
+      "hide": "Nascondilo di nuovo",
+      "noConsent": "Non hai dato il consenso per il materiale sensibile in questa categoria, quindi non verrà mostrato. Puoi darlo in Benessere, oppure fare un passo indietro su questo caso."
+    },
+    "resource": {
+      "unresolved": "Non è stato possibile caricare questo elemento.",
+      "imageAlt": "Immagine segnalata",
+      "linkLabel": "Link segnalato",
+      "linkNotOpened": "Mostrato come testo e non aperto: seguirlo da qui direbbe al sito chi sei e caricherebbe qualunque cosa quel sito scegliesse di servire.",
+      "unsupported": "Questa build non può mostrare un elemento di tipo {{kind}}. Se non riesci a giudicare il caso senza, rispondi che il contesto è insufficiente, oppure fai un passo indietro sul caso.",
+      "kind": {
+        "text": "testo",
+        "image": "immagine",
+        "video": "video",
+        "audio": "audio",
+        "link": "link",
+        "file": "file"
+      }
+    }
+  },
+  "descriptor": {
+    "insults_or_slurs": "Insulti o epiteti d'odio",
+    "threat_of_violence": "Una minaccia di violenza",
+    "sexual_content": "Contenuti sessuali",
+    "nudity": "Nudità",
+    "graphic_injury": "Ferite o morte esplicite",
+    "self_harm": "Autolesionismo",
+    "minor_appears_present": "Qualcuno che sembra essere minorenne",
+    "personal_information": "Informazioni personali di qualcuno",
+    "impersonation_claim": "Un tentativo di spacciarsi per un'altra persona",
+    "commercial_promotion": "Promozione commerciale",
+    "contested_factual_claim": "Un'affermazione di fatto contestata",
+    "nothing_notable": "Nessuna delle precedenti"
+  },
+  "missingContext": {
+    "none": "Niente: vedo ciò che mi serve",
+    "preceding_conversation": "Cosa è venuto prima di questo",
+    "author_intent": "Cosa intendeva quella persona",
+    "translation": "Una traduzione di cui fidarmi",
+    "source_or_provenance": "Da dove viene",
+    "local_cultural_context": "Contesto locale o culturale"
+  },
+  "certainty": {
+    "low": "Poco",
+    "medium": "Abbastanza",
+    "high": "Molto"
+  },
+  "outcome": {
+    "violation": "Viola la policy",
+    "violation.help": "Sei sicuro che questo materiale violi una regola precisa che sai indicare.",
+    "no_violation": "Non viola la policy",
+    "no_violation.help": "Sei sicuro che non violi la policy che ti è stata data.",
+    "insufficient_context": "Non posso dirlo senza altro",
+    "insufficient_context.help": "Non è un no. Al caso serve più materiale o contesto prima che qualcuno possa decidere.",
+    "content_unavailable": "Il materiale manca o è danneggiato",
+    "content_unavailable.help": "La prova necessaria non c'è, oppure non si è caricata."
+  },
+  "contextSufficiency": {
+    "sufficient": "Sì, ce n'era abbastanza",
+    "insufficient": "No, ho lavorato con delle lacune"
+  },
+  "severity": {
+    "low": "Bassa",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Critica"
+  },
+  "action": {
+    "no_action": "Nessuna azione",
+    "add_warning_label": "Aggiungi un avviso",
+    "restrict_visibility": "Limita chi può vederlo",
+    "remove_or_restrict": "Rimuovilo o limitalo",
+    "escalate_to_specialist": "Invialo a uno specialista"
+  },
+  "recuse": {
+    "title": "Fai un passo indietro su questo caso",
+    "subtitle": "Il caso viene riestratto per qualcun altro.",
+    "reassurance": "Non è un fallimento e non viene registrato come tale. Restituire un caso che non dovresti giudicare è la scelta giusta, e non ti costa nulla.",
+    "reason": {
+      "title": "Perché?",
+      "help": "Il motivo decide come il caso viene riestratto: per lingua, per conflitto o per esposizione. Non è una valutazione su di te."
+    },
+    "notes": {
+      "title": "Vuoi aggiungere qualcosa?",
+      "help": "Facoltativo. Non devi dare spiegazioni.",
+      "placeholder": "Nota facoltativa"
+    },
+    "action": "Fai un passo indietro",
+    "cancel": "Torna al caso",
+    "done": {
+      "title": "Hai fatto un passo indietro",
+      "body": "Il caso è stato restituito e verrà riestratto per qualcun altro. Nulla di tutto questo ti viene contato contro.",
+      "action": "Torna a Revisione"
+    }
+  },
+  "recusalReason": {
+    "conflict_of_interest": "Conosco qualcuno dei coinvolti",
+    "conflict_of_interest.help": "Oppure ho un altro motivo per non essere imparziale qui.",
+    "language": "Non leggo questa lingua abbastanza bene",
+    "language.help": "Abbastanza bene da valutare intenzione, sarcasmo e modi di dire.",
+    "too_sensitive": "Non voglio guardare questo",
+    "too_sensitive.help": "Non serve spiegarlo, né ora né dopo.",
+    "insufficient_context": "Non ho il contesto che questo richiede",
+    "insufficient_context.help": "Conoscenza locale, culturale o della situazione che qualcun altro avrà.",
+    "unavailable": "Non posso finirlo adesso",
+    "unavailable.help": "Meglio restituirlo che lasciarlo scadere."
   }
 }

@@ -7,10 +7,6 @@
     "action": "Iniciar sesión con Oxy",
     "unconfigured": "El inicio de sesión no está disponible: todavía no hay un cliente de Oxy registrado para esta aplicación."
   },
-  "home": {
-    "signedInAs": "Sesión iniciada como {{name}}",
-    "noAssignments": "Todavía no hay superficies de revisión. El servidor asigna los casos; nunca puedes buscar ni elegir uno."
-  },
   "notFound": {
     "title": "Esta página no existe.",
     "action": "Ir al inicio"
@@ -21,5 +17,459 @@
       "message": "No se ha podido mostrar la pantalla. No se ha enviado nada de lo que estabas revisando.",
       "retry": "Reintentar"
     }
+  },
+  "nav": {
+    "home": "Revisar",
+    "training": "Formación",
+    "history": "Historial",
+    "reliability": "Fiabilidad",
+    "wellbeing": "Bienestar"
+  },
+  "state": {
+    "loading": "Cargando…",
+    "unavailable": {
+      "title": "Esta parte del servicio todavía no está en marcha",
+      "body": "La pantalla está terminada; lo que no está desplegado es el endpoint del que lee. No se te oculta nada, y tampoco se muestran datos de ejemplo en su lugar.",
+      "endpointLabel": "A la espera de"
+    },
+    "unreachable": {
+      "title": "No se ha podido contactar con el servicio",
+      "body": "Sin respuesta de {{origin}}. Normalmente es un problema de conexión, no un fallo del servicio de revisión."
+    },
+    "notHeld": {
+      "title": "Este caso ya no está asignado a ti",
+      "body": "Las asignaciones caducan, y una caducada se vuelve a sortear entre otras personas para que el caso no se quede esperando. No se ha perdido nada y no cuenta en tu contra."
+    },
+    "error": {
+      "title": "No ha funcionado",
+      "body": "La petición ha fallado. No se ha enviado nada."
+    }
+  },
+  "home": {
+    "title": "Revisar",
+    "signedInAs": "Sesión iniciada como {{name}}",
+    "rule": "No puedes elegir lo que revisas. Cuando pides un caso, el servidor sortea uno que encaje con tus categorías, idiomas y consentimiento, y nunca ves los casos que no te han tocado.",
+    "openCase": {
+      "title": "Tienes un caso abierto",
+      "body": "Se guarda solo durante esta sesión. Si cierras la aplicación o recargas la página, la sesión de revisión termina.",
+      "action": "Continuar con el caso"
+    },
+    "state": {
+      "title": "Tu situación",
+      "exposure": "{{reviewed}} de {{limit}} revisiones hoy.",
+      "startOnboarding": "Leer las normas y configurar tus preferencias",
+      "continueTraining": "Ver tu progreso de calibración"
+    },
+    "request": {
+      "title": "Revisar el siguiente caso",
+      "help": "Esto le pide un caso al servidor. Puede responder que ahora mismo no hay ninguno para ti.",
+      "action": "Revisar el siguiente caso",
+      "noCase": "Ahora mismo no hay ningún caso que encaje contigo. Es normal: inténtalo más tarde."
+    }
+  },
+  "reviewerState": {
+    "applicant": "Candidata o candidato. Completa las normas, el consentimiento y las preferencias para empezar a calibrar.",
+    "calibrating": "En calibración. Recibes casos de entrenamiento y gold cases; tus respuestas todavía no resuelven casos reales.",
+    "community_reviewer": "Revisor o revisora de la comunidad. Entras en los sorteos estándar de tus categorías aprobadas.",
+    "trusted_reviewer": "Revisor o revisora de confianza. Llegas a casos más complejos y sales sorteado con más frecuencia.",
+    "category_specialist": "Especialista de categoría. Revisas categorías concretas, escalados y algunos desacuerdos.",
+    "appeals_reviewer": "Revisor o revisora de apelaciones. Puedes formar parte de jurados de apelación, nunca de uno que ya revisaste.",
+    "suspended": "Suspendido. No entras en sorteos hasta que se resuelva o vuelvas a calibrar."
+  },
+  "blocker": {
+    "onboarding_incomplete": "Primero lee las normas y configura tus preferencias.",
+    "suspended": "Tu cuenta está suspendida de los sorteos.",
+    "eligibility_unmet": "No se cumplen uno o más requisitos de elegibilidad. Mira en Fiabilidad cuáles son.",
+    "paused_by_reviewer": "Has pausado las asignaciones. Puedes reactivarlas en Bienestar.",
+    "daily_limit_reached": "Has llegado al límite diario que te has puesto.",
+    "break_required": "Hay un descanso en curso."
+  },
+  "eligibility": {
+    "oxy_account": "Una cuenta de Oxy activa y autenticada",
+    "personhood": "Confianza de personhood suficiente para decidir casos reales",
+    "age": "Una edad compatible con tus categorías",
+    "language_region": "Un idioma y una región cultural compatibles",
+    "training_current": "Formación y calibración vigentes",
+    "sensitive_consent": "Consentimiento explícito para material sensible",
+    "no_conflict": "Ninguna relación con las personas ni con la aplicación implicadas",
+    "no_coordination_signals": "Sin señales de dispositivo compartido ni de grupo coordinado",
+    "no_prior_participation": "Sin participación previa en este caso o incidente",
+    "exposure_headroom": "Margen disponible en los límites de exposición y descanso"
+  },
+  "category": {
+    "integrity": "Integridad",
+    "integrity.help": "Spam, estafas, fraude, suplantación y manipulación coordinada.",
+    "harassment": "Acoso",
+    "harassment.help": "Insultos, abuso dirigido, acoso sexual, doxxing y amenazas creíbles.",
+    "hate": "Odio",
+    "hate.help": "Deshumanización, insultos de odio, incitación y ataque a grupos protegidos.",
+    "violence": "Violencia",
+    "violence.help": "Violencia gráfica, amenazas, instrucciones y celebración de la violencia.",
+    "sexual_content": "Contenido sexual",
+    "sexual_content.help": "Desnudos, actividad explícita y material no consentido o de explotación.",
+    "child_safety": "Protección de menores",
+    "child_safety.help": "Solo lo revisan especialistas con formación.",
+    "self_harm": "Autolesión",
+    "self_harm.help": "Promoción, instrucciones y riesgo inminente.",
+    "privacy": "Privacidad",
+    "privacy.help": "Información personal, material íntimo y exposición de la ubicación de alguien.",
+    "commerce": "Comercio",
+    "commerce.help": "Artículos prohibidos, falsificaciones, anuncios engañosos y productos inseguros.",
+    "platform_abuse": "Abuso de la plataforma",
+    "platform_abuse.help": "Evasión de bloqueos, abuso del sistema de denuncias y abuso de automatización.",
+    "other": "Otros",
+    "other.help": "Material específico de una política o inclasificable."
+  },
+  "language": {
+    "en-US": "Inglés",
+    "es-ES": "Español",
+    "it-IT": "Italiano"
+  },
+  "onboarding": {
+    "title": "Antes de revisar nada",
+    "subtitle": "Las normas, tu consentimiento y qué estás dispuesta o dispuesto a mirar.",
+    "what": {
+      "title": "Qué es esto",
+      "body": "Las aplicaciones envían denuncias aquí. Los casos se sortean entre jurados pequeños de gente corriente, se revisan a ciegas y se deciden por consenso. Una denuncia no es un veredicto, y un veredicto no es un castigo: es la aplicación quien decide qué hacer con el hallazgo."
+    },
+    "rules": {
+      "title": "Las normas que aceptas",
+      "help": "No son un estilo de la casa. Son lo que hace que el resultado valga algo.",
+      "accept": "He leído estas normas y las acepto."
+    },
+    "rule": {
+      "noChoosing": "Nunca eliges el caso que revisas. No hay ninguna cola que mirar ni ningún enlace a un caso.",
+      "blind": "No sabrás quién denunció el material, quién lo creó, cuántas denuncias tiene ni cómo votó el resto del jurado.",
+      "oneVote": "Una persona cualificada, un voto. Tu fiabilidad influye en cuántas veces sales sorteado, nunca en cuánto pesa tu voto.",
+      "recusalFree": "Puedes devolver un caso en cualquier momento. Nunca cuenta en tu contra.",
+      "confidential": "Lo que ves en un caso se queda en el caso. No lo guardes, no lo cites ni lo describas fuera de aquí.",
+      "noSharing": "No intentes identificar a nadie implicado y no hables de un caso abierto con nadie."
+    },
+    "age": {
+      "title": "Edad",
+      "help": "Algunas categorías tienen restricción por edad. Esto es una declaración, y el servidor la comprueba contra tu cuenta de Oxy.",
+      "confirm": "Tengo edad suficiente para las categorías que estoy eligiendo."
+    },
+    "languages": {
+      "title": "Idiomas en los que puedes revisar",
+      "help": "Elige solo idiomas que leas lo bastante bien como para juzgar intención, sarcasmo y expresiones hechas. Equivocarse aquí es la forma más habitual de que una revisión salga mal."
+    },
+    "categories": {
+      "title": "Categorías que estás dispuesta o dispuesto a revisar",
+      "help": "Solo entras en sorteos de las categorías que aceptas, y puedes cambiarlo cuando quieras.",
+      "specialistNote": "La protección de menores no se ofrece aquí. Solo la revisan especialistas con formación."
+    },
+    "sensitive": {
+      "title": "Material sensible",
+      "help": "Algunas categorías incluyen habitualmente material duro de mirar. Nunca se muestra nada sensible sin que lo pidas, y solo en una categoría a la que hayas dado consentimiento.",
+      "consentHelp": "Doy mi consentimiento para que se me muestre material sensible en esta categoría.",
+      "needsCategory": "Acepta esta categoría arriba para poder consentir su material sensible.",
+      "revocable": "Puedes retirar cualquiera de estos consentimientos cuando quieras, desde la pantalla de Bienestar, sin dar explicaciones."
+    },
+    "action": "Guardar y empezar a calibrar"
+  },
+  "training": {
+    "title": "Formación",
+    "subtitle": "Guías, calibración y en qué punto estás.",
+    "calibration": {
+      "title": "Calibración",
+      "progress": "{{answered}} de {{required}} casos de calibración respondidos.",
+      "currentUntil": "La calibración es válida hasta el {{date}}.",
+      "notCalibrated": "Todavía no estás calibrada o calibrado.",
+      "goldNote": "Los casos de calibración llegan por la misma puerta que los reales y son indistinguibles. Es a propósito: es lo único que hace que la cifra signifique algo.",
+      "action": "Pedir un caso"
+    },
+    "modules": {
+      "title": "Módulos",
+      "help": "Guías y ejemplos para cada categoría que revisas.",
+      "empty": "Todavía no hay módulos.",
+      "completed": "Completado el {{date}}.",
+      "notCompleted": "Sin completar.",
+      "expires": "Hay que repetirlo antes del {{date}}."
+    }
+  },
+  "history": {
+    "title": "Historial",
+    "subtitle": "Revisiones que has completado.",
+    "empty": "Todavía no has completado ninguna revisión.",
+    "submitted": "Enviada el {{date}} · {{language}}",
+    "yourOutcome": "Tú dijiste: {{outcome}}",
+    "decision": "Decidido: {{outcome}} el {{date}}",
+    "decisionPending": "El caso sigue abierto. No se te muestra cómo va.",
+    "loadMore": "Cargar más"
+  },
+  "reliability": {
+    "title": "Fiabilidad",
+    "subtitle": "Tus propias cifras. Las de nadie más, y nadie más ve las tuyas.",
+    "state": {
+      "title": "Tu estado como revisor o revisora"
+    },
+    "standings": {
+      "title": "Por categoría e idioma",
+      "help": "La fiabilidad influye en cuántas veces sales sorteado y a qué casos llegas. Nunca hace que tu voto cuente por más de uno.",
+      "empty": "Todavía no hay cifras. Empiezan cuando hayas revisado casos reales.",
+      "row": "{{language}} · {{reliability}} % de fiabilidad · {{reviews}} revisiones",
+      "calibrated": "La calibración está vigente.",
+      "needsCalibration": "La calibración ha caducado."
+    },
+    "eligibility": {
+      "title": "Elegibilidad",
+      "help": "Todo esto debe cumplirse en el momento en que se sortea un jurado.",
+      "met": "Cumplido — {{requirement}}",
+      "unmet": "Sin cumplir — {{requirement}}"
+    },
+    "exposure": {
+      "title": "Exposición",
+      "help": "Los límites existen para que revisar siga siendo algo que puedas seguir haciendo.",
+      "break": "Hay un descanso en curso hasta las {{time}}."
+    }
+  },
+  "wellbeing": {
+    "title": "Bienestar",
+    "subtitle": "Qué ves, cuánto de ello y cómo parar.",
+    "exit": {
+      "title": "Quitar el caso de la pantalla",
+      "body": "Esto elimina el caso abierto de este dispositivo de inmediato. No espera a la red.",
+      "action": "Dejar de mostrar este caso",
+      "note": "Esto no es una recusación: el caso sigue siendo tuyo hasta que caduque. Para devolverlo, usa «Dar un paso atrás en este caso» en la pantalla de revisión."
+    },
+    "availability": {
+      "title": "Asignaciones",
+      "help": "Si lo desactivas, sales de todos los sorteos. No se te tiene en cuenta en contra por ello.",
+      "on": "Estás disponible para recibir asignaciones.",
+      "off": "No entras en el sorteo de ningún caso."
+    },
+    "limit": {
+      "title": "Límite diario",
+      "help": "El máximo de revisiones que quieres que se te pidan en un día.",
+      "option": "{{limit}} al día"
+    },
+    "categories": {
+      "title": "Categorías",
+      "help": "Si quitas una categoría, dejas de entrar en sus sorteos a partir del siguiente."
+    },
+    "consent": {
+      "title": "Material sensible",
+      "help": "El consentimiento es por categoría y puedes retirarlo cuando quieras, sin dar explicaciones.",
+      "revocable": "Consentido. Desmarca para retirarlo."
+    },
+    "languages": {
+      "title": "Idiomas",
+      "help": "Solo los idiomas que leas lo bastante bien como para juzgar intención y expresiones hechas."
+    },
+    "save": "Guardar preferencias",
+    "saved": "Preferencias guardadas.",
+    "support": {
+      "title": "Apoyo",
+      "body": "Todavía no se han configurado recursos de apoyo ni un canal de incidencias para este despliegue. Mientras tanto, informa de cualquier cosa inesperada o angustiosa por tu vía habitual de soporte de Oxy."
+    }
+  },
+  "review": {
+    "title": "Revisión del caso",
+    "subtitle": "{{category}} · {{language}}",
+    "noCase": {
+      "title": "No hay ningún caso abierto",
+      "body": "Un caso se guarda en memoria solo durante una sesión, así que recargar la página la termina. Pide otro cuando estés listo.",
+      "action": "Volver a Revisar"
+    },
+    "submitted": {
+      "title": "Revisión enviada",
+      "body": "Tu revisión ya está registrada y el caso ha salido de este dispositivo. No se te dirá cómo votó el resto del jurado; si la decisión se te puede revelar, aparecerá en tu Historial.",
+      "action": "Volver a Revisar"
+    },
+    "hidden": {
+      "title": "Lo que no se te muestra",
+      "body": "Cuántas denuncias tiene, quién la denunció, quién lo creó, la reputación de nadie, quién más está en este jurado y cómo ha votado. Nada de eso llega a esta pantalla, y nada de eso debería cambiar lo que ves en el material."
+    },
+    "material": {
+      "title": "El material",
+      "expires": "Esta asignación caduca a las {{time}}."
+    },
+    "watermark": {
+      "note": "Este material lleva una marca ligada a tu asignación. Las capturas de pantalla no se pueden impedir en todos los dispositivos y no afirmamos lo contrario: la marca existe para que una filtración se pueda rastrear."
+    },
+    "context": {
+      "title": "Contexto",
+      "help": "Solo lo necesario para juzgar el material."
+    },
+    "step1": {
+      "label": "Paso 1 de 2 · Describir",
+      "contains": {
+        "title": "¿Qué contiene este material?",
+        "help": "Describe lo que hay realmente, según tu lectura. Todavía no decidas si incumple algo."
+      },
+      "resources": {
+        "title": "¿A qué parte se refiere?",
+        "help": "Elige los elementos a los que se refiere tu descripción.",
+        "item": "Elemento {{index}} · {{kind}}",
+        "empty": "Este caso no tiene material adjunto."
+      },
+      "missing": {
+        "title": "¿Qué contexto falta?",
+        "help": "Di qué necesitarías para estar seguro. Responder con honestidad aquí vale más que una suposición con aplomo."
+      },
+      "certainty": {
+        "title": "¿Qué seguridad tienes sobre esa descripción?",
+        "help": "Solo sobre la descripción, no sobre ningún veredicto."
+      }
+    },
+    "step2": {
+      "label": "Paso 2 de 2 · Evaluar",
+      "allegation": {
+        "title": "La alegación no verificada",
+        "help": "Esto es lo que afirmó quien lo denunció. Es una alegación, no un hallazgo, y se muestra solo ahora —después de que hayas descrito el material— para que no condicionara la descripción."
+      },
+      "policy": {
+        "title": "La política aplicable",
+        "version": "{{policySet}} · versión {{version}}",
+        "examples": "Ejemplos",
+        "exampleViolating": "Incumple la política: {{text}}",
+        "examplePermitted": "Permitido: {{text}}"
+      },
+      "outcome": {
+        "title": "Tu resultado",
+        "help": "Juzga el material contra esta política, no contra lo que te parezca la alegación."
+      },
+      "context": {
+        "title": "¿Había contexto suficiente para decidir?"
+      },
+      "findings": {
+        "title": "Hallazgos",
+        "help": "Nombra las reglas concretas que crees que se incumplen. Déjalo vacío si no se incumple ninguna.",
+        "code": "Código de taxonomía: {{code}}",
+        "severity": "Gravedad",
+        "confidence": "Confianza",
+        "confidenceOption": "{{label}} ({{value}})"
+      },
+      "exceptions": {
+        "title": "Excepciones",
+        "help": "Una excepción que se aplique aquí, si la hay."
+      },
+      "actions": {
+        "title": "Acción recomendada",
+        "help": "Una recomendación para la aplicación. La aplicación decide qué hace realmente."
+      },
+      "notes": {
+        "title": "Notas",
+        "help": "Opcional. Lo que el jurado o una apelación necesitarían para entender tu razonamiento.",
+        "placeholder": "Nota opcional"
+      }
+    },
+    "action": {
+      "continue": "Continuar al paso de política",
+      "back": "Volver a la descripción",
+      "submit": "Enviar revisión",
+      "recuse": "Dar un paso atrás en este caso",
+      "recuseNote": "Dar un paso atrás nunca cuenta en tu contra y no hay que justificarlo. El caso se vuelve a sortear entre otras personas."
+    },
+    "sensitive": {
+      "title": "Material sensible, oculto",
+      "body": "Esto no se carga hasta que lo pidas.",
+      "reveal": "Mostrar este material",
+      "hide": "Volver a ocultarlo",
+      "noConsent": "No has dado consentimiento para material sensible en esta categoría, así que no se mostrará. Puedes darlo en Bienestar, o dar un paso atrás en este caso."
+    },
+    "resource": {
+      "unresolved": "No se ha podido cargar este elemento.",
+      "imageAlt": "Imagen denunciada",
+      "linkLabel": "Enlace denunciado",
+      "linkNotOpened": "Se muestra como texto y no se abre: seguirlo desde aquí le diría al sitio quién eres y cargaría lo que ese sitio quisiera servir.",
+      "unsupported": "Esta compilación no puede mostrar un elemento de tipo {{kind}}. Si no puedes juzgar el caso sin él, responde que el contexto es insuficiente, o da un paso atrás en el caso.",
+      "kind": {
+        "text": "texto",
+        "image": "imagen",
+        "video": "vídeo",
+        "audio": "audio",
+        "link": "enlace",
+        "file": "archivo"
+      }
+    }
+  },
+  "descriptor": {
+    "insults_or_slurs": "Insultos o insultos de odio",
+    "threat_of_violence": "Una amenaza de violencia",
+    "sexual_content": "Contenido sexual",
+    "nudity": "Desnudos",
+    "graphic_injury": "Heridas o muerte explícitas",
+    "self_harm": "Autolesión",
+    "minor_appears_present": "Alguien que parece ser menor de edad",
+    "personal_information": "Información personal de alguien",
+    "impersonation_claim": "Un intento de hacerse pasar por otra persona",
+    "commercial_promotion": "Promoción comercial",
+    "contested_factual_claim": "Una afirmación de hecho que está en disputa",
+    "nothing_notable": "Nada de lo anterior"
+  },
+  "missingContext": {
+    "none": "Nada: veo lo que necesito",
+    "preceding_conversation": "Lo que vino antes de esto",
+    "author_intent": "Qué quería decir esa persona",
+    "translation": "Una traducción de la que me fíe",
+    "source_or_provenance": "De dónde salió esto",
+    "local_cultural_context": "Contexto local o cultural"
+  },
+  "certainty": {
+    "low": "Poca",
+    "medium": "Razonable",
+    "high": "Mucha"
+  },
+  "outcome": {
+    "violation": "Incumple la política",
+    "violation.help": "Tienes claro que este material incumple una regla concreta que puedes nombrar.",
+    "no_violation": "No incumple la política",
+    "no_violation.help": "Tienes claro que no incumple la política que se te ha dado.",
+    "insufficient_context": "No puedo saberlo sin más",
+    "insufficient_context.help": "No es un no. El caso necesita más material o contexto antes de que nadie pueda decidir.",
+    "content_unavailable": "El material falta o está corrupto",
+    "content_unavailable.help": "La evidencia necesaria no está o no ha cargado."
+  },
+  "contextSufficiency": {
+    "sufficient": "Sí, había suficiente",
+    "insufficient": "No, he trabajado con lagunas"
+  },
+  "severity": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Crítica"
+  },
+  "action": {
+    "no_action": "Ninguna acción",
+    "add_warning_label": "Añadir una advertencia",
+    "restrict_visibility": "Restringir quién puede verlo",
+    "remove_or_restrict": "Retirarlo o restringirlo",
+    "escalate_to_specialist": "Enviarlo a una persona especialista"
+  },
+  "recuse": {
+    "title": "Dar un paso atrás en este caso",
+    "subtitle": "El caso se vuelve a sortear entre otras personas.",
+    "reassurance": "Esto no es un fracaso y no se registra como tal. Devolver un caso que no deberías juzgar es la decisión correcta, y no te cuesta nada.",
+    "reason": {
+      "title": "¿Por qué?",
+      "help": "El motivo decide cómo se vuelve a sortear el caso: por idioma, por conflicto o por exposición. No es una valoración sobre ti."
+    },
+    "notes": {
+      "title": "¿Quieres añadir algo?",
+      "help": "Opcional. No tienes que dar explicaciones.",
+      "placeholder": "Nota opcional"
+    },
+    "action": "Dar un paso atrás",
+    "cancel": "Volver al caso",
+    "done": {
+      "title": "Has dado un paso atrás",
+      "body": "El caso se ha devuelto y se volverá a sortear entre otras personas. Nada de esto cuenta en tu contra.",
+      "action": "Volver a Revisar"
+    }
+  },
+  "recusalReason": {
+    "conflict_of_interest": "Conozco a alguien implicado",
+    "conflict_of_interest.help": "O tengo algún otro motivo para no ser imparcial aquí.",
+    "language": "No leo este idioma lo bastante bien",
+    "language.help": "Lo bastante bien como para juzgar intención, sarcasmo y expresiones hechas.",
+    "too_sensitive": "No quiero mirar esto",
+    "too_sensitive.help": "No hace falta explicarlo, ni ahora ni después.",
+    "insufficient_context": "No tengo el contexto que esto necesita",
+    "insufficient_context.help": "Conocimiento local, cultural o de la situación que otra persona sí tendrá.",
+    "unavailable": "No puedo terminarlo ahora",
+    "unavailable.help": "Mejor devolverlo que dejar que caduque."
   }
 }

@@ -378,6 +378,11 @@
         "link": "link",
         "file": "file"
       }
+    },
+    "submitted": {
+      "title": "Review submitted",
+      "body": "Your review is in and the case has left this device. You will not be told how the rest of the jury voted; if the decision becomes disclosable to you, it will appear in your History.",
+      "action": "Back to review"
     }
   },
   "descriptor": {
@@ -448,7 +453,12 @@
       "placeholder": "Optional note"
     },
     "action": "Step back",
-    "cancel": "Return to the case"
+    "cancel": "Return to the case",
+    "done": {
+      "title": "You stepped back",
+      "body": "The case has been handed back and will be redrawn to somebody else. Nothing about this counts against you.",
+      "action": "Back to review"
+    }
   },
   "recusalReason": {
     "conflict_of_interest": "I know someone involved",

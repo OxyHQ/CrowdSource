@@ -34,35 +34,70 @@ import {
 } from '@/lib/review-form';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { useReviewerProfile, useSubmitReview } from '@/lib/reviewer-api/queries';
-import type { AssignmentPackage } from '@/lib/reviewer-api/types';
+import type { AssignmentPackage, ReviewSubmission } from '@/lib/reviewer-api/types';
 
 export default function ReviewScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const assignment = useActiveAssignment();
+  // The mutation is owned HERE, not by the flow below.
+  //
+  // A successful submission clears the assignment, which unmounts the flow — and
+  // React Query drops a mutation's per-call callbacks when the component that
+  // called `mutate` unmounts, so a confirmation driven from inside the flow
+  // never runs. This screen survives, so its `isSuccess` is the reliable signal.
+  const submitReview = useSubmitReview();
 
-  if (!assignment) {
+  if (assignment) {
+    // Keyed on the assignment so a new case can never inherit the previous
+    // case's half-filled form. Cheaper and more reliable than resetting by hand.
+    return (
+      <ReviewFlow
+        key={assignment.assignmentId}
+        assignment={assignment}
+        onSubmit={(review) =>
+          submitReview.mutate({ assignmentId: assignment.assignmentId, review })
+        }
+        submitting={submitReview.isPending}
+        submitError={submitReview.error}
+      />
+    );
+  }
+
+  if (submitReview.isSuccess) {
     return (
       <Screen title={t('review.title')}>
-        <Panel title={t('review.noCase.title')} description={t('review.noCase.body')}>
-          <Button variant="secondary" onPress={() => router.replace('/')}>
-            {t('review.noCase.action')}
+        <Panel title={t('review.submitted.title')} description={t('review.submitted.body')}>
+          <Button variant="primary" onPress={() => router.replace('/')}>
+            {t('review.submitted.action')}
           </Button>
         </Panel>
       </Screen>
     );
   }
 
-  // Keyed on the assignment so a new case can never inherit the previous case's
-  // half-filled form. Cheaper and more reliable than resetting state by hand.
-  return <ReviewFlow key={assignment.assignmentId} assignment={assignment} />;
+  return (
+    <Screen title={t('review.title')}>
+      <Panel title={t('review.noCase.title')} description={t('review.noCase.body')}>
+        <Button variant="secondary" onPress={() => router.replace('/')}>
+          {t('review.noCase.action')}
+        </Button>
+      </Panel>
+    </Screen>
+  );
 }
 
-function ReviewFlow({ assignment }: { assignment: AssignmentPackage }) {
+interface ReviewFlowProps {
+  assignment: AssignmentPackage;
+  onSubmit: (review: ReviewSubmission) => void;
+  submitting: boolean;
+  submitError: Error | null;
+}
+
+function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlowProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const profileQuery = useReviewerProfile();
-  const submitReview = useSubmitReview();
 
   // No initial argument, on purpose: step 2 cannot be seeded from the allegation
   // because there is nothing to seed it from. See `lib/review-form.ts`.
@@ -80,13 +115,9 @@ function ReviewFlow({ assignment }: { assignment: AssignmentPackage }) {
   const submission = buildReviewSubmission(formState, assignment.policy.rules);
 
   const handleSubmit = () => {
-    if (!submission) {
-      return;
+    if (submission) {
+      onSubmit(submission);
     }
-    submitReview.mutate(
-      { assignmentId: assignment.assignmentId, review: submission },
-      { onSuccess: () => router.replace('/') },
-    );
   };
 
   return (
@@ -169,7 +200,7 @@ function ReviewFlow({ assignment }: { assignment: AssignmentPackage }) {
         />
       )}
 
-      {submitReview.error ? <ApiStateNotice error={submitReview.error} /> : null}
+      {submitError ? <ApiStateNotice error={submitError} /> : null}
 
       <View className="gap-3 pb-6">
         {formState.step === 'descriptive' ? (
@@ -189,7 +220,7 @@ function ReviewFlow({ assignment }: { assignment: AssignmentPackage }) {
               variant="primary"
               onPress={handleSubmit}
               disabled={submission === null}
-              loading={submitReview.isPending}
+              loading={submitting}
             >
               {t('review.action.submit')}
             </Button>
