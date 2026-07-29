@@ -27,6 +27,7 @@ import '../../modules/cases/case.collection';
 import '../../modules/ingestion/report.collection';
 import '../../modules/outbox/outbox.collection';
 import '../../modules/policy/policySet.collection';
+import '../../modules/webhooks/webhook.collections';
 
 /**
  * Support for the integration tests, against the real replica set.

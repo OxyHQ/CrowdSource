@@ -63,12 +63,15 @@ afterAll(async () => {
 /**
  * Writes one row the way the domain does: inside a transaction.
  *
- * Every row here is `report.received`, which this file exclusively owns.
- * Suites run in parallel against one database and the dispatcher is
- * deliberately not tenant-scoped, so a file that registered a handler for a
- * type another file also uses would claim that file's rows and make both sets
- * of assertions depend on which suite got there first. `report.received` has no
- * consumer in `registerOutboxWorkers` and none in any other test.
+ * Every row here is `report.received`.
+ *
+ * That used to make the type exclusively this file's, because nothing consumed
+ * it. Webhook delivery now does — exactly as `outbox.dispatcher.ts` said it
+ * would — so a suite calling `registerOutboxWorkers` claims and completes these
+ * rows too. What keeps the assertions here meaningful is no longer type
+ * ownership but `fileParallelism: false` in `vitest.config.ts`: the suites share
+ * one database and the dispatcher is deliberately not tenant-scoped, so only one
+ * file may run a dispatcher at a time. See that file for why.
  */
 async function writeEvent(caseId: string): Promise<string> {
   return withTransaction((session) =>

@@ -19,6 +19,23 @@ export default defineConfig({
     // than a slow one.
     testTimeout: 30_000,
     hookTimeout: 120_000,
+    /**
+     * One file at a time.
+     *
+     * Every integration suite runs against ONE replica set, and two of the
+     * things under test are deliberately global: the outbox dispatcher claims
+     * across every tenant, and so does the webhook delivery worker. Run in
+     * parallel, one file's dispatcher claims another file's rows and completes
+     * them — which is correct behaviour for the code and a race for the
+     * assertions, showing up as a suite that fails once every several runs in a
+     * different place each time.
+     *
+     * Per-test tenants keep the DATA apart; they cannot keep the WORKERS apart,
+     * because a worker with a tenant filter would not be the worker that runs in
+     * production. Serialising costs about ten seconds on the whole suite, which
+     * is a good trade for a gate that means what it says.
+     */
+    fileParallelism: false,
     include: [path.resolve(backendRoot, 'src/__tests__/**/*.test.ts')],
     coverage: {
       provider: 'v8',

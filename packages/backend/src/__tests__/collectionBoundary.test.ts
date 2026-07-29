@@ -14,6 +14,7 @@ import '../modules/ingestion/report.collection';
 import '../modules/outbox/outbox.collection';
 import '../modules/policy/policySet.collection';
 import '../modules/tenancy/tenancy.collections';
+import '../modules/webhooks/webhook.collections';
 
 /**
  * The gate on the tenant boundary.
@@ -131,6 +132,14 @@ describe('collections that are exempt from tenant scoping', () => {
       'ApplicationCredential',
       'Organization',
       'OutboxEvent',
+      /**
+       * The webhook delivery worker's CLAIM spans every tenant, exactly like the
+       * outbox dispatcher's, so the row it claims cannot be found through a
+       * tenant filter. Its attempts are tenant-scoped — the worker derives a
+       * context from the delivery row it just claimed — which is why only one of
+       * the four webhook collections appears here.
+       */
+      'WebhookDelivery',
     ]);
     for (const [name, why] of reasons) {
       expect(why.trim().length, `${name} must say why it is exempt`).toBeGreaterThanOrEqual(30);
@@ -144,7 +153,16 @@ describe('collections that are exempt from tenant scoping', () => {
    */
   it('registers the tenant-owned collections too', () => {
     expect(registeredCollectionNames()).toEqual(
-      expect.arrayContaining(['Report', 'Case', 'CaseReport', 'PolicySet', 'AuditEvent']),
+      expect.arrayContaining([
+        'Report',
+        'Case',
+        'CaseReport',
+        'PolicySet',
+        'AuditEvent',
+        'WebhookEndpoint',
+        'WebhookSecret',
+        'WebhookAttempt',
+      ]),
     );
   });
 });

@@ -54,7 +54,23 @@ vi.mock('../modules/outbox/outbox.collection', async (importOriginal) => {
 
 let tenant: ProvisionedTenant;
 
+/**
+ * The pass-through the audit mock was built with.
+ *
+ * Captured so a test that makes the audit write fail on EVERY attempt — which it
+ * must, because the driver retries a transient transaction error — can have that
+ * undone afterwards. `mockClear` only forgets the calls, not the behaviour, so
+ * without this a persistent rejection would leak into the next test.
+ */
+let passThroughAudit: (...args: Parameters<typeof appendAuditEvent>) => Promise<string>;
+
 beforeAll(async () => {
+  const implementation = vi.mocked(appendAuditEvent).getMockImplementation();
+  if (!implementation) {
+    throw new Error('The audit mock was built without its pass-through implementation.');
+  }
+  passThroughAudit = implementation;
+
   await startDatabase();
   tenant = await provisionTenant();
 });
@@ -62,6 +78,7 @@ beforeAll(async () => {
 afterEach(() => {
   vi.mocked(appendOutboxEvent).mockClear();
   vi.mocked(appendAuditEvent).mockClear();
+  vi.mocked(appendAuditEvent).mockImplementation(passThroughAudit);
 });
 
 afterAll(async () => {
@@ -146,7 +163,17 @@ describe('a report and its outbox event commit together', () => {
       .collection('outbox_events')
       .countDocuments({ applicationId: tenant.applicationId });
 
-    vi.mocked(appendAuditEvent).mockRejectedValueOnce(new Error('audit write failed'));
+    /**
+     * Every attempt, not just the first.
+     *
+     * `withTransaction` is the driver's own implementation, which RETRIES a
+     * `TransientTransactionError` — and a write conflict under a loaded replica
+     * set is exactly that. A one-shot rejection lets the retry succeed, the
+     * transaction commits, and this test fails claiming the rollback did not
+     * happen. Failing on every attempt is also the truer statement of what is
+     * being tested: a later write in this transaction cannot succeed.
+     */
+    vi.mocked(appendAuditEvent).mockRejectedValue(new Error('audit write failed'));
 
     await expect(
       deliverReport(tenant.tenant, delivery(externalReportId)),
