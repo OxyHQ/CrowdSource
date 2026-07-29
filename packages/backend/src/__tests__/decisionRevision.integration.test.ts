@@ -231,10 +231,32 @@ describe('§9.9: a revision supersedes; it never edits', () => {
   it('§9.8: the second jury contains nobody from the first', async () => {
     const second = await seatsOf(2);
 
-    expect(second).toHaveLength(5);
     for (const reviewerId of second) {
       expect(firstJury, 'a juror sat on both panels').not.toContain(reviewerId);
     }
+  });
+
+  it('§9.4: the second panel is wider than the one it reviews, and at least five', async () => {
+    const second = await seatsOf(2);
+
+    /**
+     * Three assertions, and they are not the same assertion three times.
+     *
+     * The first two are §9.4's appeal row as a PROPERTY: at least five, and never
+     * narrower than the panel whose decision is being reviewed. Both survive any
+     * future edit to either ladder, and both would fail if a revision were ever
+     * drawn on the first-instance rungs.
+     *
+     * The third is the rung the ladder defines TODAY, as a literal. It is here so
+     * that moving the rung is a decision somebody makes on purpose and not a number
+     * that drifts under a property nobody notices holding vacuously.
+     */
+    expect(second.length, '§9.4: an appeal panel is at least five').toBeGreaterThanOrEqual(5);
+    expect(
+      second.length,
+      'the appeal panel is no narrower than the panel it reviews',
+    ).toBeGreaterThan(firstJury.length);
+    expect(second).toHaveLength(5);
   });
 
   it('the second panel is its own draw at revision 2, with its own seed', async () => {

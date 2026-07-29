@@ -44,6 +44,7 @@ const { auditEvents } = await import('../modules/audit/audit.collection');
 const { registerWebhookEndpoint } = await import('../modules/webhooks/endpoint.service');
 const { fanOutWebhookEvent } = await import('../modules/webhooks/fanout');
 const { webhookDeliveries } = await import('../modules/webhooks/webhook.collections');
+const { handleCaseReadyForReview } = await import('../modules/sortition/sortition.worker');
 const { createReviewer } = await import('./support/reviewers');
 const {
   deliveryBody,
@@ -365,11 +366,27 @@ describe('§10.2: POST /v1/cases/{id}/appeals', () => {
   it('§9.8: the appeal jury shares NOBODY with the panel that decided first', async () => {
     const second = await seatsOf(appealedCaseId, 2);
 
-    expect(second).toHaveLength(5);
-    expect(new Set(second).size).toBe(5);
+    expect(new Set(second).size, 'the same person was seated twice').toBe(second.length);
     for (const reviewerId of second) {
       expect(firstJury, 'a juror sat on both panels').not.toContain(reviewerId);
     }
+  });
+
+  it('§9.4: the appeal panel is wider than the panel it reviews, and at least five', async () => {
+    const second = await seatsOf(appealedCaseId, 2);
+
+    /**
+     * The PROPERTY first — "mínimo 5", and never narrower than the panel whose
+     * decision is under appeal — then the rung the ladder defines today as a
+     * literal. The property survives a ladder edit; the literal makes moving the
+     * rung a deliberate act rather than a drift.
+     */
+    expect(second.length, '§9.4: an appeal panel is at least five').toBeGreaterThanOrEqual(5);
+    expect(
+      second.length,
+      'the appeal panel is no narrower than the panel it reviews',
+    ).toBeGreaterThan(firstJury.length);
+    expect(second).toHaveLength(5);
   });
 
   it('§9.4: the appeal panel is five, on the appeal ladder, with its own seed', async () => {
@@ -790,6 +807,114 @@ describe('§9.8: an appeal that is not eligible creates no revision', () => {
 
     expect(refused.status).toBe(400);
     await expectNoRevision(refusedCaseId);
+  });
+});
+
+describe('phase 4’s bug, under the new ladder: the replay guard is scoped by REVISION', () => {
+  /**
+   * The single worst failure this phase can have, and it has happened once already.
+   *
+   * `handleCaseReadyForReview`'s replay guard asks whether the case already has a
+   * panel. Phase 4 found it UNSCOPED — it looked at every assignment on the case —
+   * so the moment revision 2 existed, revision 1's three assignments convinced the
+   * handler a panel was already open and the appeal jury was never drawn. Silently:
+   * the outbox row was marked dispatched, no error was logged, and the author had
+   * been told their case was being reviewed again.
+   *
+   * Phase 8 gives a revision > 1 a second reason to exist and a DIFFERENT panel
+   * shape, so the earlier fix is not something to take on trust. This exercises the
+   * exact pre-state of that bug: a case at revision 2, revision 1 still carrying its
+   * three assignments, revision 2 carrying none, and the handler invoked directly.
+   *
+   * The handler is called DIRECTLY rather than through the outbox because the
+   * pre-state has to be observed between the filing and the draw, and a dispatcher
+   * pass would close that window. Nothing else in this process drains — the polling
+   * loop belongs to `server.ts` and no test starts it.
+   */
+  const REPLAY_LANGUAGE = 'lmo';
+  let replayCaseId: string;
+
+  function readyEvent(caseId: string) {
+    return {
+      eventId: `evt_replay_${Date.now()}`,
+      organizationId: tenant.tenant.organizationId,
+      applicationId: tenant.tenant.applicationId,
+      type: OUTBOX_EVENT_TYPES.caseReadyForReview,
+      payload: { caseId },
+      status: 'dispatching' as const,
+      attempts: 1,
+      availableAt: new Date(),
+      dispatchedAt: null,
+      lastError: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
+  beforeAll(async () => {
+    /**
+     * Ten: three for the first panel, five for the appeal panel that may share
+     * nobody with it, and slack so §8.3's slots stay fillable from what is left.
+     */
+    for (let index = 0; index < 10; index += 1) {
+      await createReviewer({
+        family: FAMILY,
+        languages: [REPLAY_LANGUAGE],
+        reliability: index % 4 === 3 ? 0.4 : 0.9,
+        completedReviewCount: index % 4 === 3 ? 0 : 40,
+      });
+    }
+
+    replayCaseId = await openCase('replay', REPLAY_LANGUAGE);
+    await drainUntil(
+      async () => (await seatsOf(replayCaseId, 1)).length === 3,
+      'a panel for the replay case',
+    );
+    for (const reviewerId of await seatsOf(replayCaseId, 1)) await vote(reviewerId, 'violation');
+    await drainUntil(
+      async () => (await decisions.countDocuments(tenant.tenant, { caseId: replayCaseId })) === 1,
+      'the replay case decision',
+    );
+  }, 240_000);
+
+  it('draws the appeal jury even though revision 1 already has a full panel', async () => {
+    const filed = await fileAppealRequest(replayCaseId, 'appeal-replay', filing());
+    expect(filed.status).toBe(201);
+
+    // The pre-state of the bug, asserted rather than assumed: if revision 2 already
+    // had seats here, the draw below would prove nothing.
+    expect(await seatsOf(replayCaseId, 1), 'revision 1 lost its panel').toHaveLength(3);
+    expect(await seatsOf(replayCaseId, 2), 'revision 2 was drawn before the handler ran').toHaveLength(0);
+
+    await handleCaseReadyForReview(readyEvent(replayCaseId));
+
+    const appealPanel = await seatsOf(replayCaseId, 2);
+    expect(appealPanel, 'the appeal was never empanelled').toHaveLength(5);
+    // And revision 1's seats are untouched: a new panel is drawn, not a moved one.
+    expect(await seatsOf(replayCaseId, 1)).toHaveLength(3);
+    for (const reviewerId of appealPanel) {
+      expect(await seatsOf(replayCaseId, 1)).not.toContain(reviewerId);
+    }
+  });
+
+  it('and a genuinely replayed event draws no second panel', async () => {
+    await handleCaseReadyForReview(readyEvent(replayCaseId));
+    await handleCaseReadyForReview(readyEvent(replayCaseId));
+
+    expect(await seatsOf(replayCaseId, 2)).toHaveLength(5);
+    const draws = await sortitionDraws.find({ caseId: replayCaseId, caseRevision: 2 });
+    expect(draws, 'a replay drew a second panel').toHaveLength(1);
+  });
+
+  it('refuses an event naming a case that does not exist, rather than doing nothing', async () => {
+    /**
+     * The other half of "silently": a handler that returned quietly for a case it
+     * could not find would mark the row dispatched and lose the work. It throws, so
+     * the row stays pending and an operator sees it.
+     */
+    await expect(handleCaseReadyForReview(readyEvent('case_missing'))).rejects.toThrow(
+      /does not exist/,
+    );
   });
 });
 
