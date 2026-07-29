@@ -12,13 +12,11 @@
  * without it.
  */
 
-import { ShieldCheck_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
-import { useTheme } from '@oxyhq/bloom/theme';
 import { ProfileButton } from '@oxyhq/services';
 import { usePathname } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { SHELL_DESTINATIONS } from '@/components/shell/navigation';
 import { SideBarItem } from '@/components/shell/SideBarItem';
@@ -34,7 +32,6 @@ interface SideBarProps {
 
 export function SideBar({ asDrawer = false, onNavigate }: SideBarProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
   const pathname = usePathname();
   const isRailVisible = useIsScreenNotMobile();
   const isExpanded = useIsSideBarExpanded();
@@ -52,7 +49,7 @@ export function SideBar({ asDrawer = false, onNavigate }: SideBarProps) {
         asDrawer
           ? 'w-[280px] flex-1 p-3'
           : cn(
-              'p-1.5',
+              'p-1.5 z-[1000]',
               // Web scrolls the DOCUMENT, so the rail pins with `sticky` and must
               // be kept from stretching to the tall shell row's height —
               // `self-start` gives the sticky box its own viewport-height box to
@@ -64,33 +61,12 @@ export function SideBar({ asDrawer = false, onNavigate }: SideBarProps) {
       )}
     >
       {/*
-       * The rail's head: a plain glyph and the app's name. Not a logo — the
-       * sign-in screen already settled that CrowdSource has no mark of its own
-       * yet and that the Oxy mark is Oxy's. A shield is what a 60px rail needs so
-       * the collapsed column does not start with an empty band.
+       * Centred in the column, not top-aligned: the destinations sit at the
+       * vertical middle of the rail and the account is pinned to its foot.
        */}
       <View
         className={cn(
-          'flex-row items-center gap-2 px-3 py-4',
-          showExpanded ? 'justify-start' : 'justify-center',
-        )}
-      >
-        <ShieldCheck_Stroke2_Corner0_Rounded size="lg" fill={colors.primary} />
-        {showExpanded ? (
-          <Text className="text-[17px] font-bold text-foreground" numberOfLines={1}>
-            {t('app.name')}
-          </Text>
-        ) : null}
-      </View>
-
-      {/*
-       * Top-aligned, not centred. Mention centres its rail because eleven
-       * destinations fill it; five would float in the middle of a 900px column
-       * with the brand marooned above them.
-       */}
-      <View
-        className={cn(
-          'w-full flex-1 justify-start gap-0.5 pt-2',
+          'w-full flex-1 justify-center gap-0.5',
           showExpanded ? 'items-start' : 'items-center',
         )}
       >

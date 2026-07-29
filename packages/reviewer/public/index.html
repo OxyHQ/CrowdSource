@@ -6,6 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="CrowdSource" />
+    <meta name="application-name" content="CrowdSource" />
+
+    <!--
+      Brand marks. These live here rather than in `app.config.js` because the
+      Metro web export reads neither `web.meta` nor `web.manifest`, and because a
+      user-defined `public/favicon.ico` makes Expo skip its own `<link
+      rel="icon">` injection. `sizes="any"` tells the browser the .ico carries
+      more than one resolution (16 and 32) and to pick per display density.
+      The manifest supplies the installable-app icons, including the maskable
+      pair Android shapes to the launcher silhouette.
+    -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
 
     <!--
       Reviewer surfaces must not be indexed or previewed: a case URL is issued to

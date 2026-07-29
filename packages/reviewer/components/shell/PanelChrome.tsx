@@ -16,7 +16,8 @@
  * as a string at build time.
  *
  * NATIVE has no document scroll and nothing to mask, so the header is simply the
- * first row of the screen. Mention's version is an absolute overlay there
+ * first row of the screen, and it carries no surface of its own — it already
+ * sits on the panel's fill. Mention's version is an absolute overlay there
  * because its feeds scroll BEHIND an auto-hiding header; nothing here auto-hides,
  * and an overlay would just cover the first paragraph of every page.
  */
@@ -51,8 +52,8 @@ export function PanelStickyHeader({ children, className }: PanelStickyHeaderProp
   return (
     <View
       className={cn(
-        'left-0 right-0 shrink-0 bg-card',
-        IS_WEB && 'web:sticky',
+        'left-0 right-0',
+        IS_WEB && 'web:sticky web:bg-card',
         IS_WEB && (framed ? 'web:top-2 web:rounded-t-[28px]' : 'web:top-0'),
         className,
       )}

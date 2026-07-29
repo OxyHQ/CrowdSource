@@ -14,13 +14,13 @@
  */
 
 import React from 'react';
-import { Linking, Platform, Text, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'expo-router';
 
-import { Panel } from '@/components/Screen';
 import { useIsRightBarVisible } from '@/lib/responsive';
 import { createScopedLogger } from '@/lib/logger';
+import { cn } from '@/lib/utils';
 
 const logger = createScopedLogger('RightBar');
 
@@ -48,30 +48,63 @@ export function RightBar() {
   }
 
   return (
-    // `top-0` with a 8px top pad puts the first card's top edge exactly on the
-    // panel's, which is the panel's own gutter inset — the two columns read as
-    // one band rather than two things that nearly line up. `self-start` keeps the
-    // sticky box from being stretched to the tall shell row's height, which would
-    // leave it nowhere to pin.
-    <View className="w-[350px] flex-col gap-4 px-4 pt-2 web:sticky web:top-0 web:self-start">
-      <Panel title={t('rightBar.principles.title')}>
+    // `self-start` keeps the sticky box from being stretched to the tall shell
+    // row's height, which would leave it nowhere to pin; the 50/20 offsets are
+    // the slot the rail pins within, so its last row clears the window edge.
+    <View className="w-[350px] flex-col gap-4 px-4 pt-4 web:sticky web:top-[50px] web:bottom-5 web:self-start">
+      <RailSection title={t('rightBar.principles.title')} divider>
         {PRINCIPLE_KEYS.map((key) => (
           <Text key={key} className="text-sm leading-5 text-muted-foreground">
             {t(key)}
           </Text>
         ))}
-      </Panel>
+      </RailSection>
 
-      <Panel title={t('rightBar.support.title')} description={t('rightBar.support.body')}>
+      <RailSection title={t('rightBar.support.title')}>
+        <Text className="text-sm leading-5 text-muted-foreground">
+          {t('rightBar.support.body')}
+        </Text>
         <Link href="/wellbeing" className="text-sm font-semibold text-primary">
           {t('rightBar.support.action')}
         </Link>
-      </Panel>
+      </RailSection>
 
       {Platform.OS === 'web' ? <RightBarFooter /> : null}
     </View>
   );
 }
+
+/**
+ * A section of the rail. Not a card: no fill, no border, no rounding — a title
+ * and its rows, with a hairline under every section but the last. The rail is a
+ * column of related things, and a border around each one would read as a stack
+ * of unrelated ones.
+ */
+function RailSection({
+  title,
+  divider,
+  children,
+}: {
+  title: string;
+  divider?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <View
+      className={cn('gap-2', divider && 'border-border pb-4')}
+      style={divider ? styles.divider : undefined}
+    >
+      <Text className="text-[15px] font-bold text-foreground">{title}</Text>
+      <View className="gap-2">{children}</View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  // A hairline is a device-pixel value, not a design-token width, so it has no
+  // utility class to come from.
+  divider: { borderBottomWidth: StyleSheet.hairlineWidth },
+});
 
 function RightBarFooter() {
   const { t } = useTranslation();

@@ -1,9 +1,7 @@
 // Import Reanimated early so it initializes before other modules.
 import 'react-native-reanimated';
-import { BloomHapticsProvider } from '@oxyhq/bloom/hooks';
-import { ImageResolverProvider } from '@oxyhq/bloom/image-resolver';
 import { Outlet as PortalOutlet, Provider as PortalProvider } from '@oxyhq/bloom/portal';
-import { BloomThemeProvider } from '@oxyhq/bloom/theme';
+import { BloomProvider } from '@oxyhq/bloom/provider';
 import { useAuth } from '@oxyhq/services/ui/client';
 import { Redirect, Slot, Stack, useSegments } from 'expo-router';
 import React from 'react';
@@ -36,23 +34,27 @@ function resolveImageSource(fileId: string, variant?: string): string | undefine
 
 export default function RootLayout() {
   return (
-    <ImageResolverProvider value={resolveImageSource}>
-      <BloomThemeProvider
-        defaultMode="system"
-        defaultColorPreset="blue"
-        persistKey={BLOOM_THEME_PERSIST_KEY}
-        storage={BLOOM_THEME_STORAGE}
-      >
-        <BloomHapticsProvider>
-          <AppProviders oxyServices={oxyServices} queryClient={queryClient}>
-            <PortalProvider>
-              <AuthRouter />
-              <PortalOutlet />
-            </PortalProvider>
-          </AppProviders>
-        </BloomHapticsProvider>
-      </BloomThemeProvider>
-    </ImageResolverProvider>
+    // The single Bloom root — theme, haptics, image resolution, scroll
+    // restoration and the tab bar's minimize progress, all at one depth.
+    // Mounting those pieces separately is what lets one of them land too low:
+    // `useScrollRestoration()` throws on web for anything rendered beside it
+    // (the right rail is rendered beside the routed content), and
+    // `useMinimizeState()` silently hands out a private fallback, so the bottom
+    // bar simply never minimizes with no error anywhere.
+    <BloomProvider
+      imageResolver={resolveImageSource}
+      defaultMode="system"
+      defaultColorPreset="blue"
+      persistKey={BLOOM_THEME_PERSIST_KEY}
+      storage={BLOOM_THEME_STORAGE}
+    >
+      <AppProviders oxyServices={oxyServices} queryClient={queryClient}>
+        <PortalProvider>
+          <AuthRouter />
+          <PortalOutlet />
+        </PortalProvider>
+      </AppProviders>
+    </BloomProvider>
   );
 }
 

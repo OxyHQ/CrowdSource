@@ -1,7 +1,7 @@
 /**
  * One row of the rail (and of the drawer, which is the same rail widened).
  *
- * Collapsed it is a 24px glyph in a circular hit target; expanded it grows a
+ * Collapsed it is a 26px glyph in a circular hit target; expanded it grows a
  * label beside it. Selection reads three ways at once — a tinted pill behind the
  * row, the glyph in the primary colour and a heavier label — because at 60px
  * wide the pill is the only one of the three that is visible.
@@ -10,10 +10,19 @@
 import { useTheme } from '@oxyhq/bloom/theme';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 
 import type { ShellDestination } from '@/components/shell/navigation';
 import { cn } from '@/lib/utils';
+
+/**
+ * Rendered glyph size (px). The row's icon box is 24px and the glyph overhangs
+ * it by a pixel on each side, which is what gives the rail its weight.
+ */
+const ICON_SIZE = 26;
+
+/** The shell's colour transition — 200ms on the same curve every rail row uses. */
+const COLOR_TRANSITION = 'web:transition-colors web:duration-200 web:ease-[cubic-bezier(0.2,0,0,1)]';
 
 interface SideBarItemProps {
   destination: ShellDestination;
@@ -61,8 +70,9 @@ export const SideBarItem = React.memo(function SideBarItem({
         isExpanded ? 'w-full self-stretch px-4' : 'self-center px-3',
         isActive && 'bg-primary/10',
         isHovered && !isActive && 'bg-primary/5',
-        'active:bg-primary/15',
-        'web:transition-colors web:duration-200 web:cursor-pointer',
+        'active:bg-primary/13',
+        COLOR_TRANSITION,
+        'web:cursor-pointer',
       )}
     >
       <View
@@ -71,14 +81,32 @@ export const SideBarItem = React.memo(function SideBarItem({
           isExpanded ? 'justify-start gap-3' : 'justify-center gap-0',
         )}
       >
-        <View className="h-6 w-6 items-center justify-center">
-          {/*
-           * react-native-svg has no CSS cascade, so an icon takes its colour from
-           * its own `fill` prop rather than from a `text-*` class on the wrapper.
-           * These are the two theme tokens the classes below map to, resolved
-           * once here so web and native tint identically.
-           */}
-          <Icon size="lg" fill={isHighlighted ? colors.primary : colors.text} />
+        {/*
+         * The glyph takes its colour through a different channel per platform,
+         * because react-native-svg has no CSS cascade of its own. On WEB the
+         * wrapper's `text-*` class sets `color`, the glyph paints
+         * `currentColor`, and the wrapper's transition carries the tint change
+         * over the same 200ms the label takes. On NATIVE there is nothing to
+         * inherit from, so the resolved token goes straight onto the glyph.
+         */}
+        <View
+          className={cn(
+            'h-6 w-6 items-center justify-center',
+            isHighlighted ? 'text-primary' : 'text-foreground',
+            COLOR_TRANSITION,
+          )}
+        >
+          <Icon
+            width={ICON_SIZE}
+            height={ICON_SIZE}
+            fill={
+              Platform.OS === 'web'
+                ? 'currentColor'
+                : isHighlighted
+                  ? colors.primary
+                  : colors.text
+            }
+          />
         </View>
         {isExpanded ? (
           <Text
@@ -86,7 +114,7 @@ export const SideBarItem = React.memo(function SideBarItem({
               'text-[15px]',
               isActive ? 'font-semibold' : 'font-medium',
               isHighlighted ? 'text-primary' : 'text-foreground',
-              'web:transition-colors web:duration-200',
+              COLOR_TRANSITION,
             )}
             numberOfLines={1}
           >

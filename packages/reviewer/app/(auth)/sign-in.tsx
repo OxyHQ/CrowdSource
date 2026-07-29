@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { LogoIcon } from '@/components/LogoIcon';
 import { OXY_AUTH_REDIRECT_URI, OXY_CLIENT_ID } from '@/config';
 
 export default function SignInScreen() {
@@ -27,8 +28,11 @@ export default function SignInScreen() {
   // padding utility on the same element (0 on web, so the utility vanishes).
   return (
     <SafeAreaView className="flex-1 items-center justify-center bg-background">
-      {/* No brand mark: CrowdSource has none yet, and the Oxy mark is Oxy's. */}
       <View className="w-full max-w-[360px] items-center gap-4 p-6">
+        {/* CrowdSource's own mark, not Oxy's — the Oxy mark belongs to the
+            sign-in button below, which is the SDK's surface and says whose
+            identity is being used. */}
+        <LogoIcon height={56} />
         <Text className="text-[28px] font-bold text-foreground">{t('app.name')}</Text>
         <Text className="max-w-[300px] text-center text-base leading-[22px] text-muted-foreground">
           {t('signIn.tagline')}

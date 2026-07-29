@@ -19,8 +19,9 @@
  * swallows every tap.
  */
 
+import { Backdrop } from '@oxyhq/bloom/overlay';
 import React, { createContext, memo, useCallback, useContext, useMemo, useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   interpolate,
@@ -35,8 +36,11 @@ import { SideBar } from '@/components/shell/SideBar';
 
 const IS_WEB = Platform.OS === 'web';
 
-/** Panel width (px). The drawer's own width, matched by `SideBar asDrawer`. */
-const DRAWER_WIDTH = 280;
+/**
+ * How far left the closed panel is parked (px). Wider than the 280px panel, so
+ * it clears the window edge outright instead of stopping flush against it.
+ */
+const DRAWER_TRAVEL = 300;
 
 const DRAWER_TIMING = { duration: 200 };
 
@@ -104,9 +108,8 @@ export const DrawerOverlay = memo(function DrawerOverlay() {
   const { t } = useTranslation();
   const { isOpen, hasOpened, progress, close } = useDrawer();
 
-  const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.value }), [progress]);
   const panelStyle = useAnimatedStyle(
-    () => ({ transform: [{ translateX: interpolate(progress.value, [0, 1], [-DRAWER_WIDTH, 0]) }] }),
+    () => ({ transform: [{ translateX: interpolate(progress.value, [0, 1], [-DRAWER_TRAVEL, 0]) }] }),
     [progress],
   );
 
@@ -116,15 +119,20 @@ export const DrawerOverlay = memo(function DrawerOverlay() {
 
   return (
     <View className={OVERLAY_CLASS} pointerEvents="box-none">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('shell.closeMenu')}
-        onPress={close}
-        pointerEvents={isOpen ? 'auto' : 'none'}
-        className="absolute inset-0"
-      >
-        <Animated.View className="flex-1 bg-black/40" style={scrimStyle} />
-      </Pressable>
+      {/* Bloom's shared scrim — the same blur-and-dim every dialog and sheet in
+          the app puts behind itself, so the drawer does not read as a different
+          kind of surface. The wrapper carries the closed-state `pointerEvents`:
+          the overlay stays mounted after the first open and a backdrop always
+          takes pointer events, so without it a closed drawer would swallow
+          every click. It has to be `pointerEvents` and not opacity — a
+          transparent ancestor would neutralise the blur. */}
+      <View pointerEvents={isOpen ? 'auto' : 'none'} style={StyleSheet.absoluteFill}>
+        <Backdrop
+          onPress={close}
+          progress={progress}
+          accessibilityLabel={t('shell.closeMenu')}
+        />
+      </View>
       {/*
        * A closed drawer is parked off-screen, not unmounted, so it has to be
        * taken out of the accessibility tree as well: otherwise a keyboard or

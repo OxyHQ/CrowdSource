@@ -51,9 +51,10 @@ module.exports = function(_config) {
         typedRoutes: true,
         reactCompiler: true,
       },
-      // No `icon`, `splash` image or `favicon`: CrowdSource has no brand assets
-      // yet, and shipping another product's marks would be worse than Expo's
-      // neutral defaults. Add them here when the real assets land.
+      // The launcher mark, opaque and full-bleed at 1024px as iOS requires (it
+      // rejects an alpha channel and applies its own corner mask). Android and
+      // web take the layered/round variants below instead of this one.
+      icon: './assets/images/icon.png',
       ios: {
         supportsTablet: true,
         bundleIdentifier: APP_ID,
@@ -66,6 +67,17 @@ module.exports = function(_config) {
       },
       android: {
         package: APP_ID,
+        // Three layers, not one flattened bitmap: the launcher masks the
+        // foreground to whatever shape the device theme uses, and `monochrome`
+        // is what Android 13+ themed icons tint to the wallpaper palette —
+        // without it a themed launcher falls back to the unthemed icon. Sources
+        // are 432px because that is exactly the xxxhdpi mipmap Expo generates,
+        // so every density is a downscale and none is an upscale.
+        adaptiveIcon: {
+          foregroundImage: './assets/images/adaptive-icon-foreground.png',
+          backgroundImage: './assets/images/adaptive-icon-background.png',
+          monochromeImage: './assets/images/adaptive-icon-monochrome.png',
+        },
         intentFilters: [
           {
             action: 'VIEW',
@@ -98,15 +110,20 @@ module.exports = function(_config) {
       web: {
         bundler: 'metro',
         output: 'single',
-        manifest: './public/manifest.json',
-        meta: {
-          viewport: 'width=device-width, initial-scale=1.0',
-          themeColor: '#0B0B0F',
-          appleMobileWebAppCapable: 'yes',
-          appleMobileWebAppStatusBarStyle: 'default',
-          appleMobileWebAppTitle: 'CrowdSource',
-          applicationName: 'CrowdSource',
-        },
+        // `themeColor` is the ONLY head tag the Metro web export derives from
+        // this block (alongside `lang` and `description`); it appends a
+        // `<meta name="theme-color">`. The `web.meta` and `web.manifest` maps
+        // belong to the retired webpack pipeline and are read by nothing here,
+        // so the favicon links, the PWA manifest link and the Apple web-app
+        // tags are declared in `public/index.html`, which IS the shell Expo
+        // serves. Keep this value equal to the pre-hydration canvas in
+        // global.css and to `manifest.json`'s `theme_color`.
+        themeColor: '#0B0B0F',
+        // No `favicon`: `public/favicon.ico` is a real multi-resolution icon
+        // from the brand export, and Expo prefers a user-defined one over
+        // generating a flat 48px PNG from a source image. Because it takes that
+        // path it also skips injecting the `<link rel="icon">` tag, which is
+        // why `public/index.html` carries the icon links itself.
         build: {
           babel: {
             include: ['@expo/vector-icons'],

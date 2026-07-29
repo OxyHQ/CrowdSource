@@ -10,6 +10,7 @@
 
 import { useHaptics } from '@oxyhq/bloom/hooks';
 import { TabBar, TabBarButton, useTabBarFootprint, type TabBarItem } from '@oxyhq/bloom/tab-bar';
+import { useTheme } from '@oxyhq/bloom/theme';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,9 @@ import { SHELL_DESTINATIONS } from '@/components/shell/navigation';
  * pill, so the last line never sits flush against the bar.
  */
 const BOTTOM_BAR_CLEARANCE = 12;
+
+/** Rendered size (px) of the tab glyphs; Bloom centres each one in its glyph box. */
+const ICON_SIZE = 22;
 
 /**
  * Vertical space (px) a screen must leave free at its bottom for the floating
@@ -42,6 +46,7 @@ export function BottomBar() {
   const router = useRouter();
   const pathname = usePathname();
   const haptic = useHaptics();
+  const { colors } = useTheme();
 
   // A floating bar over an open keyboard is a bar over the field being typed
   // into. The hook is a no-op on web (the library ships a neutral binding
@@ -62,12 +67,16 @@ export function BottomBar() {
         return {
           name: destination.href,
           label: t(destination.labelKey),
-          // No `fill` here on purpose: the bar injects the layer's tint as the
-          // icon's fill, which is what makes the active/inactive crossfade work.
-          icon: <Icon size="md" />,
+          // The inactive layer takes no `fill`, so the bar injects its own
+          // muted tint — which is what makes the crossfade work. The active
+          // layer sets the brand colour explicitly, because the bar's default
+          // selected tint is the plain foreground and the selected tab is the
+          // one thing on this surface that has to be unmistakable.
+          icon: <Icon width={ICON_SIZE} height={ICON_SIZE} />,
+          activeIcon: <Icon width={ICON_SIZE} height={ICON_SIZE} fill={colors.primary} />,
         };
       }),
-    [t],
+    [colors.primary, t],
   );
 
   const handleIndexChange = useCallback(

@@ -36,12 +36,18 @@ export function Screen({ title, subtitle, children }: ScreenProps) {
 
   return (
     <View className="flex-1">
-      <PanelStickyHeader className="border-b border-border">
-        <View className="h-12 flex-row items-center gap-2 px-4">
-          {isScreenNotMobile ? null : <MenuButton />}
-          <Text className="text-[17px] font-bold text-foreground" numberOfLines={1}>
-            {title}
-          </Text>
+      <PanelStickyHeader>
+        {/* The header band paints `bg-background`, a shade off the panel's
+            `bg-card`, so the chrome reads as the frame around the page rather
+            than as the top of it. `min-h-12` rather than a fixed height: the row
+            grows if its contents ever need more than 48px. */}
+        <View className="min-h-12 flex-row items-center justify-between bg-background px-4 py-2">
+          <View className="flex-1 flex-row items-center gap-2">
+            {isScreenNotMobile ? null : <MenuButton />}
+            <Text className="text-[18px] font-extrabold text-foreground" numberOfLines={1}>
+              {title}
+            </Text>
+          </View>
         </View>
       </PanelStickyHeader>
 
@@ -67,7 +73,11 @@ function MenuButton() {
       accessibilityRole="button"
       accessibilityLabel={t('shell.openMenu')}
       onPress={open}
-      className="-ml-2 h-9 w-9 items-center justify-center rounded-full active:bg-primary/10 web:cursor-pointer"
+      // A bare glyph, like every other button in this header band — the touch
+      // target is grown with `hitSlop`, which costs nothing visually, rather
+      // than with a padded box that would show up as a shape on the row.
+      hitSlop={10}
+      className="mr-2 web:cursor-pointer"
     >
       {/* react-native-svg has no CSS cascade: the glyph takes its colour from its
           own `fill`, not from a `text-*` class on the wrapper. */}
