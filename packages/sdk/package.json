@@ -25,6 +25,16 @@
   "keywords": ["crowdsource", "moderation", "sdk"],
   "author": "OxyHQ",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OxyHQ/CrowdSource",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://github.com/OxyHQ/CrowdSource/tree/main/packages/sdk#readme",
+  "bugs": "https://github.com/OxyHQ/CrowdSource/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@oxyhq/crowdsource-contracts": "workspace:*",
     "zod": "^4.4.3"
@@ -34,5 +44,5 @@
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },
-  "files": ["dist/**/*"]
+  "files": ["dist/**/*", "src/**/*", "!src/**/__tests__/**"]
 }

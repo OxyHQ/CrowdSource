@@ -24,6 +24,18 @@ No `express.raw`, no body-parser ordering, no secret plumbing, no signature code
 `event` is narrowed to `case.decided` and its `data.decision` is a typed
 `Decision`.
 
+`Decision` and the other event payload types come from
+`@oxyhq/crowdsource-contracts`. It arrives as a dependency of this package, but
+install it directly (`bun add @oxyhq/crowdsource-contracts`) if you name one of
+those types in your own code, so your imports do not rely on hoisting.
+
+## Where the secret comes from
+
+`CROWDSOURCE_WEBHOOK_SECRET` is minted **once**, by the response to
+`POST /v1/webhook-endpoints`, which is how you tell CrowdSource where to deliver.
+`@oxyhq/crowdsource` does not wrap that call yet — its README has the request to
+make, and the warning that the secret is in that one response and no other.
+
 ## Why there is no raw-body step for you to get wrong
 
 The likeliest way to ship a broken webhook receiver is to verify a signature over

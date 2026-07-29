@@ -25,6 +25,16 @@
   "keywords": ["crowdsource", "moderation", "webhooks", "express"],
   "author": "OxyHQ",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OxyHQ/CrowdSource",
+    "directory": "packages/sdk-express"
+  },
+  "homepage": "https://github.com/OxyHQ/CrowdSource/tree/main/packages/sdk-express#readme",
+  "bugs": "https://github.com/OxyHQ/CrowdSource/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@oxyhq/crowdsource-contracts": "workspace:*"
   },
@@ -40,5 +50,5 @@
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },
-  "files": ["dist/**/*"]
+  "files": ["dist/**/*", "src/**/*", "!src/**/__tests__/**"]
 }
