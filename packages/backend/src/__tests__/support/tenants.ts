@@ -1,8 +1,14 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+
+import { CaseEnvelopeSchema, type CaseEnvelope } from '@oxyhq/crowdsource-contracts';
 
 import { config } from '../../config';
 import { ensureIndexes } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
+import {
+  BASELINE_POLICY_SET_ID,
+  BASELINE_POLICY_VERSION,
+} from '../../modules/policy/policyBaseline';
 import {
   createApplication,
   createOrganization,
@@ -10,6 +16,17 @@ import {
 } from '../../modules/tenancy/provisioning.service';
 import type { ApplicationScope } from '../../modules/tenancy/scopes';
 import { connectToDatabase, disconnectFromDatabase } from '../../utils/database';
+/**
+ * Imported for their side effect. A collection is registered when the module
+ * declaring it loads, so `ensureIndexes` below would silently create nothing for
+ * a collection no test file happened to import first — and every idempotency
+ * assertion in the suite would then pass by accepting duplicates.
+ */
+import '../../modules/audit/audit.collection';
+import '../../modules/cases/case.collection';
+import '../../modules/ingestion/report.collection';
+import '../../modules/outbox/outbox.collection';
+import '../../modules/policy/policySet.collection';
 
 /**
  * Support for the integration tests, against the real replica set.
@@ -59,6 +76,7 @@ export interface ProvisionedTenant {
 const DEFAULT_SCOPES: readonly ApplicationScope[] = [
   'crowdsource:reports:write',
   'crowdsource:reports:read',
+  'crowdsource:cases:read',
 ];
 
 /** An organization, an application and a credential — the §15.2 preamble. */
@@ -100,12 +118,133 @@ export async function provisionApplication(
   };
 }
 
-/** A minimally shaped Case Envelope. Full validation belongs to contracts. */
-export function sampleEnvelope(text = 'Reported text'): Record<string, unknown> {
-  return {
+/**
+ * A Case Envelope that the published contract actually accepts.
+ *
+ * Every field the contract requires is here, because ingress now parses with
+ * `CaseEnvelopeSchema` (§7.2 step 2) and a fixture that skipped a required field
+ * would make every test in the suite exercise the rejection path instead of the
+ * one it names.
+ *
+ * The defaults are what a test that does not care wants: one text resource, one
+ * allegation, the baseline policy, community review allowed. Everything a
+ * deduplication test DOES care about — the subject id, the text, the reporter,
+ * the policy — is an override, because those are exactly the axes along which
+ * two reports must either merge or stay apart.
+ */
+export interface SampleEnvelopeOptions {
+  readonly applicationId: string;
+  readonly externalReportId?: string;
+  readonly text?: string;
+  readonly subjectExternalId?: string;
+  readonly allegationCode?: string;
+  readonly reporterExternalId?: string;
+  readonly policy?: { readonly policySetId: string; readonly version: string };
+  readonly allowCommunityReview?: boolean;
+  readonly retentionDays?: number;
+  readonly reach?: number;
+  readonly resourceUrl?: string;
+}
+
+export function sampleEnvelope(options: SampleEnvelopeOptions): CaseEnvelope {
+  const text = options.text ?? 'Reported text';
+  const reporterExternalId = options.reporterExternalId ?? 'reporter_1';
+
+  /**
+   * Parsed by the published contract on the way out.
+   *
+   * A fixture that drifts out of contract would otherwise make every test using
+   * it exercise the 422 path while still reading as a test of something else.
+   * This way the failure lands here, on the line that built the bad envelope.
+   */
+  return CaseEnvelopeSchema.parse({
     schemaVersion: 'crowdsource.case.v1',
-    subject: { externalId: 'post_987', type: 'social.post', primaryResourceId: 'res_post' },
-    resources: [{ id: 'res_post', type: 'text', role: 'subject', data: { text } }],
-    allegations: [{ code: 'harassment.targeted_abuse' }],
+    applicationId: options.applicationId,
+    externalReportId: options.externalReportId ?? 'mention_report_1',
+    subject: {
+      externalId: options.subjectExternalId ?? 'post_987',
+      type: 'social.post',
+      primaryResourceId: 'res_post',
+    },
+    principalBindings: [
+      { principalRef: 'author_1', type: 'local_user', externalPrincipalId: 'user_author' },
+      {
+        principalRef: 'reporter_1',
+        type: 'local_user',
+        externalPrincipalId: reporterExternalId,
+      },
+    ],
+    resources: [
+      {
+        id: 'res_post',
+        type: 'text',
+        role: 'subject',
+        language: 'es',
+        data: { text },
+        sha256: digestOf(text),
+        authorPrincipalRef: 'author_1',
+      },
+      ...(options.resourceUrl === undefined
+        ? []
+        : [
+            {
+              id: 'res_link',
+              type: 'link',
+              role: 'context',
+              data: { url: options.resourceUrl },
+              sha256: digestOf(options.resourceUrl),
+            },
+          ]),
+    ],
+    relations:
+      options.resourceUrl === undefined
+        ? []
+        : [{ from: 'res_post', type: 'refers_to', to: 'res_link' }],
+    allegations: [
+      {
+        code: options.allegationCode ?? 'harassment.targeted_abuse',
+        reporterPrincipalRef: 'reporter_1',
+      },
+    ],
+    policy: options.policy ?? {
+      policySetId: BASELINE_POLICY_SET_ID,
+      version: BASELINE_POLICY_VERSION,
+    },
+    privacy: {
+      retentionDays: options.retentionDays ?? 30,
+      allowCommunityReview: options.allowCommunityReview ?? true,
+    },
+    ...(options.reach === undefined
+      ? {}
+      : { urgency: { hint: 'normal', reach: options.reach } }),
+  });
+}
+
+/** The contract's only accepted digest form, over the UTF-8 bytes of a string. */
+function digestOf(value: string): string {
+  return `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}`;
+}
+
+/**
+ * A whole `POST /v1/reports` body for one tenant.
+ *
+ * The contract requires the request's `externalReportId` and the envelope's to
+ * agree, and the envelope's `applicationId` to be the credential's. Both are
+ * checks worth having and neither is what most tests are about, so they are set
+ * once here rather than restated at every call site — where a stale copy would
+ * silently turn a test of something else into a test of the mismatch path.
+ */
+export function deliveryBody(
+  tenant: ProvisionedTenant,
+  externalReportId: string,
+  options: Omit<SampleEnvelopeOptions, 'applicationId' | 'externalReportId'> = {},
+): { externalReportId: string; envelope: CaseEnvelope } {
+  return {
+    externalReportId,
+    envelope: sampleEnvelope({
+      ...options,
+      applicationId: tenant.applicationId,
+      externalReportId,
+    }),
   };
 }

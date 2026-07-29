@@ -29,8 +29,12 @@ import { newPublicId } from '../../utils/identifiers';
 
 /** The internal event types of §12.5 that exist today. */
 export const OUTBOX_EVENT_TYPES = {
-  /** A universal report was stored and is ready for triage into a case. */
+  /** A universal report was stored and attached to a case. */
   reportReceived: 'report.received',
+  /** A case was created or changed, and its priority and route must be computed. */
+  caseReadyForTriage: 'case.ready_for_triage',
+  /** Triage is done: the case can be handed to sortition (§8). */
+  caseReadyForReview: 'case.ready_for_review',
 } as const;
 
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[keyof typeof OUTBOX_EVENT_TYPES];
@@ -45,7 +49,20 @@ export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[keyof typeof OUTBOX_EV
  */
 export interface OutboxEventPayload {
   readonly reportId?: string;
+  readonly caseId?: string;
 }
+
+/**
+ * §3.2-style lifecycle for a row.
+ *
+ * `dispatching` is a LEASE, not a state a consumer reports: the dispatcher
+ * stamps it with an expiry, and a row whose lease has run out is claimable
+ * again. That is what makes a dispatcher crash a delay rather than a stuck row —
+ * without it, a process that died mid-handler would hold its events forever and
+ * nothing would say so.
+ */
+export const OUTBOX_STATUSES = ['pending', 'dispatching', 'dispatched', 'failed'] as const;
+export type OutboxStatus = (typeof OUTBOX_STATUSES)[number];
 
 export interface OutboxEventDocument {
   eventId: string;
@@ -53,9 +70,11 @@ export interface OutboxEventDocument {
   applicationId: string;
   type: OutboxEventType;
   payload: OutboxEventPayload;
-  status: 'pending' | 'dispatched' | 'failed';
+  status: OutboxStatus;
   attempts: number;
+  /** When this row may next be claimed; while leased, when the lease expires. */
   availableAt: Date;
+  dispatchedAt: Date | null;
   lastError: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -71,11 +90,12 @@ const outboxEventSchema = new Schema<OutboxEventDocument>(
     status: {
       type: String,
       required: true,
-      enum: ['pending', 'dispatched', 'failed'],
+      enum: OUTBOX_STATUSES,
       default: 'pending',
     },
     attempts: { type: Number, required: true, default: 0 },
     availableAt: { type: Date, required: true },
+    dispatchedAt: { type: Date, default: null },
     lastError: { type: String, default: null },
   },
   { timestamps: true, collection: 'outbox_events' },
@@ -112,6 +132,7 @@ export async function appendOutboxEvent(
       status: 'pending',
       attempts: 0,
       availableAt: now,
+      dispatchedAt: null,
       lastError: null,
       createdAt: now,
       updatedAt: now,

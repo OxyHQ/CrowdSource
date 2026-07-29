@@ -8,8 +8,11 @@ import { DRIVER_ACCESS_ALLOWED, findDriverEscapes, type ScannedFile } from '../d
 // Imported for their side effect: a collection is only registered once the
 // module that declares it is loaded, and an empty registry would make every
 // assertion below vacuously true.
+import '../modules/audit/audit.collection';
+import '../modules/cases/case.collection';
 import '../modules/ingestion/report.collection';
 import '../modules/outbox/outbox.collection';
+import '../modules/policy/policySet.collection';
 import '../modules/tenancy/tenancy.collections';
 
 /**
@@ -134,7 +137,14 @@ describe('collections that are exempt from tenant scoping', () => {
     }
   });
 
+  /**
+   * The other half of the pin. Every collection that CAN be tenant-scoped must
+   * be, so a new one added as unscoped shows up as a failure in the list above
+   * and a new one added as scoped shows up here.
+   */
   it('registers the tenant-owned collections too', () => {
-    expect(registeredCollectionNames()).toContain('Report');
+    expect(registeredCollectionNames()).toEqual(
+      expect.arrayContaining(['Report', 'Case', 'CaseReport', 'PolicySet', 'AuditEvent']),
+    );
   });
 });

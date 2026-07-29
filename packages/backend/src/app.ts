@@ -3,6 +3,7 @@ import express, { type Express, Router } from 'express';
 import helmet from 'helmet';
 
 import { errorHandler, notFoundHandler } from './http/errorHandler';
+import { casesRouter } from './modules/cases/cases.routes';
 import { reportsRouter } from './modules/ingestion/reports.routes';
 import { healthRouter } from './routes/health.routes';
 
@@ -14,9 +15,11 @@ import { healthRouter } from './routes/health.routes';
  * the application without a runtime around it.
  *
  * The moderation modules of the plan mount here as they are built. Today that is
- * ingestion, behind the tenancy module's service-credential middleware;
- * evidence, cases, policy registry, triage, sortition, review, consensus,
- * decision, webhook delivery and the reputation bridge are not written.
+ * ingestion and case read-back, both behind the tenancy module's
+ * service-credential middleware. Evidence, the policy registry and triage exist
+ * but have no HTTP surface of their own — the first is reached through ingestion
+ * and the other two through the outbox. Sortition, review, consensus, decision,
+ * webhook delivery and the reputation bridge are not written.
  */
 export function createApp(): Express {
   const app = express();
@@ -40,6 +43,7 @@ export function createApp(): Express {
    */
   const v1: Router = Router();
   v1.use(reportsRouter);
+  v1.use(casesRouter);
   app.use('/v1', v1);
 
   app.use(notFoundHandler);

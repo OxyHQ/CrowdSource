@@ -55,7 +55,12 @@ beforeAll(async () => {
   const delivered = await deliverReport(alpha.tenant, {
     externalReportId: 'shared-external-id',
     idempotencyKey: `alpha-${Date.now()}`,
-    envelope: sampleEnvelope('alpha private material'),
+    envelope: sampleEnvelope({
+      applicationId: alpha.applicationId,
+      externalReportId: 'shared-external-id',
+      text: 'alpha private material',
+    }),
+    credentialId: 'csk_00000000000000000000000000000001',
   });
   alphaReportId = delivered.reportId;
 });
@@ -123,11 +128,16 @@ describe('a credential from one tenant cannot reach another tenant', () => {
 
 describe('applicationId comes from the credential', () => {
   /**
-   * §12.9 and §13.2: a tenant id the caller can choose is not isolation. The
-   * request below names another tenant every way a body can, and every one of
-   * them is ignored.
+   * §12.9 and §13.2: a tenant id the caller can choose is not isolation.
+   *
+   * The request below names another tenant every way the body allows, and the
+   * request is REFUSED rather than quietly stripped. §7.2's schema check is what
+   * refuses it — the published request contract has exactly two keys — and the
+   * difference from "ignored" matters: an integration that believes it is
+   * choosing a tenant finds out on its first call instead of writing into its
+   * own tenant for months while believing otherwise.
    */
-  it('ignores a tenant named in the request body', async () => {
+  it('refuses a request body that names a tenant at all', async () => {
     const externalReportId = `body-spoof-${Date.now()}`;
     const response = await request(app)
       .post('/v1/reports')
@@ -137,7 +147,37 @@ describe('applicationId comes from the credential', () => {
         externalReportId,
         applicationId: alpha.applicationId,
         organizationId: alpha.organizationId,
-        envelope: { ...sampleEnvelope(), applicationId: alpha.applicationId },
+        envelope: sampleEnvelope({
+          applicationId: beta.applicationId,
+          externalReportId,
+          subjectExternalId: `post_${externalReportId}`,
+        }),
+      });
+
+    expect(response.status).toBe(422);
+    expect(
+      await mongoose.connection.collection('reports').countDocuments({ externalReportId }),
+    ).toBe(0);
+  });
+
+  /**
+   * The positive half of the same statement: with nothing spoofable in the body,
+   * the tenant the report lands in is the credential's — and only the
+   * credential's.
+   */
+  it('stores a report under the tenant of the credential that delivered it', async () => {
+    const externalReportId = `credential-tenant-${Date.now()}`;
+    const response = await request(app)
+      .post('/v1/reports')
+      .set('Authorization', `Bearer ${beta.token}`)
+      .set('Idempotency-Key', externalReportId)
+      .send({
+        externalReportId,
+        envelope: sampleEnvelope({
+          applicationId: beta.applicationId,
+          externalReportId,
+          subjectExternalId: `post_${externalReportId}`,
+        }),
       });
 
     expect(response.status).toBe(202);
@@ -150,6 +190,14 @@ describe('applicationId comes from the credential', () => {
     expect(stored?.organizationId).toBe(beta.organizationId);
     // And alpha cannot see it, which is the same statement from the other side.
     expect(await findReportReceipt(alpha.tenant, response.body.reportId)).toBeNull();
+
+    // The case it created is beta's too — a case is tenant-owned data like any
+    // other, and it is created on the ingress path where a forgotten filter
+    // would be least visible.
+    const storedCase = await mongoose.connection
+      .collection('cases')
+      .findOne({ caseId: response.body.caseId });
+    expect(storedCase?.applicationId).toBe(beta.applicationId);
   });
 
   it('rejects a write that tries to supply the tenant keys itself', async () => {
@@ -164,6 +212,8 @@ describe('applicationId comes from the credential', () => {
         idempotencyKey: 'forged',
         payloadHash: 'sha256:0',
         envelope: {},
+        caseId: 'case_00000000000000000000000000000001',
+        contentHash: 'sha256:0',
         status: 'received',
         receivedAt: new Date(),
         createdAt: new Date(),
@@ -182,7 +232,12 @@ describe('the idempotency indexes are per application, not global', () => {
     const betaDelivery = await deliverReport(beta.tenant, {
       externalReportId: 'shared-external-id',
       idempotencyKey: `beta-${Date.now()}`,
-      envelope: sampleEnvelope('beta material'),
+      envelope: sampleEnvelope({
+        applicationId: beta.applicationId,
+        externalReportId: 'shared-external-id',
+        text: 'beta material',
+      }),
+      credentialId: 'csk_00000000000000000000000000000002',
     });
 
     expect(betaDelivery.reportId).not.toBe(alphaReportId);

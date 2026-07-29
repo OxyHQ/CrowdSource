@@ -1,6 +1,14 @@
-import mongoose, { type ClientSession, type RootFilterQuery, type Model, type Schema } from 'mongoose';
+import mongoose, {
+  type ClientSession,
+  type RootFilterQuery,
+  type Model,
+  type Schema,
+  type SortOrder,
+  type UpdateQuery,
+} from 'mongoose';
 
 import {
+  isScopedToTenant,
   type TenantContext,
   type TenantScoped,
   tenantScopedDocument,
@@ -35,6 +43,75 @@ import {
 interface RegisteredCollection {
   readonly name: string;
   ensureIndexes(): Promise<void>;
+}
+
+/** How many documents a scoped read may return, and in what order. */
+export interface FindOptions {
+  readonly sort?: Record<string, SortOrder>;
+  readonly limit?: number;
+}
+
+/**
+ * The update operators a tenant-owned write may use, as a restricted spec
+ * rather than a raw Mongo update document.
+ *
+ * A raw `UpdateQuery` accepts `$set: { applicationId: … }` and would move a
+ * document between tenants — the same mass-assignment hole `tenantScopedDocument`
+ * closes on insert, reopened on update. Here the caller names fields, the
+ * operators are a closed set, and the tenant keys are rejected on the way
+ * through, so the only writer of a tenant key remains the access layer.
+ */
+export interface TenantScopedUpdate<TStored> {
+  readonly set?: Partial<Omit<TStored, keyof TenantContext>>;
+  /** Applied only when an upsert creates the document. */
+  readonly setOnInsert?: Partial<Omit<TStored, keyof TenantContext>>;
+  readonly inc?: Readonly<Record<string, number>>;
+  /** Keeps the larger of the stored and supplied values. Creates on insert. */
+  readonly max?: Readonly<Record<string, number>>;
+  readonly addToSet?: Readonly<Record<string, readonly unknown[]>>;
+}
+
+/** Builds the Mongo update document, refusing any attempt to write a tenant key. */
+function tenantScopedUpdateDocument<TStored>(
+  spec: TenantScopedUpdate<TStored>,
+): UpdateQuery<TStored> {
+  const update: Record<string, unknown> = {};
+  const operators: readonly [keyof TenantScopedUpdate<TStored>, string][] = [
+    ['set', '$set'],
+    ['setOnInsert', '$setOnInsert'],
+    ['inc', '$inc'],
+    ['max', '$max'],
+    ['addToSet', '$addToSet'],
+  ];
+
+  for (const [field, operator] of operators) {
+    const value = spec[field];
+    if (value === undefined) continue;
+    assertNoTenantKeys(value, `A tenant-scoped '${operator}'`);
+    update[operator] = value;
+  }
+
+  if (Object.keys(update).length === 0) {
+    throw new Error('A tenant-scoped update must name at least one operator.');
+  }
+  return update as UpdateQuery<TStored>;
+}
+
+/**
+ * Rejects a tenant key wherever a caller could supply one.
+ *
+ * Duplicated from `tenantScope.ts` rather than exported from it, because the
+ * two guard different things: that module guards filters and documents, this
+ * one guards update operators, and an update operator payload is not a document.
+ */
+function assertNoTenantKeys(subject: object, what: string): void {
+  for (const key of ['organizationId', 'applicationId']) {
+    if (Object.prototype.hasOwnProperty.call(subject, key)) {
+      throw new Error(
+        `${what} must not set '${key}'; the tenant comes from the credential, never from the caller.`,
+      );
+    }
+  }
 }
 
 const registered: RegisteredCollection[] = [];
@@ -103,12 +180,72 @@ export class TenantCollection<TStored extends TenantContext> {
     return this.#model.findOne(tenantScopedFilter(context, filter)).lean<TStored>().exec();
   }
 
+  /** Finds every document belonging to this tenant that matches. */
+  async find(
+    context: TenantContext,
+    filter: RootFilterQuery<TStored> & object = {},
+    options: FindOptions = {},
+  ): Promise<TStored[]> {
+    const query = this.#model.find(tenantScopedFilter(context, filter));
+    if (options.sort) query.sort(options.sort);
+    if (options.limit !== undefined) query.limit(options.limit);
+    return query.lean<TStored[]>().exec();
+  }
+
   /** Counts documents belonging to this tenant. */
   async countDocuments(
     context: TenantContext,
     filter: RootFilterQuery<TStored> & object = {},
   ): Promise<number> {
     return this.#model.countDocuments(tenantScopedFilter(context, filter)).exec();
+  }
+
+  /** Applies a restricted update to one document of this tenant. */
+  async updateOne(
+    context: TenantContext,
+    filter: RootFilterQuery<TStored> & object,
+    update: TenantScopedUpdate<TStored>,
+    session?: ClientSession,
+  ): Promise<number> {
+    const result = await this.#model
+      .updateOne(tenantScopedFilter(context, filter), tenantScopedUpdateDocument(update), {
+        session,
+      })
+      .exec();
+    return result.modifiedCount;
+  }
+
+  /**
+   * Creates the matching document or updates it, and returns the result.
+   *
+   * This is how a case is deduplicated: the unique compound index is the
+   * arbiter, and an upsert either finds the existing case or creates it. A
+   * "read, then decide whether to insert" sequence races — two reports about the
+   * same post arriving together both read nothing and both create a case, which
+   * is two cases and, eventually, two penalties for one incident.
+   *
+   * The tenant keys are NOT written by the caller here: MongoDB builds an
+   * upsert's base document from the equality clauses of the query, and
+   * `tenantScopedFilter` guarantees those include the tenant. The assertion
+   * afterwards is what makes that a checked property rather than a belief about
+   * driver behaviour.
+   */
+  async upsertOne(
+    context: TenantContext,
+    filter: RootFilterQuery<TStored> & object,
+    update: TenantScopedUpdate<TStored>,
+    session?: ClientSession,
+  ): Promise<TStored> {
+    const document = await this.#model
+      .findOneAndUpdate(
+        tenantScopedFilter(context, filter),
+        tenantScopedUpdateDocument(update),
+        { upsert: true, returnDocument: 'after', session },
+      )
+      .lean<TStored>()
+      .exec();
+
+    return assertUpsertedIntoTenant(this.name, context, document);
   }
 
   async ensureIndexes(): Promise<void> {
@@ -140,6 +277,40 @@ export class UnscopedCollection<TStored> {
     return this.#model.findOne(filter).lean<TStored>().exec();
   }
 
+  async find(
+    filter: RootFilterQuery<TStored> & object,
+    options: FindOptions = {},
+  ): Promise<TStored[]> {
+    const query = this.#model.find(filter);
+    if (options.sort) query.sort(options.sort);
+    if (options.limit !== undefined) query.limit(options.limit);
+    return query.lean<TStored[]>().exec();
+  }
+
+  /**
+   * Claims or mutates one document atomically.
+   *
+   * The restricted update spec that guards tenant-owned writes does not apply
+   * here, and does not need to: an unscoped collection has no tenant filter to
+   * forget, so the caller states the whole filter and there is no implicit scope
+   * for an operator to escape. What this IS used for is the outbox dispatcher's
+   * claim — find one pending row and mark it in flight in a single operation,
+   * so two dispatcher instances cannot both take it.
+   */
+  async findOneAndUpdate(
+    filter: RootFilterQuery<TStored> & object,
+    update: UpdateQuery<TStored>,
+    options: FindOptions = {},
+  ): Promise<TStored | null> {
+    return this.#model
+      .findOneAndUpdate(filter, update, {
+        returnDocument: 'after',
+        ...(options.sort ? { sort: options.sort } : {}),
+      })
+      .lean<TStored>()
+      .exec();
+  }
+
   async updateOne(
     filter: RootFilterQuery<TStored> & object,
     update: Readonly<Record<string, unknown>>,
@@ -152,6 +323,32 @@ export class UnscopedCollection<TStored> {
   async ensureIndexes(): Promise<void> {
     await this.#model.createIndexes();
   }
+}
+
+/**
+ * The postconditions of an upsert, as a function so they can be exercised.
+ *
+ * Neither is reachable through the driver in normal operation — an upsert with
+ * `returnDocument: 'after'` always returns a document, and the tenant comes from
+ * the filter — which is exactly why they are worth stating: the second one is
+ * the assertion that MongoDB really does build an upsert's base document from
+ * the query's equality clauses, rather than that being a belief about driver
+ * behaviour nobody ever checks.
+ */
+export function assertUpsertedIntoTenant<TStored extends object>(
+  collectionName: string,
+  context: TenantContext,
+  document: TStored | null,
+): TStored {
+  if (document === null) {
+    throw new Error(`An upsert on '${collectionName}' returned no document.`);
+  }
+  if (!isScopedToTenant(context, document)) {
+    throw new Error(
+      `An upsert on '${collectionName}' produced a document outside the requesting tenant.`,
+    );
+  }
+  return document;
 }
 
 /** Declares a tenant-owned collection. */

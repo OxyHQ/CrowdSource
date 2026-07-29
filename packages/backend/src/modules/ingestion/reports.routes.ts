@@ -1,39 +1,34 @@
 import { Router, type Request } from 'express';
-import { z } from 'zod';
 
 import { ApiError } from '../../http/apiError';
-import { CanonicalJsonError } from '../../utils/canonicalJson';
 import { isPublicId } from '../../utils/identifiers';
-import { requestTenant, requireServiceCredential } from '../tenancy/serviceCredentialAuth';
-import { deliverReport, findReportReceipt, type DeliveredReport } from './report.service';
+import { appendAuditEvent } from '../audit/audit.collection';
+import {
+  requestCredentialId,
+  requestTenant,
+  requireServiceCredential,
+} from '../tenancy/serviceCredentialAuth';
+import {
+  assertEnvelopeBelongsToTenant,
+  assertNoUnsafeUrls,
+  parseDelivery,
+  type ValidatedDelivery,
+} from './envelopeValidation';
+import {
+  deliverReport,
+  findReportReceipt,
+  recordIngressRefusal,
+  type DeliveredReport,
+} from './report.service';
 
 /**
- * The application-facing report endpoints (§10.2).
+ * The application-facing report endpoints (§10.2, §10.4).
  *
- * Ingress validation here covers what Phase 1 owns: the request envelope, the
- * idempotency key and the delivery's addressing. Validating the CASE ENVELOPE
- * itself — `schemaVersion`, resource types, relation references, hashes, upload
- * completion (§7.2 steps 2-7) — belongs to `@oxyhq/crowdsource-contracts`, which
- * is being written separately. That boundary is stated rather than faked: this
- * module refuses a body that is not a JSON object and stores what it is given,
- * and it does not pretend to have checked a schema it has never seen.
+ * Ingress validation is §7.2 and lives in `envelopeValidation.ts`, which states
+ * which of its eight steps this service performs and which it cannot yet. This
+ * file is the transport: read the idempotency key, run the validation, record
+ * what happened, answer with the codes §10.5 assigns meanings to.
  */
-
-/**
- * A JSON object, and specifically not an array or a scalar.
- *
- * `z.record` would also accept an array, since an array is an object; a Case
- * Envelope never is one, and accepting it would push the failure into hashing.
- */
-const jsonObjectSchema = z.custom<Record<string, unknown>>(
-  (value) => typeof value === 'object' && value !== null && !Array.isArray(value),
-  { message: 'Expected a JSON object' },
-);
-
-const deliverySchema = z.object({
-  externalReportId: z.string().trim().min(1).max(200),
-  envelope: jsonObjectSchema,
-});
 
 /**
  * The retry key of §10.4.
@@ -60,46 +55,73 @@ function readIdempotencyKey(request: Request): string {
   return value;
 }
 
-function describeIssues(error: z.ZodError): string {
-  return error.issues
-    .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
-    .join('; ');
-}
-
 export const reportsRouter: Router = Router();
 
 reportsRouter.post(
   '/reports',
   requireServiceCredential('crowdsource:reports:write'),
   async (request, response) => {
+    const tenant = requestTenant(request);
+    const credentialId = requestCredentialId(request);
     const idempotencyKey = readIdempotencyKey(request);
 
-    const parsed = deliverySchema.safeParse(request.body);
-    if (!parsed.success) {
-      throw new ApiError('invalid_request', `Invalid report delivery — ${describeIssues(parsed.error)}`);
+    /**
+     * Every refusal below is audited before it is thrown (§15.3 asks for audit
+     * of ingress, and a refusal IS an ingress event). The `externalReportId`
+     * recorded is only ever one the contract has already validated the shape of
+     * — echoing an unvalidated caller string into the longest-retained
+     * collection in the system is how an audit row acquires a payload.
+     */
+    let delivery: ValidatedDelivery;
+    try {
+      delivery = parseDelivery(request.body);
+    } catch (error: unknown) {
+      await recordIngressRefusal(tenant, { externalReportId: null, credentialId }, 'schema_invalid');
+      throw error;
     }
 
-    const delivered: DeliveredReport = await deliverReport(requestTenant(request), {
-      externalReportId: parsed.data.externalReportId,
-      idempotencyKey,
-      envelope: parsed.data.envelope,
-    }).catch((error: unknown) => {
-      // Valid JSON that cannot be fingerprinted — too deeply nested to walk
-      // safely. §10.5 calls that an unprocessable envelope, not a malformed one.
-      if (error instanceof CanonicalJsonError) {
-        throw new ApiError(
-          'unprocessable_envelope',
-          `The envelope cannot be processed — ${error.message}`,
-        );
-      }
+    const refusalContext = { externalReportId: delivery.externalReportId, credentialId };
+
+    try {
+      assertEnvelopeBelongsToTenant(tenant, delivery.envelope);
+    } catch (error: unknown) {
+      await recordIngressRefusal(tenant, refusalContext, 'application_mismatch');
       throw error;
+    }
+
+    try {
+      assertNoUnsafeUrls(delivery.envelope);
+    } catch (error: unknown) {
+      await recordIngressRefusal(tenant, refusalContext, 'unsafe_resource_url');
+      throw error;
+    }
+
+    /**
+     * No canonicalisation guard here on purpose. `canonicalize` refuses nesting
+     * past 64 levels and non-finite numbers; the envelope reaching this line has
+     * already been parsed by the contract, whose deepest structure is a bounded
+     * custom payload nowhere near that limit, and a JSON body cannot express a
+     * non-finite number at all. A catch for a branch that cannot be taken is a
+     * claim the tests cannot check.
+     */
+    const delivered: DeliveredReport = await deliverReport(tenant, {
+      externalReportId: delivery.externalReportId,
+      idempotencyKey,
+      envelope: delivery.envelope,
+      credentialId,
     });
 
-    // 202, and only 202: the report is stored and a durable retry path exists
-    // (§7.1). It does not mean a case was created or that anything downstream
-    // has run. `caseId` and `merged` join this body when the case orchestrator
-    // is built — additive, per §10.11.
-    response.status(202).json({ reportId: delivered.reportId, status: delivered.status });
+    /**
+     * 202, and only 202: the report is stored, its case exists, and durable rows
+     * exist for everything that happens next (§7.1). It does not mean a jury has
+     * been drawn or that anything downstream has run.
+     */
+    response.status(202).json({
+      reportId: delivered.reportId,
+      caseId: delivered.caseId,
+      status: delivered.status,
+      merged: delivered.merged,
+    });
   },
 );
 
@@ -115,14 +137,24 @@ reportsRouter.get(
       throw new ApiError('not_found', 'No such report.');
     }
 
-    const receipt = await findReportReceipt(requestTenant(request), reportId);
+    const tenant = requestTenant(request);
+    const receipt = await findReportReceipt(tenant, reportId);
     if (!receipt) {
       throw new ApiError('not_found', 'No such report.');
     }
 
+    await appendAuditEvent(tenant, {
+      action: 'report.receipt.read',
+      actorCredentialId: requestCredentialId(request),
+      reportId: receipt.reportId,
+      caseId: receipt.caseId,
+      externalReportId: receipt.externalReportId,
+    });
+
     response.status(200).json({
       reportId: receipt.reportId,
       externalReportId: receipt.externalReportId,
+      caseId: receipt.caseId,
       status: receipt.status,
       receivedAt: receipt.receivedAt.toISOString(),
     });

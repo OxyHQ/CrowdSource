@@ -83,3 +83,15 @@ export function serviceCredentialCaller(request: Request): ServiceCredentialCall
 export function requestTenant(request: Request): TenantContext {
   return serviceCredentialCaller(request).tenant;
 }
+
+/**
+ * The credential that authenticated this request.
+ *
+ * Written into audit rows (§13.2) so a trail names WHICH of an application's
+ * credentials acted, not merely the application. That is the difference between
+ * "somebody at this tenant did it" and "the leaked key did it", which is the
+ * whole question during a credential incident.
+ */
+export function requestCredentialId(request: Request): string {
+  return serviceCredentialCaller(request).credentialId;
+}

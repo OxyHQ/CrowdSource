@@ -21,7 +21,9 @@ export const ID_PREFIX = {
   /** Credential ids are the lookup half of a service token, hence a key prefix. */
   credential: 'csk',
   report: 'rpt',
+  case: 'case',
   outboxEvent: 'evt',
+  auditEvent: 'aud',
 } as const;
 
 export type PublicIdKind = keyof typeof ID_PREFIX;

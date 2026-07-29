@@ -28,10 +28,22 @@ export interface ReportDocument extends TenantContext {
    * Stored, never re-served through the application API.
    */
   envelope: Record<string, unknown>;
+  /** The case this report was deduplicated into (§7.3). Always set. */
+  caseId: string;
   /**
-   * §3.2. Only `received` is written today — `merged` and `closed` belong to the
-   * case orchestrator, `invalid` to full envelope validation, and `withdrawn` to
-   * the reporter-facing surface. None of those exist yet, so nothing writes them.
+   * The canonical content hash the case was keyed on (§5.6, §7.3).
+   *
+   * Stored on the report as well as on the case so a later reconciliation can
+   * ask "which case SHOULD this report have joined?" without re-deriving it from
+   * the envelope under whatever the normalisation rules have become by then.
+   */
+  contentHash: string;
+  /**
+   * §3.2. `received` when this report opened its case, `merged` when it joined
+   * one that already existed — which is §10.4's `merged` flag, stored so a
+   * replayed delivery answers with the same value it did the first time.
+   * `invalid`, `withdrawn` and `closed` belong to surfaces that do not exist
+   * yet, so nothing writes them.
    */
   status: 'received' | 'merged' | 'invalid' | 'withdrawn' | 'closed';
   receivedAt: Date;
@@ -48,6 +60,8 @@ const reportSchema = new Schema<ReportDocument>(
     idempotencyKey: { type: String, required: true },
     payloadHash: { type: String, required: true },
     envelope: { type: Schema.Types.Mixed, required: true },
+    caseId: { type: String, required: true },
+    contentHash: { type: String, required: true },
     status: {
       type: String,
       required: true,

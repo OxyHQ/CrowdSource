@@ -2,6 +2,7 @@ import { Schema } from 'mongoose';
 import { describe, expect, it } from 'vitest';
 
 import {
+  assertUpsertedIntoTenant,
   defineTenantCollection,
   defineUnscopedCollection,
   registeredCollectionNames,
@@ -82,5 +83,37 @@ describe('duplicateKeyViolation', () => {
     expect(duplicateKeyViolation('E11000 duplicate key')).toBeNull();
     expect(duplicateKeyViolation(new Error('write conflict'))).toBeNull();
     expect(duplicateKeyViolation(Object.assign(new Error('x'), { code: 112 }))).toBeNull();
+  });
+});
+
+/**
+ * The postconditions of an upsert.
+ *
+ * Neither is reachable through the driver in normal operation, which is the
+ * point: the second is the assertion that MongoDB really does build an upsert's
+ * base document from the query's equality clauses. If that ever stopped being
+ * true, a case would be created outside the tenant that reported it and nothing
+ * else in the system would notice.
+ */
+describe('assertUpsertedIntoTenant', () => {
+  const context: TenantContext = { organizationId: 'org_1', applicationId: 'app_1' };
+
+  it('returns a document that belongs to the requesting tenant', () => {
+    const document = { ...context, label: 'ok' };
+    expect(assertUpsertedIntoTenant('Sample', context, document)).toBe(document);
+  });
+
+  it('refuses a missing document', () => {
+    expect(() => assertUpsertedIntoTenant('Sample', context, null)).toThrow(/returned no document/);
+  });
+
+  it('refuses a document belonging to another tenant', () => {
+    expect(() =>
+      assertUpsertedIntoTenant('Sample', context, {
+        organizationId: 'org_1',
+        applicationId: 'app_2',
+        label: 'somebody else',
+      }),
+    ).toThrow(/outside the requesting tenant/);
   });
 });

@@ -3,6 +3,11 @@ import http from 'node:http';
 import { createApp } from './src/app';
 import { config } from './src/config';
 import { ensureIndexes } from './src/db/collections';
+import {
+  startOutboxDispatcher,
+  stopOutboxDispatcher,
+} from './src/modules/outbox/outbox.dispatcher';
+import { registerOutboxWorkers } from './src/modules/outbox/workers';
 import { setRuntimeReady } from './src/routes/health.routes';
 import { connectToDatabase, disconnectFromDatabase } from './src/utils/database';
 import { logger } from './src/utils/logger';
@@ -50,6 +55,18 @@ async function start(): Promise<void> {
    */
   await ensureIndexes();
 
+  /**
+   * The outbox is the durable record of pending moderation work (§12.5), and
+   * this loop is what moves it. Registration first, then the timer: a dispatcher
+   * running with no handlers would mark every row dispatched and the work would
+   * be silently dropped.
+   *
+   * Both live here and not in `app.ts`, because starting a timer is process
+   * state — an application built for a test must not leave one running.
+   */
+  registerOutboxWorkers();
+  startOutboxDispatcher();
+
   await new Promise<void>((resolve) => {
     server.listen(config.port, resolve);
   });
@@ -70,6 +87,10 @@ function shutdown(signal: NodeJS.Signals): void {
 
   logger.info({ signal }, 'Shutting down');
   setRuntimeReady(false);
+  // Claim nothing new. Anything already leased is re-claimable by another task
+  // once the lease expires, so a shutdown mid-handler is a delay rather than a
+  // stranded row.
+  stopOutboxDispatcher();
 
   server.close((error) => {
     if (error) {
