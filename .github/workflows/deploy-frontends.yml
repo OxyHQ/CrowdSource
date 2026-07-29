@@ -71,6 +71,11 @@ jobs:
           NODE_ENV: production
           EXPO_PUBLIC_ENV: production
           EXPO_PUBLIC_API_URL: https://api.crowdsource.oxy.so
+          # CrowdSource's registered Oxy application. A public routing
+          # identifier, not a credential — it is baked into a static bundle and
+          # is meaningless without the account holder completing sign-in — so it
+          # belongs here rather than in a secret.
+          EXPO_PUBLIC_OXY_CLIENT_ID: oxy_dk_2a44549e571029e1c1de32a2e9b6e08cf45393fce5e96133
 
       - name: Validate static hosting contract
         run: bun .github/scripts/validate-frontend-static-output.mjs packages/reviewer/dist
