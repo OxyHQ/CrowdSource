@@ -1,0 +1,78 @@
+name: Create api DNS records
+
+# One-shot. The Cloudflare token stored on the machine has expired (recorded in
+# oxy-infra/AGENTS.md), but the org token available to Actions is valid and
+# already holds DNS edit on the oxy.so zone — it created this project's Pages
+# custom domain. So the records get written from here rather than waiting on a
+# rotation.
+#
+# Creates only. A record that already exists with different content is a
+# stop-and-report, never an overwrite: this zone carries mention.earth,
+# api.oxy.so and every live backend.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create the ACM validation and API records
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ZONE: oxy.so
+        run: |
+          set -euo pipefail
+
+          api() {
+            local method="$1" path="$2"
+            shift 2
+            curl -sS -X "$method" "https://api.cloudflare.com/client/v4/$path" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H 'Content-Type: application/json' "$@"
+          }
+
+          zone_id=$(api GET "zones?name=${ZONE}" | jq -r '.result[0].id // empty')
+          if [ -z "$zone_id" ]; then
+            echo "::error::The token cannot see the ${ZONE} zone."
+            exit 1
+          fi
+
+          # name<TAB>content
+          records=$(printf '%s\t%s\n%s\t%s\n' \
+            "_8416e1388d827b617ef316424c374951.api.crowdsource.oxy.so" \
+            "_93df847afdbd005a12a6c37e11f39302.jkddzztszm.acm-validations.aws" \
+            "api.crowdsource.oxy.so" \
+            "oxy-alb-648111691.us-west-2.elb.amazonaws.com")
+
+          printf '%s\n' "$records" | while IFS=$'\t' read -r name content; do
+            existing=$(api GET "zones/${zone_id}/dns_records?name.exact=${name}")
+            count=$(echo "$existing" | jq '.result | length')
+
+            if [ "$count" != "0" ]; then
+              have=$(echo "$existing" | jq -r '.result[0].content // ""')
+              type=$(echo "$existing" | jq -r '.result[0].type // ""')
+              if [ "$type" = "CNAME" ] && [ "${have%.}" = "${content%.}" ]; then
+                echo "ok: ${name} already points at ${content}"
+                continue
+              fi
+              echo "::error::${name} already has a ${type} record pointing at ${have}. Refusing to modify a record this workflow did not create."
+              exit 1
+            fi
+
+            # DNS-only: the validation record must not be proxied, and api.*
+            # hosts are unproxied across this zone.
+            created=$(api POST "zones/${zone_id}/dns_records" --data "$(jq -cn \
+              --arg name "$name" --arg content "$content" \
+              '{type:"CNAME", name:$name, content:$content, proxied:false, ttl:60}')")
+
+            if [ "$(echo "$created" | jq -r '.success')" != "true" ]; then
+              echo "::error::Could not create ${name}:"
+              echo "$created" | jq -r '.errors[]? | "  \(.code): \(.message)"'
+              exit 1
+            fi
+            echo "::notice::Created ${name} -> ${content}"
+          done
