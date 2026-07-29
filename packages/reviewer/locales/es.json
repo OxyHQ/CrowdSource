@@ -18,7 +18,14 @@
       "retry": "Reintentar"
     }
   },
-  "nav": {
+  "sidebar": {
+    "home": "Revisar",
+    "training": "Formación",
+    "history": "Historial",
+    "reliability": "Fiabilidad",
+    "wellbeing": "Bienestar"
+  },
+  "bottomBar": {
     "home": "Revisar",
     "training": "Formación",
     "history": "Historial",
@@ -41,11 +48,9 @@
       "body": "Cambia lo que se te muestra, haz una pausa o para por hoy. Nada de esto necesita una razón.",
       "action": "Ir a bienestar"
     },
-    "footer": {
-      "privacy": "Privacidad",
-      "terms": "Términos",
-      "cookies": "Cookies"
-    }
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "cookies": "Cookies"
   },
   "state": {
     "loading": "Cargando…",

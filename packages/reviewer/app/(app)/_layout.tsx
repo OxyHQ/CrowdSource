@@ -20,11 +20,12 @@ import React from 'react';
 import { Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomBar, useBottomBarReservedSpace } from '@/components/shell/BottomBar';
-import { DrawerOverlay, DrawerProvider } from '@/components/shell/Drawer';
-import { RightBar } from '@/components/shell/RightBar';
-import { SideBar } from '@/components/shell/SideBar';
-import { useIsScreenNotMobile } from '@/lib/responsive';
+import { BottomBar, useBottomBarReservedSpace } from '@/components/BottomBar';
+import { DrawerOverlay } from '@/components/DrawerOverlay';
+import { RightBar } from '@/components/RightBar';
+import { SideBar } from '@/components/SideBar';
+import { DrawerProvider } from '@/context/DrawerContext';
+import { useIsScreenNotMobile } from '@/hooks/useOptimizedMediaQuery';
 import { cn } from '@/lib/utils';
 
 const IS_WEB = Platform.OS === 'web';

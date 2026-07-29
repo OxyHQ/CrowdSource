@@ -18,10 +18,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 
+import { useDrawer } from '@/context/DrawerContext';
+
+import { Header } from '@/components/Header';
 import { PageScroll } from '@/components/PageScroll';
-import { useDrawer } from '@/components/shell/Drawer';
 import { PanelStickyHeader } from '@/components/shell/PanelChrome';
-import { useIsScreenNotMobile } from '@/lib/responsive';
+import { useIsScreenNotMobile } from '@/hooks/useOptimizedMediaQuery';
 
 interface ScreenProps {
   title: string;
@@ -36,19 +38,14 @@ export function Screen({ title, subtitle, children }: ScreenProps) {
 
   return (
     <View className="flex-1">
-      <PanelStickyHeader>
-        {/* The header band paints `bg-background`, a shade off the panel's
-            `bg-card`, so the chrome reads as the frame around the page rather
-            than as the top of it. `min-h-12` rather than a fixed height: the row
-            grows if its contents ever need more than 48px. */}
-        <View className="min-h-12 flex-row items-center justify-between bg-background px-4 py-2">
-          <View className="flex-1 flex-row items-center gap-2">
-            {isScreenNotMobile ? null : <MenuButton />}
-            <Text className="text-[18px] font-extrabold text-foreground" numberOfLines={1}>
-              {title}
-            </Text>
-          </View>
-        </View>
+      <PanelStickyHeader level={0}>
+        <Header
+          options={{
+            title,
+            leftComponents: isScreenNotMobile ? [] : [<MenuButton key="menu" />],
+          }}
+          disableSticky
+        />
       </PanelStickyHeader>
 
       <PageScroll>
@@ -73,11 +70,12 @@ function MenuButton() {
       accessibilityRole="button"
       accessibilityLabel={t('shell.openMenu')}
       onPress={open}
-      // A bare glyph, like every other button in this header band — the touch
-      // target is grown with `hitSlop`, which costs nothing visually, rather
-      // than with a padded box that would show up as a shape on the row.
+      // Bare glyph with an 8px gutter, the same treatment `Header` gives its own
+      // back button. The touch target is grown with `hitSlop`, which costs
+      // nothing visually, rather than with a padded box that would show up as a
+      // shape on the row.
       hitSlop={10}
-      className="mr-2 web:cursor-pointer"
+      style={{ marginRight: 8 }}
     >
       {/* react-native-svg has no CSS cascade: the glyph takes its colour from its
           own `fill`, not from a `text-*` class on the wrapper. */}

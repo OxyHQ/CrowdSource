@@ -11,7 +11,7 @@
 import React from 'react';
 import { ScrollView } from 'react-native';
 
-import { useBottomBarReservedSpace } from '@/components/shell/BottomBar';
+import { useBottomBarReservedSpace } from '@/components/BottomBar';
 
 interface PageScrollProps {
   children: React.ReactNode;

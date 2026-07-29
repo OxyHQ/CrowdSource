@@ -18,7 +18,14 @@
       "retry": "Riprova"
     }
   },
-  "nav": {
+  "sidebar": {
+    "home": "Revisione",
+    "training": "Formazione",
+    "history": "Cronologia",
+    "reliability": "Affidabilità",
+    "wellbeing": "Benessere"
+  },
+  "bottomBar": {
     "home": "Revisione",
     "training": "Formazione",
     "history": "Cronologia",
@@ -41,11 +48,9 @@
       "body": "Cambia ciò che ti viene mostrato, fai una pausa o fermati per oggi. Niente di tutto questo richiede una motivazione.",
       "action": "Vai a benessere"
     },
-    "footer": {
-      "privacy": "Privacy",
-      "terms": "Termini",
-      "cookies": "Cookie"
-    }
+    "privacy": "Privacy",
+    "terms": "Termini",
+    "cookies": "Cookie"
   },
   "state": {
     "loading": "Caricamento…",
