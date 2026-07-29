@@ -60,6 +60,10 @@ export const AppProviders = memo(function AppProviders({
             oxyServices={oxyServices}
             clientId={OXY_CLIENT_ID}
             authRedirectUri={OXY_AUTH_REDIRECT_URI}
+            // Without this the web flow is a full-page redirect, and the app
+            // bounces to the authorize endpoint before it ever renders. The
+            // popup keeps the reviewer on their own page.
+            webAuthMode="popup"
             storageKeyPrefix="crowdsource"
             queryClient={queryClient}
           >
