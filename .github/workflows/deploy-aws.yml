@@ -71,19 +71,6 @@ jobs:
       - name: Verify this release targets its own database
         run: bash .github/scripts/assert-own-database.sh
 
-      # Temporary: the role refused this workflow's token and the subject it
-      # actually sends is the only thing that settles why. Prints the `sub` and
-      # `aud` claims only — never the token.
-      - name: Print the OIDC subject
-        run: |
-          set -euo pipefail
-          token=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')
-          payload=$(echo "$token" | cut -d. -f2)
-          pad=$(( (4 - ${#payload} % 4) % 4 ))
-          payload="$payload$(printf '=%.0s' $(seq 1 $pad))"
-          echo "$payload" | tr '_-' '/+' | base64 -d 2>/dev/null | jq '{sub, aud, repository, ref, event_name, workflow_ref}'
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6
         with:
