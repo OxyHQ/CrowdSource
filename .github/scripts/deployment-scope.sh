@@ -23,17 +23,16 @@ if base="$(git rev-parse --verify --quiet "${deployed_ref}^{commit}")"; then
   echo "Comparing $sha against the last deployed $target revision $base"
   changed_output="$(git diff --name-only "$base".."$sha" | sort -u)"
 else
-  echo "::warning::$deployed_ref is missing; scoping $target from the single commit $sha instead."
-  changed_output="$(
-    git diff-tree \
-      --root \
-      --no-commit-id \
-      --name-only \
-      -r \
-      -m \
-      "$sha" |
-      sort -u
-  )"
+  # A missing marker means one of two things, and they are not the same: an
+  # earlier deploy dropped its tag, or this target has never deployed at all.
+  # Scoping from a single commit answers the first and gets the second wrong —
+  # a first release whose commit happens to touch another package is skipped,
+  # and skipped silently, because "nothing to deploy" and "nothing deployed
+  # yet" produce the same `deploy=false`. So the first release is forced.
+  echo "::warning::$deployed_ref is missing; treating $target as never deployed and releasing unconditionally."
+  printf 'deploy=true\n' >>"${GITHUB_OUTPUT:-/dev/null}"
+  echo "target=$target deploy=true (first release)"
+  exit 0
 fi
 mapfile -t changed_paths <<<"$changed_output"
 
