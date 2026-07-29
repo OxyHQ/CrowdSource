@@ -93,7 +93,7 @@ export const APPEALABLE_OUTCOMES: readonly DecisionOutcome[] = Object.freeze([
  * would carry the raised threshold and the sentence "when the action is severe"
  * would describe nothing.
  */
-const SEVERE_ACTIONS: ReadonlySet<RecommendedAction> = new Set<RecommendedAction>([
+export const SEVERE_ACTIONS: ReadonlySet<RecommendedAction> = new Set<RecommendedAction>([
   'remove',
   'remove_or_restrict',
   'hide',
