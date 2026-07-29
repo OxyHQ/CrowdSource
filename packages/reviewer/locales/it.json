@@ -23,9 +23,29 @@
     "training": "Formazione",
     "history": "Cronologia",
     "reliability": "Affidabilità",
-    "wellbeing": "Benessere",
-    "account": "Account",
-    "accountHint": "Il tuo account Oxy: cambia account o esci"
+    "wellbeing": "Benessere"
+  },
+  "shell": {
+    "openMenu": "Apri il menu",
+    "closeMenu": "Chiudi il menu"
+  },
+  "rightBar": {
+    "principles": {
+      "title": "Come funziona la revisione",
+      "assigned": "Non scegli mai un caso. Il server ne estrae uno che corrisponde alle tue categorie, lingue e consenso.",
+      "blind": "Non vedi mai chi ha segnalato il materiale, chi lo ha scritto, chi altro lo sta revisionando né come ha votato qualcuno.",
+      "recusal": "Ritirarti da un caso non ti costa nulla. Non viene mai usato contro di te."
+    },
+    "support": {
+      "title": "Prenderti cura di te",
+      "body": "Cambia ciò che ti viene mostrato, fai una pausa o fermati per oggi. Niente di tutto questo richiede una motivazione.",
+      "action": "Vai a benessere"
+    },
+    "footer": {
+      "privacy": "Privacy",
+      "terms": "Termini",
+      "cookies": "Cookie"
+    }
   },
   "state": {
     "loading": "Caricamento…",

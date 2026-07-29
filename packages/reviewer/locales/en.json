@@ -23,9 +23,29 @@
     "training": "Training",
     "history": "History",
     "reliability": "Reliability",
-    "wellbeing": "Wellbeing",
-    "account": "Account",
-    "accountHint": "Your Oxy account: switch account or sign out"
+    "wellbeing": "Wellbeing"
+  },
+  "shell": {
+    "openMenu": "Open the menu",
+    "closeMenu": "Close the menu"
+  },
+  "rightBar": {
+    "principles": {
+      "title": "How review works",
+      "assigned": "You never choose a case. The server draws one that matches your categories, languages and consent.",
+      "blind": "You never see who reported the material, who wrote it, who else is reviewing it, or how anyone has voted.",
+      "recusal": "Stepping back from a case costs you nothing. It is never held against you."
+    },
+    "support": {
+      "title": "Looking after yourself",
+      "body": "Change what you are shown, take a break, or stop for the day. None of it needs a reason.",
+      "action": "Go to wellbeing"
+    },
+    "footer": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "cookies": "Cookies"
+    }
   },
   "state": {
     "loading": "Loading…",

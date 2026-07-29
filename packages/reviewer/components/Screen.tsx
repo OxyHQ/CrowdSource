@@ -5,13 +5,23 @@
  * same panel treatment on every screen is what lets the case viewer look like
  * part of the app without carrying any brand into the review itself (PLAN §9.1
  * hides the application's brand where it is not needed).
+ *
+ * The header is sticky on web, so the reviewer always knows which surface they
+ * are on and, on a phone, always has the menu within reach — including halfway
+ * down a long case. The screen's own title lives there rather than being
+ * repeated as a heading below it.
  */
 
+import { Bars3_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
+import { useTheme } from '@oxyhq/bloom/theme';
 import React from 'react';
-import { Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+import { Pressable, Text, View } from 'react-native';
 
 import { PageScroll } from '@/components/PageScroll';
+import { useDrawer } from '@/components/shell/Drawer';
+import { PanelStickyHeader } from '@/components/shell/PanelChrome';
+import { useIsScreenNotMobile } from '@/lib/responsive';
 
 interface ScreenProps {
   title: string;
@@ -20,23 +30,49 @@ interface ScreenProps {
 }
 
 export function Screen({ title, subtitle, children }: ScreenProps) {
-  // Padding belongs on the inner View, never on SafeAreaView: the safe-area
-  // component writes its own inline padding for the insets, which overrides any
-  // padding utility on the same element (0 on web, so the utility vanishes).
+  // The rail carries navigation from 500px up, so the menu button is the phone's
+  // only way to it — and only the phone's.
+  const isScreenNotMobile = useIsScreenNotMobile();
+
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
+    <View className="flex-1">
+      <PanelStickyHeader className="border-b border-border">
+        <View className="h-12 flex-row items-center gap-2 px-4">
+          {isScreenNotMobile ? null : <MenuButton />}
+          <Text className="text-[17px] font-bold text-foreground" numberOfLines={1}>
+            {title}
+          </Text>
+        </View>
+      </PanelStickyHeader>
+
       <PageScroll>
         <View className="mx-auto w-full max-w-[720px] gap-6">
-          <View className="gap-2">
-            <Text className="text-[26px] font-bold leading-8 text-foreground">{title}</Text>
-            {subtitle ? (
-              <Text className="text-base leading-6 text-muted-foreground">{subtitle}</Text>
-            ) : null}
-          </View>
+          {subtitle ? (
+            <Text className="text-base leading-6 text-muted-foreground">{subtitle}</Text>
+          ) : null}
           {children}
         </View>
       </PageScroll>
-    </SafeAreaView>
+    </View>
+  );
+}
+
+function MenuButton() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const { open } = useDrawer();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('shell.openMenu')}
+      onPress={open}
+      className="-ml-2 h-9 w-9 items-center justify-center rounded-full active:bg-primary/10 web:cursor-pointer"
+    >
+      {/* react-native-svg has no CSS cascade: the glyph takes its colour from its
+          own `fill`, not from a `text-*` class on the wrapper. */}
+      <Bars3_Stroke2_Corner0_Rounded size="lg" fill={colors.text} />
+    </Pressable>
   );
 }
 
@@ -46,10 +82,15 @@ interface PanelProps {
   children?: React.ReactNode;
 }
 
-/** A bordered section. The one grouping primitive the app uses. */
+/**
+ * A bordered section. The one grouping primitive the app uses.
+ *
+ * No fill of its own: it sits on the panel's `bg-card` surface, and a card on a
+ * card is a rectangle you can only find by its border anyway.
+ */
 export function Panel({ title, description, children }: PanelProps) {
   return (
-    <View className="gap-3 rounded-lg border border-border bg-card p-4">
+    <View className="gap-3 rounded-lg border border-border p-4">
       {title ? (
         <Text className="text-lg font-semibold text-card-foreground">{title}</Text>
       ) : null}
