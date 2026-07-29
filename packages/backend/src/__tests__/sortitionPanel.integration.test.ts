@@ -34,6 +34,7 @@ const { registerOutboxWorkers } = await import('../modules/outbox/workers');
 const { assignments } = await import('../modules/sortition/assignment.collection');
 const { sortitionDraws } = await import('../modules/sortition/draw.collection');
 const { replayDraw } = await import('../modules/sortition/sortition.service');
+const { expireDueAssignments } = await import('../modules/sortition/assignment.service');
 const { reviews } = await import('../modules/review/review.collection');
 const { reviewerProfiles } = await import('../modules/reviewer/reviewer.collection');
 const { createReviewer, createReviewerPool } = await import('./support/reviewers');
@@ -758,6 +759,104 @@ describe('§8.5 + §8.7: a recused juror is never re-drawn to fill their own sea
     expect(profile?.available).toBe(true);
     expect(profile?.suspendedUntil).toBeNull();
     expect(profile?.completedReviewCount).toBe(0);
+  });
+});
+
+/**
+ * §8.7's other way of losing a juror: the clock.
+ *
+ * "If it expires or the reviewer recuses, the system selects a replacement
+ * without lowering the threshold." Expiry is the half nobody performs by hand,
+ * so it is the half that rots unnoticed — the sweep runs on a timer in
+ * `server.ts` and would fail silently in production. Driven here directly, with
+ * the assignment backdated rather than by waiting a day.
+ */
+describe('§8.7: an expired assignment is replaced', () => {
+  const EXPIRY_FAMILY = 'sexual_content' as const;
+  const EXPIRY_CODE = 'sexual_content.explicit_activity';
+
+  let expiryCaseId: string;
+  let expiredAssignmentId: string;
+  let expiredReviewerId: string;
+
+  beforeAll(async () => {
+    /**
+     * This route is `sensitive` (§7.5 row 5) and adult-only, so the pool needs
+     * both the class ceiling and the per-family consent — which also means the
+     * draw exercises §13.7's consent gate rather than routing around it.
+     */
+    for (let index = 0; index < 6; index += 1) {
+      await createReviewer({
+        family: EXPIRY_FAMILY,
+        reliability: index % 3 === 2 ? 0.4 : 0.9,
+        completedReviewCount: index % 3 === 2 ? 0 : 40,
+        maxSensitivityRank: 1,
+        consentedSensitiveCategories: [EXPIRY_FAMILY],
+      });
+    }
+
+    expiryCaseId = await openCaseFor(EXPIRY_CODE, `post_expiry_${Date.now()}`);
+    const seats = await assignments.find({ caseId: expiryCaseId });
+    expect(seats).toHaveLength(3);
+
+    expiredAssignmentId = seats[0].assignmentId;
+    expiredReviewerId = seats[0].reviewerId;
+
+    // Backdate it past its own deadline, then run the sweep exactly as the
+    // timer in `server.ts` does.
+    await assignments.updateOne(
+      { assignmentId: expiredAssignmentId },
+      { expiresAt: new Date(Date.now() - 60_000) },
+    );
+
+    const swept = await expireDueAssignments();
+    expect(swept).toBeGreaterThanOrEqual(1);
+
+    await drainUntil(
+      async () => (await sortitionDraws.find({ caseId: expiryCaseId })).length >= 2,
+      'the replacement draw after an expiry',
+    );
+  });
+
+  it('marks it expired and draws somebody else into the seat', async () => {
+    const expired = await assignments.findOne({ assignmentId: expiredAssignmentId });
+    expect(expired?.status).toBe('expired');
+    expect(expired?.replacementAssignmentId).toMatch(/^asg_/);
+
+    const live = await assignments.find({
+      caseId: expiryCaseId,
+      status: { $in: ['offered', 'accepted'] },
+    });
+    expect(live).toHaveLength(3);
+    expect(live.map((seat) => seat.reviewerId)).not.toContain(expiredReviewerId);
+  });
+
+  it('the reviewer whose assignment lapsed can no longer open it', async () => {
+    const profile = await reviewerProfiles.findOne({ reviewerId: expiredReviewerId });
+    if (!profile) throw new Error('expected a profile');
+
+    // Not even with a token: an expired assignment is not live, and every
+    // refusal on this surface looks the same.
+    const response = await request(app)
+      .get(`/v1/reviewer/assignments/${expiredAssignmentId}`)
+      .set(asReviewer(profile.oxyUserId))
+      .set('x-assignment-token', 'whatever-they-still-hold');
+
+    expect(response.status).toBe(404);
+  });
+
+  it('does not punish them for running out of time (§13.7)', async () => {
+    const profile = await reviewerProfiles.findOne({ reviewerId: expiredReviewerId });
+    expect(profile?.available).toBe(true);
+    expect(profile?.suspendedUntil).toBeNull();
+    expect(profile?.state).toBe('community');
+  });
+
+  it('is idempotent: a second sweep finds nothing more to expire here', async () => {
+    await expireDueAssignments();
+    expect(
+      await assignments.countDocuments({ caseId: expiryCaseId, status: 'expired' }),
+    ).toBe(1);
   });
 });
 
