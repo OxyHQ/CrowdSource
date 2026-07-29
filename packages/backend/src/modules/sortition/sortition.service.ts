@@ -10,9 +10,7 @@ import {
   availabilityScore,
   eligibilityRejection,
   requiresAdultReviewer,
-  SENSITIVE_EXPOSURE_WINDOW_HOURS,
   type CaseEligibilityCriteria,
-  type ExposureFacts,
 } from '../reviewer/eligibility';
 import { calibrationRecency } from '../reviewer/calibration';
 import type { ReviewPool } from '../triage/triage';
@@ -23,12 +21,9 @@ import {
   reviewerRelations,
   type ReviewerProfileDocument,
 } from '../reviewer/reviewer.collection';
-import {
-  assignments,
-  OPEN_ASSIGNMENT_STATUSES,
-  type AssignmentDocument,
-} from './assignment.collection';
+import { assignments, type AssignmentDocument } from './assignment.collection';
 import { mintAssignmentToken } from './assignmentToken';
+import { gatherExposure } from './exposure';
 import { sampleCandidates } from './candidatePool';
 import {
   sortitionDraws,
@@ -236,70 +231,6 @@ async function gatherParties(stored: CaseDocument): Promise<CaseParties> {
     ),
     relatedReviewerIds: new Set(relations.map((relation) => relation.reviewerId)),
   };
-}
-
-/** The start of the current UTC day, for §13.7's daily limits. */
-function startOfUtcDay(now: Date): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
-
-/**
- * §13.7's exposure, for every sampled candidate, in one query.
- *
- * Counted from the assignments themselves rather than from counters on the
- * profile. A counter drifts every time a write fails between the two documents,
- * and the drift always runs the same way — toward believing somebody has done
- * less than they have, which is the direction that overloads a person.
- */
-async function gatherExposure(
-  reviewerIds: readonly string[],
-  now: Date,
-): Promise<ReadonlyMap<string, ExposureFacts>> {
-  const exposure = new Map<string, ExposureFacts>();
-  for (const reviewerId of reviewerIds) {
-    exposure.set(reviewerId, {
-      openAssignments: 0,
-      reviewsToday: 0,
-      sensitiveReviewsInWindow: 0,
-    });
-  }
-  if (reviewerIds.length === 0) return exposure;
-
-  const dayStart = startOfUtcDay(now);
-  const rows = await assignments.find({
-    reviewerId: { $in: [...reviewerIds] },
-    $or: [
-      { status: { $in: [...OPEN_ASSIGNMENT_STATUSES] } },
-      { completedAt: { $gte: dayStart } },
-    ],
-  });
-
-  const windowStart = new Date(now.getTime() - SENSITIVE_EXPOSURE_WINDOW_HOURS * HOUR_MS);
-
-  for (const row of rows) {
-    const facts = exposure.get(row.reviewerId);
-    if (!facts) continue;
-
-    const openAssignments =
-      facts.openAssignments +
-      (OPEN_ASSIGNMENT_STATUSES.includes(row.status) && row.expiresAt.getTime() > now.getTime()
-        ? 1
-        : 0);
-    const completedToday = row.completedAt !== null && row.completedAt >= dayStart;
-    const sensitiveInWindow =
-      completedToday &&
-      row.sensitivityClass !== 'standard' &&
-      row.completedAt !== null &&
-      row.completedAt >= windowStart;
-
-    exposure.set(row.reviewerId, {
-      openAssignments,
-      reviewsToday: facts.reviewsToday + (completedToday ? 1 : 0),
-      sensitiveReviewsInWindow: facts.sensitiveReviewsInWindow + (sensitiveInWindow ? 1 : 0),
-    });
-  }
-
-  return exposure;
 }
 
 /**

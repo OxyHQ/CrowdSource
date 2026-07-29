@@ -27,7 +27,9 @@ import {
   PERSONHOOD_WEIGHTS,
 } from '../modules/reviewer/personhood';
 import type { ReviewerProfileDocument } from '../modules/reviewer/reviewer.collection';
-import { canTransition, DRAWABLE_STATES, REVIEWER_STATES } from '../modules/reviewer/reviewerState';
+import { REVIEWER_STATES } from '@oxyhq/crowdsource-contracts';
+
+import { canTransition, DRAWABLE_STATES } from '../modules/reviewer/reviewerState';
 
 /**
  * §8.2's eligibility, §8.1's ladder and the personhood model — the part of this

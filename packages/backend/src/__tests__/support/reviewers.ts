@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { RequestHandler } from 'express';
-import type { TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import type { ReviewerState, TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
 
 import { TRAINING_MODULES } from '../../modules/reviewer/calibration';
 import { personhoodConfidence } from '../../modules/reviewer/personhood';
@@ -9,7 +9,7 @@ import {
   type ReviewerPrincipalLink,
   type ReviewerProfileDocument,
 } from '../../modules/reviewer/reviewer.collection';
-import type { ReviewerState } from '../../modules/reviewer/reviewerState';
+
 
 /**
  * Support for the reviewer and sortition integration tests.

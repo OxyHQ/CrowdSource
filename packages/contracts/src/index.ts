@@ -40,6 +40,7 @@ export * from './policies';
 export * from './resources';
 export * from './case-envelope';
 export * from './reviews';
+export * from './reviewer-surface';
 export * from './decisions';
 export * from './appeals';
 export * from './webhooks';

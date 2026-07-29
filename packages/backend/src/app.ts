@@ -10,6 +10,7 @@ import { consoleRouter } from './modules/console/console.routes';
 import { trustSafetyRouter } from './modules/console/trustSafety.routes';
 import { decisionsRouter } from './modules/decision/decisions.routes';
 import { reportsRouter } from './modules/ingestion/reports.routes';
+import { reviewsRouter } from './modules/review/reviews.routes';
 import { reviewerRouter } from './modules/reviewer/reviewer.routes';
 import { assignmentsRouter } from './modules/sortition/assignments.routes';
 import { webhookEndpointsRouter } from './modules/webhooks/webhookEndpoints.routes';
@@ -77,11 +78,13 @@ export function createApp(): Express {
    * routes and an Oxy session never satisfies the ones above.
    *
    * Note there is no case id anywhere below. Every reviewer route is addressed
-   * by ASSIGNMENT, which is what makes "nobody chooses the case they review" a
-   * property of the routing table rather than a rule somebody enforces.
+   * by ASSIGNMENT — or, for the history, by the authenticated reviewer alone —
+   * which is what makes "nobody chooses the case they review" a property of the
+   * routing table rather than a rule somebody enforces.
    */
   v1.use(reviewerRouter);
   v1.use(assignmentsRouter);
+  v1.use(reviewsRouter);
 
   /**
    * The console (§4.2, §4.3). A THIRD authorization on the second caller class: the

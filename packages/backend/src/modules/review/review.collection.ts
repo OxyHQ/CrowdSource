@@ -122,6 +122,17 @@ reviewSchema.index({ caseId: 1, reviewerId: 1, caseRevision: 1 }, { unique: true
 /** The consensus engine's read: every review of one revision of one case. */
 reviewSchema.index({ caseId: 1, caseRevision: 1, submittedAt: 1 });
 
+/**
+ * §4.1's history screen: this reviewer's own reviews, newest first.
+ *
+ * `reviewId` is the third key rather than decoration. Ids here are
+ * `randomUUID`-derived and carry no order, so two reviews landing in the same
+ * millisecond have no tiebreak — and a keyset cursor without a total order either
+ * repeats a row across two pages or loses one. Sorting on both makes the order
+ * total and lets the cursor's `$or` be an index range rather than a scan.
+ */
+reviewSchema.index({ reviewerId: 1, submittedAt: -1, reviewId: -1 });
+
 export const reviews = defineUnscopedCollection('Review', reviewSchema, {
   why: 'A review joins a tenant’s case to a reviewer who belongs to no tenant, and is written by a caller holding an Oxy session that carries no tenant to scope by; rows are stamped from the assignment.',
 });

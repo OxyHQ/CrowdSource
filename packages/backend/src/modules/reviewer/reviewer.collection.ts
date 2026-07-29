@@ -1,9 +1,14 @@
 import { Schema } from 'mongoose';
-import type { TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import {
+  REVIEWER_SENSITIVITY_CLASSES,
+  REVIEWER_STATES,
+  type ReviewerState,
+  type TaxonomyFamily,
+} from '@oxyhq/crowdsource-contracts';
 
 import { defineUnscopedCollection } from '../../db/collections';
 import type { SensitivityClass } from '../triage/triage';
-import { REVIEWER_STATES, type ReviewerState } from './reviewerState';
+
 
 /**
  * Reviewer profiles, declared conflicts and co-service affinity (§12.6's "Jury"
@@ -105,6 +110,18 @@ export interface ReviewerProfileDocument {
   /** Applications the reviewer declared a conflict with (§8.2). */
   declaredConflictApplications: string[];
 
+  /**
+   * When this person accepted the reviewing rules (§4.1's onboarding, §13.7).
+   *
+   * An instant rather than a boolean, because §13.7's consent model only works if
+   * a person can see WHAT they consented to and when — a bare `true` cannot be
+   * shown back to them and cannot be audited against the version of the rules
+   * they were shown. Null means never accepted, and `openCalibrationIfReady`
+   * treats that as a closed gate: the app advertises it as a blocker, and a
+   * client-side check that the server does not enforce is not a gate at all.
+   */
+  rulesAcceptedAt: Date | null;
+
   /** §13.7: a reviewer may stop being drawn at any moment, without explanation. */
   available: boolean;
   /** §13.7's daily limit, chosen by the reviewer within a system maximum. */
@@ -186,6 +203,8 @@ const reviewerProfileSchema = new Schema<ReviewerProfileDocument>(
     consentedSensitiveCategories: { type: [String], required: true, default: [] },
 
     declaredConflictApplications: { type: [String], required: true, default: [] },
+
+    rulesAcceptedAt: { type: Date, default: null },
 
     available: { type: Boolean, required: true, default: true },
     dailyReviewLimit: { type: Number, required: true },
@@ -364,12 +383,18 @@ export function affinityPairKey(left: string, right: string): string {
   return left < right ? `${left}:${right}` : `${right}:${left}`;
 }
 
-/** The sensitivity classes a reviewer may consent to, ranked (§7.5). */
-export const CONSENTABLE_SENSITIVITY: readonly SensitivityClass[] = [
-  'standard',
-  'sensitive',
-  'restricted',
-];
+/**
+ * The sensitivity classes a reviewer may consent to, ranked (§7.5).
+ *
+ * The list itself is `REVIEWER_SENSITIVITY_CLASSES` in the published contracts,
+ * because it crosses the reviewer API boundary and the app renders it — when the
+ * two sides declared it separately they disagreed completely, the app having
+ * invented `none`/`low`/`high`/`critical`. The annotation is what keeps the two
+ * vocabularies honest: if triage's `SensitivityClass` ever stops covering what a
+ * reviewer can consent to, this line stops compiling.
+ */
+export const CONSENTABLE_SENSITIVITY: readonly SensitivityClass[] =
+  REVIEWER_SENSITIVITY_CLASSES;
 
 /**
  * The rank of a consentable class.
