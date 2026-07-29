@@ -40,6 +40,40 @@ for (const workflowName of workflowNames) {
       }
     }
 
+    // The lockfile gate is the only thing enforcing that a manifest change and
+    // its bun.lock update land in one commit. That rule was skipped once already,
+    // and two npm versions were burned publishing from states that were never
+    // committed. The gate needs a plain install so it runs in a job of its own,
+    // which is why this assertion belongs here: `bun run check` runs in a
+    // DIFFERENT job, so deleting the gate is caught by a job the deletion did not
+    // touch.
+    if (workflowName === "ci.yml") {
+      const jobs = Object.entries(workflow?.jobs || {});
+      const runsScript = (job, pattern) =>
+        (job?.steps || []).some(
+          (step) => typeof step?.run === "string" && pattern.test(step.run),
+        );
+      // The lookbehind is load-bearing: test-check-lockfile-sync.mjs contains
+      // check-lockfile-sync.mjs, so a substring match accepts the gate's tests as
+      // the gate itself and passes with the gate deleted.
+      for (const [pattern, script, reason] of [
+        [
+          /(?<![\w-])check-lockfile-sync\.mjs/,
+          "check-lockfile-sync.mjs",
+          "nothing else enforces that a package.json change and its bun.lock update land in one commit",
+        ],
+        [
+          /(?<![\w-])test-check-lockfile-sync\.mjs/,
+          "test-check-lockfile-sync.mjs",
+          "without its own tests the lockfile gate can stop discriminating without anything noticing",
+        ],
+      ]) {
+        if (!jobs.some(([, job]) => runsScript(job, pattern))) {
+          failures.push(`${workflowName}: CI must run .github/scripts/${script}; ${reason}`);
+        }
+      }
+    }
+
     if (source.includes("configure-aws-credentials")) {
       for (const [pinnedName, expectedValue] of [
         ["APP", "crowdsource"],
