@@ -1,3 +1,4 @@
+import { createOxyCors } from '@oxyhq/core/server';
 import compression from 'compression';
 import express, { type Express, Router } from 'express';
 import helmet from 'helmet';
@@ -38,6 +39,16 @@ export function createApp(): Express {
   app.set('trust proxy', 1);
 
   app.use(helmet());
+  /**
+   * Deny-by-default CORS from `@oxyhq/core/server`, never a hand-rolled
+   * allowlist: the shared helper echoes the exact matched origin, refuses to
+   * reflect an arbitrary one, and never pairs a wildcard with credentials.
+   *
+   * The reviewer app at `crowdsource.oxy.so` needs no entry — the helper
+   * already allows the HTTPS `oxy.so` apex family. A console on its own
+   * hostname outside that family would go in `appOrigins`.
+   */
+  app.use(createOxyCors());
   app.use(compression());
   app.use(express.json({ limit: '1mb' }));
 
