@@ -121,13 +121,14 @@ function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlo
   };
 
   return (
-    <Screen
-      title={t('review.title')}
-      subtitle={t('review.subtitle', {
-        category: t(`category.${assignment.category}`, { defaultValue: assignment.category }),
-        language: assignment.language,
-      })}
-    >
+    <Screen title={t('review.title')}>
+      <Text className="text-base leading-6 text-muted-foreground">
+        {t('review.subtitle', {
+          category: t(`category.${assignment.category}`, { defaultValue: assignment.category }),
+          language: assignment.language,
+        })}
+      </Text>
+
       <Panel title={t('review.hidden.title')} description={t('review.hidden.body')} />
 
       <Panel

@@ -16,7 +16,7 @@ import { Button } from '@oxyhq/bloom/button';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { TextInput } from 'react-native';
+import { Text, TextInput } from 'react-native';
 
 import { ApiStateNotice } from '@/components/ApiStateNotice';
 import { ChoiceRow } from '@/components/ChoiceRow';
@@ -81,7 +81,9 @@ export default function RecuseScreen() {
   };
 
   return (
-    <Screen title={t('recuse.title')} subtitle={t('recuse.subtitle')}>
+    <Screen title={t('recuse.title')}>
+      <Text className="text-base leading-6 text-muted-foreground">{t('recuse.subtitle')}</Text>
+
       <Panel description={t('recuse.reassurance')} />
 
       <Panel title={t('recuse.reason.title')} description={t('recuse.reason.help')}>

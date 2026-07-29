@@ -45,7 +45,9 @@ export default function WellbeingScreen() {
   const router = useRouter();
 
   return (
-    <Screen title={t('wellbeing.title')} subtitle={t('wellbeing.subtitle')}>
+    <Screen title={t('wellbeing.title')}>
+      <Text className="text-base leading-6 text-muted-foreground">{t('wellbeing.subtitle')}</Text>
+
       {activeAssignment ? (
         <Panel title={t('wellbeing.exit.title')} description={t('wellbeing.exit.body')}>
           <Button

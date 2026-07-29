@@ -23,12 +23,27 @@ import {
   isReviewerApiUnreachable,
 } from '@/lib/reviewer-api/errors';
 
-export function LoadingPanel() {
+/**
+ * The placeholder a screen shows while its panels are on the way.
+ *
+ * Shaped like what it replaces, not like a spinner. Every one of these screens
+ * resolves into a short stack of bordered panels, so the placeholder is that
+ * same stack with its text greyed out: the page lands at roughly the height it
+ * will keep, instead of a centred spinner collapsing into a full screen of
+ * content and shoving everything the reviewer was reading down the page.
+ *
+ * `count` is how many panels the caller is about to render, so the guess is the
+ * screen's own rather than a global average.
+ */
+export function LoadingPanel({ count = 2 }: { count?: number }) {
   const { t } = useTranslation();
   return (
-    <View className="items-center gap-3 py-10">
-      <Loading variant="spinner" size="medium" />
-      <Text className="text-sm text-muted-foreground">{t('state.loading')}</Text>
+    <View className="gap-6" accessibilityRole="progressbar" accessibilityLabel={t('state.loading')}>
+      {Array.from({ length: count }, (_, index) => (
+        <Panel key={index}>
+          <Loading variant="skeleton" lines={3} />
+        </Panel>
+      ))}
     </View>
   );
 }

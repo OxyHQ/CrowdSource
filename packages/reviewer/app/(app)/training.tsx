@@ -10,11 +10,13 @@
 
 import { useRouter } from 'expo-router';
 import { Button } from '@oxyhq/bloom/button';
+import { Beaker_Stroke2_Corner2_Rounded } from '@oxyhq/bloom/icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { ApiStateNotice, LoadingPanel } from '@/components/ApiStateNotice';
+import { EmptyState } from '@/components/EmptyState';
 import { Panel, Screen } from '@/components/Screen';
 import { useTrainingState } from '@/lib/reviewer-api/queries';
 
@@ -24,7 +26,9 @@ export default function TrainingScreen() {
   const trainingQuery = useTrainingState();
 
   return (
-    <Screen title={t('training.title')} subtitle={t('training.subtitle')}>
+    <Screen title={t('training.title')}>
+      <Text className="text-base leading-6 text-muted-foreground">{t('training.subtitle')}</Text>
+
       {trainingQuery.isPending ? <LoadingPanel /> : null}
       {trainingQuery.error ? <ApiStateNotice error={trainingQuery.error} /> : null}
 
@@ -54,10 +58,28 @@ export default function TrainingScreen() {
 
           <Panel title={t('training.modules.title')} description={t('training.modules.help')}>
             {trainingQuery.data.modules.length === 0 ? (
-              <Text className="text-sm text-muted-foreground">{t('training.modules.empty')}</Text>
+              <EmptyState
+                icon={
+                  <Beaker_Stroke2_Corner2_Rounded
+                    width={28}
+                    height={28}
+                    fill="currentColor"
+                    className="text-muted-foreground"
+                  />
+                }
+                title={t('training.modules.empty')}
+                description={t('training.modules.emptyHelp')}
+              />
             ) : null}
-            {trainingQuery.data.modules.map((module) => (
-              <View key={module.id} className="gap-1 border-b border-border pb-3">
+            {trainingQuery.data.modules.map((module, index) => (
+              <View
+                key={module.id}
+                className={
+                  index < trainingQuery.data.modules.length - 1
+                    ? 'gap-1 border-b border-border pb-3'
+                    : 'gap-1'
+                }
+              >
                 <Text className="text-base font-semibold text-foreground">{module.title}</Text>
                 <Text className="text-sm text-muted-foreground">
                   {t(`category.${module.category}`, { defaultValue: module.category })}

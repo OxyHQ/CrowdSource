@@ -8,8 +8,10 @@
     "unconfigured": "L'accesso non è disponibile: per questa applicazione non è ancora registrato alcun client Oxy."
   },
   "notFound": {
+    "body": "Non c’è nulla a quell’indirizzo. I casi non sono mai raggiungibili tramite URL: il server ne assegna uno quando lo chiedi.",
     "title": "Questa pagina non esiste.",
-    "action": "Torna all'inizio"
+    "action": "Torna all'inizio",
+    "heading": "Non trovato"
   },
   "error": {
     "boundary": {
@@ -50,7 +52,14 @@
     },
     "privacy": "Privacy",
     "terms": "Termini",
-    "cookies": "Cookie"
+    "cookies": "Cookie",
+    "reputation": {
+      "title": "La tua reputazione",
+      "points": "punti",
+      "none": "Non è ancora stato registrato nulla. La reputazione si guadagna revisionando ed è visibile solo a te.",
+      "tier": "Livello di fiducia: {{tier}}",
+      "help": "La reputazione influisce sulla frequenza con cui vieni scelto per un caso. Non fa mai valere il tuo voto più di uno."
+    }
   },
   "state": {
     "loading": "Caricamento…",
@@ -91,6 +100,7 @@
       "title": "Revisiona il prossimo caso",
       "help": "Questo chiede un caso al server. Può rispondere che al momento non ce n'è nessuno per te.",
       "action": "Revisiona il prossimo caso",
+      "noCaseTitle": "Niente per te in questo momento",
       "noCase": "Al momento nessun caso è compatibile con te. È normale: riprova più tardi."
     }
   },
@@ -212,7 +222,8 @@
       "empty": "Ancora nessun modulo.",
       "completed": "Completato il {{date}}.",
       "notCompleted": "Non completato.",
-      "expires": "Va ripetuto entro il {{date}}."
+      "expires": "Va ripetuto entro il {{date}}.",
+      "emptyHelp": "I moduli sono pubblicati per categoria. Ne comparirà uno qui quando una categoria in cui lavori ne avrà uno."
     }
   },
   "history": {
@@ -223,7 +234,8 @@
     "yourOutcome": "Tu hai detto: {{outcome}}",
     "decision": "Deciso: {{outcome}} il {{date}}",
     "decisionPending": "Il caso è ancora aperto. Non ti viene mostrato come sta andando.",
-    "loadMore": "Carica altri"
+    "loadMore": "Carica altri",
+    "emptyHelp": "Le revisioni compaiono qui una volta completate. Chiedi un caso dalla schermata di revisione."
   },
   "reliability": {
     "title": "Affidabilità",
@@ -237,7 +249,8 @@
       "empty": "Ancora nessun dato. Inizia quando avrai revisionato casi reali.",
       "row": "{{language}} · {{reliability}}% di affidabilità · {{reviews}} revisioni",
       "calibrated": "La calibrazione è valida.",
-      "needsCalibration": "La calibrazione è scaduta."
+      "needsCalibration": "La calibrazione è scaduta.",
+      "emptyHelp": "Le cifre iniziano quando hai revisionato casi reali in una categoria e una lingua."
     },
     "eligibility": {
       "title": "Idoneità",
@@ -498,5 +511,12 @@
     "insufficient_context.help": "Conoscenza locale, culturale o della situazione che qualcun altro avrà.",
     "unavailable": "Non posso finirlo adesso",
     "unavailable.help": "Meglio restituirlo che lasciarlo scadere."
+  },
+  "trustTier": {
+    "new": "Nuovo",
+    "trusted": "Affidabile",
+    "high_trust": "Alta fiducia",
+    "verified": "Verificato",
+    "restricted": "Limitato"
   }
 }

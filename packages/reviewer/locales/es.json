@@ -8,8 +8,10 @@
     "unconfigured": "El inicio de sesión no está disponible: todavía no hay un cliente de Oxy registrado para esta aplicación."
   },
   "notFound": {
+    "body": "No hay nada en esa dirección. Los casos nunca son accesibles por URL: el servidor asigna uno cuando lo pides.",
     "title": "Esta página no existe.",
-    "action": "Ir al inicio"
+    "action": "Ir al inicio",
+    "heading": "No encontrado"
   },
   "error": {
     "boundary": {
@@ -50,7 +52,14 @@
     },
     "privacy": "Privacidad",
     "terms": "Términos",
-    "cookies": "Cookies"
+    "cookies": "Cookies",
+    "reputation": {
+      "title": "Tu reputación",
+      "points": "puntos",
+      "none": "Aún no hay nada registrado. La reputación se gana revisando y solo tú puedes verla.",
+      "tier": "Nivel de confianza: {{tier}}",
+      "help": "La reputación afecta a la frecuencia con la que te eligen para un caso. Nunca hace que tu voto valga más de uno."
+    }
   },
   "state": {
     "loading": "Cargando…",
@@ -91,6 +100,7 @@
       "title": "Revisar el siguiente caso",
       "help": "Esto le pide un caso al servidor. Puede responder que ahora mismo no hay ninguno para ti.",
       "action": "Revisar el siguiente caso",
+      "noCaseTitle": "Nada para ti ahora mismo",
       "noCase": "Ahora mismo no hay ningún caso que encaje contigo. Es normal: inténtalo más tarde."
     }
   },
@@ -212,7 +222,8 @@
       "empty": "Todavía no hay módulos.",
       "completed": "Completado el {{date}}.",
       "notCompleted": "Sin completar.",
-      "expires": "Hay que repetirlo antes del {{date}}."
+      "expires": "Hay que repetirlo antes del {{date}}.",
+      "emptyHelp": "Los módulos se publican por categoría. Aparecerá uno aquí cuando lo tenga una categoría en la que trabajas."
     }
   },
   "history": {
@@ -223,7 +234,8 @@
     "yourOutcome": "Tú dijiste: {{outcome}}",
     "decision": "Decidido: {{outcome}} el {{date}}",
     "decisionPending": "El caso sigue abierto. No se te muestra cómo va.",
-    "loadMore": "Cargar más"
+    "loadMore": "Cargar más",
+    "emptyHelp": "Las revisiones aparecen aquí cuando las completas. Pide un caso desde la pantalla de revisión."
   },
   "reliability": {
     "title": "Fiabilidad",
@@ -237,7 +249,8 @@
       "empty": "Todavía no hay cifras. Empiezan cuando hayas revisado casos reales.",
       "row": "{{language}} · {{reliability}} % de fiabilidad · {{reviews}} revisiones",
       "calibrated": "La calibración está vigente.",
-      "needsCalibration": "La calibración ha caducado."
+      "needsCalibration": "La calibración ha caducado.",
+      "emptyHelp": "Las cifras empiezan cuando has revisado casos reales en una categoría y un idioma."
     },
     "eligibility": {
       "title": "Elegibilidad",
@@ -498,5 +511,12 @@
     "insufficient_context.help": "Conocimiento local, cultural o de la situación que otra persona sí tendrá.",
     "unavailable": "No puedo terminarlo ahora",
     "unavailable.help": "Mejor devolverlo que dejar que caduque."
+  },
+  "trustTier": {
+    "new": "Nuevo",
+    "trusted": "De confianza",
+    "high_trust": "Alta confianza",
+    "verified": "Verificado",
+    "restricted": "Restringido"
   }
 }

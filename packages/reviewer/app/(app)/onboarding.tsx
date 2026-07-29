@@ -68,7 +68,9 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <Screen title={t('onboarding.title')} subtitle={t('onboarding.subtitle')}>
+    <Screen title={t('onboarding.title')}>
+      <Text className="text-base leading-6 text-muted-foreground">{t('onboarding.subtitle')}</Text>
+
       <Panel title={t('onboarding.what.title')} description={t('onboarding.what.body')} />
 
       <Panel title={t('onboarding.rules.title')} description={t('onboarding.rules.help')}>

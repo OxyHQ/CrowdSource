@@ -18,6 +18,7 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { ReviewerIdentityBoundary } from '@/components/providers/ReviewerIdentityBoundary';
 import { OXY_AUTH_REDIRECT_URI, OXY_CLIENT_ID } from '@/config';
+import { LayoutScrollProvider } from '@/context/LayoutScrollContext';
 import i18n from '@/lib/i18n';
 import { createScopedLogger } from '@/lib/logger';
 
@@ -75,7 +76,12 @@ export const AppProviders = memo(function AppProviders({
             <ReviewerIdentityBoundary>
               <I18nextProvider i18n={i18n}>
                 <AppErrorBoundary onError={handleBoundaryError}>
-                  {children}
+                  {/*
+                   * Above the routed tree, and above the `(auth)` group too: the
+                   * web listener it installs is on the window, so it must not be
+                   * torn down and re-primed on every group swap.
+                   */}
+                  <LayoutScrollProvider>{children}</LayoutScrollProvider>
                   <StatusBar style="auto" />
                   {/*
                    * No <ToastOutlet /> here on purpose. Bloom's toast stack must

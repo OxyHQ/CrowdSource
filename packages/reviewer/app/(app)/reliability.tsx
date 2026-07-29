@@ -8,11 +8,13 @@
  * one vote — a high figure here buys more invitations, never a louder one.
  */
 
+import { Growth_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { ApiStateNotice, LoadingPanel } from '@/components/ApiStateNotice';
+import { EmptyState } from '@/components/EmptyState';
 import { Panel, Screen } from '@/components/Screen';
 import { useReviewerProfile } from '@/lib/reviewer-api/queries';
 
@@ -21,7 +23,9 @@ export default function ReliabilityScreen() {
   const profileQuery = useReviewerProfile();
 
   return (
-    <Screen title={t('reliability.title')} subtitle={t('reliability.subtitle')}>
+    <Screen title={t('reliability.title')}>
+      <Text className="text-base leading-6 text-muted-foreground">{t('reliability.subtitle')}</Text>
+
       {profileQuery.isPending ? <LoadingPanel /> : null}
       {profileQuery.error ? <ApiStateNotice error={profileQuery.error} /> : null}
 
@@ -37,14 +41,27 @@ export default function ReliabilityScreen() {
             description={t('reliability.standings.help')}
           >
             {profileQuery.data.standings.length === 0 ? (
-              <Text className="text-sm text-muted-foreground">
-                {t('reliability.standings.empty')}
-              </Text>
+              <EmptyState
+                icon={
+                  <Growth_Stroke2_Corner0_Rounded
+                    width={28}
+                    height={28}
+                    fill="currentColor"
+                    className="text-muted-foreground"
+                  />
+                }
+                title={t('reliability.standings.empty')}
+                description={t('reliability.standings.emptyHelp')}
+              />
             ) : null}
-            {profileQuery.data.standings.map((standing) => (
+            {profileQuery.data.standings.map((standing, index) => (
               <View
                 key={`${standing.category}:${standing.language}`}
-                className="gap-1 border-b border-border pb-3"
+                className={
+                  index < profileQuery.data.standings.length - 1
+                    ? 'gap-1 border-b border-border pb-3'
+                    : 'gap-1'
+                }
               >
                 <Text className="text-base font-semibold text-foreground">
                   {t(`category.${standing.category}`, { defaultValue: standing.category })}

@@ -9,14 +9,17 @@
  */
 
 import { Button } from '@oxyhq/bloom/button';
+import { CircleCheck_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
 import { getNormalizedUserHandle } from '@oxyhq/core';
 import { useAuth } from '@oxyhq/services/ui/client';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { ApiStateNotice, LoadingPanel } from '@/components/ApiStateNotice';
+import { EmptyState } from '@/components/EmptyState';
+import { LogoIcon } from '@/components/LogoIcon';
 import { Panel, Screen } from '@/components/Screen';
 import { assignmentBlockers } from '@/lib/eligibility';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
@@ -34,10 +37,22 @@ export default function HomeScreen() {
   const displayName = user?.name?.displayName?.trim() || getNormalizedUserHandle(user) || '';
 
   return (
+    // The mark, centred, and no title beside it — the rail and the bar already
+    // name this screen, and this is the one place in the app the product signs
+    // its own name. Every other surface uses the same header with a title in it.
     <Screen
-      title={t('home.title')}
-      subtitle={displayName ? t('home.signedInAs', { name: displayName }) : undefined}
+      titlePosition="center"
+      subtitle={<LogoIcon height={28} />}
+      documentTitle={t('home.title')}
     >
+      {/* Identity is body copy here rather than a header subtitle: the mark has
+          that slot. It stays first, where it was. */}
+      {displayName ? (
+        <Text className="text-base leading-6 text-muted-foreground">
+          {t('home.signedInAs', { name: displayName })}
+        </Text>
+      ) : null}
+
       <Panel description={t('home.rule')} />
 
       {activeAssignment ? <OpenCasePanel /> : null}
@@ -104,15 +119,19 @@ function ReviewerStanding({ profile, hasOpenAssignment }: ReviewerStandingProps)
             limit: profile.exposure.dailyLimit,
           })}
         </Text>
+        {/* These were bare `Link`s styled to look like buttons. They are the
+            thing to do next on this screen, and a `Link` gives no pressed state
+            at all on a touch device — tapping one read as the app ignoring you.
+            Bloom's text variant carries pressed, hover and focus. */}
         {profile.state === 'applicant' || profile.consent.rulesAcceptedAt === null ? (
-          <Link href="/onboarding" className="text-base font-semibold text-primary">
+          <Button variant="text" onPress={() => router.push('/onboarding')}>
             {t('home.state.startOnboarding')}
-          </Link>
+          </Button>
         ) : null}
         {profile.state === 'calibrating' ? (
-          <Link href="/training" className="text-base font-semibold text-primary">
+          <Button variant="text" onPress={() => router.push('/training')}>
             {t('home.state.continueTraining')}
-          </Link>
+          </Button>
         ) : null}
       </Panel>
 
@@ -136,8 +155,25 @@ function ReviewerStanding({ profile, hasOpenAssignment }: ReviewerStandingProps)
           {t('home.request.action')}
         </Button>
 
+        {/* An empty draw is not an error and must not look like one. It is the
+            correct answer whenever nothing open matches this reviewer's
+            categories, languages, consent and exposure headroom — a routine
+            outcome of the system working, and the one a reviewer will meet most
+            often. As a grey sentence under the button it read as the request
+            having failed. */}
         {noCaseAvailable ? (
-          <Text className="text-sm text-muted-foreground">{t('home.request.noCase')}</Text>
+          <EmptyState
+            icon={
+              <CircleCheck_Stroke2_Corner0_Rounded
+                width={28}
+                height={28}
+                fill="currentColor"
+                className="text-muted-foreground"
+              />
+            }
+            title={t('home.request.noCaseTitle')}
+            description={t('home.request.noCase')}
+          />
         ) : null}
       </Panel>
 

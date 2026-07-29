@@ -8,8 +8,10 @@
     "unconfigured": "Sign-in is unavailable: no Oxy client has been registered for this app yet."
   },
   "notFound": {
+    "body": "Nothing lives at that address. Cases are never reachable by URL — the server assigns one when you ask for it.",
     "title": "This page does not exist.",
-    "action": "Go home"
+    "action": "Go home",
+    "heading": "Not found"
   },
   "error": {
     "boundary": {
@@ -50,7 +52,14 @@
     },
     "privacy": "Privacy",
     "terms": "Terms",
-    "cookies": "Cookies"
+    "cookies": "Cookies",
+    "reputation": {
+      "title": "Your reputation",
+      "points": "points",
+      "none": "Nothing recorded yet. Reputation is earned by reviewing, and it is only ever yours to see.",
+      "tier": "Trust tier: {{tier}}",
+      "help": "Reputation affects how often you are drawn for a case. It never makes your vote count for more than one."
+    }
   },
   "state": {
     "loading": "Loading…",
@@ -91,6 +100,7 @@
       "title": "Review next case",
       "help": "This asks the server for a case. It may answer that there is none for you right now.",
       "action": "Review next case",
+      "noCaseTitle": "Nothing for you right now",
       "noCase": "No case matches you right now. That is normal — try again later."
     }
   },
@@ -212,7 +222,8 @@
       "empty": "No modules yet.",
       "completed": "Completed {{date}}.",
       "notCompleted": "Not completed.",
-      "expires": "Needs retaking by {{date}}."
+      "expires": "Needs retaking by {{date}}.",
+      "emptyHelp": "Modules are published per category. One will appear here when a category you work in has one."
     }
   },
   "history": {
@@ -223,7 +234,8 @@
     "yourOutcome": "You said: {{outcome}}",
     "decision": "Decided: {{outcome}} on {{date}}",
     "decisionPending": "The case is still open. You are not shown how it is going.",
-    "loadMore": "Load more"
+    "loadMore": "Load more",
+    "emptyHelp": "Reviews appear here once you complete them. Ask for a case from the Review screen."
   },
   "reliability": {
     "title": "Reliability",
@@ -237,7 +249,8 @@
       "empty": "No figures yet. They start once you have reviewed real cases.",
       "row": "{{language}} · {{reliability}}% reliability · {{reviews}} reviews",
       "calibrated": "Calibration is current.",
-      "needsCalibration": "Calibration has lapsed."
+      "needsCalibration": "Calibration has lapsed.",
+      "emptyHelp": "Figures start once you have reviewed real cases in a category and language."
     },
     "eligibility": {
       "title": "Eligibility",
@@ -498,5 +511,12 @@
     "insufficient_context.help": "Local, cultural or situational knowledge somebody else will have.",
     "unavailable": "I cannot finish this now",
     "unavailable.help": "Better handed back than left to expire."
+  },
+  "trustTier": {
+    "new": "New",
+    "trusted": "Trusted",
+    "high_trust": "High trust",
+    "verified": "Verified",
+    "restricted": "Restricted"
   }
 }

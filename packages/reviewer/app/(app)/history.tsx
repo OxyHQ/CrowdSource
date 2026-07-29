@@ -12,11 +12,13 @@
  */
 
 import { Button } from '@oxyhq/bloom/button';
+import { Clock_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { ApiStateNotice, LoadingPanel } from '@/components/ApiStateNotice';
+import { EmptyState } from '@/components/EmptyState';
 import { Panel, Screen } from '@/components/Screen';
 import { useReviewHistory } from '@/lib/reviewer-api/queries';
 
@@ -27,17 +29,38 @@ export default function HistoryScreen() {
   const entries = historyQuery.data?.pages.flatMap((page) => page.entries) ?? [];
 
   return (
-    <Screen title={t('history.title')} subtitle={t('history.subtitle')}>
+    <Screen title={t('history.title')}>
+      <Text className="text-base leading-6 text-muted-foreground">{t('history.subtitle')}</Text>
+
       {historyQuery.isPending ? <LoadingPanel /> : null}
       {historyQuery.error ? <ApiStateNotice error={historyQuery.error} /> : null}
 
       {historyQuery.data ? (
         <Panel>
           {entries.length === 0 ? (
-            <Text className="text-sm text-muted-foreground">{t('history.empty')}</Text>
+            <EmptyState
+              icon={
+                <Clock_Stroke2_Corner0_Rounded
+                  width={28}
+                  height={28}
+                  fill="currentColor"
+                  className="text-muted-foreground"
+                />
+              }
+              title={t('history.empty')}
+              description={t('history.emptyHelp')}
+            />
           ) : null}
-          {entries.map((entry) => (
-            <View key={entry.reviewId} className="gap-1 border-b border-border pb-3">
+          {/* The divider separates rows, so the last row has nothing to be
+              separated from — an unconditional one left a rule hanging under the
+              list with empty space below it. */}
+          {entries.map((entry, index) => (
+            <View
+              key={entry.reviewId}
+              className={
+                index < entries.length - 1 ? 'gap-1 border-b border-border pb-3' : 'gap-1'
+              }
+            >
               <Text className="text-base font-semibold text-foreground">
                 {t(`category.${entry.category}`, { defaultValue: entry.category })}
               </Text>

@@ -24,6 +24,7 @@ import { BottomBar, useBottomBarReservedSpace } from '@/components/BottomBar';
 import { DrawerOverlay } from '@/components/DrawerOverlay';
 import { RightBar } from '@/components/RightBar';
 import { SideBar } from '@/components/SideBar';
+import { BottomBarVisibilityProvider } from '@/context/BottomBarVisibilityContext';
 import { DrawerProvider } from '@/context/DrawerContext';
 import { useIsScreenNotMobile } from '@/hooks/useOptimizedMediaQuery';
 import { cn } from '@/lib/utils';
@@ -44,59 +45,69 @@ export default function AppLayout() {
   return (
     <DrawerProvider>
       {/*
-       * The shell owns the top safe area, once, so no screen has to. Only the
-       * top: the bottom belongs to the floating bar, which folds the inset into
-       * its own gap — claiming it here as well would count the home indicator
-       * twice. On web every inset is 0 and this is a plain row.
-       *
-       * Padding utilities must not go on this element: the safe-area component
-       * writes its own inline padding for the insets and would override them.
+       * One driver for every piece of chrome that reacts to scrolling: the
+       * screen headers translate off it and the floating bar minimizes off it,
+       * from a single integration of the scroll position. Scoped to this group
+       * because the signed-out surface has no chrome to hide.
        */}
-      <SafeAreaView
-        edges={['top']}
-        className={cn(
-          'w-full flex-1 bg-background',
-          isScreenNotMobile ? 'flex-row justify-center' : 'flex-col',
-        )}
-      >
-        <SideBar />
-        {/* Panel plus right rail, never wider than 950px however wide the window
-            gets — the rail stays where the eye expects it instead of drifting
-            towards the far edge of a 4K display. */}
-        <View
+      <BottomBarVisibilityProvider>
+        {/*
+         * The shell owns the top safe area, once, so no screen has to. Only the
+         * top: the bottom belongs to the floating bar, which folds the inset
+         * into its own gap — claiming it here as well would count the home
+         * indicator twice. On web every inset is 0 and this is a plain row.
+         *
+         * Padding utilities must not go on this element: the safe-area
+         * component writes its own inline padding for the insets and would
+         * override them.
+         */}
+        <SafeAreaView
+          edges={['top']}
           className={cn(
-            'flex-1 justify-between bg-background',
-            isScreenNotMobile ? 'max-w-[950px] shrink flex-row' : 'flex-col',
+            'w-full flex-1 bg-background',
+            isScreenNotMobile ? 'flex-row justify-center' : 'flex-col',
           )}
         >
-          {/* The gutter: the `bg-background` band around the floating panel.
-              `pl-0` so the panel meets the rail flush on the side it shares with
-              it. Gated on the same breakpoint as the rail — once the rail is
-              gone the panel is full-bleed and there is no gutter to paint. */}
+          <SideBar />
+          {/* Panel plus right rail, never wider than 950px however wide the
+              window gets — the rail stays where the eye expects it instead of
+              drifting towards the far edge of a 4K display. */}
           <View
-            className={cn('bg-background', IS_WEB && isScreenNotMobile && 'p-2 pl-0')}
-            style={{ flex: isScreenNotMobile ? 2.2 : 1 }}
+            className={cn(
+              'flex-1 justify-between bg-background',
+              isScreenNotMobile ? 'max-w-[950px] shrink flex-row' : 'flex-col',
+            )}
           >
-            <ContentPanel framedFrom={500} contentStyle={{ paddingBottom: bottomInset }}>
-              {IS_WEB ? (
-                <Slot />
-              ) : (
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    animation: 'default',
-                    freezeOnBlur: true,
-                    contentStyle: { flex: 1, backgroundColor: 'transparent' },
-                  }}
-                />
-              )}
-            </ContentPanel>
+            {/* The gutter: the `bg-background` band around the floating panel.
+                `pl-0` so the panel meets the rail flush on the side it shares
+                with it. Gated on the same breakpoint as the rail — once the rail
+                is gone the panel is full-bleed and there is no gutter to
+                paint. */}
+            <View
+              className={cn('bg-background', IS_WEB && isScreenNotMobile && 'p-2 pl-0')}
+              style={{ flex: isScreenNotMobile ? 2.2 : 1 }}
+            >
+              <ContentPanel framedFrom={500} contentStyle={{ paddingBottom: bottomInset }}>
+                {IS_WEB ? (
+                  <Slot />
+                ) : (
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      animation: 'default',
+                      freezeOnBlur: true,
+                      contentStyle: { flex: 1, backgroundColor: 'transparent' },
+                    }}
+                  />
+                )}
+              </ContentPanel>
+            </View>
+            <RightBar />
           </View>
-          <RightBar />
-        </View>
-      </SafeAreaView>
-      {isScreenNotMobile ? null : <BottomBar />}
-      {isScreenNotMobile ? null : <DrawerOverlay />}
+        </SafeAreaView>
+        {isScreenNotMobile ? null : <BottomBar />}
+        {isScreenNotMobile ? null : <DrawerOverlay />}
+      </BottomBarVisibilityProvider>
     </DrawerProvider>
   );
 }
