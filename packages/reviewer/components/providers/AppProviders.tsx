@@ -16,6 +16,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
+import { ReviewerIdentityBoundary } from '@/components/providers/ReviewerIdentityBoundary';
 import { OXY_AUTH_REDIRECT_URI, OXY_CLIENT_ID } from '@/config';
 import i18n from '@/lib/i18n';
 import { createScopedLogger } from '@/lib/logger';
@@ -62,19 +63,26 @@ export const AppProviders = memo(function AppProviders({
             storageKeyPrefix="crowdsource"
             queryClient={queryClient}
           >
-            <I18nextProvider i18n={i18n}>
-              <AppErrorBoundary onError={handleBoundaryError}>
-                {children}
-                <StatusBar style="auto" />
-                {/*
-                 * No <ToastOutlet /> here on purpose. Bloom's toast stack must be
-                 * mounted exactly once — every mount subscribes to the same store
-                 * and renders the same rows, so a second outlet shows every toast
-                 * twice. OxyProvider above already mounts one, and it carries
-                 * Bloom's defaults.
-                 */}
-              </AppErrorBoundary>
-            </I18nextProvider>
+            {/*
+             * Inside OxyProvider because it reads the SDK's auth state and the
+             * QueryClient the provider publishes; above everything else because
+             * a switch of account has to reach every consumer at once.
+             */}
+            <ReviewerIdentityBoundary>
+              <I18nextProvider i18n={i18n}>
+                <AppErrorBoundary onError={handleBoundaryError}>
+                  {children}
+                  <StatusBar style="auto" />
+                  {/*
+                   * No <ToastOutlet /> here on purpose. Bloom's toast stack must
+                   * be mounted exactly once — every mount subscribes to the same
+                   * store and renders the same rows, so a second outlet shows
+                   * every toast twice. OxyProvider above already mounts one, and
+                   * it carries Bloom's defaults.
+                   */}
+                </AppErrorBoundary>
+              </I18nextProvider>
+            </ReviewerIdentityBoundary>
           </OxyProvider>
         </KeyboardProvider>
       </GestureHandlerRootView>

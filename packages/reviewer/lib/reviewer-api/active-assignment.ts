@@ -68,9 +68,10 @@ export function setActiveAssignment(assignment: AssignmentPackage | null): void 
 /**
  * Drops the open assignment and everything in it.
  *
- * Called on submit, on recusal, on sign-out and by the wellbeing screen's
- * immediate exit. It is deliberately synchronous: "stop showing me this now"
- * must not wait on a network round trip.
+ * Called on submit, on recusal, by the wellbeing screen's immediate exit, and
+ * by `ReviewerIdentityBoundary` when the signed-in account changes. It is
+ * deliberately synchronous: "stop showing me this now" must not wait on a
+ * network round trip.
  */
 export function clearActiveAssignment(): void {
   setActiveAssignment(null);

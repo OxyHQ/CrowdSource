@@ -23,7 +23,9 @@
     "training": "Formazione",
     "history": "Cronologia",
     "reliability": "Affidabilità",
-    "wellbeing": "Benessere"
+    "wellbeing": "Benessere",
+    "account": "Account",
+    "accountHint": "Il tuo account Oxy: cambia account o esci"
   },
   "state": {
     "loading": "Caricamento…",

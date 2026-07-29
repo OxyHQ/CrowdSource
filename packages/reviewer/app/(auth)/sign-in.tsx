@@ -1,25 +1,26 @@
-import { useAuth } from '@oxyhq/services/ui/client';
-import React, { useCallback } from 'react';
+/**
+ * The signed-out surface.
+ *
+ * There is no sign-in form here and there never will be. `OxySignInButton` is
+ * the SDK's own entry point: it resolves CrowdSource's registered Oxy
+ * application by client id and routes accordingly — an official app opens the
+ * in-app account dialog, a third-party one runs an OAuth + PKCE redirect. The
+ * app does not choose between those, does not carry credentials, and does not
+ * navigate to an identity provider itself.
+ *
+ * The root layout decides when this screen is shown. Nothing here navigates.
+ */
+
+import { OxySignInButton } from '@oxyhq/services/ui/client';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { OXY_CLIENT_ID } from '@/config';
-import { createScopedLogger } from '@/lib/logger';
-
-const logger = createScopedLogger('SignInScreen');
+import { OXY_AUTH_REDIRECT_URI, OXY_CLIENT_ID } from '@/config';
 
 export default function SignInScreen() {
-  const { signIn } = useAuth();
   const { t } = useTranslation();
-
-  // `signIn()` opens the SDK's in-app account modal. It rejects when the person
-  // dismisses it, which is not an error worth surfacing — but a real failure is.
-  const handleSignIn = useCallback(() => {
-    signIn().catch((error: unknown) => {
-      logger.warn('Sign-in did not complete', { error });
-    });
-  }, [signIn]);
 
   // Padding belongs on the inner View, never on SafeAreaView: the safe-area
   // component writes its own inline padding for the insets, which overrides any
@@ -34,19 +35,19 @@ export default function SignInScreen() {
         </Text>
 
         {OXY_CLIENT_ID ? (
-          <Pressable
-            accessibilityRole="button"
-            className="mt-4 w-full items-center rounded-full bg-primary px-6 py-4"
-            onPress={handleSignIn}
-          >
-            <Text className="text-base font-semibold text-primary-foreground">
-              {t('signIn.action')}
-            </Text>
-          </Pressable>
+          <View className="mt-4 w-full">
+            <OxySignInButton
+              variant="contained"
+              text={t('signIn.action')}
+              oauthRedirectUri={OXY_AUTH_REDIRECT_URI}
+            />
+          </View>
         ) : (
-          // No hard-coded client id exists for CrowdSource yet, and inventing one
-          // would borrow another product's identity. Say so rather than render a
-          // button that cannot work.
+          // Without a registered client id the SDK cannot start EITHER flow: the
+          // device sign-in it would open identifies the requesting app by that
+          // id. Inventing one would borrow another product's identity, so the
+          // screen says what is missing instead of offering a button that
+          // silently does nothing.
           <Text className="mt-4 max-w-[300px] text-center text-sm text-muted-foreground">
             {t('signIn.unconfigured')}
           </Text>

@@ -5,6 +5,9 @@
  * app state, and every assignment payload is additionally scanned for the fields
  * PLAN §9.1 forbids. The scan reports paths only: the values it would otherwise
  * report are case material, and case material does not go to logs.
+ *
+ * Every query here is keyed on the signed-in reviewer and gated on their access
+ * token being ready — see `viewer.ts` for why neither is optional.
  */
 
 import {
@@ -50,14 +53,11 @@ import type {
   ReviewerProfile,
   TrainingState,
 } from './types';
+import { reviewerQueryKeys } from './query-keys';
+import { useReviewerViewer } from './use-reviewer-viewer';
+import { UNRESOLVED_VIEWER_KEY } from './viewer';
 
 const logger = createScopedLogger('ReviewerApi');
-
-export const reviewerQueryKeys = {
-  profile: ['reviewer', 'profile'] as const,
-  training: ['reviewer', 'training'] as const,
-  history: ['reviewer', 'history'] as const,
-};
 
 /**
  * An unavailable endpoint and a lost assignment are answers, not transient
@@ -91,17 +91,21 @@ function ingestAssignment(payload: unknown): AssignmentPackage {
 }
 
 export function useReviewerProfile(): UseQueryResult<ReviewerProfile, Error> {
+  const viewer = useReviewerViewer();
   return useQuery<ReviewerProfile, Error>({
-    queryKey: reviewerQueryKeys.profile,
+    queryKey: reviewerQueryKeys.profile(viewer.key ?? UNRESOLVED_VIEWER_KEY),
     queryFn: async () => projectReviewerProfile(await getReviewerProfile()),
+    enabled: viewer.canQuery,
     retry: reviewerQueryRetry,
   });
 }
 
 export function useTrainingState(): UseQueryResult<TrainingState, Error> {
+  const viewer = useReviewerViewer();
   return useQuery<TrainingState, Error>({
-    queryKey: reviewerQueryKeys.training,
+    queryKey: reviewerQueryKeys.training(viewer.key ?? UNRESOLVED_VIEWER_KEY),
     queryFn: async () => projectTrainingState(await getTraining()),
+    enabled: viewer.canQuery,
     retry: reviewerQueryRetry,
   });
 }
@@ -110,6 +114,7 @@ export function useReviewHistory(): UseInfiniteQueryResult<
   { pages: ReviewHistoryPage[]; pageParams: (string | null)[] },
   Error
 > {
+  const viewer = useReviewerViewer();
   return useInfiniteQuery<
     ReviewHistoryPage,
     Error,
@@ -117,10 +122,11 @@ export function useReviewHistory(): UseInfiniteQueryResult<
     readonly string[],
     string | null
   >({
-    queryKey: reviewerQueryKeys.history,
+    queryKey: reviewerQueryKeys.history(viewer.key ?? UNRESOLVED_VIEWER_KEY),
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) => projectHistoryPage(await getHistory(pageParam)),
     getNextPageParam: (lastPage: ReviewHistoryPage) => lastPage.nextCursor,
+    enabled: viewer.canQuery,
     retry: reviewerQueryRetry,
   });
 }
@@ -215,14 +221,19 @@ export function useUpdatePreferences(): UseMutationResult<
   ReviewerPreferences
 > {
   const queryClient = useQueryClient();
+  const viewer = useReviewerViewer();
   return useMutation({
     mutationFn: async (preferences) =>
       projectReviewerProfile(await putReviewerPreferences(preferences)),
     onSuccess: (profile) => {
       // The response IS the new profile, so write it rather than invalidate: a
       // reviewer who has just revoked consent for a category must not see the
-      // old value while a refetch is in flight.
-      queryClient.setQueryData(reviewerQueryKeys.profile, profile);
+      // old value while a refetch is in flight. It is written under the key of
+      // the viewer who made the request, which is the only account it describes.
+      queryClient.setQueryData(
+        reviewerQueryKeys.profile(viewer.key ?? UNRESOLVED_VIEWER_KEY),
+        profile,
+      );
     },
   });
 }
@@ -233,10 +244,14 @@ export function useCompleteOnboarding(): UseMutationResult<
   OnboardingSubmission
 > {
   const queryClient = useQueryClient();
+  const viewer = useReviewerViewer();
   return useMutation({
     mutationFn: async (submission) => projectReviewerProfile(await postOnboarding(submission)),
     onSuccess: (profile) => {
-      queryClient.setQueryData(reviewerQueryKeys.profile, profile);
+      queryClient.setQueryData(
+        reviewerQueryKeys.profile(viewer.key ?? UNRESOLVED_VIEWER_KEY),
+        profile,
+      );
     },
   });
 }

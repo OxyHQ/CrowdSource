@@ -23,7 +23,9 @@
     "training": "Training",
     "history": "History",
     "reliability": "Reliability",
-    "wellbeing": "Wellbeing"
+    "wellbeing": "Wellbeing",
+    "account": "Account",
+    "accountHint": "Your Oxy account: switch account or sign out"
   },
   "state": {
     "loading": "Loading…",
