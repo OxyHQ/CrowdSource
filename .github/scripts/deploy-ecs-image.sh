@@ -91,6 +91,20 @@ if [[ -z "$current_task_definition" ]]; then
   exit 1
 fi
 
+# The running revision is the rollback target, and the family it belongs to is
+# what the release renders from — see the render base selection below. Both are
+# derived from what ECS reports rather than from configuration, so neither can
+# drift away from the service this script is deploying.
+current_task_definition_name="${current_task_definition##*/}"
+task_definition_family="${current_task_definition_name%:*}"
+current_task_definition_revision="${current_task_definition_name##*:}"
+if [[ "$current_task_definition_name" != *:* ||
+      ! "$task_definition_family" =~ ^[A-Za-z0-9_-]{1,255}$ ||
+      ! "$current_task_definition_revision" =~ ^[0-9]+$ ]]; then
+  echo "::error::Could not read a task definition family and revision from $current_task_definition."
+  exit 1
+fi
+
 service_desired_count="$(jq -r '.services[0].desiredCount // empty' <<<"$service_json")"
 if ! [[ "$service_desired_count" =~ ^[0-9]+$ ]] ||
    (( service_desired_count < 1 )); then
@@ -99,6 +113,7 @@ if ! [[ "$service_desired_count" =~ ^[0-9]+$ ]] ||
 fi
 
 task_definition_file="$(mktemp)"
+running_task_definition_file="$(mktemp)"
 rendered_task_definition_file="$(mktemp)"
 active_one_shot_task_arn=""
 active_one_shot_task_stopped=true
@@ -109,7 +124,10 @@ cleanup() {
         -n "$active_one_shot_task_arn" ]]; then
     echo "::warning::Unfinished $active_one_shot_label task $active_one_shot_task_arn may still be running; the deploy role cannot call ecs:StopTask."
   fi
-  rm -f "$task_definition_file" "$rendered_task_definition_file"
+  rm -f \
+    "$task_definition_file" \
+    "$running_task_definition_file" \
+    "$rendered_task_definition_file"
 }
 trap cleanup EXIT
 
@@ -264,6 +282,77 @@ print_one_shot_logs() {
   echo "::endgroup::"
 }
 
+# Names every field in which the revision this release renders from differs from
+# the revision the service is running. Values are deliberately omitted: an
+# environment variable can carry a URL with a credential in it, and this output
+# lands in a public job log.
+print_task_definition_drift() {
+  local running_definition_file="$1"
+  local base_definition_file="$2"
+
+  jq -rn \
+    --arg name "$CONTAINER_NAME" \
+    --slurpfile running "$running_definition_file" \
+    --slurpfile base "$base_definition_file" \
+    '
+      def container($document):
+        ($document.containerDefinitions // [])
+        | map(select(.name == $name))
+        | first // {};
+      def keyed($entries):
+        ($entries // [])
+        | map({key: .name, value: ((.value // .valueFrom) // null)})
+        | from_entries;
+      def taskFields($document):
+        $document
+        | del(
+            .containerDefinitions,
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy
+          );
+      def differing($before; $after):
+        ((($before | keys) + ($after | keys)) | unique)
+        | map(select(($before[.] | tojson) != ($after[.] | tojson)));
+      def report($label; $before; $after):
+        differing($before; $after) as $names
+        | if ($names | length) == 0 then empty
+          else "\($label): \($names | join(", "))"
+          end;
+
+      ($running[0]) as $runningDocument
+      | ($base[0]) as $baseDocument
+      | container($runningDocument) as $runningContainer
+      | container($baseDocument) as $baseContainer
+      | [
+          report("task fields"; taskFields($runningDocument); taskFields($baseDocument)),
+          report(
+            "container fields";
+            ($runningContainer | del(.image, .environment, .secrets));
+            ($baseContainer | del(.image, .environment, .secrets))
+          ),
+          report(
+            "environment";
+            keyed($runningContainer.environment);
+            keyed($baseContainer.environment)
+          ),
+          report(
+            "secrets";
+            keyed($runningContainer.secrets);
+            keyed($baseContainer.secrets)
+          )
+        ]
+      | if length == 0 then
+          "nothing outside the container image differs"
+        else .[]
+        end
+    '
+}
+
 run_one_shot_command() {
   local label="$1"
   local command_json="$2"
@@ -321,6 +410,10 @@ run_one_shot_command() {
   echo "$label completed successfully"
 }
 
+# Rolls back to the revision that was actually serving traffic, which is not
+# necessarily the revision this release rendered from — the render base can be a
+# newer revision the service never adopted, and restoring that would put
+# untested configuration into production as a "rollback".
 rollback_service() {
   echo "::warning::Rolling $APP back to $current_task_definition."
   if ! aws ecs update-service \
@@ -369,10 +462,70 @@ task_secret_overrides="$(jq -c '
   ]
 ' <<<"$TASK_SECRET_OVERRIDES_JSON")"
 
+# The release renders from the family's latest ACTIVE revision, NOT from the
+# revision the service happens to be running.
+#
+# Terraform owns this task definition but the service is declared with
+# `ignore_changes = [task_definition]`, deliberately, so Terraform never fights
+# CI over image tags. The cost of that is that a Terraform-authored change — a
+# new environment variable, a role, a memory bump — registers a revision the
+# service never adopts. Rendering from the running revision therefore discards
+# it, silently and permanently: it is exactly how OXY_API_URL was added to this
+# family, never reached a task, and would have been dropped again by the next
+# deploy.
+#
+# This widens what a release adopts to include any out-of-band
+# register-task-definition, so the divergence is reported rather than
+# reconciled in silence. A stale image in the adopted revision is harmless
+# because the image is always overwritten below; every other difference is
+# printed with the revision's registrant, so an unexplained change is visible in
+# the job log of the deploy that adopted it.
 aws ecs describe-task-definition \
-  --task-definition "$current_task_definition" \
+  --task-definition "$task_definition_family" \
   --query taskDefinition \
   >"$task_definition_file"
+
+base_task_definition="$(jq -r '.taskDefinitionArn // empty' "$task_definition_file")"
+base_task_definition_family="$(jq -r '.family // empty' "$task_definition_file")"
+base_task_definition_status="$(jq -r '.status // empty' "$task_definition_file")"
+base_task_definition_name="${base_task_definition##*/}"
+base_task_definition_revision="${base_task_definition_name##*:}"
+if [[ -z "$base_task_definition" ||
+      "$base_task_definition_name" != *:* ||
+      ! "$base_task_definition_revision" =~ ^[0-9]+$ ]]; then
+  echo "::error::ECS returned no usable latest task definition for family $task_definition_family."
+  exit 1
+fi
+if [[ "$base_task_definition_family" != "$task_definition_family" ]]; then
+  echo "::error::A lookup of family $task_definition_family returned family $base_task_definition_family ($base_task_definition); refusing to render a release from another family."
+  exit 1
+fi
+# describe-task-definition resolves a bare family to its latest ACTIVE revision,
+# so anything else means the assumption this selection rests on no longer holds.
+if [[ "$base_task_definition_status" != "ACTIVE" ]]; then
+  echo "::error::Latest revision $base_task_definition of family $task_definition_family is $base_task_definition_status rather than ACTIVE."
+  exit 1
+fi
+if (( base_task_definition_revision < current_task_definition_revision )); then
+  echo "::error::The latest ACTIVE revision of $task_definition_family is $base_task_definition_revision but $APP is running revision $current_task_definition_revision; refusing to render a release from a configuration older than the one serving traffic."
+  exit 1
+fi
+
+if [[ "$base_task_definition" == "$current_task_definition" ]]; then
+  echo "Rendering the release from $base_task_definition, which is both the latest ACTIVE revision of $task_definition_family and the revision $APP is running."
+else
+  echo "::warning::ECS service $APP is running $current_task_definition but the latest ACTIVE revision of $task_definition_family is $base_task_definition. The release renders from the latest revision so configuration registered outside CI reaches the service; its differences are listed below."
+  echo "Revision $base_task_definition_revision was registered at $(jq -r '.registeredAt // "an unreported time"' "$task_definition_file") by $(jq -r '.registeredBy // "an unreported principal"' "$task_definition_file")."
+  aws ecs describe-task-definition \
+    --task-definition "$current_task_definition" \
+    --query taskDefinition \
+    >"$running_task_definition_file"
+  echo "::group::Configuration this release adopts from $base_task_definition"
+  print_task_definition_drift \
+    "$running_task_definition_file" \
+    "$task_definition_file"
+  echo "::endgroup::"
+fi
 
 container_matches="$(jq --arg name "$CONTAINER_NAME" '[.containerDefinitions[] | select(.name == $name)] | length' "$task_definition_file")"
 if [[ "$container_matches" != "1" ]]; then

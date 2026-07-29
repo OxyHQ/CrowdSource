@@ -23,43 +23,61 @@ export DEPLOY_TEST_TASK_EXIT_CODE=0
 export DEPLOY_TEST_EXPECT_TASK_SECRET_ARN=false
 export DEPLOY_TEST_SERVICE_DESIRED_COUNT=1
 export DEPLOY_TEST_ROLLOUT_SCENARIO=healthy
+# The revision the fake service runs, the latest ACTIVE revision of its family,
+# and the revision a registration returns. Keeping them separate is what lets a
+# case reproduce Terraform registering a revision the service never adopted.
+export DEPLOY_TEST_RUNNING_REVISION=1
+export DEPLOY_TEST_LATEST_REVISION=1
+export DEPLOY_TEST_REGISTERED_REVISION=2
+export DEPLOY_TEST_LATEST_STATUS=ACTIVE
+export DEPLOY_TEST_LATEST_EXTRA_ENV=""
+export DEPLOY_TEST_EXPECT_ADOPTED_ENV=""
+export DEPLOY_TEST_RUNNING_TASK_DEFINITION=""
 
 aws() {
-  local service_json='{
-    "failures": [],
-    "services": [{
-      "status": "ACTIVE",
-      "taskDefinition": "arn:aws:ecs:test:task-definition/crowdsource-test:1",
-      "desiredCount": 1,
-      "networkConfiguration": {
-        "awsvpcConfiguration": {
-          "subnets": ["subnet-test"],
-          "securityGroups": ["sg-test"]
-        }
-      },
-      "launchType": "FARGATE",
-      "deployments": [
-        {
-          "taskDefinition": "arn:aws:ecs:test:task-definition/crowdsource-test:2",
-          "status": "PRIMARY",
-          "rolloutState": "COMPLETED",
-          "runningCount": 1,
-          "desiredCount": 1
-        },
-        {
-          "taskDefinition": "arn:aws:ecs:test:task-definition/crowdsource-test:1",
-          "status": "PRIMARY",
-          "rolloutState": "COMPLETED",
-          "runningCount": 1,
-          "desiredCount": 1
-        }
-      ]
-    }]
-  }'
-  service_json="$(jq \
+  local family="crowdsource-test"
+  local running_task_definition="arn:aws:ecs:test:task-definition/$family:$DEPLOY_TEST_RUNNING_REVISION"
+  local registered_task_definition="arn:aws:ecs:test:task-definition/$family:$DEPLOY_TEST_REGISTERED_REVISION"
+  if [[ -n "$DEPLOY_TEST_RUNNING_TASK_DEFINITION" ]]; then
+    running_task_definition="$DEPLOY_TEST_RUNNING_TASK_DEFINITION"
+  fi
+
+  local service_json
+  service_json="$(jq -n \
+    --arg running "$running_task_definition" \
+    --arg registered "$registered_task_definition" \
     --argjson desired "$DEPLOY_TEST_SERVICE_DESIRED_COUNT" \
-    '.services[0].desiredCount = $desired' \
-    <<<"$service_json")"
+    '{
+      failures: [],
+      services: [{
+        status: "ACTIVE",
+        taskDefinition: $running,
+        desiredCount: $desired,
+        networkConfiguration: {
+          awsvpcConfiguration: {
+            subnets: ["subnet-test"],
+            securityGroups: ["sg-test"]
+          }
+        },
+        launchType: "FARGATE",
+        deployments: [
+          {
+            taskDefinition: $registered,
+            status: "PRIMARY",
+            rolloutState: "COMPLETED",
+            runningCount: 1,
+            desiredCount: 1
+          },
+          {
+            taskDefinition: $running,
+            status: "PRIMARY",
+            rolloutState: "COMPLETED",
+            runningCount: 1,
+            desiredCount: 1
+          }
+        ]
+      }]
+    }')"
 
   case "$1 $2" in
     "ecs describe-services")
@@ -72,9 +90,9 @@ aws() {
       printf '%s\n' "$describe_count" >"$describe_count_file"
       if [[ "$DEPLOY_TEST_ROLLOUT_SCENARIO" == "transient-zero-deployment" &&
             "$describe_count" == "2" ]]; then
-        service_json="$(jq '
+        service_json="$(jq --arg registered "$registered_task_definition" '
           .services[0].deployments |= map(
-              if .taskDefinition == "arn:aws:ecs:test:task-definition/crowdsource-test:2"
+              if .taskDefinition == $registered
               then
                 .rolloutState = "IN_PROGRESS"
                 | .desiredCount = 0
@@ -85,10 +103,10 @@ aws() {
         ' <<<"$service_json")"
       elif [[ "$DEPLOY_TEST_ROLLOUT_SCENARIO" == "zero-service-during-deploy" &&
               "$describe_count" == "2" ]]; then
-        service_json="$(jq '
+        service_json="$(jq --arg registered "$registered_task_definition" '
           .services[0].desiredCount = 0
           | .services[0].deployments |= map(
-              if .taskDefinition == "arn:aws:ecs:test:task-definition/crowdsource-test:2"
+              if .taskDefinition == $registered
               then .desiredCount = 0 | .runningCount = 0
               else .
               end
@@ -96,9 +114,9 @@ aws() {
         ' <<<"$service_json")"
       elif [[ "$DEPLOY_TEST_ROLLOUT_SCENARIO" == "completed-zero-deployment" &&
               "$describe_count" == "2" ]]; then
-        service_json="$(jq '
+        service_json="$(jq --arg registered "$registered_task_definition" '
           .services[0].deployments |= map(
-              if .taskDefinition == "arn:aws:ecs:test:task-definition/crowdsource-test:2"
+              if .taskDefinition == $registered
               then .desiredCount = 0 | .runningCount = 0
               else .
               end
@@ -108,38 +126,108 @@ aws() {
       printf '%s\n' "$service_json"
       ;;
     "ecs describe-task-definition")
-      printf '%s\n' '{
-        "family": "crowdsource-test",
-        "networkMode": "awsvpc",
-        "requiresCompatibilities": ["FARGATE"],
-        "cpu": "256",
-        "memory": "512",
-        "containerDefinitions": [{
-          "name": "crowdsource-test",
-          "image": "example.invalid/crowdsource-test:old",
-          "essential": true,
-          "logConfiguration": {
-            "logDriver": "awslogs",
-            "options": {
-              "awslogs-group": "/ecs/crowdsource-test",
-              "awslogs-stream-prefix": "ecs"
+      local previous_argument=""
+      local requested=""
+      local argument
+      for argument in "$@"; do
+        if [[ "$previous_argument" == "--task-definition" ]]; then
+          requested="$argument"
+          break
+        fi
+        previous_argument="$argument"
+      done
+      # Recorded separately from the mutating-call log so the existing expected
+      # logs stay readable while a case can still assert which revisions a
+      # release looked up.
+      printf '%s\n' "$requested" >>"${DEPLOY_TEST_LOG}.lookups"
+
+      local revision status extra_environment
+      if [[ "$requested" == "$family" ]]; then
+        # ECS resolves a bare family to its latest ACTIVE revision.
+        revision="$DEPLOY_TEST_LATEST_REVISION"
+        status="$DEPLOY_TEST_LATEST_STATUS"
+        extra_environment="$DEPLOY_TEST_LATEST_EXTRA_ENV"
+      elif [[ "$requested" == "$running_task_definition" ]]; then
+        revision="$DEPLOY_TEST_RUNNING_REVISION"
+        status=ACTIVE
+        extra_environment=""
+      else
+        printf 'Mocked describe-task-definition received an unexpected revision: %s\n' \
+          "$requested" >&2
+        return 1
+      fi
+
+      jq -n \
+        --arg family "$family" \
+        --arg arn "arn:aws:ecs:test:task-definition/$family:$revision" \
+        --argjson revision "$revision" \
+        --arg status "$status" \
+        --arg extraEnvironment "$extra_environment" \
+        '{
+          taskDefinitionArn: $arn,
+          family: $family,
+          revision: $revision,
+          status: $status,
+          registeredAt: "2026-07-29T12:00:00Z",
+          registeredBy: "arn:aws:sts::123456789012:assumed-role/oxy-terraform/apply",
+          networkMode: "awsvpc",
+          requiresCompatibilities: ["FARGATE"],
+          cpu: "256",
+          memory: "512",
+          containerDefinitions: [{
+            name: "crowdsource-test",
+            image: "example.invalid/crowdsource-test:old",
+            essential: true,
+            environment: (
+              [{name: "PORT", value: "3000"}]
+              + (
+                if $extraEnvironment == "" then []
+                else [{name: $extraEnvironment, value: "https://api.example.invalid"}]
+                end
+              )
+            ),
+            logConfiguration: {
+              logDriver: "awslogs",
+              options: {
+                "awslogs-group": "/ecs/crowdsource-test",
+                "awslogs-stream-prefix": "ecs"
+              }
             }
-          }
-        }]
-      }'
+          }]
+        }'
       ;;
     "ecs register-task-definition")
+      local previous_argument=""
+      local input_json=""
+      local argument
+      for argument in "$@"; do
+        if [[ "$previous_argument" == "--cli-input-json" ]]; then
+          input_json="${argument#file://}"
+          break
+        fi
+        previous_argument="$argument"
+      done
+
+      # The rendered revision must carry configuration that exists only in the
+      # family's latest ACTIVE revision. A release rendered from the running
+      # revision cannot satisfy this, which is what makes it a real assertion
+      # rather than a restatement of the fixture.
+      if [[ -n "$DEPLOY_TEST_EXPECT_ADOPTED_ENV" ]]; then
+        if ! jq -e --arg name "$DEPLOY_TEST_EXPECT_ADOPTED_ENV" '
+          .containerDefinitions[]
+          | select(.name == "crowdsource-test")
+          | .environment
+          | map(.name)
+          | index($name)
+        ' "$input_json" >/dev/null; then
+          printf 'Rendered task definition is missing %s, so the release was rendered from the running revision instead of the latest ACTIVE revision of the family.\n' \
+            "$DEPLOY_TEST_EXPECT_ADOPTED_ENV" >&2
+          return 1
+        fi
+        printf 'adopted-env:%s\n' "$DEPLOY_TEST_EXPECT_ADOPTED_ENV" >>"$DEPLOY_TEST_LOG"
+      fi
+
       if [[ "$DEPLOY_TEST_EXPECT_METRICS_ARN" == "true" ]]; then
-        local previous_argument=""
-        local input_json=""
-        local argument
-        for argument in "$@"; do
-          if [[ "$previous_argument" == "--cli-input-json" ]]; then
-            input_json="${argument#file://}"
-            break
-          fi
-          previous_argument="$argument"
-        done
         jq -e '
           .containerDefinitions[]
           | select(.name == "crowdsource-test")
@@ -152,16 +240,6 @@ aws() {
         printf 'metrics:arn\n' >>"$DEPLOY_TEST_LOG"
       fi
       if [[ "$DEPLOY_TEST_EXPECT_TASK_SECRET_ARN" == "true" ]]; then
-        local previous_argument=""
-        local input_json=""
-        local argument
-        for argument in "$@"; do
-          if [[ "$previous_argument" == "--cli-input-json" ]]; then
-            input_json="${argument#file://}"
-            break
-          fi
-          previous_argument="$argument"
-        done
         jq -e '
           .containerDefinitions[]
           | select(.name == "crowdsource-test")
@@ -173,7 +251,7 @@ aws() {
         ' "$input_json" >/dev/null
         printf 'task-secret:arn\n' >>"$DEPLOY_TEST_LOG"
       fi
-      printf '%s\n' "arn:aws:ecs:test:task-definition/crowdsource-test:2"
+      printf '%s\n' "$registered_task_definition"
       ;;
     "ecs update-service")
       local previous_argument=""
@@ -243,6 +321,10 @@ run_release() {
   local inject_task_secret="${6:-false}"
   local service_desired_count="${7:-1}"
   local rollout_scenario="${8:-healthy}"
+  # Everything after the positional arguments is a DEPLOY_TEST_* override for the
+  # task definition fixture. Each case starts from the defaults below, so a knob
+  # one case sets can never leak into the next.
+  local -a fixture_overrides=("${@:9}")
   local case_directory="$test_directory/$case_name"
   local output_file="$case_directory/output.log"
   local smoke_script="$case_directory/smoke.sh"
@@ -254,11 +336,34 @@ run_release() {
   DEPLOY_TEST_EXPECT_TASK_SECRET_ARN="$inject_task_secret"
   DEPLOY_TEST_SERVICE_DESIRED_COUNT="$service_desired_count"
   DEPLOY_TEST_ROLLOUT_SCENARIO="$rollout_scenario"
+  DEPLOY_TEST_RUNNING_REVISION=1
+  DEPLOY_TEST_LATEST_REVISION=1
+  DEPLOY_TEST_REGISTERED_REVISION=2
+  DEPLOY_TEST_LATEST_STATUS=ACTIVE
+  DEPLOY_TEST_LATEST_EXTRA_ENV=""
+  DEPLOY_TEST_EXPECT_ADOPTED_ENV=""
+  DEPLOY_TEST_RUNNING_TASK_DEFINITION=""
+  local fixture_override
+  for fixture_override in ${fixture_overrides[@]+"${fixture_overrides[@]}"}; do
+    if [[ ! "$fixture_override" =~ ^DEPLOY_TEST_[A-Z_]+=.*$ ]]; then
+      echo "Unsupported fixture override for $case_name: $fixture_override" >&2
+      return 1
+    fi
+    declare -g "$fixture_override"
+  done
+
   export DEPLOY_TEST_LOG DEPLOY_TEST_EXPECT_METRICS_ARN
   export DEPLOY_TEST_TASK_EXIT_CODE
   export DEPLOY_TEST_EXPECT_TASK_SECRET_ARN
   export DEPLOY_TEST_SERVICE_DESIRED_COUNT
   export DEPLOY_TEST_ROLLOUT_SCENARIO
+  export DEPLOY_TEST_RUNNING_REVISION
+  export DEPLOY_TEST_LATEST_REVISION
+  export DEPLOY_TEST_REGISTERED_REVISION
+  export DEPLOY_TEST_LATEST_STATUS
+  export DEPLOY_TEST_LATEST_EXTRA_ENV
+  export DEPLOY_TEST_EXPECT_ADOPTED_ENV
+  export DEPLOY_TEST_RUNNING_TASK_DEFINITION
 
   # The generated smoke fixture expands this variable when it runs.
   # shellcheck disable=SC2016
@@ -315,6 +420,21 @@ printf '%s\n' \
 diff -u \
   "$test_directory/success/expected.log" \
   "$test_directory/success/aws.log"
+# When the family's latest ACTIVE revision is the one the service runs there is
+# nothing to reconcile, so the release says so, raises no drift warning, and does
+# not spend a second lookup describing the revision it already has.
+grep -F \
+  "which is both the latest ACTIVE revision of crowdsource-test and the revision crowdsource-test is running" \
+  "$test_directory/success/output.log" \
+  >/dev/null
+if grep -q 'is running arn:' "$test_directory/success/output.log"; then
+  echo "A release with no revision drift reported drift anyway." >&2
+  exit 1
+fi
+printf '%s\n' crowdsource-test >"$test_directory/success/expected-lookups.log"
+diff -u \
+  "$test_directory/success/expected-lookups.log" \
+  "$test_directory/success/aws.log.lookups"
 
 run_release explicit-task-secret true false false 0 true
 printf '%s\n' \
@@ -405,5 +525,107 @@ grep -F \
   "completed at desiredCount=0; refusing to accept a zero-task steady state" \
   "$test_directory/completed-zero-deployment/output.log" \
   >/dev/null
+
+# Terraform registered a revision carrying a new environment variable and the
+# service, excluded from Terraform's task_definition management, never adopted it.
+# The release must render from that revision, not from the one serving traffic.
+run_release terraform-added-variable true false false 0 false 1 healthy \
+  DEPLOY_TEST_RUNNING_REVISION=5 \
+  DEPLOY_TEST_LATEST_REVISION=6 \
+  DEPLOY_TEST_REGISTERED_REVISION=7 \
+  DEPLOY_TEST_LATEST_EXTRA_ENV=OXY_API_URL \
+  DEPLOY_TEST_EXPECT_ADOPTED_ENV=OXY_API_URL
+printf '%s\n' \
+  adopted-env:OXY_API_URL \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:7:desired=1' \
+  smoke \
+  reconcile \
+  >"$test_directory/terraform-added-variable/expected.log"
+diff -u \
+  "$test_directory/terraform-added-variable/expected.log" \
+  "$test_directory/terraform-added-variable/aws.log"
+# Adopting the newer revision silently is the failure mode that hid the incident,
+# so the drift, its registrant and the fields it carries must all be in the log.
+grep -F \
+  "is running arn:aws:ecs:test:task-definition/crowdsource-test:5 but the latest ACTIVE revision of crowdsource-test is arn:aws:ecs:test:task-definition/crowdsource-test:6" \
+  "$test_directory/terraform-added-variable/output.log" \
+  >/dev/null
+grep -F \
+  "Revision 6 was registered at 2026-07-29T12:00:00Z by arn:aws:sts::123456789012:assumed-role/oxy-terraform/apply" \
+  "$test_directory/terraform-added-variable/output.log" \
+  >/dev/null
+grep -F \
+  "environment: OXY_API_URL" \
+  "$test_directory/terraform-added-variable/output.log" \
+  >/dev/null
+printf '%s\n' \
+  crowdsource-test \
+  arn:aws:ecs:test:task-definition/crowdsource-test:5 \
+  >"$test_directory/terraform-added-variable/expected-lookups.log"
+diff -u \
+  "$test_directory/terraform-added-variable/expected-lookups.log" \
+  "$test_directory/terraform-added-variable/aws.log.lookups"
+
+# A rollback restores what was serving traffic. The revision the release rendered
+# from was never deployed, so restoring it would ship untested configuration
+# under the name of a rollback.
+run_release adopted-revision-rollback false false false 1 false 1 healthy \
+  DEPLOY_TEST_RUNNING_REVISION=5 \
+  DEPLOY_TEST_LATEST_REVISION=6 \
+  DEPLOY_TEST_REGISTERED_REVISION=7
+printf '%s\n' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:7:desired=1' \
+  smoke \
+  reconcile \
+  tasklogs \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:5:desired=1' \
+  >"$test_directory/adopted-revision-rollback/expected.log"
+diff -u \
+  "$test_directory/adopted-revision-rollback/expected.log" \
+  "$test_directory/adopted-revision-rollback/aws.log"
+
+# Newer revisions having been deregistered leaves the latest ACTIVE revision
+# behind the running one. Rendering from it would roll production configuration
+# backwards while reporting a successful deployment.
+run_release stale-latest-revision false false false 0 false 1 healthy \
+  DEPLOY_TEST_RUNNING_REVISION=5 \
+  DEPLOY_TEST_LATEST_REVISION=3
+grep -F \
+  "latest ACTIVE revision of crowdsource-test is 3 but crowdsource-test is running revision 5" \
+  "$test_directory/stale-latest-revision/output.log" \
+  >/dev/null
+if [[ -s "$test_directory/stale-latest-revision/aws.log" ]]; then
+  echo "A backwards render base reached a mutating AWS call." >&2
+  exit 1
+fi
+
+# A bare family resolves to the latest ACTIVE revision, so any other status means
+# the assumption this selection rests on no longer holds.
+run_release inactive-latest-revision false false false 0 false 1 healthy \
+  DEPLOY_TEST_RUNNING_REVISION=5 \
+  DEPLOY_TEST_LATEST_REVISION=6 \
+  DEPLOY_TEST_LATEST_STATUS=INACTIVE
+grep -F \
+  "crowdsource-test:6 of family crowdsource-test is INACTIVE rather than ACTIVE" \
+  "$test_directory/inactive-latest-revision/output.log" \
+  >/dev/null
+if [[ -s "$test_directory/inactive-latest-revision/aws.log" ]]; then
+  echo "An inactive render base reached a mutating AWS call." >&2
+  exit 1
+fi
+
+# The family is read out of what ECS reports rather than out of configuration, so
+# an unreadable identifier must stop the release instead of being guessed at.
+run_release unreadable-task-definition false false false 0 false 1 healthy \
+  DEPLOY_TEST_RUNNING_TASK_DEFINITION=arn:aws:ecs:test:task-definition/crowdsource-test
+grep -F \
+  "Could not read a task definition family and revision from arn:aws:ecs:test:task-definition/crowdsource-test" \
+  "$test_directory/unreadable-task-definition/output.log" \
+  >/dev/null
+if [[ -s "$test_directory/unreadable-task-definition/aws.log" ||
+      -e "$test_directory/unreadable-task-definition/aws.log.lookups" ]]; then
+  echo "An unreadable task definition reached an AWS task definition call." >&2
+  exit 1
+fi
 
 echo "Deployment script transaction tests passed."
