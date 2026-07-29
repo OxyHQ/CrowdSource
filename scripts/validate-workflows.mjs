@@ -69,7 +69,7 @@ for (const workflowName of workflowNames) {
         ],
       ]) {
         if (!jobs.some(([, job]) => runsScript(job, pattern))) {
-          failures.push(`${workflowName}: CI must run .github/scripts/${script}; ${reason}`);
+          failures.push(`${workflowName}: CI must run scripts/${script}; ${reason}`);
         }
       }
     }

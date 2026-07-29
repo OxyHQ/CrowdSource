@@ -42,7 +42,7 @@ jobs:
           bash .github/scripts/test-assert-own-database.sh
           bash .github/scripts/test-cloudflare-pages.sh
           bun .github/scripts/test-runtime-image-audit.mjs
-          bun .github/scripts/test-check-lockfile-sync.mjs
+          bun scripts/test-check-lockfile-sync.mjs
 
   lockfile:
     name: Lockfile sync
@@ -57,7 +57,7 @@ jobs:
       # on a lockfile that a plain install rewrites, so it cannot be this gate.
       # The script runs the install itself and hands the lockfile back unchanged.
       - name: Verify bun.lock was committed with its manifest change
-        run: bun .github/scripts/check-lockfile-sync.mjs
+        run: bun scripts/check-lockfile-sync.mjs
 
   tests:
     name: Test ${{ matrix.package }}

@@ -17,7 +17,7 @@
     "build:reviewer": "bun run --cwd packages/reviewer build",
     "build:backend": "bun run build:contracts && bun run --cwd packages/backend build",
     "audit:security": "bun ./scripts/audit-security.mjs",
-    "check:lockfile": "bun ./.github/scripts/check-lockfile-sync.mjs",
+    "check:lockfile": "bun ./scripts/check-lockfile-sync.mjs",
     "doctor": "bun ./scripts/doctor.mjs",
     "check": "bun run doctor && bun run validate:workflows && bun run audit:security && bun run check:peers && bun run build && bun run --cwd packages/reviewer typecheck && bun run lint",
     "test": "bun run test:contracts && bun run test:backend && bun run test:sdk && bun run test:testing && bun run test:sdk-express && bun run test:reviewer",
