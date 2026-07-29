@@ -86,9 +86,11 @@ jobs:
             minimum_tests: 75
           - package: sdk-express
             command: bun run --cwd packages/sdk-express test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/sdk-express-tests.json"
+            build: bun run build:contracts && bun run --cwd packages/sdk build && bun run --cwd packages/testing build
             minimum_tests: 47
           - package: testing
             command: bun run --cwd packages/testing test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/testing-tests.json"
+            build: bun run build:contracts && bun run --cwd packages/sdk build
             minimum_tests: 13
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -101,8 +103,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install exact dependency graph
         run: bun install --frozen-lockfile --ignore-scripts
-      - name: Build shared contracts package
-        run: bun run build:contracts
+      # Each suite imports its workspace dependencies by package name, which
+      # resolve to their BUILT dist/ — so a suite that reaches a sibling needs that
+      # sibling built, not just contracts. Getting this wrong is invisible in a
+      # warm local tree, where a stale dist/ from an earlier build satisfies the
+      # import; only a clean checkout shows it.
+      - name: Build the workspace dependencies this suite resolves
+        run: ${{ matrix.build || 'bun run build:contracts' }}
       - name: Run complete package test suite
         run: ${{ matrix.command }}
       # A suite that runs nothing exits 0. This states the count the runner
