@@ -44,7 +44,7 @@ export default function RootLayout() {
     <BloomProvider
       imageResolver={resolveImageSource}
       defaultMode="system"
-      defaultColorPreset="blue"
+      defaultColorPreset="green"
       persistKey={BLOOM_THEME_PERSIST_KEY}
       storage={BLOOM_THEME_STORAGE}
     >
