@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, Platform, Text, StyleSheet } from "react-native";
 import { useTranslation } from 'react-i18next';
-import { Link } from 'expo-router';
+import { Button } from '@oxyhq/bloom/button';
+import { useRouter } from 'expo-router';
 import { BaseWidget } from './widgets/BaseWidget';
+import { ReputationWidget } from './widgets/ReputationWidget';
 import { openExternalLink } from '@/utils/openExternalLink';
 import { useIsRightBarVisible } from '@/hooks/useOptimizedMediaQuery';
 import { asViewStyle, asTextStyle, type WebViewStyle } from '@/types/webStyles';
@@ -45,17 +47,20 @@ const PRINCIPLE_KEYS = [
 
 export function RightBar() {
     const isRightBarVisible = useIsRightBarVisible();
+    const router = useRouter();
     const { t } = useTranslation();
 
     if (!isRightBarVisible) return null;
 
     // No search and no recommendations: there is nothing in this product to look
     // for and nothing to recommend. The rail restates the rules that govern every
-    // screen instead, and shows no state at all — a column that is always on
-    // screen is the worst possible place to leak anything about the queue or the
-    // case in hand.
+    // screen instead, and shows no state about the QUEUE or the case in hand — a
+    // column that is always on screen is the worst possible place to leak either.
+    // The reviewer's own reputation is the one figure that may live here: it is
+    // theirs, it is shown to nobody else, and it says nothing about any case.
     return (
         <View className="flex-col px-4 pt-4 gap-4" style={styles.container}>
+            <ReputationWidget divider />
             <BaseWidget title={t('rightBar.principles.title')} divider>
                 <View className="gap-2">
                     {PRINCIPLE_KEYS.map((key) => (
@@ -70,9 +75,13 @@ export function RightBar() {
                     <Text className="text-muted-foreground text-sm leading-5">
                         {t('rightBar.support.body')}
                     </Text>
-                    <Link href="/wellbeing" className="text-primary text-sm font-semibold">
+                    {/* Was a bare `Link` styled to look like a control. This is
+                        the way out for somebody who has had enough of what they
+                        are looking at, so it must feel like it responded the
+                        instant it is touched. */}
+                    <Button variant="text" onPress={() => router.push('/wellbeing')}>
                         {t('rightBar.support.action')}
-                    </Link>
+                    </Button>
                 </View>
             </BaseWidget>
             {Platform.OS === 'web' && <RightBarFooter />}

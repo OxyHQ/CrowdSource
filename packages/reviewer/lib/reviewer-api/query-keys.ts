@@ -18,4 +18,12 @@ export const reviewerQueryKeys = {
   profile: (viewer: string) => ['reviewer', viewer, 'profile'] as const,
   training: (viewer: string) => ['reviewer', viewer, 'training'] as const,
   history: (viewer: string) => ['reviewer', viewer, 'history'] as const,
+  /**
+   * The viewer's OWN Oxy reputation balance. Under the same `all` prefix as
+   * everything else so an account switch drops it with the rest — a figure
+   * belonging to the previous account is exactly the kind of thing that would
+   * otherwise sit in a corner of the screen, unnoticed, attached to the wrong
+   * person.
+   */
+  reputation: (viewer: string) => ['reviewer', viewer, 'reputation'] as const,
 };
