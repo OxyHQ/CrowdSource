@@ -42,6 +42,7 @@ jobs:
           bash .github/scripts/test-assert-own-database.sh
           bash .github/scripts/test-cloudflare-pages.sh
           bun .github/scripts/test-runtime-image-audit.mjs
+          bun .github/scripts/test-assert-test-floor.mjs
           bun scripts/test-check-lockfile-sync.mjs
 
   lockfile:
@@ -73,6 +74,22 @@ jobs:
           - package: reviewer
             command: bun run --cwd packages/reviewer test:coverage -- --coverageDirectory="$RUNNER_TEMP/reviewer-coverage"
             coverage: true
+          # The four published packages. Every Oxy app is about to depend on them,
+          # so an untested change here breaks adopters rather than us. The floor is
+          # a minimum, not a target: a suite that runs nothing exits 0, and without
+          # a stated count that job reads as coverage forever.
+          - package: contracts
+            command: bun run --cwd packages/contracts test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/contracts-tests.json"
+            minimum_tests: 170
+          - package: sdk
+            command: bun run --cwd packages/sdk test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/sdk-tests.json"
+            minimum_tests: 75
+          - package: sdk-express
+            command: bun run --cwd packages/sdk-express test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/sdk-express-tests.json"
+            minimum_tests: 47
+          - package: testing
+            command: bun run --cwd packages/testing test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/testing-tests.json"
+            minimum_tests: 13
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -88,6 +105,16 @@ jobs:
         run: bun run build:contracts
       - name: Run complete package test suite
         run: ${{ matrix.command }}
+      # A suite that runs nothing exits 0. This states the count the runner
+      # actually reached and refuses one below the floor, so a job cannot report
+      # success while gating nothing.
+      - name: Assert the suite actually ran
+        if: matrix.minimum_tests
+        run: >-
+          bun .github/scripts/assert-test-floor.mjs
+          "$RUNNER_TEMP/${{ matrix.package }}-tests.json"
+          "packages/${{ matrix.package }}"
+          "${{ matrix.minimum_tests }}"
       - name: Upload coverage summary
         if: always() && matrix.coverage
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
