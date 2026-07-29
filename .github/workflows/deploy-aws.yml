@@ -127,7 +127,13 @@ jobs:
           # own here as it ships — REDIS_URL arrives with the first BullMQ queue,
           # and it will need the shared-Valkey database-index guard back.
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          SSM_SECRET_ALLOWLIST: MONGODB_URI
+          # The key webhook signing secrets are encrypted with at rest (§13.4).
+          # Without it the two webhook-management routes answer 503 and no
+          # endpoint can be registered — the service still boots, deliberately,
+          # so that adding this variable could not take production down on the
+          # deploy that introduced it.
+          WEBHOOK_SECRET_ENCRYPTION_KEY: ${{ secrets.WEBHOOK_SECRET_ENCRYPTION_KEY }}
+          SSM_SECRET_ALLOWLIST: MONGODB_URI WEBHOOK_SECRET_ENCRYPTION_KEY
         run: |
           set -euo pipefail
 
@@ -175,6 +181,15 @@ jobs:
           # covers it.
           RUN_MIGRATIONS: 'false'
           POST_DEPLOY_SMOKE_SCRIPT: .github/scripts/smoke-crowdsource.sh
+          # Syncing a parameter to SSM does not put it in the container: the
+          # task definition has to name it. This is the one place the two halves
+          # meet, so a secret added above without an entry here reaches SSM and
+          # nothing else, and the symptom is a 503 from a route nobody is
+          # watching yet. MONGODB_URI is absent because oxy-infra's task
+          # definition already carries it.
+          TASK_SECRET_OVERRIDES_JSON: >-
+            {"WEBHOOK_SECRET_ENCRYPTION_KEY":
+            "arn:aws:ssm:us-west-2:237343248947:parameter/oxy/crowdsource/WEBHOOK_SECRET_ENCRYPTION_KEY"}
         # ELB mutations belong in oxy-infra because the deploy role
         # intentionally lacks ELB access; the target group's health check path
         # is owned there.
