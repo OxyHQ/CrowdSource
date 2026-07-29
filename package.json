@@ -1,7 +1,7 @@
 {
   "name": "crowdsource",
   "version": "0.1.0",
-  "description": "CrowdSource — participatory moderation infrastructure: contracts, backend, reviewer app, console and SDKs",
+  "description": "CrowdSource \u2014 participatory moderation infrastructure: contracts, backend, reviewer app, console and SDKs",
   "license": "MIT",
   "private": true,
   "packageManager": "bun@1.3.14",
@@ -18,7 +18,7 @@
     "build:backend": "bun run build:contracts && bun run --cwd packages/backend build",
     "audit:security": "bun ./scripts/audit-security.mjs",
     "doctor": "bun ./scripts/doctor.mjs",
-    "check": "bun run doctor && bun run validate:workflows && bun run audit:security && bun run build && bun run --cwd packages/reviewer typecheck && bun run lint",
+    "check": "bun run doctor && bun run validate:workflows && bun run audit:security && bun run check:peers && bun run build && bun run --cwd packages/reviewer typecheck && bun run lint",
     "test": "bun run test:contracts && bun run test:backend && bun run test:sdk && bun run test:testing && bun run test:sdk-express && bun run test:reviewer",
     "test:contracts": "bun run --cwd packages/contracts test",
     "test:backend": "bun run --cwd packages/backend test",
@@ -40,7 +40,8 @@
     "install:all": "bun install",
     "start:reviewer": "bun run --cwd packages/reviewer start",
     "start:backend": "bun run --cwd packages/backend start",
-    "postinstall": "bun run build:contracts"
+    "postinstall": "bun run build:contracts",
+    "check:peers": "bun ./scripts/check-peer-contracts.mjs && bun ./scripts/test-check-peer-contracts.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

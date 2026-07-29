@@ -25,6 +25,7 @@ import { z } from 'zod';
 import { CreateReportResponseSchema } from './case-envelope';
 import { DecisionSchema } from './decisions';
 import { IdentifierSchema, TimestampSchema } from './primitives';
+import type { Closed } from './closed';
 
 /** §10.6. */
 export const WEBHOOK_EVENT_TYPES = [
@@ -71,7 +72,7 @@ export const WebhookEventEnvelopeSchema = z.looseObject({
   type: AnyWebhookEventTypeSchema,
   data: z.record(z.string(), z.unknown()),
 });
-export type WebhookEventEnvelope = z.infer<typeof WebhookEventEnvelopeSchema>;
+export type WebhookEventEnvelope = Closed<z.infer<typeof WebhookEventEnvelopeSchema>>;
 
 const ReportReceivedEventSchema = z.looseObject({
   ...webhookEnvelopeShape,
@@ -157,7 +158,7 @@ export const KnownWebhookEventSchema = z.discriminatedUnion('type', [
   AppealDecidedEventSchema,
   CaseClosedEventSchema,
 ]);
-export type KnownWebhookEvent = z.infer<typeof KnownWebhookEventSchema>;
+export type KnownWebhookEvent = Closed<z.infer<typeof KnownWebhookEventSchema>>;
 
 /** §10.8 headers, in their canonical casing. HTTP header names are case-insensitive; look them up accordingly. */
 export const WEBHOOK_EVENT_ID_HEADER = 'X-CrowdSource-Event-Id';

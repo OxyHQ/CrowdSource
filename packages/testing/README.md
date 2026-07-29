@@ -5,6 +5,9 @@ integrate against CrowdSource before a jury has ever sat.
 
 ## The full path, without real juries or real effects
 
+`@oxyhq/crowdsource-contracts` is a **peer dependency** — the fixtures return
+types defined there, and one copy per tree is the point. Install it alongside.
+
 ```ts
 import { CrowdSource } from '@oxyhq/crowdsource';
 import { createCrowdSourceSandbox } from '@oxyhq/crowdsource-testing';
@@ -16,11 +19,20 @@ const crowdsource = new CrowdSource({
   fetch: sandbox.fetch,
 });
 
+// The sandbox signs with its OWN secret. Point the receiver at it, or every
+// delivery below is refused with `signature_mismatch` and the test looks broken.
+process.env.CROWDSOURCE_WEBHOOK_SECRET = sandbox.webhookSecret;
+
 const { caseId } = await crowdsource.reports.create({ /* … */ });
 
 const decision = sandbox.decide(caseId, { outcome: 'violation' });
-await sandbox.deliver('http://localhost:3000/webhooks/crowdsource', sandbox.eventFor(decision));
+const event = sandbox.eventFor(decision);
+await sandbox.deliver('http://localhost:3000/webhooks/crowdsource', event);
 ```
+
+`eventFor` mints a fresh event id on every call, so hold the event if you mean to
+test a REDELIVERY — calling it twice is two different events, and a receiver is
+right to handle both.
 
 The report goes through the **real** client — real envelope composition, real
 idempotency key, real error mapping — and the webhook that comes back is

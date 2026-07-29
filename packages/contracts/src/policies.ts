@@ -22,6 +22,7 @@ import { z } from 'zod';
 
 import { CONTRACT_LIMITS, LanguageTagSchema, TimestampSchema } from './primitives';
 import { RecommendedActionSchema, SeveritySchema, TaxonomyCodeSchema } from './taxonomy';
+import type { Closed } from './closed';
 
 /** A namespaced policy set id, e.g. `mention.community`. */
 export const PolicySetIdSchema = z
@@ -105,7 +106,7 @@ export const DecisionPolicyVersionsSchema = z.looseObject({
   application: PolicyVersionSchema,
   oxyConduct: PolicyVersionSchema,
 });
-export type DecisionPolicyVersions = z.infer<typeof DecisionPolicyVersionsSchema>;
+export type DecisionPolicyVersions = Closed<z.infer<typeof DecisionPolicyVersionsSchema>>;
 
 /**
  * The same three versions as carried by the internal reputation event (§11.6).

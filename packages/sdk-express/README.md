@@ -24,17 +24,41 @@ No `express.raw`, no body-parser ordering, no secret plumbing, no signature code
 `event` is narrowed to `case.decided` and its `data.decision` is a typed
 `Decision`.
 
-`Decision` and the other event payload types come from
-`@oxyhq/crowdsource-contracts`. It arrives as a dependency of this package, but
-install it directly (`bun add @oxyhq/crowdsource-contracts`) if you name one of
-those types in your own code, so your imports do not rely on hoisting.
+## Installing
+
+```bash
+bun add @oxyhq/crowdsource-express @oxyhq/crowdsource-contracts express
+```
+
+`@oxyhq/crowdsource-contracts` is a **peer dependency**: `Decision` and every
+event payload type are defined there, and two copies in one tree is a failure
+with no diagnostic — `tsc` stays silent and every delivery answers 400
+`malformed_event`, which reads as a signature problem. Declare it once and own
+its version. `express` is a peer too (`>=4`).
 
 ## Where the secret comes from
 
 `CROWDSOURCE_WEBHOOK_SECRET` is minted **once**, by the response to
-`POST /v1/webhook-endpoints`, which is how you tell CrowdSource where to deliver.
-`@oxyhq/crowdsource` does not wrap that call yet — its README has the request to
-make, and the warning that the secret is in that one response and no other.
+`crowdsource.webhookEndpoints.register(...)` — the call that tells CrowdSource
+where to deliver:
+
+```ts
+const endpoint = await crowdsource.webhookEndpoints.register({
+  url: 'https://example.com/webhooks/crowdsource',
+  eventTypes: ['case.decided'],
+});
+endpoint.secret?.value; // store it now; nothing returns it again
+```
+
+Re-registering the same URL mints nothing, so it cannot recover a secret you
+dropped — `crowdsource.webhookEndpoints.rotateSecret()` is what does.
+
+## Environment
+
+| Variable | |
+| --- | --- |
+| `CROWDSOURCE_WEBHOOK_SECRET` | The active signing secret. Also settable as the `secret` option. |
+| `CROWDSOURCE_WEBHOOK_SECRET_PREVIOUS` | The secret being retired. Set it during a rotation overlap — both are accepted while it is present, which is what makes a rotation drop nothing. Clear it after `previousSecret.expiresAt`. Also settable as the `previousSecret` option. |
 
 ## Why there is no raw-body step for you to get wrong
 

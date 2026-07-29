@@ -32,6 +32,7 @@ import {
   type FetchLike,
 } from './transport';
 import { Uploads } from './uploads';
+import { WebhookEndpoints } from './webhookEndpoints';
 
 /** The environment variable a zero-configuration integration reads. */
 export const SERVICE_KEY_ENV_VAR = 'CROWDSOURCE_SERVICE_KEY';
@@ -76,6 +77,8 @@ export class CrowdSource {
   readonly uploads: Uploads;
   readonly cases: Cases;
   readonly decisions: Decisions;
+  /** Where decisions get delivered, and the secret that signs them (§10.2). */
+  readonly webhookEndpoints: WebhookEndpoints;
 
   constructor(options: CrowdSourceOptions = {}) {
     const credential: ServiceCredential = parseServiceKey(
@@ -110,6 +113,7 @@ export class CrowdSource {
     this.uploads = new Uploads({ transport, fetch: fetchImpl, timeoutMs });
     this.cases = new Cases(transport);
     this.decisions = new Decisions(transport);
+    this.webhookEndpoints = new WebhookEndpoints(transport);
   }
 }
 
