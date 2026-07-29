@@ -1,6 +1,6 @@
 {
   "name": "@oxyhq/crowdsource-contracts",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Versioned CrowdSource contracts: case envelope, resources, taxonomy, policies, reviews, decisions, webhooks and reputation events",
   "type": "commonjs",
   "main": "dist/index.js",

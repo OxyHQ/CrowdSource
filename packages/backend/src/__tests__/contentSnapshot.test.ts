@@ -44,7 +44,7 @@ function envelope(overrides: Record<string, unknown> = {}): CaseEnvelope {
         type: 'image',
         role: 'attachment',
         asset: {
-          uploadId: 'upload_abc',
+          fileId: 'oxyfile_abc',
           mimeType: 'image/jpeg',
           sha256: `sha256:${'b'.repeat(64)}`,
         },
@@ -277,7 +277,7 @@ describe('which principals the material points at', () => {
           type: 'image',
           role: 'attachment',
           asset: {
-            uploadId: 'upload_abc',
+            fileId: 'oxyfile_abc',
             mimeType: 'image/jpeg',
             sha256: `sha256:${'b'.repeat(64)}`,
           },

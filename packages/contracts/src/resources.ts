@@ -38,6 +38,7 @@ import {
   LanguageTagSchema,
   MetadataBagSchema,
   MimeTypeSchema,
+  OxyFileIdSchema,
   Sha256DigestSchema,
   TimestampSchema,
 } from './primitives';
@@ -98,34 +99,43 @@ export type TextFormatting = z.infer<typeof TextFormattingSchema>;
 /**
  * A reference to bytes held outside the envelope (§5.2 `asset`).
  *
- * Exactly one of `uploadId` and `url` — never both, never neither. Two
- * locations for one piece of evidence means two answers to "what exactly did
- * the jury look at", and §5.6 requires the case to pin the exact version that
- * was reported. `sha256` is required for the same reason: it is what makes the
- * answer verifiable after the application has deleted the original.
+ * **`fileId` is where the bytes are. `url` is where they came from.** Those are
+ * not alternatives, and the earlier contract encoding them as "exactly one of
+ * `uploadId` or `url`" is what left an integrator with no safe way to attach an
+ * image at all: the `uploadId` branch needed a presigned upload route that was
+ * superseded by the Oxy media chokepoint before it was ever built, and the `url`
+ * branch put a URL on the reporting application's own host in front of a
+ * reviewer — breaking §9.1's branding rule and the chokepoint rule at once.
+ *
+ * So `fileId` is required and `url` is optional provenance:
+ *
+ *   * **`fileId`** — a bare Oxy file id. The application uploads the bytes
+ *     through the Oxy media chokepoint with its own Oxy credentials and passes
+ *     the id. That is why CrowdSource serves no upload route of its own.
+ *   * **`url`** — a PROVENANCE RECORD, and never a fetch target. A third-party
+ *     URL is not wrong the way a first-party one is (a federated post's image
+ *     genuinely lives elsewhere), but no reviewer client may dereference it:
+ *     fetching it would tell that host exactly when its content is under review,
+ *     which lets the reported party correlate reviewer accesses, and it would
+ *     deliver bytes live rather than the pinned ones §5.6 requires.
+ *
+ * `sha256` stays required, and requiring `fileId` alongside it costs an
+ * integrator nothing new — an application able to compute that digest already
+ * holds the bytes. What changes is that it puts bytes it already has somewhere a
+ * reviewer can read safely, instead of pointing at its own host.
  */
-export const AssetRefSchema = z
-  .strictObject({
-    uploadId: IdentifierSchema.optional(),
-    url: HttpUrlSchema.optional(),
-    mimeType: MimeTypeSchema,
-    sha256: Sha256DigestSchema,
-    sizeBytes: z.number().int().positive().optional(),
-    width: z.number().int().positive().optional(),
-    height: z.number().int().positive().optional(),
-    durationSeconds: z.number().positive().optional(),
-  })
-  .superRefine((asset, ctx) => {
-    const hasUpload = asset.uploadId !== undefined;
-    const hasUrl = asset.url !== undefined;
-    if (hasUpload === hasUrl) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['uploadId'],
-        message: 'an asset must reference exactly one of uploadId or url',
-      });
-    }
-  });
+export const AssetRefSchema = z.strictObject({
+  /** Bare Oxy file id. The only source of the bytes a jury sees. */
+  fileId: OxyFileIdSchema,
+  /** Where the material was found. Recorded, never fetched — see above. */
+  url: HttpUrlSchema.optional(),
+  mimeType: MimeTypeSchema,
+  sha256: Sha256DigestSchema,
+  sizeBytes: z.number().int().positive().optional(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+  durationSeconds: z.number().positive().optional(),
+});
 export type AssetRef = z.infer<typeof AssetRefSchema>;
 
 const mediaTypeMismatch = (

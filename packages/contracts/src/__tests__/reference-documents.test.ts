@@ -3,10 +3,27 @@
  * describe them.
  *
  * Appendix A, Appendix B, §5.8 and §10.7 are stored verbatim under `fixtures/`.
- * Three of them validate; where one does not, this suite states exactly which
- * token is responsible and why the contract prefers to reject it. A divergence
- * from an approved specification that nobody can point at is how a contract
- * stops matching its documentation.
+ * Where one does not validate, this suite states exactly which token is
+ * responsible and why the contract prefers to reject it. A divergence from an
+ * approved specification that nobody can point at is how a contract stops
+ * matching its documentation.
+ *
+ * The fixtures are never edited to make them pass. There are now TWO reasons an
+ * appendix is refused as written, and they are different in kind:
+ *
+ *   1. **Elided values.** The appendices write `"sha256:..."` where a real digest
+ *      belongs. Expanding those is a notational fix, not a change of meaning.
+ *   2. **The §12.3 chokepoint divergence**, which is a real departure from the
+ *      printed document. Both envelope appendices reference image bytes with
+ *      `asset.uploadId`, because the plan assumed a presigned S3 upload. Evidence
+ *      goes through the Oxy media chokepoint instead — the divergence recorded in
+ *      `AGENTS.md` — so an asset carries a bare Oxy `fileId`. That decision was
+ *      approved at the storage layer and simply never reached this contract,
+ *      which is why the SDK shipped a client for a route nobody ever built.
+ *
+ * `applyChokepointDivergence` below is deliberately the only thing that rewrites
+ * a reference document, and it rewrites exactly one field, so the departure stays
+ * countable rather than becoming a fixture nobody compares to the plan again.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -33,31 +50,65 @@ const SECTION_5_8_EXPANSIONS = Object.freeze({
   '...': `sha256:${'b'.repeat(64)}`,
 });
 
+/**
+ * Rewrites `asset.uploadId` to `asset.fileId`, and nothing else.
+ *
+ * Returns the count so a test can assert the rewrite actually fired: if an
+ * appendix stopped using `uploadId`, this would silently become a no-op and the
+ * suite would keep "passing" while the divergence it documents no longer exists.
+ */
+function applyChokepointDivergence(document: unknown): { value: unknown; rewritten: number } {
+  let rewritten = 0;
+  const walk = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(walk);
+    if (node === null || typeof node !== 'object') return node;
+    const source = node as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(source)) {
+      if (key === 'uploadId') {
+        rewritten += 1;
+        out.fileId = 'oxyfile_01HZ';
+        continue;
+      }
+      out[key] = walk(value);
+    }
+    return out;
+  };
+  return { value: walk(document), rewritten };
+}
+
 describe('Appendix A — the reference Case Envelope', () => {
   const verbatim = readFixture('appendix-a.case-envelope.json');
 
   it('rejects the verbatim appendix at exactly the elided digests, and nowhere else', () => {
     /**
-     * This is the one place the contract knowingly refuses a reference document
-     * as written, and the assertion is deliberately exhaustive: the ONLY
-     * complaints are the three `"sha256:..."` placeholders. Everything else in
-     * Appendix A — every field name, every enum value, every reference between
-     * resources — is accepted exactly as the plan writes it.
+     * Deliberately exhaustive, so a new departure cannot appear unremarked. The
+     * complaints are the three `"sha256:..."` placeholders, plus the asset: the
+     * appendix names `uploadId`, which `.strict()` refuses, and does not name the
+     * `fileId` the chokepoint requires. Everything else in Appendix A — every
+     * other field name, every enum value, every reference between resources — is
+     * accepted exactly as the plan writes it.
      */
     expect(rejectionPaths(CaseEnvelopeSchema, verbatim)).toEqual([
       'resources.0.sha256',
+      'resources.1.asset.fileId',
       'resources.1.asset.sha256',
+      'resources.1.asset',
       'resources.2.sha256',
     ]);
   });
 
-  it('accepts the appendix once the elided digests carry a real value', () => {
-    const { value, used } = expandPlaceholders(verbatim, APPENDIX_A_EXPANSIONS);
+  it('accepts the appendix once the digests are real and the chokepoint applies', () => {
+    const { value: expanded, used } = expandPlaceholders(verbatim, APPENDIX_A_EXPANSIONS);
 
     // Vacuity floor: if the appendix stopped using this placeholder, the
     // expansion above would quietly become a no-op and this suite would go on
     // "passing" while testing a document nobody edited.
     expect(used).toEqual(['sha256:...']);
+
+    const { value, rewritten } = applyChokepointDivergence(expanded);
+    // The same floor for the divergence: exactly one asset reference is rewritten.
+    expect(rewritten).toBe(1);
 
     const envelope = accepted(CaseEnvelopeSchema, value);
     expect(envelope.schemaVersion).toBe('crowdsource.case.v1');
@@ -81,13 +132,18 @@ describe('§5.8 — the universal example for Mention', () => {
      */
     expect(rejectionPaths(CaseEnvelopeSchema, verbatim)).toEqual([
       'resources.0.sha256',
+      'resources.1.asset.fileId',
       'resources.1.asset.sha256',
+      'resources.1.asset',
     ]);
   });
 
   it('accepts it with a canonical digest, without any of the optional blocks', () => {
-    const { value, used } = expandPlaceholders(verbatim, SECTION_5_8_EXPANSIONS);
+    const { value: expanded, used } = expandPlaceholders(verbatim, SECTION_5_8_EXPANSIONS);
     expect(used).toEqual(['...']);
+
+    const { value, rewritten } = applyChokepointDivergence(expanded);
+    expect(rewritten).toBe(1);
 
     const envelope = accepted(CaseEnvelopeSchema, value);
     // §5.8 omits `source`, `urgency` and `metadata` entirely, which is what

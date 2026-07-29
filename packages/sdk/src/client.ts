@@ -31,7 +31,6 @@ import {
   Transport,
   type FetchLike,
 } from './transport';
-import { Uploads } from './uploads';
 import { WebhookEndpoints } from './webhookEndpoints';
 
 /** The environment variable a zero-configuration integration reads. */
@@ -74,7 +73,6 @@ export class CrowdSource {
   readonly applicationId: string;
 
   readonly reports: Reports;
-  readonly uploads: Uploads;
   readonly cases: Cases;
   readonly decisions: Decisions;
   /** Where decisions get delivered, and the secret that signs them (§10.2). */
@@ -110,7 +108,6 @@ export class CrowdSource {
       applicationId: credential.applicationId,
       environment: options.sandbox === true ? 'sandbox' : 'production',
     });
-    this.uploads = new Uploads({ transport, fetch: fetchImpl, timeoutMs });
     this.cases = new Cases(transport);
     this.decisions = new Decisions(transport);
     this.webhookEndpoints = new WebhookEndpoints(transport);

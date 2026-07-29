@@ -79,9 +79,9 @@ report belongs to is read off the credential; see "The service key" below.
 - **Re-delivering the same report is safe.** The same `externalReportId` with a
   *different* body is a 409, is not retryable, and means the payload has to
   change.
-- **Evidence never gets a durable URL.** `uploads.upload()` takes bytes and
-  returns an `uploadId` and a digest. There is no method that returns a link
-  (§12.10).
+- **Evidence never gets a durable URL from CrowdSource.** An asset carries a bare
+  Oxy `fileId`; no method here returns a link to bytes (§12.10). `asset.url` is
+  provenance only and is never fetched.
 - **Server-side only.** A service credential is your whole moderation stream;
   this package depends on `node:crypto` and must never reach a browser or a
   mobile bundle.
@@ -95,14 +95,48 @@ and the client reads the application off the credential rather than being told
 it. `formatServiceKey()` builds that string from what
 `issueApplicationCredential` returns.
 
-## Not usable yet
+## Attaching an image, a video or a document
 
-- `uploads.upload()` implements §10.2's presigned upload and completion. **The
-  backend does not serve `/v1/uploads` yet**, so it answers 404 today. Report
-  inline content and attachments instead; nothing else in this client depends on
-  it.
+Upload the bytes through the **Oxy media chokepoint** with your application's own
+Oxy credentials, then pass the bare file id:
 
-`reports.create`, `reports.get`, `cases.get` and `decisions.get` are all served.
+```ts
+await crowdsource.reports.create({
+  externalReportId: report.id,
+  subject: { externalId: post.id, type: 'social.post' },
+  content: post.text,
+  attachments: [
+    {
+      type: 'image',
+      asset: {
+        fileId: post.imageFileId,          // bare Oxy file id — never a URL
+        mimeType: 'image/jpeg',
+        sha256: `sha256:${digestOf(bytes)}`,
+        url: post.remoteImageUrl,          // optional provenance. Never fetched.
+      },
+    },
+  ],
+  allegations: ['harassment.targeted_abuse'],
+});
+```
+
+**CrowdSource has no upload route of its own, and that is deliberate.** Evidence
+lives behind the one Oxy media chokepoint the whole ecosystem uses, so there is no
+second place for bytes to be, no presigned URL to leak and no bucket to configure.
+Earlier releases shipped an `uploads` client for a presigned flow that was
+superseded before it was ever built; it is gone.
+
+`asset.url` is a **provenance record and never a fetch target**. A federated
+post's image genuinely lives elsewhere, so recording where it was found is useful
+— but nothing resolves it. Fetching it would tell that host exactly when its
+content is under review, and would deliver live bytes instead of the version §5.6
+requires the case to pin.
+
+Note `asset.sha256` is required, so an application always already holds the bytes
+it is reporting. Putting them through the chokepoint asks for nothing new.
+
+`reports.create`, `reports.get`, `cases.get`, `decisions.get`,
+`webhookEndpoints.register` and `webhookEndpoints.rotateSecret` are all served.
 
 ## Registering the webhook your decisions arrive on
 

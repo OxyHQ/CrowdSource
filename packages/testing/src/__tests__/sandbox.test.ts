@@ -7,7 +7,12 @@
  * standing in for the service is the service.
  */
 
-import { CrowdSource, CrowdSourceApiError, type ReportInput } from '@oxyhq/crowdsource';
+import {
+  CrowdSource,
+  CrowdSourceApiError,
+  parseServiceKey,
+  type ReportInput,
+} from '@oxyhq/crowdsource';
 import { describe, expect, it } from 'vitest';
 
 import { caseDecidedEventFixture, caseEnvelopeFixture, decisionFixture } from '../fixtures';
@@ -123,14 +128,29 @@ describe('the sandbox, driven by the real client', () => {
     expect((failure as CrowdSourceApiError).status).toBe(401);
   });
 
-  it('answers 404 for the upload routes the service does not serve yet', async () => {
+  it('answers 404 for a route the deployed service does not serve either', async () => {
+    /**
+     * Asserted against the sandbox's own `fetch` rather than through a client
+     * method, because there is no client method for this any more: evidence goes
+     * through the Oxy media chokepoint, so CrowdSource serves no upload route and
+     * the SDK no longer pretends otherwise. What still matters is that the sandbox
+     * refuses an unknown route the way the real backend does, instead of inventing
+     * a success an integration would then build on.
+     */
     const sandbox = createCrowdSourceSandbox();
 
-    const failure = await connect(sandbox)
-      .uploads.upload({ bytes: new TextEncoder().encode('x'), mimeType: 'image/png' })
-      .catch((error: unknown) => error);
+    // Authenticated deliberately: the sandbox checks the credential before it
+    // routes, so an unauthenticated probe would prove 401 and tell us nothing
+    // about whether the route exists.
+    const { bearerToken } = parseServiceKey(sandbox.serviceKey);
 
-    expect((failure as CrowdSourceApiError).status).toBe(404);
+    const response = await sandbox.fetch(`${sandbox.baseUrl}/v1/uploads`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${bearerToken}` },
+      body: JSON.stringify({ mimeType: 'image/png', sizeBytes: 1, sha256: `sha256:${'0'.repeat(64)}` }),
+    });
+
+    expect(response.status).toBe(404);
   });
 
   it('publishes a decision and reads it back', async () => {

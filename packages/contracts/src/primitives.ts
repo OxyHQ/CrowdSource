@@ -179,6 +179,31 @@ export const LanguageTagSchema = z
  */
 export const HttpUrlSchema = z.url({ protocol: /^https?$/ }).max(2_048);
 
+/**
+ * A bare Oxy file id — the one way bytes enter a case.
+ *
+ * Evidence goes through the Oxy media chokepoint (`getFileDownloadUrl`) rather
+ * than a presigned bucket, which is the §12.3 divergence recorded in
+ * `AGENTS.md`. A file id is what that chokepoint takes, so it is what an asset
+ * carries: never a URL, never a host, never a variant. The reviewer client
+ * resolves it once through Bloom's `ImageResolver`, so nothing downstream needs
+ * to know where `cloud.oxy.so` is.
+ *
+ * Deliberately opaque, for the same reason `IdentifierSchema` is: the format
+ * belongs to Oxy, not to CrowdSource, and pinning it here would make an Oxy
+ * change look like a CrowdSource contract violation. What is pinned is that it
+ * is a bounded, non-empty token with no separators that could smuggle a path or
+ * a scheme into a resolver — `..`, `/` and `:` are all excluded by the pattern.
+ */
+export const OxyFileIdSchema = z
+  .string()
+  .min(1)
+  .max(CONTRACT_LIMITS.IDENTIFIER_MAX_LENGTH)
+  .regex(
+    /^[A-Za-z0-9][A-Za-z0-9_-]*$/,
+    'must be a bare Oxy file id: letters, digits, "_" or "-", starting with a letter or digit',
+  );
+
 /** A `type/subtype` media type, without parameters. */
 export const MimeTypeSchema = z
   .string()

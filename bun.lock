@@ -41,7 +41,7 @@
     },
     "packages/contracts": {
       "name": "@oxyhq/crowdsource-contracts",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "zod": "^4.4.3",
       },
@@ -124,7 +124,7 @@
     },
     "packages/sdk": {
       "name": "@oxyhq/crowdsource",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "zod": "^4.4.3",
       },
@@ -135,12 +135,12 @@
         "vitest": "^4.1.10",
       },
       "peerDependencies": {
-        "@oxyhq/crowdsource-contracts": "^0.2.0",
+        "@oxyhq/crowdsource-contracts": "^0.3.0",
       },
     },
     "packages/sdk-express": {
       "name": "@oxyhq/crowdsource-express",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "devDependencies": {
         "@oxyhq/crowdsource": "workspace:*",
         "@oxyhq/crowdsource-contracts": "workspace:*",
@@ -152,13 +152,13 @@
         "vitest": "^4.1.10",
       },
       "peerDependencies": {
-        "@oxyhq/crowdsource-contracts": "^0.2.0",
+        "@oxyhq/crowdsource-contracts": "^0.3.0",
         "express": ">=4",
       },
     },
     "packages/testing": {
       "name": "@oxyhq/crowdsource-testing",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "devDependencies": {
         "@oxyhq/crowdsource": "workspace:*",
         "@oxyhq/crowdsource-contracts": "workspace:*",
@@ -167,7 +167,7 @@
         "vitest": "^4.1.10",
       },
       "peerDependencies": {
-        "@oxyhq/crowdsource-contracts": "^0.2.0",
+        "@oxyhq/crowdsource-contracts": "^0.3.0",
       },
     },
   },
