@@ -39,6 +39,7 @@ const { cases } = await import('../modules/cases/case.collection');
 const { assignments } = await import('../modules/sortition/assignment.collection');
 const { sortitionDraws } = await import('../modules/sortition/draw.collection');
 const { reviewerProfiles } = await import('../modules/reviewer/reviewer.collection');
+const { reviews } = await import('../modules/review/review.collection');
 const { outboxEvents, OUTBOX_EVENT_TYPES } = await import('../modules/outbox/outbox.collection');
 const { auditEvents } = await import('../modules/audit/audit.collection');
 const { registerWebhookEndpoint } = await import('../modules/webhooks/endpoint.service');
@@ -616,6 +617,45 @@ describe('§9.8: the appeal is decided, and a changed outcome is a correction', 
     }
   });
 
+  it('a juror’s own revision stays resolvable after the appeal overturned it', async () => {
+    /**
+     * §4.1's Historial may show a reviewer "resultados que ya puedan revelarse",
+     * and §9.1 hides only previous votes and PARTIAL results — so a reviewer
+     * history surface discloses the outcome of the revision that reviewer judged.
+     * This is the property such a surface depends on, asserted from this side
+     * because supersession is what could break it.
+     *
+     * The join is `review.caseRevision` → `decision.revision`. Each revision-1
+     * juror must resolve to the `violation` THEY produced, not to the
+     * `no_violation` that replaced it — a surface keyed on `currentDecision`
+     * instead would show them an outcome they never voted on and tell them, by
+     * implication, that an appeal overturned them.
+     */
+    const current = await decisions.findOne(tenant.tenant, {
+      caseId: appealedCaseId,
+      revision: 2,
+    });
+    expect(current?.outcome).toBe('no_violation');
+
+    for (const reviewerId of firstJury) {
+      const [own] = await reviews.find({ caseId: appealedCaseId, reviewerId });
+      expect(own.caseRevision, 'a revision-1 juror’s review moved revision').toBe(1);
+
+      const judged = await decisions.findOne(tenant.tenant, {
+        caseId: appealedCaseId,
+        revision: own.caseRevision,
+      });
+
+      expect(judged?.outcome, 'the outcome this juror produced changed under them').toBe(
+        'violation',
+      );
+      expect(judged?.decisionId).toBe(firstDecisionId);
+      // And it is a DIFFERENT row from the one in force, so the two cannot be
+      // confused by a surface that reads the case rather than the review.
+      expect(judged?.decisionId).not.toBe(current?.decisionId);
+    }
+  });
+
   it('§10.2: the case now reports the revision in force, and keeps the history', async () => {
     const view = await request(app)
       .get(`/v1/cases/${appealedCaseId}`)
@@ -929,7 +969,9 @@ describe('two appeals of one decision, filed at the same instant', () => {
    * counting toward a revision already being decided.
    */
   const RACE_LANGUAGE = 'fur';
+  const KEY_RACE_LANGUAGE = 'rm';
   let raceCaseId: string;
+  let keyRaceCases: readonly string[];
 
   beforeAll(async () => {
     for (let index = 0; index < 4; index += 1) {
@@ -951,6 +993,36 @@ describe('two appeals of one decision, filed at the same instant', () => {
       async () => (await decisions.countDocuments(tenant.tenant, { caseId: raceCaseId })) === 1,
       'the raced decision',
     );
+
+    /**
+     * Two more decided cases for the KEY race below, which needs two of them: a
+     * pair of filings under one key must collide on the key index and nothing else,
+     * and two filings against the same case would also collide on the revision.
+     */
+    for (let index = 0; index < 8; index += 1) {
+      await createReviewer({
+        family: FAMILY,
+        languages: [KEY_RACE_LANGUAGE],
+        reliability: index % 4 === 3 ? 0.4 : 0.9,
+        completedReviewCount: index % 4 === 3 ? 0 : 40,
+      });
+    }
+
+    const opened: string[] = [];
+    for (const name of ['key-race-a', 'key-race-b']) {
+      const caseId = await openCase(name, KEY_RACE_LANGUAGE);
+      await drainUntil(
+        async () => (await seatsOf(caseId, 1)).length === 3,
+        `a panel for ${name}`,
+      );
+      for (const reviewerId of await seatsOf(caseId, 1)) await vote(reviewerId, 'violation');
+      await drainUntil(
+        async () => (await decisions.countDocuments(tenant.tenant, { caseId })) === 1,
+        `the ${name} decision`,
+      );
+      opened.push(caseId);
+    }
+    keyRaceCases = opened;
   }, 240_000);
 
   it('files one appeal, opens one revision, and refuses the other', async () => {
@@ -972,6 +1044,41 @@ describe('two appeals of one decision, filed at the same instant', () => {
       'payload.caseId': raceCaseId,
     });
     expect(created).toHaveLength(1);
+  });
+
+  it('§10.4: one retry key cannot be spent on two different cases, even at once', async () => {
+    /**
+     * The other collision, isolated so it is DETERMINISTIC.
+     *
+     * Two filings against the same case violate both unique indexes at once, and
+     * which one MongoDB reports is its choice — so that race exercises either catch
+     * branch from run to run, which is fine for the invariant and useless as
+     * coverage. Two filings under one key against two DIFFERENT cases can only
+     * collide on `applicationId + idempotencyKey`, so the key branch is the one
+     * taken, every time.
+     *
+     * And the behaviour is worth having on its own: a key already spent on another
+     * case is a 409 rather than a replay, because the fingerprint covers the case
+     * id — returning the first case's appeal would tell the caller their second
+     * appeal succeeded when nothing was filed for it.
+     */
+    const [left, right] = await Promise.all([
+      fileAppealRequest(keyRaceCases[0], 'appeal-shared-key', filing()),
+      fileAppealRequest(keyRaceCases[1], 'appeal-shared-key', filing()),
+    ]);
+
+    expect([left.status, right.status].sort()).toEqual([201, 409]);
+
+    // Exactly one appeal exists across BOTH cases, and only the winner's case moved.
+    const filedFor = await Promise.all(
+      keyRaceCases.map(async (caseId) => appeals.countDocuments(tenant.tenant, { caseId })),
+    );
+    expect(filedFor.reduce((total, count) => total + count, 0)).toBe(1);
+
+    const revisions = await Promise.all(
+      keyRaceCases.map(async (caseId) => (await cases.findOne(tenant.tenant, { caseId }))?.currentRevision),
+    );
+    expect([...revisions].sort()).toEqual([1, 2]);
   });
 });
 
