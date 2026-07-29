@@ -84,8 +84,18 @@ export interface PublishDecisionInput {
    * confirmed the decision, and a second jury that reaches a different one has
    * corrected it. Only the second is `decision.corrected`, which §9.8 attaches
    * reverting the conduct effect and asking for restoration to.
+   *
+   * `appealId` is the appeal this revision answers, supplied by the caller rather
+   * than looked up here: the appeals module owns that record, and a decision
+   * module that read it would be reaching across a boundary to learn something it
+   * only needs in order to name it in an event. Null when no appeal opened the
+   * revision, in which case there is nobody waiting for `appeal.decided`.
    */
-  readonly supersedes: { readonly decisionId: string; readonly outcome: DecisionOutcome } | null;
+  readonly supersedes: {
+    readonly decisionId: string;
+    readonly outcome: DecisionOutcome;
+    readonly appealId: string | null;
+  } | null;
   readonly now: Date;
 }
 
@@ -185,6 +195,26 @@ export async function publishDecision(input: PublishDecisionInput): Promise<Publ
         await appendOutboxEvent(input.context, session, {
           type: OUTBOX_EVENT_TYPES.decisionCorrected,
           payload: { caseId: input.caseId, decisionId },
+        });
+      }
+
+      /**
+       * §10.6's `appeal.decided`, when this revision is the answer to an appeal.
+       *
+       * Emitted whether or not the outcome changed, which is what separates it
+       * from `decision.corrected`: an appeal that UPHELD the original decision has
+       * still produced the result §9.8 owes the appellant, and an application that
+       * subscribed to corrections alone would leave them waiting forever for an
+       * answer that already exists.
+       */
+      if (input.supersedes !== null && input.supersedes.appealId !== null) {
+        await appendOutboxEvent(input.context, session, {
+          type: OUTBOX_EVENT_TYPES.appealDecided,
+          payload: {
+            caseId: input.caseId,
+            decisionId,
+            appealId: input.supersedes.appealId,
+          },
         });
       }
 

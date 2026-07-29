@@ -32,6 +32,14 @@ export const AUDIT_ACTIONS = [
   'report.receipt.read',
   'case.read',
   'decision.read',
+  /**
+   * §9.8's appeal, recorded as an act and nothing more. The reason and the
+   * author's context are deliberately not here: an audit row outlives the case
+   * (§13.6), so a field that ever held case content would keep it after the
+   * material it described was deleted.
+   */
+  'appeal.filed',
+  'appeal.filed.replayed',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

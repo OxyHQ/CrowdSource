@@ -450,7 +450,7 @@ describe('promotion (§8.1)', () => {
   });
 
   it('never promotes an applicant, a calibrating or a suspended reviewer', () => {
-    for (const state of ['applicant', 'calibrating', 'suspended', 'specialist'] as const) {
+    for (const state of ['applicant', 'calibrating', 'suspended'] as const) {
       expect(
         promotionFor({
           ...base,
@@ -460,5 +460,56 @@ describe('promotion (§8.1)', () => {
         }),
       ).toBeNull();
     }
+  });
+
+  it('§8.1: a specialist who has judged enough becomes an appeals reviewer', () => {
+    /**
+     * The top of §8.1's ladder, and the state that makes an appeal panel's
+     * `appeals_reviewer` slot fillable by somebody rather than always by its
+     * fallback. `canTransition` has allowed `specialist → appeals` since phase 3;
+     * nothing produced the transition until appeals existed.
+     */
+    const promotion = promotionFor({
+      ...base,
+      state: 'specialist',
+      specialistCategories: ['harassment'],
+      completedReviewCount: PROMOTION.appealsMinReviews,
+      reliabilityByCategory: { harassment: 0.95 },
+    });
+
+    expect(promotion?.state).toBe('appeals');
+    // §7.5 still needs the family competence, so the specialisms travel with them.
+    expect(promotion?.specialistCategories).toEqual(['harassment']);
+  });
+
+  it('needs the volume AND the reliability for the appeals state too', () => {
+    expect(
+      promotionFor({
+        ...base,
+        state: 'specialist',
+        completedReviewCount: PROMOTION.appealsMinReviews - 1,
+        reliabilityByCategory: { harassment: 0.95 },
+      }),
+    ).toBeNull();
+
+    expect(
+      promotionFor({
+        ...base,
+        state: 'specialist',
+        completedReviewCount: PROMOTION.appealsMinReviews,
+        reliabilityByCategory: { harassment: 0.8 },
+      }),
+    ).toBeNull();
+  });
+
+  it('never promotes past the top of the ladder', () => {
+    expect(
+      promotionFor({
+        ...base,
+        state: 'appeals',
+        completedReviewCount: 10_000,
+        reliabilityByCategory: { harassment: 1 },
+      }),
+    ).toBeNull();
   });
 });

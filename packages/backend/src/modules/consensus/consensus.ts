@@ -220,6 +220,21 @@ export function requiredAgreeingVotes(round: number, risk: ConsensusRisk): numbe
 }
 
 /**
+ * §9.4's appeal row, as the engine needs to see it.
+ *
+ * One number, resolved when the appeal is FILED and stored on it — see
+ * `appeals/appeal.service.ts`. The engine is handed the BAR rather than the
+ * ingredients it was computed from, for the same reason it never sees a
+ * reliability figure: a threshold recomputed here, from a ladder that may since
+ * have been edited, would judge a panel by a standard nobody told the appellant
+ * about.
+ */
+export interface AppealStandard {
+  /** §9.4: the votes this appeal panel must agree on. Never below the ladder's. */
+  readonly requiredAgreeingVotes: number;
+}
+
+/**
  * §9.4's structural requirements, which are not about counting.
  *
  * A medium-risk case needs "al menos un revisor de confianza" on the panel; a
@@ -377,6 +392,15 @@ export interface ConsensusInput {
   readonly risk: ConsensusRisk;
   /** The last round the ladder defines. Past it there is nowhere to expand. */
   readonly finalRound: number;
+  /**
+   * The appeal this panel is deciding, when it is deciding one (§9.4's appeal row).
+   *
+   * Null for a first-instance panel, and the difference is only ever a HIGHER
+   * threshold: the engine takes the larger of the ordinary requirement and the
+   * appeal's, so an appeal standard can never lower the bar §8.6 and §9.4 already
+   * set.
+   */
+  readonly appeal?: AppealStandard | null;
 }
 
 /**
@@ -418,7 +442,17 @@ export function evaluateConsensus(input: ConsensusInput): ConsensusVerdict {
   const leader = tallies[0];
   const leadingVotes = leader?.votes ?? 0;
 
-  const required = requiredAgreeingVotes(input.round, input.risk);
+  /**
+   * The larger of the two, never the appeal's alone. §9.4's appeal row raises the
+   * bar; a `Math.max` is what makes "raises" true even if an appeal ever arrived
+   * carrying a number below the ladder's.
+   */
+  const ordinary = requiredAgreeingVotes(input.round, input.risk);
+  const required =
+    input.appeal === undefined || input.appeal === null
+      ? ordinary
+      : Math.max(ordinary, input.appeal.requiredAgreeingVotes);
+
   const tied = tallies.length > 1 && tallies[1].votes === leadingVotes;
   const unmet = unmetRequirements(input.risk, input.ballots);
 

@@ -1,6 +1,8 @@
 import type { WebhookEventType } from '@oxyhq/crowdsource-contracts';
 
 import { createTenantContext, type TenantContext } from '../../db/tenantScope';
+import { appeals } from '../appeals/appeal.collection';
+import { appealDecision, appealView } from '../appeals/appeal.service';
 import { decisions } from '../decision/decision.collection';
 import { decisionView } from '../decision/decision.service';
 import { reports } from '../ingestion/report.collection';
@@ -26,18 +28,17 @@ import { endpointsSubscribedTo } from './endpoint.service';
  *
  * ## What is wired today, and what is still waiting
  *
- * Three of §10.6's eight: `report.received` from ingestion, and `case.decided`
- * and `decision.corrected` from the decision module. Each arrived the same way
- * — as one entry in the table below — once the module that owns the event
- * started publishing it, which is the property this file exists to have.
+ * Five of §10.6's eight: `report.received` from ingestion, `case.decided` and
+ * `decision.corrected` from the decision module, and `appeal.created` and
+ * `appeal.decided` from the appeals module and the decision module respectively.
+ * Each arrived the same way — as one entry in the table below — once the module
+ * that owns the event started publishing it, which is the property this file
+ * exists to have.
  *
- * `appeal.created` and `appeal.decided` wait on the appeal SURFACE (§15.9): the
- * supersession mechanism exists, but nothing yet records an appeal as an object
- * with a requester and a reason, and an `appealId` is the one field those two
- * events are about. `case.closed` waits on retention and closure (§13.6).
- * `case.created` and `case.escalated` are observable inside ingestion and triage
- * but are not published to the outbox, and publishing them means editing those
- * modules rather than this one.
+ * `case.closed` waits on retention and closure (§13.6). `case.created` and
+ * `case.escalated` are observable inside ingestion and triage but are not
+ * published to the outbox, and publishing them means editing those modules rather
+ * than this one.
  *
  * ## Why the event id is the outbox row's id
  *
@@ -115,6 +116,46 @@ const buildDecisionData: WebhookDataBuilder = async (context, event) => {
 };
 
 /**
+ * `appeal.created` and `appeal.decided` — §10.6's two appeal events.
+ *
+ * Both carry the appeal DTO, which is `appealView`'s projection and deliberately
+ * not the stored row: the author's additional context stays in the database.
+ * §13.5's minimisation applies to every copy of case content, and a webhook body
+ * is the copy that gets retried six times (§10.9), stored by a receiver, and
+ * printed in its logs — while the application that filed the appeal already has
+ * the text it sent.
+ *
+ * The two share a builder because they carry the same object at two moments, and
+ * the `status` field is what distinguishes them: `open` on creation, `decided`
+ * once the revision the appeal opened has published its decision, which
+ * `appealView` derives rather than reads. §10.6's `appeal.decided` additionally
+ * carries that decision, which the contract requires of it.
+ */
+const buildAppealData: WebhookDataBuilder = async (context, event) => {
+  const appealId = event.payload.appealId;
+  if (!appealId) return null;
+
+  const appeal = await appeals.findOne(context, { appealId });
+  if (!appeal) return null;
+
+  const decision = await appealDecision(context, appeal);
+  const view = appealView(appeal, decision);
+
+  return {
+    caseId: appeal.caseId,
+    appealId: appeal.appealId,
+    /**
+     * The whole appeal, so a receiver has the reason, the two revisions and the
+     * threshold without a second request. `decision` is also lifted to the top
+     * level because that is where the contract's `appeal.decided` requires it; the
+     * two are the same object, not two views of it.
+     */
+    appeal: view,
+    ...(view.decision === undefined ? {} : { decision: view.decision }),
+  };
+};
+
+/**
  * Which internal events become which webhook events.
  *
  * A table rather than a switch so the set is readable in one place and a missing
@@ -132,6 +173,14 @@ const WEBHOOK_EVENT_SOURCES: ReadonlyMap<OutboxEventType, WebhookEventSource> = 
   [
     OUTBOX_EVENT_TYPES.decisionCorrected,
     { webhookEventType: 'decision.corrected', buildData: buildDecisionData },
+  ],
+  [
+    OUTBOX_EVENT_TYPES.appealCreated,
+    { webhookEventType: 'appeal.created', buildData: buildAppealData },
+  ],
+  [
+    OUTBOX_EVENT_TYPES.appealDecided,
+    { webhookEventType: 'appeal.decided', buildData: buildAppealData },
   ],
 ]);
 

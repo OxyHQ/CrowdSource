@@ -67,6 +67,26 @@ export const OUTBOX_EVENT_TYPES = {
    * subscribe to without also subscribing to every ordinary decision.
    */
   decisionCorrected: 'decision.corrected',
+  /**
+   * An appeal was filed and opened a new revision (§9.8, §10.6).
+   *
+   * Written in the SAME transaction as the appeal, the revision bump and the
+   * `case.ready_for_review` that asks for the new jury. That grouping is the
+   * point: an appeal whose event was enqueued separately could be an appeal the
+   * application was told about that never drew a panel, or a panel drawn for an
+   * appeal nobody was told about, and §9.8's author has already been told their
+   * case is being looked at again.
+   */
+  appealCreated: 'appeal.created',
+  /**
+   * The revision an appeal opened published its decision (§9.8, §10.6).
+   *
+   * Emitted alongside `case.decided`, never instead of it, and NOT the same
+   * thing as `decision.corrected`: an appeal that upheld the original decision
+   * has still produced a result the appellant is owed, while only an appeal that
+   * changed the outcome is a correction.
+   */
+  appealDecided: 'appeal.decided',
 } as const;
 
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[keyof typeof OUTBOX_EVENT_TYPES];
@@ -84,6 +104,7 @@ export interface OutboxEventPayload {
   readonly caseId?: string;
   readonly assignmentId?: string;
   readonly decisionId?: string;
+  readonly appealId?: string;
 }
 
 /**

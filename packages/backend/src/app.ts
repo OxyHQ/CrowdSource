@@ -4,6 +4,7 @@ import express, { type Express, Router } from 'express';
 import helmet from 'helmet';
 
 import { errorHandler, notFoundHandler } from './http/errorHandler';
+import { appealsRouter } from './modules/appeals/appeals.routes';
 import { casesRouter } from './modules/cases/cases.routes';
 import { decisionsRouter } from './modules/decision/decisions.routes';
 import { reportsRouter } from './modules/ingestion/reports.routes';
@@ -63,6 +64,7 @@ export function createApp(): Express {
   const v1: Router = Router();
   v1.use(reportsRouter);
   v1.use(casesRouter);
+  v1.use(appealsRouter);
   v1.use(decisionsRouter);
   v1.use(webhookEndpointsRouter);
 

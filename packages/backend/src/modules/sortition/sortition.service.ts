@@ -520,12 +520,20 @@ export async function openPanel(input: OpenPanelInput): Promise<PanelOutcome> {
   }
 
   const panel = await panelAssignments(stored.caseId, stored.currentRevision);
-  const round = input.round ?? currentRound(reviewPool, panel, kind);
+  /**
+   * §9.9: every revision past the first exists because an appeal created it, so
+   * the revision number IS the appeal flag — derived here rather than passed in,
+   * because a caller that could pass `false` for an appeal revision would draw
+   * §9.4's forbidden panel of three, and every draw for the revision (initial,
+   * replacement, expansion, replay) has to agree about which ladder it is on.
+   */
+  const appeal = stored.currentRevision > 1;
+  const round = input.round ?? currentRound(reviewPool, panel, kind, appeal);
   if (round > MAX_PANEL_ROUND) {
     throw new Error(`Case '${caseId}' cannot expand past round ${MAX_PANEL_ROUND} (§8.6).`);
   }
 
-  const spec = panelSpecFor(reviewPool, round);
+  const spec = panelSpecFor(reviewPool, round, appeal);
   const facts = caseFactsOf(stored);
   const parties = await gatherParties(stored);
   const incumbents = await seatedIncumbents(panel, facts);
@@ -719,12 +727,13 @@ function currentRound(
   pool: ReviewPool,
   panel: readonly AssignmentDocument[],
   kind: DrawKind,
+  appeal: boolean,
 ): number {
   const seated = panel.filter(
     (assignment) => assignment.status !== 'recused' && assignment.status !== 'expired',
   ).length;
 
-  const reached = panelRoundFor(pool, seated);
+  const reached = panelRoundFor(pool, seated, appeal);
   return kind === 'expansion' ? Math.min(MAX_PANEL_ROUND, reached + 1) : reached;
 }
 
@@ -855,7 +864,11 @@ export async function replayDraw(drawId: string): Promise<readonly string[] | nu
     }));
 
   const outcome = drawPanel({
-    spec: panelSpecFor(record.pool, record.round),
+    // The revision on the record is what says which ladder the draw was on, for
+    // the same reason `openPanel` derives it: an audit that replayed an appeal
+    // panel against the first-instance specification would report a mismatch
+    // that says nothing about the draw.
+    spec: panelSpecFor(record.pool, record.round, record.caseRevision > 1),
     candidates: record.candidateSnapshot.map((candidate) => ({
       reviewerId: candidate.reviewerId,
       selectionWeight: candidate.selectionWeight,
