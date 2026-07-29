@@ -135,6 +135,11 @@ describe('assertNoUnsafeUrls', () => {
           type: 'image',
           role: 'attachment',
           asset: {
+            // `url` is provenance and is never fetched, but an integrator naming
+            // an internal address is still refused at ingress: the guard is
+            // defence in depth, and a stored URL nothing fetches TODAY is
+            // exactly the shape a later feature dereferences by accident.
+            fileId: 'oxyfile_image',
             url: 'http://169.254.169.254/latest/meta-data/',
             mimeType: 'image/jpeg',
             sha256: `sha256:${'b'.repeat(64)}`,

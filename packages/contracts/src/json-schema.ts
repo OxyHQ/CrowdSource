@@ -13,7 +13,7 @@
  *   * §5.5 reference resolution (relations, `primaryResourceId`, allegation
  *     resource ids, author and seller refs, conversation members, avatars)
  *   * the `oxy_user` binding-proof requirement
- *   * exactly-one-of `uploadId`/`url`, media type agreement, coarse coordinates,
+ *   * a required `fileId` on every asset, media type agreement, coarse coordinates,
  *     price-with-currency
  *   * `agreement = winningVotes / decisiveVotes` and the vote count nesting
  *   * revision 1 supersedes nothing / later revisions must

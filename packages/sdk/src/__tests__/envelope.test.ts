@@ -204,7 +204,7 @@ describe('composeCaseEnvelope', () => {
           {
             type: 'image',
             asset: {
-              uploadId: 'upload_abc',
+              fileId: 'oxyfile_abc',
               mimeType: 'image/jpeg',
               sha256: `sha256:${'a'.repeat(64)}`,
             },

@@ -66,39 +66,93 @@ describe('asset-backed resources', () => {
     expect(
       rejectionPaths(ResourceSchema, {
         ...imageResourceExample(),
-        asset: { uploadId: 'upload_01HZ', mimeType: 'text/html', sha256: DIGEST.image },
+        asset: { fileId: 'oxyfile_01HZ', mimeType: 'text/html', sha256: DIGEST.image },
       }),
     ).toEqual(['asset.mimeType']);
   });
 
-  it('rejects an asset that names both a upload and a URL', () => {
+  it('accepts a fileId alongside a url, because they answer different questions', () => {
+    /**
+     * `fileId` is where the bytes are; `url` is where they came from. The old
+     * contract made these mutually exclusive, which is exactly what left an
+     * integrator with no safe way to attach an image — the upload branch needed a
+     * route nobody built, and the url branch put the reporting application's own
+     * host in front of a reviewer. A federated post's image genuinely has both a
+     * provenance URL and pinned bytes.
+     */
+    expect(
+      accepted(ResourceSchema, {
+        ...imageResourceExample(),
+        asset: {
+          fileId: 'oxyfile_01HZ',
+          url: 'https://cdn.test/a.jpg',
+          mimeType: 'image/jpeg',
+          sha256: DIGEST.image,
+        },
+      }).id,
+    ).toBe(imageResourceExample().id);
+  });
+
+  it('rejects a url-only asset, which is the shape that leaked', () => {
+    /**
+     * The shape that used to be legal and is the whole point of this change: a
+     * url-only asset has no pinned bytes, so the only way to show it to a jury is
+     * for the reviewer's client to fetch it — telling that host when its content
+     * is under review, and delivering live bytes instead of the version §5.6
+     * requires the case to pin.
+     */
+    expect(
+      rejectionPaths(ResourceSchema, {
+        ...imageResourceExample(),
+        asset: { url: 'https://cdn.test/a.jpg', mimeType: 'image/jpeg', sha256: DIGEST.image },
+      }),
+    ).toEqual(['asset.fileId']);
+  });
+
+  it('rejects an upload id, so the superseded presigned path cannot come back', () => {
+    /**
+     * `.strict()` is what makes this fail rather than ignoring the field. An
+     * envelope still naming `uploadId` was built against the abandoned mechanism,
+     * and accepting it would store an asset whose bytes nothing can resolve.
+     */
     expect(
       rejectionPaths(ResourceSchema, {
         ...imageResourceExample(),
         asset: {
           uploadId: 'upload_01HZ',
-          url: 'https://cdn.test/a.jpg',
+          fileId: 'oxyfile_01HZ',
           mimeType: 'image/jpeg',
           sha256: DIGEST.image,
         },
       }),
-    ).toEqual(['asset.uploadId']);
+    ).toEqual(['asset']);
   });
 
-  it('rejects an asset that names neither', () => {
+  it('rejects a fileId that could smuggle a path or a scheme into a resolver', () => {
+    for (const hostile of ['../../etc/passwd', 'https://evil.test/x', 'a/b', 'a:b']) {
+      expect(
+        rejectionPaths(ResourceSchema, {
+          ...imageResourceExample(),
+          asset: { fileId: hostile, mimeType: 'image/jpeg', sha256: DIGEST.image },
+        }),
+      ).toEqual(['asset.fileId']);
+    }
+  });
+
+  it('rejects an asset that names no bytes at all', () => {
     expect(
       rejectionPaths(ResourceSchema, {
         ...imageResourceExample(),
         asset: { mimeType: 'image/jpeg', sha256: DIGEST.image },
       }),
-    ).toEqual(['asset.uploadId']);
+    ).toEqual(['asset.fileId']);
   });
 
   it('rejects an asset with no digest, which is what survives the original being deleted', () => {
     expect(
       rejectionPaths(ResourceSchema, {
         ...imageResourceExample(),
-        asset: { uploadId: 'upload_01HZ', mimeType: 'image/jpeg' },
+        asset: { fileId: 'oxyfile_01HZ', mimeType: 'image/jpeg' },
       }),
     ).toEqual(['asset.sha256']);
   });
@@ -108,7 +162,7 @@ describe('asset-backed resources', () => {
       id: 'res_video',
       type: 'video',
       role: 'subject',
-      asset: { uploadId: 'upload_v', mimeType: 'video/mp4', sha256: DIGEST.image },
+      asset: { fileId: 'oxyfile_v', mimeType: 'video/mp4', sha256: DIGEST.image },
     };
     expect(rejectionPaths(ResourceSchema, video)).toEqual(['asset.durationSeconds']);
     expect(
@@ -126,7 +180,7 @@ describe('asset-backed resources', () => {
         type: 'video',
         role: 'subject',
         asset: {
-          uploadId: 'upload_v',
+          fileId: 'oxyfile_v',
           mimeType: 'video/mp4',
           sha256: DIGEST.image,
           durationSeconds: 30,
@@ -142,7 +196,7 @@ describe('asset-backed resources', () => {
         id: 'res_doc',
         type: 'document',
         role: 'evidence',
-        asset: { uploadId: 'upload_d', mimeType: 'image/png', sha256: DIGEST.image },
+        asset: { fileId: 'oxyfile_d', mimeType: 'image/png', sha256: DIGEST.image },
         data: { title: 'Contract' },
       }),
     ).toEqual(['asset.mimeType']);

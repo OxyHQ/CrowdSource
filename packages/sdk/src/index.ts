@@ -89,8 +89,6 @@ export type { ReportReceipt, ReportRequestOptions } from './reports';
 export { Cases, Decisions } from './cases';
 export type { CaseView, ReadOptions } from './cases';
 
-export { Uploads } from './uploads';
-export type { EvidenceAsset, UploadInput } from './uploads';
 
 export { WebhookEndpoints } from './webhookEndpoints';
 export type {

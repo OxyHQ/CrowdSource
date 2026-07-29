@@ -33,7 +33,7 @@ export function imageResourceExample(): Record<string, unknown> {
     type: 'image',
     role: 'attachment',
     asset: {
-      uploadId: 'upload_01HZ',
+      fileId: 'oxyfile_01HZ',
       mimeType: 'image/jpeg',
       sizeBytes: 220144,
       width: 1200,

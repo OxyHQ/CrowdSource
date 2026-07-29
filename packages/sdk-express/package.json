@@ -1,6 +1,6 @@
 {
   "name": "@oxyhq/crowdsource-express",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Express middleware for CrowdSource webhooks: raw body capture, HMAC verification, replay protection and typed events",
   "type": "commonjs",
   "main": "dist/index.js",
@@ -42,7 +42,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@oxyhq/crowdsource-contracts": "^0.2.0",
+    "@oxyhq/crowdsource-contracts": "^0.3.0",
     "express": ">=4"
   },
   "devDependencies": {
