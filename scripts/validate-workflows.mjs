@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,6 +38,88 @@ for (const workflowName of workflowNames) {
         failures.push(
           `${workflowName}: ${parameterNamespace} is outside this app's /oxy/crowdsource/ namespace; a release must never read or write another Oxy app's parameters`,
         );
+      }
+    }
+
+    // The lockfile gate is the only thing enforcing that a manifest change and
+    // its bun.lock update land in one commit. That rule was skipped once already,
+    // and two npm versions were burned publishing from states that were never
+    // committed. The gate needs a plain install so it runs in a job of its own,
+    // which is why this assertion belongs here: `bun run check` runs in a
+    // DIFFERENT job, so deleting the gate is caught by a job the deletion did not
+    // touch.
+    if (workflowName === "ci.yml") {
+      const jobs = Object.entries(workflow?.jobs || {});
+      const runsScript = (job, pattern) =>
+        (job?.steps || []).some(
+          (step) => typeof step?.run === "string" && pattern.test(step.run),
+        );
+      // The lookbehind is load-bearing: test-check-lockfile-sync.mjs contains
+      // check-lockfile-sync.mjs, so a substring match accepts the gate's tests as
+      // the gate itself and passes with the gate deleted.
+      // Four published packages sat outside the test matrix for this repository's
+      // whole life — 308 tests that never ran on a PR, in exactly the packages
+      // whose breakage lands on adopters rather than on us. A missing matrix entry
+      // is invisible by construction: nothing fails, there is simply no job. So
+      // the matrix is checked against the packages that exist.
+      const matrixEntries = workflow?.jobs?.tests?.strategy?.matrix?.include || [];
+      const matrixPackages = new Set(
+        matrixEntries.map((entry) => entry?.package).filter((name) => typeof name === "string"),
+      );
+
+      // A floor nothing consumes is worse than no floor: the entry reads as though
+      // the count were checked while the job still passes on an empty run.
+      const declaresFloor = matrixEntries.filter((entry) => entry?.minimum_tests !== undefined);
+      const assertsFloor = (workflow?.jobs?.tests?.steps || []).some(
+        (step) => typeof step?.run === "string" && step.run.includes("assert-test-floor.mjs"),
+      );
+      if (declaresFloor.length > 0 && !assertsFloor) {
+        failures.push(
+          `${workflowName}: the tests job declares minimum_tests but never runs assert-test-floor.mjs, so the floor is decorative and a suite that ran nothing still passes`,
+        );
+      }
+      for (const entry of declaresFloor) {
+        if (!Number.isInteger(entry.minimum_tests) || entry.minimum_tests < 1) {
+          failures.push(
+            `${workflowName}: matrix entry ${entry.package} declares a non-positive minimum_tests (${entry.minimum_tests})`,
+          );
+        }
+      }
+      if (matrixPackages.size === 0) {
+        failures.push(
+          `${workflowName}: the tests job declares no matrix packages, so no package suite runs on a pull request`,
+        );
+      }
+      for (const entry of readdirSync(resolve(repositoryRoot, "packages"), {
+        withFileTypes: true,
+      })) {
+        if (!entry.isDirectory()) continue;
+        const manifestPath = resolve(repositoryRoot, "packages", entry.name, "package.json");
+        if (!existsSync(manifestPath)) continue;
+        const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+        if (!manifest.scripts?.test) continue;
+        if (!matrixPackages.has(entry.name)) {
+          failures.push(
+            `${workflowName}: packages/${entry.name} has a test script but no entry in the tests matrix, so its suite never runs on a pull request`,
+          );
+        }
+      }
+
+      for (const [pattern, script, reason] of [
+        [
+          /(?<![\w-])check-lockfile-sync\.mjs/,
+          "check-lockfile-sync.mjs",
+          "nothing else enforces that a package.json change and its bun.lock update land in one commit",
+        ],
+        [
+          /(?<![\w-])test-check-lockfile-sync\.mjs/,
+          "test-check-lockfile-sync.mjs",
+          "without its own tests the lockfile gate can stop discriminating without anything noticing",
+        ],
+      ]) {
+        if (!jobs.some(([, job]) => runsScript(job, pattern))) {
+          failures.push(`${workflowName}: CI must run scripts/${script}; ${reason}`);
+        }
       }
     }
 
