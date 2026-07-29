@@ -1,3 +1,4 @@
+import { registerSortitionWorkers } from '../sortition/sortition.worker';
 import { registerTriageWorker } from '../triage/triage.worker';
 import { registerWebhookFanout } from '../webhooks/fanout';
 
@@ -11,10 +12,11 @@ import { registerWebhookFanout } from '../webhooks/fanout';
  * exists to create. `server.ts` calls this once at boot; a test calls it when it
  * wants the chain to run.
  *
- * Event types with no consumer yet are not an omission. `case.ready_for_review`
- * waits for sortition (§15.4); until it exists the rows are still written, still
- * durable, and still describe work whose next step is recorded in the case's own
- * state.
+ * Event types with no consumer yet are not an omission — though as of this
+ * phase there are none: triage, sortition and the webhook fan-out between them
+ * cover everything published. When a new type arrives ahead of its consumer the
+ * rows are still written, still durable, and still describe work whose next step
+ * is recorded in the domain's own state.
  *
  * The webhook fan-out registers itself for every internal event it translates
  * (today `report.received`), which is why this file does not name them: the
@@ -23,5 +25,6 @@ import { registerWebhookFanout } from '../webhooks/fanout';
  */
 export function registerOutboxWorkers(): void {
   registerTriageWorker();
+  registerSortitionWorkers();
   registerWebhookFanout();
 }

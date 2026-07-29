@@ -47,6 +47,38 @@ const environmentSchema = z.object({
    * `modules/webhooks/secretCipher.ts`.
    */
   WEBHOOK_SECRET_ENCRYPTION_KEY: optionalString,
+
+  /**
+   * The Oxy API a reviewer session is verified against.
+   *
+   * No default, deliberately, and the app still boots without it: reviewer and
+   * Trust & Safety routes are the only surface that needs it, and they answer
+   * `503` while it is unset rather than silently accepting an unverified
+   * session. The application API is unaffected — it authenticates service
+   * credentials, which are CrowdSource's own.
+   */
+  OXY_API_URL: optionalString,
+
+  /**
+   * §8.2's personhood threshold for deciding a real case, in [0, 1].
+   *
+   * Configuration rather than a constant because the right value depends on how
+   * many real reviewers exist, which changes. The default admits an unverified
+   * account that completed training and passed calibration (0.6) and excludes a
+   * bare authenticated account (0.3) — see `modules/reviewer/personhood.ts` for
+   * the composition and for why a hard Oxy-verification gate was rejected.
+   */
+  REVIEWER_MIN_PERSONHOOD_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.5),
+
+  /**
+   * How many candidates one draw pulls from the eligibility index (§8.8).
+   *
+   * The cost of a draw is linear in this number and independent of how many
+   * profiles exist, because the sample is a bounded range scan from a random
+   * point on an indexed uniform key. Raising it buys a more representative pool
+   * per draw; lowering it buys latency.
+   */
+  SORTITION_CANDIDATE_SAMPLE_SIZE: z.coerce.number().int().min(1).default(400),
 });
 
 function loadConfig() {
@@ -78,6 +110,15 @@ function loadConfig() {
       serverSelectionTimeoutMS: environment.MONGODB_SERVER_SELECTION_TIMEOUT_MS,
       socketTimeoutMS: environment.MONGODB_SOCKET_TIMEOUT_MS,
       maxRetries: environment.MONGODB_MAX_RETRIES,
+    },
+    oxy: {
+      apiUrl: environment.OXY_API_URL,
+    },
+    reviewer: {
+      minPersonhoodConfidence: environment.REVIEWER_MIN_PERSONHOOD_CONFIDENCE,
+    },
+    sortition: {
+      candidateSampleSize: environment.SORTITION_CANDIDATE_SAMPLE_SIZE,
     },
   } as const;
 }

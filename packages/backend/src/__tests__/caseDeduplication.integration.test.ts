@@ -9,6 +9,7 @@ import { drainOutbox } from '../modules/outbox/outbox.dispatcher';
 import { registerOutboxWorkers } from '../modules/outbox/workers';
 import {
   deliveryBody,
+  drainUntil,
   provisionTenant,
   startDatabase,
   stopDatabase,
@@ -149,7 +150,17 @@ describe('two people report the same version of a post', () => {
   });
 
   it('publishes case.ready_for_review — exactly once', async () => {
-    await drainOutbox();
+    await drainUntil(
+      async () =>
+        (await mongoose.connection
+          .collection('outbox_events')
+          .countDocuments({
+            type: 'case.ready_for_review',
+            'payload.caseId': first.body.caseId,
+            status: 'dispatched',
+          })) === 1,
+      'sortition consuming case.ready_for_review',
+    );
 
     const published = await mongoose.connection
       .collection('outbox_events')
@@ -162,13 +173,22 @@ describe('two people report the same version of a post', () => {
       organizationId: tenant.organizationId,
     });
     /**
-     * Still pending, and that is the point: sortition is the consumer (§15.4)
-     * and does not exist, so the row waits for it. A dispatcher that marked it
-     * done would destroy the only durable record that this case needs a jury.
+     * Dispatched, because sortition now consumes it (§15.4). The row was pending
+     * until that consumer existed, and the property that mattered then still
+     * matters: nothing marks a row done without a handler having run. What
+     * changed is that one has.
+     *
+     * It does NOT follow that a panel opened. This tenant's case alleges
+     * `integrity.spam` and no reviewer in the suite accepts that family, so the
+     * draw refused and recorded why — see `sortitionPanel.integration.test.ts`.
+     * That is exactly the intended behaviour for an empty pool, and it is why
+     * the case below is still `triaged`.
      */
-    expect(published[0]).toMatchObject({ status: 'pending' });
+    expect(published[0]).toMatchObject({ status: 'dispatched' });
 
-    // Triage ran, and put a priority and a route on the case.
+    // Triage ran, and put a priority and a route on the case. Sortition then
+    // found nobody eligible and refused, which leaves the status where triage
+    // put it rather than opening a panel that could only expire.
     const stored = await cases.findOne(tenant.tenant, { caseId: first.body.caseId });
     expect(stored?.status).toBe('triaged');
     expect(stored?.reviewPool).toBe('community');
@@ -307,7 +327,12 @@ describe('merging a report into a case that already exists', () => {
         allowCommunityReview: true,
       }),
     );
-    await drainOutbox();
+    await drainUntil(
+      async () =>
+        (await cases.findOne(tenant.tenant, { caseId: permissive.body.caseId }))?.reviewPool !==
+        null,
+      'triage of the permissive report',
+    );
     expect(
       (await cases.findOne(tenant.tenant, { caseId: permissive.body.caseId }))?.reviewPool,
     ).toBe('community');

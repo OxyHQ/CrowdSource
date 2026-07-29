@@ -13,6 +13,10 @@ import '../modules/cases/case.collection';
 import '../modules/ingestion/report.collection';
 import '../modules/outbox/outbox.collection';
 import '../modules/policy/policySet.collection';
+import '../modules/review/review.collection';
+import '../modules/reviewer/reviewer.collection';
+import '../modules/sortition/assignment.collection';
+import '../modules/sortition/draw.collection';
 import '../modules/tenancy/tenancy.collections';
 import '../modules/webhooks/webhook.collections';
 
@@ -130,8 +134,21 @@ describe('collections that are exempt from tenant scoping', () => {
     expect([...reasons.keys()].sort()).toEqual([
       'Application',
       'ApplicationCredential',
+      /**
+       * The jury collections. A case belongs to one tenant; a REVIEWER belongs
+       * to none — they are drawn across every application, and the caller
+       * reading these presents an Oxy session, which carries no tenant to scope
+       * by. Every row is still stamped with the tenant of its case, taken from
+       * the case document inside the draw's own transaction.
+       */
+      'Assignment',
       'Organization',
       'OutboxEvent',
+      'Review',
+      'ReviewerAffinity',
+      'ReviewerProfile',
+      'ReviewerRelation',
+      'SortitionDraw',
       /**
        * The webhook delivery worker's CLAIM spans every tenant, exactly like the
        * outbox dispatcher's, so the row it claims cannot be found through a

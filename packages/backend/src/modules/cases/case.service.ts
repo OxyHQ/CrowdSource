@@ -42,8 +42,22 @@ export interface AttachedCase {
  * tenants produces two unrelated values, so the case collection cannot become a
  * cross-tenant correlation table.
  */
-function reporterFingerprint(applicationId: string, reporterKey: string): string {
+export function reporterFingerprint(applicationId: string, reporterKey: string): string {
   return createHash('sha256').update(`${applicationId}:${reporterKey}`, 'utf8').digest('hex');
+}
+
+/**
+ * The reporter key for somebody the application can name.
+ *
+ * Exported alongside the hash because sortition has to ask the opposite
+ * question — "is this candidate one of the reporters?" — and a fingerprint is
+ * not reversible, so the only way to answer is to compute the candidate's
+ * fingerprint the same way. Two copies of this string format would drift, and
+ * the symptom of drift is an exclusion that silently matches nothing: the
+ * reporter of a case sitting on its jury, with every test still green.
+ */
+export function principalReporterKey(externalPrincipalId: string): string {
+  return `principal:${externalPrincipalId}`;
 }
 
 /**
@@ -61,7 +75,10 @@ function reporterKeys(envelope: CaseEnvelope, reportId: string): string[] {
   const externalIdByRef = new Map(
     envelope.principalBindings
       .filter((binding) => binding.externalPrincipalId !== undefined)
-      .map((binding) => [binding.principalRef, `principal:${binding.externalPrincipalId ?? ''}`]),
+      .map((binding) => [
+        binding.principalRef,
+        principalReporterKey(binding.externalPrincipalId ?? ''),
+      ]),
   );
 
   const keys = new Set<string>();

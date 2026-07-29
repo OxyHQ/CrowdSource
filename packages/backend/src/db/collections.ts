@@ -52,6 +52,16 @@ export interface FindOptions {
 }
 
 /**
+ * Options for an unscoped `findOneAndUpdate`.
+ *
+ * `upsert` is opt-in and separate from `FindOptions` so a read helper cannot
+ * gain the ability to create documents by having its options object widened.
+ */
+export interface FindOneAndUpdateOptions extends FindOptions {
+  readonly upsert?: boolean;
+}
+
+/**
  * The update operators a tenant-owned write may use, as a restricted spec
  * rather than a raw Mongo update document.
  *
@@ -300,15 +310,22 @@ export class UnscopedCollection<TStored> {
   async findOneAndUpdate(
     filter: RootFilterQuery<TStored> & object,
     update: UpdateQuery<TStored>,
-    options: FindOptions = {},
+    options: FindOneAndUpdateOptions = {},
+    session?: ClientSession,
   ): Promise<TStored | null> {
     return this.#model
       .findOneAndUpdate(filter, update, {
         returnDocument: 'after',
         ...(options.sort ? { sort: options.sort } : {}),
+        ...(options.upsert ? { upsert: true } : {}),
+        ...(session ? { session } : {}),
       })
       .lean<TStored>()
       .exec();
+  }
+
+  async countDocuments(filter: RootFilterQuery<TStored> & object = {}): Promise<number> {
+    return this.#model.countDocuments(filter).exec();
   }
 
   async updateOne(

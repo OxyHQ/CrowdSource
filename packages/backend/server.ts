@@ -13,6 +13,10 @@ import {
   stopWebhookDeliveryWorker,
 } from './src/modules/webhooks/delivery.worker';
 import { webhookSecretStorageConfigured } from './src/modules/webhooks/secretCipher';
+import {
+  startAssignmentExpirySweep,
+  stopAssignmentExpirySweep,
+} from './src/modules/sortition/assignment.service';
 import { setRuntimeReady } from './src/routes/health.routes';
 import { connectToDatabase, disconnectFromDatabase } from './src/utils/database';
 import { logger } from './src/utils/logger';
@@ -95,6 +99,14 @@ async function start(): Promise<void> {
     );
   }
 
+  /**
+   * §8.7: an assignment that expires must produce a replacement, or the panel
+   * sits one member below its own threshold forever. The sweep only marks rows
+   * and writes outbox events — the replacement draw itself is a consumer — so a
+   * task that dies mid-sweep costs a minute, not a juror.
+   */
+  startAssignmentExpirySweep();
+
   await new Promise<void>((resolve) => {
     server.listen(config.port, resolve);
   });
@@ -120,6 +132,7 @@ function shutdown(signal: NodeJS.Signals): void {
   // stranded row.
   stopOutboxDispatcher();
   stopWebhookDeliveryWorker();
+  stopAssignmentExpirySweep();
 
   server.close((error) => {
     if (error) {

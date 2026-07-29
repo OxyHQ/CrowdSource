@@ -159,9 +159,20 @@ describe('a report and its outbox event commit together', () => {
    */
   it('rolls the outbox row back when a LATER write in the same transaction fails', async () => {
     const externalReportId = `atomic-escape-${Date.now()}`;
+    /**
+     * Counted over the INGRESS event types only.
+     *
+     * A plain count for this tenant is not stable: the dispatcher is
+     * deliberately cross-tenant, so another test file's `drainOutbox()` runs the
+     * triage and sortition workers over this tenant's earlier case and appends
+     * rows of its own between these two reads. Those workers never write an
+     * ingress event, so restricting the count to the two types the ingress
+     * transaction produces measures what this test is actually about.
+     */
+    const ingressTypes = { $in: ['report.received', 'case.ready_for_triage'] };
     const rowsBefore = await mongoose.connection
       .collection('outbox_events')
-      .countDocuments({ applicationId: tenant.applicationId });
+      .countDocuments({ applicationId: tenant.applicationId, type: ingressTypes });
 
     /**
      * Every attempt, not just the first.
@@ -185,7 +196,7 @@ describe('a report and its outbox event commit together', () => {
     expect(
       await mongoose.connection
         .collection('outbox_events')
-        .countDocuments({ applicationId: tenant.applicationId }),
+        .countDocuments({ applicationId: tenant.applicationId, type: ingressTypes }),
     ).toBe(rowsBefore);
     expect(await reports.findOne(tenant.tenant, { externalReportId })).toBeNull();
   });

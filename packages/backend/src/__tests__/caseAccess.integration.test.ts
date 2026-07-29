@@ -3,11 +3,11 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../app';
-import { drainOutbox } from '../modules/outbox/outbox.dispatcher';
 import { registerOutboxWorkers } from '../modules/outbox/workers';
 import { issueApplicationCredential } from '../modules/tenancy/provisioning.service';
 import {
   deliveryBody,
+  drainUntil,
   provisionTenant,
   startDatabase,
   stopDatabase,
@@ -48,7 +48,11 @@ beforeAll(async () => {
       }),
     );
   caseId = created.body.caseId;
-  await drainOutbox();
+  await drainUntil(
+    async () =>
+      (await mongoose.connection.collection('cases').findOne({ caseId }))?.reviewPool !== null,
+    'triage of the case under test',
+  );
 });
 
 afterAll(async () => {

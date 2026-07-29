@@ -15,6 +15,7 @@ import {
   issueApplicationCredential,
 } from '../../modules/tenancy/provisioning.service';
 import type { ApplicationScope } from '../../modules/tenancy/scopes';
+import { drainOutbox } from '../../modules/outbox/outbox.dispatcher';
 import { connectToDatabase, disconnectFromDatabase } from '../../utils/database';
 /**
  * Imported for their side effect. A collection is registered when the module
@@ -28,6 +29,10 @@ import '../../modules/ingestion/report.collection';
 import '../../modules/outbox/outbox.collection';
 import '../../modules/policy/policySet.collection';
 import '../../modules/webhooks/webhook.collections';
+import '../../modules/review/review.collection';
+import '../../modules/reviewer/reviewer.collection';
+import '../../modules/sortition/assignment.collection';
+import '../../modules/sortition/draw.collection';
 
 /**
  * Support for the integration tests, against the real replica set.
@@ -65,6 +70,35 @@ export async function startDatabase(): Promise<void> {
 
 export async function stopDatabase(): Promise<void> {
   await disconnectFromDatabase();
+}
+
+/**
+ * Drives the outbox until an OUTCOME is true, rather than assuming one pass did
+ * it.
+ *
+ * A single `drainOutbox()` is not enough and the reason is a property of the
+ * design, not of the tests: the dispatcher is deliberately NOT tenant-scoped —
+ * it publishes across every tenant — so another test file running against the
+ * same replica set can claim this case's row, lease it for a minute, handle it
+ * in its own process and leave this one with nothing to drain. The work still
+ * happens; it just happens somewhere else, possibly after the assertion.
+ *
+ * Waiting on the outcome makes the assertion about what the domain ended up
+ * doing instead of about which process happened to do it. Ten seconds is far
+ * longer than any handler here takes, and the throw names what never arrived so
+ * a genuine hang does not read as a timeout.
+ */
+export async function drainUntil(
+  reached: () => Promise<boolean>,
+  what: string,
+  attempts = 400,
+): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    await drainOutbox();
+    if (await reached()) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(`The outbox never reached: ${what}`);
 }
 
 export interface ProvisionedTenant {

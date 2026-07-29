@@ -35,6 +35,16 @@ export const OUTBOX_EVENT_TYPES = {
   caseReadyForTriage: 'case.ready_for_triage',
   /** Triage is done: the case can be handed to sortition (§8). */
   caseReadyForReview: 'case.ready_for_review',
+  /**
+   * A juror left their seat without reviewing — recused or expired (§8.7).
+   *
+   * Through the outbox rather than as a direct call, because §8.7 requires a
+   * REPLACEMENT and a replacement that lived only in the recusal request would
+   * be lost the moment that request failed after the recusal committed. The
+   * panel would then sit one member short of its own threshold forever, which is
+   * the failure the outbox exists to make impossible.
+   */
+  assignmentVacated: 'assignment.vacated',
 } as const;
 
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[keyof typeof OUTBOX_EVENT_TYPES];
@@ -50,6 +60,7 @@ export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[keyof typeof OUTBOX_EV
 export interface OutboxEventPayload {
   readonly reportId?: string;
   readonly caseId?: string;
+  readonly assignmentId?: string;
 }
 
 /**

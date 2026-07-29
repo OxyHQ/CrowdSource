@@ -20,3 +20,13 @@ process.env.MONGODB_URI ??= 'mongodb://127.0.0.1:27017/unused-by-design';
  */
 process.env.WEBHOOK_SECRET_ENCRYPTION_KEY ??=
   '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
+
+/**
+ * The reviewer surface answers `503` when no Oxy API is configured, which is the
+ * correct production behaviour and would make every reviewer test assert that
+ * instead of what it is about. The value is never dialled: the integration tests
+ * replace `createOptionalOxyAuth` with a stub, so session VERIFICATION is out of
+ * scope here — it belongs to `@oxyhq/core` — while the authorisation this
+ * service actually owns is exercised for real.
+ */
+process.env.OXY_API_URL ??= 'https://api.oxy.invalid';

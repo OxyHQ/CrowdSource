@@ -46,6 +46,23 @@ export function policyVersionToken(policySetId: string, version: string): string
   return `${policySetId}@${version}`;
 }
 
+/**
+ * The inverse, for the surfaces that hold a case and need the policy back.
+ *
+ * A case stores the composed token, and re-splitting it by searching for `@`
+ * guesses: a policy set id containing one would split in the wrong place. The
+ * set id is always known by the caller — it is stored next to the token — so
+ * this strips a known prefix and refuses anything else rather than returning a
+ * plausible wrong answer.
+ */
+export function policyVersionOfToken(token: string, policySetId: string): string {
+  const prefix = `${policySetId}@`;
+  if (!token.startsWith(prefix)) {
+    throw new Error(`Policy token '${token}' does not belong to policy set '${policySetId}'.`);
+  }
+  return token.slice(prefix.length);
+}
+
 export interface CaseDedupComponents {
   readonly applicationId: string;
   readonly subjectExternalId: string;

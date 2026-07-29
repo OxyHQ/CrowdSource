@@ -32,6 +32,21 @@ export const ID_PREFIX = {
    */
   webhookDelivery: 'whd',
   webhookAttempt: 'wha',
+  /**
+   * A reviewer's id INSIDE CrowdSource, distinct from their Oxy user id.
+   *
+   * The separation is the point. §9.1's blind review and §8.7's "reveals no ids
+   * usable elsewhere" both fail the moment a case-adjacent record carries an
+   * identifier that means something on another Oxy surface: an operator reading
+   * an assignment would learn whose account it is, and a leaked draw record
+   * would name real people. The mapping lives on the reviewer profile and
+   * nowhere else.
+   */
+  reviewer: 'rvw',
+  assignment: 'asg',
+  /** One sortition draw: its seed, its candidate snapshot and its outcome. */
+  sortitionDraw: 'drw',
+  review: 'rev',
 } as const;
 
 export type PublicIdKind = keyof typeof ID_PREFIX;
