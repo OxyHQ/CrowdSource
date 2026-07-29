@@ -127,10 +127,12 @@
       "version": "0.1.0",
       "dependencies": {
         "@oxyhq/crowdsource-contracts": "workspace:*",
+        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@types/node": "^25.9.5",
         "typescript": "^5.9.3",
+        "vitest": "^4.1.10",
       },
     },
     "packages/sdk-express": {
@@ -140,8 +142,13 @@
         "@oxyhq/crowdsource-contracts": "workspace:*",
       },
       "devDependencies": {
+        "@oxyhq/crowdsource": "workspace:*",
+        "@oxyhq/crowdsource-testing": "workspace:*",
+        "@types/express": "^5.0.6",
         "@types/node": "^25.9.5",
+        "express": "^5.2.1",
         "typescript": "^5.9.3",
+        "vitest": "^4.1.10",
       },
       "peerDependencies": {
         "express": ">=4",
@@ -154,8 +161,10 @@
         "@oxyhq/crowdsource-contracts": "workspace:*",
       },
       "devDependencies": {
+        "@oxyhq/crowdsource": "workspace:*",
         "@types/node": "^25.9.5",
         "typescript": "^5.9.3",
+        "vitest": "^4.1.10",
       },
     },
   },

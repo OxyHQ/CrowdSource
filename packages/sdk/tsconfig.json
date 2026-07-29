@@ -6,6 +6,13 @@
     "module": "commonjs",
     "moduleResolution": "node",
 
+    // --- Intentional override of the root base's `lib: ["ES2020"]`.
+    // `new Error(message, { cause })` is ES2022, and every error this client
+    // throws for a transport failure carries the underlying one. `target` stays
+    // ES2020: `lib` only changes what is TYPED, not what is emitted, and every
+    // runtime that can run this package (Node 18+, Bun) has ES2022 errors.
+    "lib": ["ES2022"],
+
     // --- Emit settings (the root base is type-check only / noEmit).
     "noEmit": false,
     "noUnusedLocals": true,
@@ -13,13 +20,21 @@
     "rootDir": "./src",
     "outDir": "./dist",
 
-    "baseUrl": ".",
-    "paths": {
-      "@oxyhq/crowdsource-contracts": ["../contracts/src"],
-      "@oxyhq/crowdsource-contracts/*": ["../contracts/src/*"]
-    }
+    // Contracts resolves through the workspace `node_modules` symlink to its
+    // PUBLISHED declaration surface (`dist/index.d.ts`), not to its source. That
+    // is deliberate for a published package: it type-checks against exactly what
+    // an integrator installs, so a symbol that is in contracts' source but not
+    // in its `exports` cannot compile here and fail for them. It also keeps
+    // `rootDir` honest — a `paths` mapping into `../contracts/src` pulls files
+    // from outside this project into the program (TS6059). `bun run build`
+    // builds contracts first, and `postinstall` keeps `dist/` present.
+    "baseUrl": "."
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"],
+  // Tests stay out of the EMITTING project so they never reach `dist/` and
+  // therefore never reach the published tarball. `tsconfig.test.json` covers
+  // them and `bun run lint` runs both projects, so excluding them here costs no
+  // type coverage.
+  "exclude": ["node_modules", "dist", "src/__tests__"],
   "references": [{ "path": "../contracts" }]
 }

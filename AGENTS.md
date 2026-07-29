@@ -37,7 +37,13 @@ packages/
 docs/{architecture,api,policies,runbooks}
 ```
 
-Current state: contracts, sdk, sdk-express and testing are empty boundaries; the backend serves health only; the reviewer app is the foundation without review surfaces; the console is not scaffolded. Each package README says what it will hold.
+Current state: contracts, sdk, sdk-express and testing are written; the reviewer app is the foundation without review surfaces; the console is not scaffolded. Each package README says what it holds.
+
+The three integration packages target **near-zero configuration**, which is a product requirement rather than a nicety: one environment variable and the object being reported. Two consequences bind every change to them.
+
+- **`applicationId` is read off the credential, and there is no surface that can carry one.** The service key an integrator configures is `applicationId:credentialId:secret` — the three values `issueApplicationCredential` already returns, joined — so the client knows its own application without being told. Never add an `applicationId` option, field or parameter; the envelope's copy exists so a mismatch can be DETECTED, and the credential is its only source.
+- **A default must be a pinned version, never "whatever is current".** `DEFAULT_POLICY` in `packages/sdk/src/defaults.ts` names an immutable published version and MUST equal `BASELINE_POLICY_SET_ID`/`BASELINE_POLICY_VERSION` in the backend's `policyBaseline.ts`; `sdk/src/__tests__/defaults.test.ts` reads that file and asserts it. A resolved-at-ingress "latest" would move the policy under an application that changed nothing and would split §7.3's dedup key, giving one post two cases.
+- **Nothing the client composes may vary between two deliveries of the same report.** Ingress fingerprints the whole `{ externalReportId, envelope }` to detect §10.5's payload conflict, so an invented timestamp, a random id or an unsorted list turns a legitimate outbox retry into a permanent 409 — silently, days later, as moderation work stuck in a queue. This is why resource ids are positional, principal refs are derived from the identity, and `source.submittedAt` has no default.
 
 ### Backend
 

@@ -17,7 +17,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",
+    "test": "node ../../node_modules/vitest/vitest.mjs run",
+    "test:watch": "node ../../node_modules/vitest/vitest.mjs",
     "prepublishOnly": "bun run build"
   },
   "keywords": ["crowdsource", "moderation", "webhooks", "express"],
@@ -30,8 +32,13 @@
     "express": ">=4"
   },
   "devDependencies": {
+    "@oxyhq/crowdsource": "workspace:*",
+    "@oxyhq/crowdsource-testing": "workspace:*",
+    "@types/express": "^5.0.6",
     "@types/node": "^25.9.5",
-    "typescript": "^5.9.3"
+    "express": "^5.2.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   },
   "files": ["dist/**/*"]
 }

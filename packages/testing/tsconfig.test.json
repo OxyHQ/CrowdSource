@@ -1,0 +1,22 @@
+{
+  // ---------------------------------------------------------------------------
+  // Type-check-only project covering what the emitting project leaves out: the
+  // tests and the Vitest config.
+  //
+  // Same split, and the same reason, as `packages/contracts/tsconfig.test.json`:
+  // tests must not reach `dist/` (they would ship in the published tarball) but
+  // must still be type-checked, because a test that does not compile is a test
+  // nobody is running. `bun run lint` runs this project after the emitting one.
+  // ---------------------------------------------------------------------------
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "types": ["node"],
+    "rootDir": "."
+  },
+  "include": ["src/**/*", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

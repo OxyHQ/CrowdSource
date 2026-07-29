@@ -1,9 +1,57 @@
 /**
- * Public barrel for @oxyhq/crowdsource-testing.
+ * `@oxyhq/crowdsource-testing` — integrate against CrowdSource before a jury
+ * exists.
  *
- * The fixtures and webhook simulator are not written yet. This package exists as
- * the boundary they will be published from and deliberately exports nothing
- * until there are real contracts to build fixtures against.
+ * ```ts
+ * import { createCrowdSourceSandbox } from '@oxyhq/crowdsource-testing';
+ * import { CrowdSource } from '@oxyhq/crowdsource';
+ *
+ * const sandbox = createCrowdSourceSandbox();
+ * const crowdsource = new CrowdSource({
+ *   serviceKey: sandbox.serviceKey,
+ *   baseUrl: sandbox.baseUrl,
+ *   fetch: sandbox.fetch,
+ * });
+ *
+ * const { caseId } = await crowdsource.reports.create({ ... });
+ * const decision = sandbox.decide(caseId, { outcome: 'violation' });
+ * await sandbox.deliver('http://localhost:3000/webhooks/crowdsource', sandbox.eventFor(decision));
+ * ```
+ *
+ * The report goes through the real client, the sandbox applies the real rules
+ * (tenant from the credential, idempotency, 409 on a changed body, one case per
+ * reported version), and the webhook that comes back is genuinely signed — so
+ * the receiver being tested is the receiver that will run in production.
+ *
+ * The simulator can also deliver a stale, forged or tampered event on purpose.
+ * Asserting that a receiver REFUSES those is the half of a webhook test that
+ * actually proves something.
  */
 
-export {};
+export {
+  caseDecidedEventFixture,
+  caseEnvelopeFixture,
+  decisionFixture,
+} from './fixtures';
+export type {
+  CaseEnvelopeFixtureOptions,
+  DecisionFixtureOptions,
+  WebhookEventFixtureOptions,
+} from './fixtures';
+
+export { CrowdSourceSandbox, createCrowdSourceSandbox } from './sandbox';
+export type {
+  CrowdSourceSandboxOptions,
+  SandboxCase,
+  SandboxDecisionInput,
+  SandboxReport,
+} from './sandbox';
+
+export { WebhookSimulator, signWebhookDelivery } from './webhook-simulator';
+export type {
+  SignWebhookInput,
+  SignedWebhookDelivery,
+  WebhookDeliveryOverrides,
+  WebhookDeliveryResult,
+  WebhookSimulatorOptions,
+} from './webhook-simulator';

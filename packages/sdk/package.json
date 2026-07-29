@@ -17,18 +17,22 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",
+    "test": "node ../../node_modules/vitest/vitest.mjs run",
+    "test:watch": "node ../../node_modules/vitest/vitest.mjs",
     "prepublishOnly": "bun run build"
   },
   "keywords": ["crowdsource", "moderation", "sdk"],
   "author": "OxyHQ",
   "license": "MIT",
   "dependencies": {
-    "@oxyhq/crowdsource-contracts": "workspace:*"
+    "@oxyhq/crowdsource-contracts": "workspace:*",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   },
   "files": ["dist/**/*"]
 }

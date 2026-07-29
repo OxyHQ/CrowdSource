@@ -1,10 +1,43 @@
 /**
- * Public barrel for @oxyhq/crowdsource-express.
+ * `@oxyhq/crowdsource-express` — receiving CrowdSource webhooks safely.
  *
- * The webhook middleware — raw-body capture, constant-time HMAC verification,
- * timestamp and event-id replay protection, typed event dispatch — is not
- * written yet. This package exists as the boundary it will be published from and
- * deliberately exports nothing until the signature contract is fixed.
+ * The whole integration:
+ *
+ * ```ts
+ * import { crowdsourceWebhooks } from '@oxyhq/crowdsource-express';
+ *
+ * app.post('/webhooks/crowdsource', crowdsourceWebhooks({
+ *   on: {
+ *     'case.decided': async (event) => {
+ *       await moderationQueue.add(event.id, event.data);
+ *     },
+ *   },
+ * }));
+ * ```
+ *
+ * The secret comes from `CROWDSOURCE_WEBHOOK_SECRET`, the raw body is read by
+ * the handler itself, the signature is verified in constant time over the bytes
+ * that arrived, a stale or replayed delivery is refused, and an event type this
+ * integration does not handle is acknowledged and ignored. None of that is
+ * optional and none of it can be got wrong by mounting things in the wrong
+ * order — see `middleware.ts` for what happens when a body parser gets there
+ * first.
  */
 
-export {};
+export {
+  crowdsourceWebhooks,
+  CrowdSourceWebhookConfigurationError,
+  WEBHOOK_PREVIOUS_SECRET_ENV_VAR,
+  WEBHOOK_SECRET_ENV_VAR,
+} from './middleware';
+export type { CrowdSourceWebhooksOptions, WebhookEventHandlers } from './middleware';
+
+export { memoryProcessedEventStore } from './store';
+export type { MemoryProcessedEventStoreOptions, ProcessedEventStore } from './store';
+
+export {
+  signedPayloadBytes,
+  verifyWebhookDelivery,
+  WEBHOOK_REJECTIONS,
+} from './verify';
+export type { WebhookRejection, WebhookVerification, WebhookVerificationInput } from './verify';
