@@ -5,7 +5,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../app';
 import { cases, caseReports } from '../modules/cases/case.collection';
 import { reports } from '../modules/ingestion/report.collection';
-import { drainOutbox } from '../modules/outbox/outbox.dispatcher';
 import { registerOutboxWorkers } from '../modules/outbox/workers';
 import {
   deliveryBody,
@@ -346,7 +345,12 @@ describe('merging a report into a case that already exists', () => {
       }),
     );
     expect(restrictive.body.caseId).toBe(permissive.body.caseId);
-    await drainOutbox();
+    await drainUntil(
+      async () =>
+        (await cases.findOne(tenant.tenant, { caseId: permissive.body.caseId }))?.reviewPool ===
+        'specialist',
+      're-triage of the merged, restrictive report',
+    );
 
     /**
      * The second reporter's privacy terms bind the case. If the first reporter's
@@ -395,7 +399,10 @@ describe('merging a report into a case that already exists', () => {
       `sec-a-${Date.now()}`,
       deliveryBody(tenant, `sec-a-${Date.now()}`, { subjectExternalId }),
     );
-    await drainOutbox();
+    await drainUntil(
+      async () => (await cases.findOne(tenant.tenant, { caseId: opened.body.caseId }))?.triagedAt !== null,
+      'the first triage',
+    );
     await deliver(
       `sec-b-${Date.now()}`,
       deliveryBody(tenant, `sec-b-${Date.now()}`, {
@@ -403,7 +410,10 @@ describe('merging a report into a case that already exists', () => {
         reporterExternalId: 'reporter_frank',
       }),
     );
-    await drainOutbox();
+    await drainUntil(
+      async () => (await cases.findOne(tenant.tenant, { caseId: opened.body.caseId }))?.reportCount === 2,
+      're-triage after the merge',
+    );
 
     const published = await mongoose.connection
       .collection('outbox_events')

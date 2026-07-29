@@ -10,6 +10,7 @@ import {
   availabilityScore,
   eligibilityRejection,
   requiresAdultReviewer,
+  SENSITIVE_EXPOSURE_WINDOW_HOURS,
   type CaseEligibilityCriteria,
   type ExposureFacts,
 } from '../reviewer/eligibility';
@@ -272,7 +273,7 @@ async function gatherExposure(
     ],
   });
 
-  const windowStart = new Date(now.getTime() - 4 * HOUR_MS);
+  const windowStart = new Date(now.getTime() - SENSITIVE_EXPOSURE_WINDOW_HOURS * HOUR_MS);
 
   for (const row of rows) {
     const facts = exposure.get(row.reviewerId);

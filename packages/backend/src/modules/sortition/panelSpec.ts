@@ -69,7 +69,7 @@ export interface SlotRequirement {
   readonly requiresSpecialism: boolean;
 }
 
-export const SLOT_REQUIREMENTS: Readonly<Record<SlotType, SlotRequirement>> = Object.freeze({
+const SLOT_REQUIREMENTS: Readonly<Record<SlotType, SlotRequirement>> = Object.freeze({
   reliable_general: {
     minState: 'community',
     minReliability: RELIABLE_MIN_RELIABILITY,

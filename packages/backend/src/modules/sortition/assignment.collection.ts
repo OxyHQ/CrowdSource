@@ -54,9 +54,6 @@ export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
 /** Statuses in which the reviewer still holds the case. */
 export const OPEN_ASSIGNMENT_STATUSES: readonly AssignmentStatus[] = ['offered', 'accepted'];
 
-/** Statuses that ended without a review, and so need a replacement (§8.7). */
-export const VACATED_ASSIGNMENT_STATUSES: readonly AssignmentStatus[] = ['recused', 'expired'];
-
 export interface AssignmentDocument {
   assignmentId: string;
   /** Stamped from the case inside the draw's transaction. Never from a caller. */

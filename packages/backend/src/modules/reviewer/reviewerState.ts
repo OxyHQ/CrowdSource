@@ -54,7 +54,7 @@ export const REVIEWER_STATE_RANK: Readonly<Record<ReviewerState, number>> = Obje
 });
 
 /** The lowest state that may be drawn for a real case (§8.1, §8.2). */
-export const MIN_DRAWABLE_STATE: ReviewerState = 'community';
+const MIN_DRAWABLE_STATE: ReviewerState = 'community';
 
 /**
  * True when this state may sit on a jury that decides a real case.

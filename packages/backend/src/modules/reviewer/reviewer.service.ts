@@ -47,7 +47,7 @@ import { canTransition, type ReviewerState } from './reviewerState';
  */
 
 /** §13.7's daily limits. The reviewer chooses within this ceiling. */
-export const DAILY_REVIEW_LIMIT_DEFAULT = 20;
+const DAILY_REVIEW_LIMIT_DEFAULT = 20;
 export const DAILY_REVIEW_LIMIT_MAX = 40;
 
 /**
@@ -127,6 +127,25 @@ type ProfileMutation = Partial<
 >;
 
 /**
+ * The one gate every state change passes through.
+ *
+ * Exported because `recordSubmittedReview` writes a promotion inside the
+ * review's transaction and so cannot go through `mutateProfile`. Without this it
+ * would be the ONE live path that changes a reviewer's state without consulting
+ * §8.1's ladder — and it is the path that matters most, since it is the only one
+ * that promotes anybody.
+ *
+ * A no-op transition is allowed: a write that happens to restate the current
+ * state is not a move.
+ */
+export function assertTransition(from: ReviewerState, to: ReviewerState): void {
+  if (from === to) return;
+  if (!canTransition(from, to)) {
+    throw new Error(`A reviewer cannot move from '${from}' to '${to}'.`);
+  }
+}
+
+/**
  * Applies a mutation and re-derives everything that depends on it.
  *
  * The single writer of `personhoodConfidence`, and the single place a state
@@ -144,13 +163,7 @@ async function mutateProfile(
     throw new ApiError('not_found', 'No such reviewer profile.');
   }
 
-  if (mutation.state !== undefined && mutation.state !== current.state) {
-    if (!canTransition(current.state, mutation.state)) {
-      throw new Error(
-        `A reviewer cannot move from '${current.state}' to '${mutation.state}'.`,
-      );
-    }
-  }
+  if (mutation.state !== undefined) assertTransition(current.state, mutation.state);
 
   const merged: ReviewerProfileDocument = { ...current, ...mutation };
   const updated = await reviewerProfiles.findOneAndUpdate(
@@ -249,12 +262,6 @@ export async function ensureReviewerProfile(
     throw new Error('Creating a reviewer profile returned no document.');
   }
   return created;
-}
-
-export async function findReviewerProfile(
-  reviewerId: string,
-): Promise<ReviewerProfileDocument | null> {
-  return reviewerProfiles.findOne({ reviewerId });
 }
 
 /** §10.3's `POST /v1/reviewer/preferences`, as named fields. */
@@ -515,6 +522,8 @@ export async function recordSubmittedReview(
 
   const promotion = promotionFor(updated);
   if (promotion === null) return;
+
+  assertTransition(updated.state, promotion.state);
 
   await reviewerProfiles.findOneAndUpdate(
     { reviewerId },

@@ -33,10 +33,15 @@ const { createApp } = await import('../app');
 const { registerOutboxWorkers } = await import('../modules/outbox/workers');
 const { assignments } = await import('../modules/sortition/assignment.collection');
 const { sortitionDraws } = await import('../modules/sortition/draw.collection');
-const { replayDraw } = await import('../modules/sortition/sortition.service');
+const { openPanel, replayDraw } = await import('../modules/sortition/sortition.service');
+const { MAX_PANEL_ROUND } = await import('../modules/sortition/panelSpec');
+const { MAX_CO_SERVICE } = await import('../modules/sortition/exclusions');
+const { MAX_OPEN_ASSIGNMENTS } = await import('../modules/reviewer/eligibility');
 const { expireDueAssignments } = await import('../modules/sortition/assignment.service');
 const { reviews } = await import('../modules/review/review.collection');
-const { reviewerProfiles } = await import('../modules/reviewer/reviewer.collection');
+const { affinityPairKey, reviewerAffinities, reviewerProfiles } = await import(
+  '../modules/reviewer/reviewer.collection'
+);
 const { createReviewer, createReviewerPool } = await import('./support/reviewers');
 const { deliveryBody, drainUntil, provisionTenant, startDatabase, stopDatabase } = await import(
   './support/tenants'
@@ -860,6 +865,173 @@ describe('§8.7: an expired assignment is replaced', () => {
   });
 });
 
+/**
+ * §8.6's escalation, driven end to end.
+ *
+ * The consensus engine is what will call this (§15.5) — it decides when a panel
+ * disagrees enough to need more people. What belongs to THIS phase is that
+ * expanding works and obeys the same rules: the sitting jurors keep their seats,
+ * the new seats come from a second draw with its own seed, and nobody is seated
+ * twice.
+ */
+describe('§8.6: expanding a panel from three to five', () => {
+  let expandedCaseId: string;
+  let originalPanel: string[];
+
+  beforeAll(async () => {
+    await createReviewerPool(FAMILY, 9);
+    expandedCaseId = await openCaseFor(CODE, `post_expand_${Date.now()}`);
+    originalPanel = (await assignments.find({ caseId: expandedCaseId })).map(
+      (seat) => seat.reviewerId,
+    );
+    expect(originalPanel).toHaveLength(3);
+
+    const outcome = await openPanel({
+      context: tenant.tenant,
+      caseId: expandedCaseId,
+      kind: 'expansion',
+      round: 2,
+    });
+    expect(outcome.status).toBe('drawn');
+  });
+
+  it('adds two seats and keeps the original three', async () => {
+    const seats = await assignments.find({ caseId: expandedCaseId });
+
+    expect(seats).toHaveLength(5);
+    for (const reviewerId of originalPanel) {
+      expect(seats.map((seat) => seat.reviewerId)).toContain(reviewerId);
+    }
+    expect(new Set(seats.map((seat) => seat.reviewerId)).size).toBe(5);
+  });
+
+  it('records the expansion as its own draw, at round 2', async () => {
+    const draws = await sortitionDraws.find(
+      { caseId: expandedCaseId },
+      { sort: { drawnAt: 1 } },
+    );
+
+    expect(draws).toHaveLength(2);
+    expect(draws[1]).toMatchObject({ kind: 'expansion', round: 2, panelSpecId: 'community.round2' });
+    expect(draws[1].seed).not.toBe(draws[0].seed);
+    // Only the seats round 1 did not already fill.
+    expect(draws[1].requestedSlots).toHaveLength(2);
+    expect(draws[1].selected).toHaveLength(2);
+  });
+
+  it('counts every pair on the finished panel (§8.5 affinity)', async () => {
+    /**
+     * Affinity is about who SAT TOGETHER, so a five-person panel owes ten pairs
+     * — not merely the pairs the second draw introduced. Two people who keep
+     * landing on the same juries stop being two independent judgements, and the
+     * ledger that notices is only useful if it counts the whole room.
+     */
+    const seats = await assignments.find({ caseId: expandedCaseId });
+    const ids = seats.map((seat) => seat.reviewerId);
+
+    for (let left = 0; left < ids.length; left += 1) {
+      for (let right = left + 1; right < ids.length; right += 1) {
+        const pair = await reviewerAffinities.findOne({
+          pairKey: affinityPairKey(ids[left], ids[right]),
+        });
+        expect(pair?.coServedCount, `${ids[left]} + ${ids[right]}`).toBeGreaterThanOrEqual(1);
+      }
+    }
+  });
+
+  it('replays the expansion draw with its incumbents in place (§16.3)', async () => {
+    const draws = await sortitionDraws.find(
+      { caseId: expandedCaseId },
+      { sort: { drawnAt: 1 } },
+    );
+
+    const replayed = await replayDraw(draws[1].drawId);
+    expect(replayed?.slice().sort()).toEqual(
+      draws[1].selected.map((seat) => seat.reviewerId).sort(),
+    );
+  });
+
+  it('refuses to expand past the ladder (§8.6)', async () => {
+    await expect(
+      openPanel({
+        context: tenant.tenant,
+        caseId: expandedCaseId,
+        kind: 'expansion',
+        round: MAX_PANEL_ROUND + 1,
+      }),
+    ).rejects.toThrow(/cannot expand past round/);
+  });
+
+  it('refuses a draw asked to fill no seat at all', async () => {
+    await expect(
+      openPanel({
+        context: tenant.tenant,
+        caseId: expandedCaseId,
+        kind: 'replacement',
+        slots: [],
+      }),
+    ).rejects.toThrow(/no seat to fill/);
+  });
+});
+
+/**
+ * §13.7's exposure ceiling, in a real draw.
+ *
+ * Invisible against a fresh pool — nobody is carrying anything — so it needs a
+ * reviewer who already is. The assertion reads the rejection the DRAW recorded
+ * for that specific person, which makes it independent of how large the pool
+ * happens to be: the claim is that the draw consulted the exposure rules, not
+ * that a particular panel came out a particular way.
+ */
+describe('§13.7: a reviewer at their open-case ceiling is not drawn', () => {
+  it('records them as rejected for the limit, by name', async () => {
+    const busy = await createReviewer({
+      family: FAMILY,
+      reliability: 0.95,
+      completedReviewCount: 40,
+    });
+
+    /**
+     * Three open assignments is the ceiling. They point at cases that do not
+     * exist, and that is fine — the count is about how much this person is
+     * carrying, not about what.
+     */
+    for (let index = 0; index < MAX_OPEN_ASSIGNMENTS; index += 1) {
+      await assignments.insertOne({
+        assignmentId: `asg_busy${String(index).padStart(27, '0')}`,
+        organizationId: tenant.organizationId,
+        applicationId: tenant.applicationId,
+        caseId: `case_busy${String(index).padStart(26, '0')}`,
+        caseRevision: 1,
+        drawId: 'drw_busy0000000000000000000000000',
+        incidentId: null,
+        reviewerId: busy.reviewerId,
+        slotType: 'reliable_general',
+        filledAs: 'reliable_general',
+        status: 'offered',
+        tokenHash: 'x'.repeat(64),
+        sensitivityClass: 'standard',
+        offeredAt: new Date(),
+        acceptedAt: null,
+        expiresAt: new Date(Date.now() + 3_600_000),
+        completedAt: null,
+        recusalReason: null,
+        replacementAssignmentId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    const busyCaseId = await openCaseFor(CODE, `post_busy_${Date.now()}`);
+    const draw = await sortitionDraws.findOne({ caseId: busyCaseId });
+
+    expect(
+      draw?.rejections.find((rejection) => rejection.reviewerId === busy.reviewerId)?.reason,
+    ).toBe('open_assignment_limit');
+    expect(draw?.selected.map((seat) => seat.reviewerId)).not.toContain(busy.reviewerId);
+  });
+});
+
 describe('§8.8: an undersized pool refuses rather than opening', () => {
   /**
    * The behaviour that separates this from the system it replaces.
@@ -891,7 +1063,10 @@ describe('§8.8: an undersized pool refuses rather than opening', () => {
     expect(draw?.status).toBe('refused');
     expect(draw?.refusalReason).toBe('candidate_pool_too_small');
     expect(draw?.selected).toEqual([]);
-    expect(draw?.eligibleCount).toBe(0);
+    // Fewer than a panel needs. Not necessarily zero: this file deliberately
+    // reuses families across blocks, so the claim is "too few", which is the
+    // claim the guard actually makes.
+    expect(draw?.eligibleCount).toBeLessThan(3);
     // The seed is still written: a refusal is a draw that happened.
     expect(draw?.seed).toMatch(/^[0-9a-f]{64}$/);
   });
