@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  FINDING_CONTEXTS,
   FINDING_SCOPES,
+  FindingContextSchema,
   REPUTATION_ELIGIBLE_FINDING_SCOPES,
   RECOMMENDED_ACTIONS,
   SensitivityHintSchema,
@@ -84,6 +86,34 @@ describe('finding scopes', () => {
 
   it('lists only the two scopes §11.7.5 names as reputation-eligible', () => {
     expect([...REPUTATION_ELIGIBLE_FINDING_SCOPES]).toEqual(['oxy_network', 'identity_integrity']);
+  });
+});
+
+describe('finding contexts — §9.4’s "excepción relevante"', () => {
+  it('carries §6.2’s own word', () => {
+    // The one token the plan writes: "sexual_content.nudity, severity = medium,
+    // context = artistic".
+    expect(FINDING_CONTEXTS).toContain('artistic');
+  });
+
+  it('is closed, because §9.4 compares it between reviewers', () => {
+    /**
+     * Two jurors agree on the exception or they do not, and a free-text field
+     * could never answer that — the same reasoning that keeps the taxonomy
+     * closed in §6.1. It would also be a route for case content to reach a
+     * decision record, which §13.5 forbids.
+     */
+    expect(rejectionIssues(FindingContextSchema, 'it was a joke between friends')).toHaveLength(1);
+    expect(new Set(FINDING_CONTEXTS).size).toBe(FINDING_CONTEXTS.length);
+    expect(FINDING_CONTEXTS.every((context) => /^[a-z][a-z_]*$/.test(context))).toBe(true);
+  });
+
+  it('has no "none" token, because absence is the answer', () => {
+    // Absence is the safe direction here — a finding with no exception stands as
+    // classified — unlike `FindingScope`, where an absent field would make
+    // §11.7.5 a presence check that fails open.
+    expect(FINDING_CONTEXTS).not.toContain('none');
+    expect(FINDING_CONTEXTS).not.toContain('other');
   });
 });
 

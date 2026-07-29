@@ -61,6 +61,24 @@ export const PolicyVersionSchema = z
   );
 
 /**
+ * The version of the Oxy Conduct Policy every decision is stamped with (§6.4).
+ *
+ * §6.1 assigns the third layer — "should this conduct affect global Oxy trust?"
+ * — to the Oxy Conduct Policy, evaluated by the Reputation Bridge. That bridge
+ * does not exist yet, and this constant is deliberately NOT a promise that it
+ * does. What it is: the label a decision published today records, so that when
+ * the bridge arrives it can tell which conduct policy a historical decision was
+ * decided under and refuse to re-interpret it under a newer one. §6.4's "a
+ * policy update never silently rewrites historical decisions" is unenforceable
+ * without a version on every decision from the first one.
+ *
+ * The value is Appendix B's. It is pinned here, in the package both the
+ * decision DTO and the reputation event import, so the two cannot drift into
+ * describing the same decision under two different conduct policies.
+ */
+export const OXY_CONDUCT_POLICY_VERSION = 'oxy.2026.1';
+
+/**
  * The policy an envelope asks to be evaluated under (§5.1 `policy`).
  *
  * `locale` selects the language the policy text is shown to the reviewer in

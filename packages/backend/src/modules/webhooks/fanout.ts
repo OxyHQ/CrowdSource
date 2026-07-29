@@ -1,6 +1,8 @@
 import type { WebhookEventType } from '@oxyhq/crowdsource-contracts';
 
 import { createTenantContext, type TenantContext } from '../../db/tenantScope';
+import { decisions } from '../decision/decision.collection';
+import { decisionView } from '../decision/decision.service';
 import { reports } from '../ingestion/report.collection';
 import {
   OUTBOX_EVENT_TYPES,
@@ -22,19 +24,20 @@ import { endpointsSubscribedTo } from './endpoint.service';
  * events that happen to be tenant-visible, and owns the translation. Adding an
  * event is an entry in `WEBHOOK_EVENT_SOURCES` below and nothing anywhere else.
  *
- * ## What is wired today, and what is waiting on Phase 4
+ * ## What is wired today, and what is still waiting
  *
- * Only `report.received`, because it is the only one of §10.6's eight events the
- * domain currently emits. `case.decided`, `decision.corrected`, `appeal.created`,
- * `appeal.decided` and `case.closed` are published by consensus, decisions and
- * appeals, none of which exist yet; `case.created` and `case.escalated` are
- * observable inside ingestion and triage but are not published to the outbox, and
- * publishing them means editing those modules rather than this one.
+ * Three of §10.6's eight: `report.received` from ingestion, and `case.decided`
+ * and `decision.corrected` from the decision module. Each arrived the same way
+ * — as one entry in the table below — once the module that owns the event
+ * started publishing it, which is the property this file exists to have.
  *
- * That is a real limit and it is stated rather than papered over: the delivery
- * machinery below is exercised end to end by `report.received`, and every other
- * event type becomes a three-line entry in the table when the module that owns
- * it starts publishing.
+ * `appeal.created` and `appeal.decided` wait on the appeal SURFACE (§15.9): the
+ * supersession mechanism exists, but nothing yet records an appeal as an object
+ * with a requester and a reason, and an `appealId` is the one field those two
+ * events are about. `case.closed` waits on retention and closure (§13.6).
+ * `case.created` and `case.escalated` are observable inside ingestion and triage
+ * but are not published to the outbox, and publishing them means editing those
+ * modules rather than this one.
  *
  * ## Why the event id is the outbox row's id
  *
@@ -85,6 +88,33 @@ const buildReportReceivedData: WebhookDataBuilder = async (context, event) => {
 };
 
 /**
+ * `case.decided` and `decision.corrected` — §10.7's own payload.
+ *
+ * The decision is read back from the collection rather than carried on the
+ * event, for the same reason the report is: an outbox payload that grew to hold
+ * a whole decision would be a copy of the domain in a collection that ends up in
+ * logs and metrics. The shape is §10.7's `{ caseId, decision }`, and `decision`
+ * is the DTO — `agreeingReviewerIds` never leaves the database (§9.1: juror
+ * identities are withheld from the jury itself, and an application learning
+ * which reviewers decided against its user would be worse).
+ *
+ * Both events share this builder because they carry the same object. What
+ * differs is what the receiver is being told: `case.decided` is "here is the
+ * outcome", `decision.corrected` is "the outcome you were told before has been
+ * replaced" — and §9.8 gives the second its own consequences, so an application
+ * must be able to subscribe to it separately.
+ */
+const buildDecisionData: WebhookDataBuilder = async (context, event) => {
+  const decisionId = event.payload.decisionId;
+  if (!decisionId) return null;
+
+  const stored = await decisions.findOne(context, { decisionId });
+  if (!stored) return null;
+
+  return { caseId: stored.caseId, decision: decisionView(stored) };
+};
+
+/**
  * Which internal events become which webhook events.
  *
  * A table rather than a switch so the set is readable in one place and a missing
@@ -94,6 +124,14 @@ const WEBHOOK_EVENT_SOURCES: ReadonlyMap<OutboxEventType, WebhookEventSource> = 
   [
     OUTBOX_EVENT_TYPES.reportReceived,
     { webhookEventType: 'report.received', buildData: buildReportReceivedData },
+  ],
+  [
+    OUTBOX_EVENT_TYPES.caseDecided,
+    { webhookEventType: 'case.decided', buildData: buildDecisionData },
+  ],
+  [
+    OUTBOX_EVENT_TYPES.decisionCorrected,
+    { webhookEventType: 'decision.corrected', buildData: buildDecisionData },
   ],
 ]);
 

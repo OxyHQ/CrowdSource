@@ -58,6 +58,8 @@ casesRouter.get(
       reportCount: view.reportCount,
       sensitivityClass: view.sensitivityClass,
       currentRevision: view.currentRevision,
+      /** §10.2: the case AND its decision. Null until a jury has reached one. */
+      decision: view.decision,
       createdAt: view.createdAt.toISOString(),
       updatedAt: view.updatedAt.toISOString(),
     });

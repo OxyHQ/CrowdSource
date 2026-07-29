@@ -4,6 +4,7 @@ import helmet from 'helmet';
 
 import { errorHandler, notFoundHandler } from './http/errorHandler';
 import { casesRouter } from './modules/cases/cases.routes';
+import { decisionsRouter } from './modules/decision/decisions.routes';
 import { reportsRouter } from './modules/ingestion/reports.routes';
 import { reviewerRouter } from './modules/reviewer/reviewer.routes';
 import { assignmentsRouter } from './modules/sortition/assignments.routes';
@@ -19,12 +20,14 @@ import { healthRouter } from './routes/health.routes';
  *
  * The moderation modules of the plan mount here as they are built. Two caller
  * classes now have a surface, and neither may satisfy the other's routes:
- * SERVICE CREDENTIALS reach ingestion, case read-back and webhook endpoint
- * management; an OXY SESSION reaches the reviewer and assignment routes.
- * Evidence, the policy registry, triage, sortition's draw and webhook DELIVERY
- * have no HTTP surface of their own — the first is reached through ingestion and
- * the rest through the outbox and their workers. Consensus, decision and the
- * reputation bridge are not written.
+ * SERVICE CREDENTIALS reach ingestion, case and decision read-back and webhook
+ * endpoint management; an OXY SESSION reaches the reviewer and assignment
+ * routes. Evidence, the policy registry, triage, sortition's draw, CONSENSUS and
+ * webhook DELIVERY have no HTTP surface of their own — the first is reached
+ * through ingestion and the rest through the outbox and their workers, which is
+ * what keeps "nobody chooses the case they review" and "no reviewer sees a
+ * partial result" true by there being nothing to ask. The reputation bridge is
+ * not written.
  */
 export function createApp(): Express {
   const app = express();
@@ -49,6 +52,7 @@ export function createApp(): Express {
   const v1: Router = Router();
   v1.use(reportsRouter);
   v1.use(casesRouter);
+  v1.use(decisionsRouter);
   v1.use(webhookEndpointsRouter);
 
   /**

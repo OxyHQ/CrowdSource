@@ -171,6 +171,32 @@ describe('findings and actions', () => {
     ).toHaveLength(1);
   });
 
+  /**
+   * §9.4's "excepción relevante" survives onto the published finding.
+   *
+   * It is one of the six dimensions the panel had to agree on, so a decision
+   * that dropped it would be one nobody could reproduce from the ballots — two
+   * jurors who agreed on "artistic nudity" and a decision that says "nudity"
+   * are not the same claim.
+   */
+  it('carries §6.2’s context through from the reviews that agreed on it', () => {
+    const decision = accepted(DecisionSchema, {
+      ...decisionExample(),
+      outcome: 'no_violation',
+      findings: [
+        {
+          code: 'sexual_content.nudity',
+          resourceIds: ['res_post'],
+          severity: 'medium',
+          context: 'artistic',
+          scope: 'application_local',
+        },
+      ],
+    });
+
+    expect(decision.findings[0]?.context).toBe('artistic');
+  });
+
   it('rejects a finding scope outside the three the contract defines', () => {
     expect(
       rejectionPaths(DecisionSchema, {

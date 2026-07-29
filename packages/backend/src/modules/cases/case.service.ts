@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
 import type { ClientSession } from 'mongoose';
-import type { CaseEnvelope, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
+import type { CaseEnvelope, Decision, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 
 import type { TenantContext } from '../../db/tenantScope';
 import { newPublicId } from '../../utils/identifiers';
+import { currentDecision, decisionView } from '../decision/decision.service';
 import { contentHashOf, contentSnapshotOf } from '../evidence/contentSnapshot';
 import type { ResolvedPolicy } from '../policy/policy.registry';
 import { caseDedupKey } from './caseDedupKey';
@@ -165,6 +166,7 @@ export async function attachReportToCase(
         escalated: false,
         triagedAt: null,
         currentRevision: 1,
+        decidedRevision: 0,
         incidentId: null,
         firstReportedAt: receivedAt,
         createdAt: receivedAt,
@@ -236,6 +238,16 @@ export interface CaseView {
   readonly reportCount: number;
   readonly sensitivityClass: CaseDocument['sensitivityClass'];
   readonly currentRevision: number;
+  /**
+   * §10.2: "consultar caso Y DECISIÓN dentro del tenant".
+   *
+   * The decision currently in force, or null before one is published. §9.9 says
+   * the interface shows the decision in force while keeping the whole history,
+   * and that is exactly this field plus `GET /v1/decisions/{id}`: a superseded
+   * revision is still readable by id, and `supersedesDecisionId` chains
+   * backwards through every revision from here.
+   */
+  readonly decision: Decision | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
@@ -259,6 +271,8 @@ export async function findCaseView(
   const stored = await cases.findOne(context, { caseId });
   if (!stored) return null;
 
+  const decided = await currentDecision(context, caseId);
+
   return {
     caseId: stored.caseId,
     status: stored.status,
@@ -269,6 +283,7 @@ export async function findCaseView(
     reportCount: stored.reportCount,
     sensitivityClass: stored.sensitivityClass,
     currentRevision: stored.currentRevision,
+    decision: decided === null ? null : decisionView(decided),
     createdAt: stored.createdAt,
     updatedAt: stored.updatedAt,
   };

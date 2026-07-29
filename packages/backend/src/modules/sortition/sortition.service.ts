@@ -41,6 +41,7 @@ import {
 import { exclusionFor, MAX_CO_SERVICE, type CaseParties } from './exclusions';
 import {
   MAX_PANEL_ROUND,
+  panelRoundFor,
   panelSpecFor,
   satisfiesSlot,
   SLOT_TYPES,
@@ -680,10 +681,15 @@ export async function openPanel(input: OpenPanelInput): Promise<PanelOutcome> {
      * The case moves to `awaiting_review` only from a state that has not
      * already moved past it. A replacement draw for a case somebody is already
      * reviewing must not drag its lifecycle backwards.
+     *
+     * `appealed` is on the list because §9.9's second revision starts there: the
+     * previous decision has been superseded and a fresh panel is being drawn, so
+     * the case genuinely is awaiting review again. Without it a revision-2 panel
+     * would be seated on a case still reporting itself as under appeal.
      */
     await cases.updateOne(
       context,
-      { caseId, status: { $in: ['triaged', 'escalated'] } },
+      { caseId, status: { $in: ['triaged', 'escalated', 'appealed'] } },
       { set: { status: 'awaiting_review', updatedAt: now } },
       session,
     );
@@ -704,9 +710,10 @@ export async function openPanel(input: OpenPanelInput): Promise<PanelOutcome> {
 /**
  * The round this panel is at, from the seats it already has.
  *
- * Derived rather than stored on the case, so a replayed event cannot advance the
- * ladder twice: the seats are the record, and counting them twice gives the same
- * answer while incrementing a counter twice does not.
+ * `panelRoundFor` is shared with consensus, which needs the same answer to pick
+ * §8.6's threshold: a second implementation that disagreed by one would either
+ * expand a panel that is already full or hold a full panel to the previous
+ * round's threshold.
  */
 function currentRound(
   pool: ReviewPool,
@@ -717,10 +724,7 @@ function currentRound(
     (assignment) => assignment.status !== 'recused' && assignment.status !== 'expired',
   ).length;
 
-  const reached = [1, 2, 3].reduce(
-    (highest, round) => (panelSpecFor(pool, round).slots.length <= seated ? round : highest),
-    1,
-  );
+  const reached = panelRoundFor(pool, seated);
   return kind === 'expansion' ? Math.min(MAX_PANEL_ROUND, reached + 1) : reached;
 }
 

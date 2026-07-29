@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CasePolicyRefSchema,
   DecisionPolicyVersionsSchema,
+  OXY_CONDUCT_POLICY_VERSION,
   PolicySetIdSchema,
   PolicySetVersionSchema,
   ReputationPolicyVersionsSchema,
@@ -56,6 +57,38 @@ describe('the three policy versions (§6.4)', () => {
         application: 'mention.2026.07',
       }),
     ).toEqual(['oxyConduct']);
+  });
+
+  /**
+   * The pinned Oxy Conduct version, and what it is NOT.
+   *
+   * §6.1 assigns the third layer to the Oxy Conduct Policy, evaluated by the
+   * Reputation Bridge, which does not exist. This constant is not a claim that
+   * it does — it is the label a decision published today records so that when
+   * the bridge arrives it can tell which conduct policy a historical decision
+   * was decided under. §6.4's "a policy update never silently rewrites
+   * historical decisions" is unenforceable without a version on every decision
+   * from the first one.
+   */
+  it('pins the Oxy Conduct version Appendix B uses, in the package both surfaces import', () => {
+    expect(OXY_CONDUCT_POLICY_VERSION).toBe('oxy.2026.1');
+    expect(
+      accepted(DecisionPolicyVersionsSchema, {
+        taxonomy: '2026.1',
+        application: 'mention.2026.07',
+        oxyConduct: OXY_CONDUCT_POLICY_VERSION,
+      }).oxyConduct,
+    ).toBe(OXY_CONDUCT_POLICY_VERSION);
+
+    // The reputation event of §11.6 stamps the same value, so a decision and the
+    // effect it produces cannot describe two different conduct policies.
+    expect(
+      accepted(ReputationPolicyVersionsSchema, {
+        universal: '2026.1',
+        application: 'mention.2026.07',
+        oxyConduct: OXY_CONDUCT_POLICY_VERSION,
+      }).oxyConduct,
+    ).toBe(OXY_CONDUCT_POLICY_VERSION);
   });
 });
 

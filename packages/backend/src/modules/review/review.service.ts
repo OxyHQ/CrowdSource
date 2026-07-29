@@ -1,8 +1,10 @@
 import type { ReviewSubmission } from '@oxyhq/crowdsource-contracts';
 
+import { createTenantContext } from '../../db/tenantScope';
 import { duplicateKeyViolation, withTransaction } from '../../db/transaction';
 import { ApiError } from '../../http/apiError';
 import { newPublicId } from '../../utils/identifiers';
+import { appendOutboxEvent, OUTBOX_EVENT_TYPES } from '../outbox/outbox.collection';
 import { recordSubmittedReview } from '../reviewer/reviewer.service';
 import { consumeAssignmentForReview } from '../sortition/assignment.service';
 import { reviews } from './review.collection';
@@ -81,6 +83,26 @@ export async function submitReview(input: SubmitReviewInput): Promise<SubmittedR
       );
 
       await recordSubmittedReview(assignment.reviewerId, session);
+
+      /**
+       * Wakes the consensus engine (§9.4), in this transaction and never inline.
+       *
+       * Inline evaluation would put the count on the critical path of the third
+       * juror's request, and §9.1 forbids a reviewer learning anything about the
+       * result — including from a response that took two seconds longer than the
+       * previous two. Through the outbox it is also durable: a process that dies
+       * between the vote landing and the panel being counted leaves a row that
+       * says the panel still needs counting, rather than a case that waits
+       * forever for an event nobody recorded.
+       */
+      await appendOutboxEvent(
+        createTenantContext(assignment.organizationId, assignment.applicationId),
+        session,
+        {
+          type: OUTBOX_EVENT_TYPES.reviewSubmitted,
+          payload: { caseId: assignment.caseId, assignmentId: assignment.assignmentId },
+        },
+      );
 
       return {
         reviewId,

@@ -253,6 +253,48 @@ export const RecommendedActionSchema = z.enum(RECOMMENDED_ACTIONS);
 export type RecommendedAction = z.infer<typeof RecommendedActionSchema>;
 
 /**
+ * The context that makes a classification not mean what it usually means —
+ * §9.2's and §9.4's "excepción", §6.2's `context`.
+ *
+ * §6.2's worked example is where this field comes from and what fixes its
+ * shape: the jury's finding is `sexual_content.nudity, severity = medium,
+ * context = artistic`, and it is that qualifier — not the code and not the
+ * severity — that turns the same classification into a violation under one
+ * application's policy and not under another's. It therefore belongs to layer
+ * one, beside the code: a reviewer describes what the material IS, and
+ * "artistic nudity" is a different description from "nudity".
+ *
+ * §9.4 makes it one of the six dimensions consensus is measured on, which is
+ * the reason it must be a CLOSED list. Two reviewers who both answer
+ * `no_violation` but for incompatible reasons — one because the material is
+ * documentary, one because they think the rule does not cover it at all — have
+ * not agreed about the material, and a free-text field could not tell the two
+ * apart. An open token would also be a channel for case content to reach a
+ * decision record, which §13.5 forbids.
+ *
+ * Only `artistic` is the plan's own word. The rest are the exception vocabulary
+ * every published moderation policy shares, and they are named here rather than
+ * left to a tenant because layer one is CrowdSource's (§6.1) — a tenant that
+ * could mint its own exception tokens would make findings incomparable across
+ * applications, which is exactly what §6.1 exists to prevent. Absence means no
+ * exception applies, which is the safe direction: a finding with no exception
+ * stands as classified.
+ */
+export const FINDING_CONTEXTS = [
+  'artistic',
+  'educational',
+  'documentary',
+  'newsworthy',
+  'satire',
+  'counter_speech',
+  'medical',
+  'consensual',
+  'fictional',
+] as const;
+export const FindingContextSchema = z.enum(FINDING_CONTEXTS);
+export type FindingContext = z.infer<typeof FindingContextSchema>;
+
+/**
  * A tenant's advance classification of how exposing the material is.
  *
  * The plan names exactly one value — `standard`, in Appendix A — and §7.5

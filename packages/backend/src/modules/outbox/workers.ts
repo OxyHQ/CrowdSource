@@ -1,3 +1,4 @@
+import { registerConsensusWorker } from '../consensus/consensus.worker';
 import { registerSortitionWorkers } from '../sortition/sortition.worker';
 import { registerTriageWorker } from '../triage/triage.worker';
 import { registerWebhookFanout } from '../webhooks/fanout';
@@ -26,5 +27,6 @@ import { registerWebhookFanout } from '../webhooks/fanout';
 export function registerOutboxWorkers(): void {
   registerTriageWorker();
   registerSortitionWorkers();
+  registerConsensusWorker();
   registerWebhookFanout();
 }

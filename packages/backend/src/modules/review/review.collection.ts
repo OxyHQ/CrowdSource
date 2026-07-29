@@ -3,6 +3,7 @@ import {
   CONTEXT_SUFFICIENCIES,
   REVIEW_OUTCOMES,
   type ContextSufficiency,
+  type RecommendedAction,
   type ReviewFinding,
   type ReviewOutcome,
 } from '@oxyhq/crowdsource-contracts';
@@ -50,7 +51,13 @@ export interface ReviewDocument {
   outcome: ReviewOutcome;
   contextSufficiency: ContextSufficiency;
   findings: ReviewFinding[];
-  recommendedActions: string[];
+  /**
+   * Typed as the closed vocabulary rather than as strings, because consensus
+   * counts them: §9.4's agreed recommendation is the one a majority of the
+   * winning jurors ticked, and counting a free-form string would mean two
+   * spellings of the same action never reaching a majority.
+   */
+  recommendedActions: RecommendedAction[];
   /**
    * The reviewer's free-text note.
    *
@@ -70,6 +77,8 @@ const reviewFindingSchema = new Schema<ReviewFinding>(
     code: { type: String, required: true },
     resourceIds: { type: [String], required: true },
     severity: { type: String, required: true },
+    /** §6.2's `context` / §9.4's "excepción relevante". Absent means none applies. */
+    context: { type: String, default: undefined },
     confidence: { type: Number, required: true },
     policyRuleIds: { type: [String], default: undefined },
   },

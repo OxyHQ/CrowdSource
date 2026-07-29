@@ -115,6 +115,63 @@ describe('ReviewSubmissionSchema', () => {
     ).toEqual(['findings.0.resourceIds']);
   });
 
+  /**
+   * §6.2's `context = artistic`, which §9.2 calls the "excepción" of the
+   * policy-evaluation step and §9.4 makes one of the six dimensions consensus is
+   * measured on.
+   *
+   * §6.2's own worked example is a jury finding `sexual_content.nudity,
+   * severity = medium, context = artistic`, so the field sits beside the code
+   * and the severity rather than on the submission: "artistic nudity" is a
+   * different description of the material, not a different verdict about it.
+   */
+  it('accepts §6.2’s context on a finding', () => {
+    const review = accepted(ReviewSubmissionSchema, {
+      ...reviewSubmissionExample(),
+      outcome: 'no_violation',
+      findings: [
+        {
+          code: 'sexual_content.nudity',
+          resourceIds: ['res_post'],
+          severity: 'medium',
+          context: 'artistic',
+          confidence: 0.8,
+        },
+      ],
+    });
+
+    expect(review.findings[0]?.context).toBe('artistic');
+  });
+
+  it('treats an absent context as "no exception applies"', () => {
+    // Absence is the safe direction: a finding with no exception stands as
+    // classified. It is optional for that reason, not by oversight.
+    expect(accepted(ReviewSubmissionSchema, reviewSubmissionExample()).findings[0]?.context).toBeUndefined();
+  });
+
+  it('refuses an exception the taxonomy does not name', () => {
+    /**
+     * §9.4 compares this field between reviewers. A free-text exception could
+     * never be compared — two jurors typing the same idea differently would read
+     * as a disagreement — and would be a channel for case content to reach a
+     * decision record, which §13.5 forbids.
+     */
+    expect(
+      rejectionPaths(ReviewSubmissionSchema, {
+        ...reviewSubmissionExample(),
+        findings: [
+          {
+            code: 'harassment.targeted_abuse',
+            resourceIds: ['res_post'],
+            severity: 'medium',
+            context: 'because it was a joke between friends',
+            confidence: 0.5,
+          },
+        ],
+      }),
+    ).toEqual(['findings.0.context']);
+  });
+
   it('rejects a confidence outside [0, 1]', () => {
     expect(
       rejectionPaths(ReviewSubmissionSchema, {

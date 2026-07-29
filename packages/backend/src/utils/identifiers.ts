@@ -47,6 +47,16 @@ export const ID_PREFIX = {
   /** One sortition draw: its seed, its candidate snapshot and its outcome. */
   sortitionDraw: 'drw',
   review: 'rev',
+  /**
+   * One REVISION of a case's outcome, not one case (§9.9, Appendix B's `dec_`).
+   *
+   * An appeal produces a second decision id for the same case, and both ids stay
+   * valid forever — the first names what was decided and later superseded, the
+   * second names what replaced it. An id that meant "the decision of this case"
+   * would have to be reused, which is the edit §9.9 forbids wearing a different
+   * hat.
+   */
+  decision: 'dec',
 } as const;
 
 export type PublicIdKind = keyof typeof ID_PREFIX;

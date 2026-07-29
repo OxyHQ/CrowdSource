@@ -45,6 +45,28 @@ export const OUTBOX_EVENT_TYPES = {
    * the failure the outbox exists to make impossible.
    */
   assignmentVacated: 'assignment.vacated',
+  /**
+   * A juror voted, so the panel may now be complete (§9.4).
+   *
+   * The consensus engine is woken by an event rather than by the review request
+   * finishing, because §9.1 forbids a reviewer learning anything about the
+   * result: if evaluation ran inline, the third juror's request would be the
+   * slow one, and "my submission took two seconds longer" is a partial result
+   * leaking through a stopwatch. Through the outbox it is also replay-safe and
+   * survives the process dying between the vote and the count.
+   */
+  reviewSubmitted: 'review.submitted',
+  /** A decision was published for a case revision (§10.6's `case.decided`). */
+  caseDecided: 'case.decided',
+  /**
+   * A later revision replaced a published decision (§9.8, §10.6).
+   *
+   * Separate from `case.decided` and emitted IN ADDITION to it, because §9.8
+   * gives the correction its own consequences — reverting the conduct effect and
+   * asking the application to restore — which an application must be able to
+   * subscribe to without also subscribing to every ordinary decision.
+   */
+  decisionCorrected: 'decision.corrected',
 } as const;
 
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[keyof typeof OUTBOX_EVENT_TYPES];
@@ -61,6 +83,7 @@ export interface OutboxEventPayload {
   readonly reportId?: string;
   readonly caseId?: string;
   readonly assignmentId?: string;
+  readonly decisionId?: string;
 }
 
 /**

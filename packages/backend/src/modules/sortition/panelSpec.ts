@@ -252,6 +252,24 @@ export function panelSpecFor(pool: ReviewPool, round: number): PanelSpec {
 /** The highest round the escalation ladder defines (§8.6). */
 export const MAX_PANEL_ROUND = 3;
 
+/**
+ * The round a panel of this many seats is at.
+ *
+ * Derived from the seats rather than stored on the case, so a replayed event
+ * cannot advance the ladder twice: counting three seats twice gives one both
+ * times, while incrementing a counter twice does not. Both the draw — deciding
+ * what to expand to — and consensus — deciding which threshold applies — need
+ * the same answer, and a second implementation of "which round is this" that
+ * disagreed by one would either expand a panel that is already full or hold a
+ * full panel to the previous round's threshold.
+ */
+export function panelRoundFor(pool: ReviewPool, seats: number): number {
+  return [1, 2, 3].reduce(
+    (highest, round) => (panelSpecFor(pool, round).slots.length <= seats ? round : highest),
+    1,
+  );
+}
+
 /** What a candidate offers a slot, as the numbers the requirements are about. */
 export interface SlotCandidateFacts {
   readonly state: ReviewerState;

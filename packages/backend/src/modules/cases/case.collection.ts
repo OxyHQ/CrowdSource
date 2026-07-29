@@ -90,6 +90,21 @@ export interface CaseDocument extends TenantContext {
   /** §9.9: revisions supersede, they never overwrite. Revision 1 until an appeal. */
   currentRevision: number;
   /**
+   * The highest revision that has a published decision. Zero until the first.
+   *
+   * §12.11's compare-and-swap, in the form the swap needs. Two consensus workers
+   * evaluating the same case at the same instant both try to move this from
+   * `< R` to `R`; MongoDB lets exactly one of them, and the loser's transaction
+   * retries, finds the filter no longer matches, and publishes nothing.
+   *
+   * A separate number rather than a check on `status` because `status` has three
+   * other writers — triage, the draw, and a juror opening their assignment — and
+   * a compare-and-swap racing writers it does not know about is not a
+   * compare-and-swap. This field has exactly one writer, only ever increases,
+   * and means one thing.
+   */
+  decidedRevision: number;
+  /**
    * Cross-application correlation (§7.3). Null until a privileged Trust & Safety
    * path links this case to an incident — never set from an application-API
    * request, and never returned to one.
@@ -140,6 +155,7 @@ const caseSchema = new Schema<CaseDocument>(
     triagedAt: { type: Date, default: null },
 
     currentRevision: { type: Number, required: true, default: 1 },
+    decidedRevision: { type: Number, required: true, default: 0 },
     incidentId: { type: String, default: null },
 
     firstReportedAt: { type: Date, required: true },

@@ -1,5 +1,6 @@
 import { createTenantContext } from '../../db/tenantScope';
 import { logger } from '../../utils/logger';
+import { cases } from '../cases/case.collection';
 import { OUTBOX_EVENT_TYPES, type OutboxEventDocument } from '../outbox/outbox.collection';
 import { registerOutboxHandler } from '../outbox/outbox.dispatcher';
 import { assignments } from './assignment.collection';
@@ -43,8 +44,20 @@ export async function handleCaseReadyForReview(event: OutboxEventDocument): Prom
    * A replay guard, and the reason it is a query rather than a flag: the
    * assignments ARE the record of whether this case has a panel. A boolean on
    * the case would be a second source of truth that can disagree with them.
+   *
+   * Scoped to the CURRENT REVISION, because a panel belongs to a revision
+   * (§9.9). An unscoped guard would be correct exactly once and then wrong
+   * forever: the moment an appeal opened revision 2, the revision-1 assignments
+   * would make this handler decide the case already had a panel, and the new
+   * jury §9.8 requires would never be drawn — silently, with the outbox row
+   * marked dispatched.
    */
-  const existing = await assignments.find({ caseId });
+  const stored = await cases.findOne(context, { caseId });
+  if (!stored) {
+    throw new Error(`Outbox event '${event.eventId}' names case '${caseId}', which does not exist.`);
+  }
+
+  const existing = await assignments.find({ caseId, caseRevision: stored.currentRevision });
   if (existing.length > 0) return;
 
   const outcome = await openPanel({ context, caseId, kind: 'initial' });

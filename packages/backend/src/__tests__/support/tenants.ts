@@ -173,6 +173,17 @@ export interface SampleEnvelopeOptions {
   readonly text?: string;
   readonly subjectExternalId?: string;
   readonly allegationCode?: string;
+  /**
+   * The language of the reported material.
+   *
+   * A second isolation axis alongside the taxonomy family, and the same kind of
+   * axis: §8.2 requires a reviewer to have the case's language, so a pool
+   * created with one language and a case created with another cannot see each
+   * other. There are eleven families and more test files than that wanting an
+   * exclusive pool, and the alternative — sharing a family between two blocks —
+   * makes `POST /assignments/next` ambiguous for a reviewer holding two cases.
+   */
+  readonly language?: string;
   readonly reporterExternalId?: string;
   readonly policy?: { readonly policySetId: string; readonly version: string };
   readonly allowCommunityReview?: boolean;
@@ -214,7 +225,7 @@ export function sampleEnvelope(options: SampleEnvelopeOptions): CaseEnvelope {
         id: 'res_post',
         type: 'text',
         role: 'subject',
-        language: 'es',
+        language: options.language ?? 'es',
         data: { text },
         sha256: digestOf(text),
         authorPrincipalRef: 'author_1',

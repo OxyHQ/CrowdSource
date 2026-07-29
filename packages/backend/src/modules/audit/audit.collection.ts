@@ -31,6 +31,7 @@ export const AUDIT_ACTIONS = [
   'report.ingress.rejected',
   'report.receipt.read',
   'case.read',
+  'decision.read',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

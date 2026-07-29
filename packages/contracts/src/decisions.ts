@@ -27,6 +27,7 @@ import { ResourceIdSchema } from './resources';
 import { ContextSufficiencySchema } from './reviews';
 import {
   FindingAttributionSchema,
+  FindingContextSchema,
   FindingScopeSchema,
   RecommendedActionSchema,
   SeveritySchema,
@@ -70,11 +71,17 @@ export type DecisionOutcome = z.infer<typeof DecisionOutcomeSchema>;
  * `attribution` is optional because plenty of confirmed findings attribute
  * nothing to anybody — material can violate a rule without any principal having
  * behaved badly.
+ *
+ * `context` carries §6.2's exception through unchanged from the reviews that
+ * agreed on it. It is one of §9.4's six consensus dimensions, so a published
+ * finding that dropped it would be a decision nobody could reproduce from the
+ * ballots.
  */
 export const DecisionFindingSchema = z.looseObject({
   code: TaxonomyCodeSchema,
   resourceIds: z.array(ResourceIdSchema).min(1).max(CONTRACT_LIMITS.RESOURCE_REFS_PER_FINDING_MAX),
   severity: SeveritySchema,
+  context: FindingContextSchema.optional(),
   scope: FindingScopeSchema,
   attribution: FindingAttributionSchema.optional(),
   policyRuleIds: z.array(PolicyRuleIdSchema).max(CONTRACT_LIMITS.POLICY_RULE_IDS_MAX).optional(),

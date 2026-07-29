@@ -348,8 +348,19 @@ describe('fan-out', () => {
     expect(await webhookDeliveries.find({ eventId })).toHaveLength(0);
   });
 
+  /**
+   * The pin, and it is a pin rather than a count: an internal event becoming
+   * tenant-visible is a privacy decision, not a wiring detail. §10.6 defines
+   * eight webhook events and the domain publishes three of them; a fourth
+   * appearing here without an edit to this line would mean a module started
+   * telling applications about something nobody agreed to tell them.
+   */
   it('consumes only the internal events it declares', () => {
-    expect(webhookSourcedEventTypes()).toEqual([OUTBOX_EVENT_TYPES.reportReceived]);
+    expect(webhookSourcedEventTypes()).toEqual([
+      OUTBOX_EVENT_TYPES.reportReceived,
+      OUTBOX_EVENT_TYPES.caseDecided,
+      OUTBOX_EVENT_TYPES.decisionCorrected,
+    ]);
   });
 
   /**

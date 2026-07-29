@@ -24,7 +24,12 @@ import { z } from 'zod';
 import { CONTRACT_LIMITS, UnitIntervalSchema } from './primitives';
 import { PolicyRuleIdSchema } from './policies';
 import { ResourceIdSchema } from './resources';
-import { RecommendedActionSchema, SeveritySchema, TaxonomyCodeSchema } from './taxonomy';
+import {
+  FindingContextSchema,
+  RecommendedActionSchema,
+  SeveritySchema,
+  TaxonomyCodeSchema,
+} from './taxonomy';
 
 /**
  * What a single reviewer can conclude.
@@ -63,6 +68,11 @@ export type ContextSufficiency = z.infer<typeof ContextSufficiencySchema>;
  * covers it, which is exactly the `no_violation`-with-findings case §6.2
  * describes.
  *
+ * `context` is §9.2's and §9.4's "excepción", written as §6.2 writes it: beside
+ * the code and the severity, because "artistic nudity" is a different
+ * description of the material from "nudity" rather than a different verdict
+ * about it. Optional, and absence means no exception applies.
+ *
  * `confidence` communicates quality and triggers escalation (§9.5). It never
  * weights the vote.
  */
@@ -70,6 +80,7 @@ export const ReviewFindingSchema = z.strictObject({
   code: TaxonomyCodeSchema,
   resourceIds: z.array(ResourceIdSchema).min(1).max(CONTRACT_LIMITS.RESOURCE_REFS_PER_FINDING_MAX),
   severity: SeveritySchema,
+  context: FindingContextSchema.optional(),
   confidence: UnitIntervalSchema,
   policyRuleIds: z.array(PolicyRuleIdSchema).max(CONTRACT_LIMITS.POLICY_RULE_IDS_MAX).optional(),
 });

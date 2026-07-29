@@ -28,6 +28,13 @@ import type { ReviewerState } from '../../modules/reviewer/reviewerState';
  * they accept (§8.2), so a `commerce` reviewer is never drawn for a `harassment`
  * case. That is the same mechanism the product uses, which is the point: the
  * test isolation is the feature, not a fixture trick.
+ *
+ * There are eleven families and more blocks wanting an exclusive pool than that
+ * — one of them, `hate`, is reserved by `sortitionPanel.integration.test.ts` as
+ * a family NOBODY serves, so its undersized-pool refusal has something to refuse
+ * — so `languages` is the second axis. §8.2 requires a reviewer to have the
+ * case's language too, so a pool created with one and a case created with
+ * another cannot see each other. Same mechanism, same reason it is trustworthy.
  */
 
 /**
@@ -148,12 +155,14 @@ export async function createReviewer(
 export async function createReviewerPool(
   family: TaxonomyFamily,
   size: number,
+  languages?: readonly string[],
 ): Promise<ReviewerFixture[]> {
   const created: ReviewerFixture[] = [];
   for (let index = 0; index < size; index += 1) {
     created.push(
       await createReviewer({
         family,
+        ...(languages === undefined ? {} : { languages }),
         reliability: index % 3 === 2 ? 0.4 : 0.9,
         completedReviewCount: index % 3 === 2 ? 0 : 40,
       }),
