@@ -24,6 +24,14 @@ export const ID_PREFIX = {
   case: 'case',
   outboxEvent: 'evt',
   auditEvent: 'aud',
+  webhookEndpoint: 'whe',
+  /**
+   * A LOGICAL delivery — one event to one endpoint, however many attempts it
+   * takes. Its attempts carry their own ids so a support conversation about "the
+   * third attempt" cannot be confused with one about the delivery itself.
+   */
+  webhookDelivery: 'whd',
+  webhookAttempt: 'wha',
 } as const;
 
 export type PublicIdKind = keyof typeof ID_PREFIX;

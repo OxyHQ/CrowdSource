@@ -36,6 +36,17 @@ const environmentSchema = z.object({
   MONGODB_SERVER_SELECTION_TIMEOUT_MS: z.coerce.number().int().min(1).default(20_000),
   MONGODB_SOCKET_TIMEOUT_MS: z.coerce.number().int().min(1).default(45_000),
   MONGODB_MAX_RETRIES: z.coerce.number().int().min(1).default(5),
+  /**
+   * The key webhook signing secrets are encrypted with at rest (§13.4).
+   *
+   * 32 bytes, hex or base64. Deliberately OPTIONAL rather than required: a
+   * newly-required variable refuses to boot the whole service the moment it
+   * merges, for a module nothing calls yet. Absent, the two webhook-management
+   * routes answer 503 naming this variable, so no endpoint can be registered
+   * without a secret and no delivery can go out unsigned. See
+   * `modules/webhooks/secretCipher.ts`.
+   */
+  WEBHOOK_SECRET_ENCRYPTION_KEY: optionalString,
 });
 
 function loadConfig() {
@@ -60,6 +71,7 @@ function loadConfig() {
     port: environment.PORT,
     logLevel: environment.LOG_LEVEL,
     mongoUri: environment.MONGODB_URI,
+    webhookSecretEncryptionKey: environment.WEBHOOK_SECRET_ENCRYPTION_KEY,
     db: {
       maxPoolSize: environment.MONGODB_MAX_POOL_SIZE,
       minPoolSize: environment.MONGODB_MIN_POOL_SIZE,

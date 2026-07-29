@@ -8,6 +8,11 @@ import {
   stopOutboxDispatcher,
 } from './src/modules/outbox/outbox.dispatcher';
 import { registerOutboxWorkers } from './src/modules/outbox/workers';
+import {
+  startWebhookDeliveryWorker,
+  stopWebhookDeliveryWorker,
+} from './src/modules/webhooks/delivery.worker';
+import { webhookSecretStorageConfigured } from './src/modules/webhooks/secretCipher';
 import { setRuntimeReady } from './src/routes/health.routes';
 import { connectToDatabase, disconnectFromDatabase } from './src/utils/database';
 import { logger } from './src/utils/logger';
@@ -67,6 +72,29 @@ async function start(): Promise<void> {
   registerOutboxWorkers();
   startOutboxDispatcher();
 
+  /**
+   * Webhook delivery (§10.9). A second loop rather than a step inside the first:
+   * the dispatcher turns an internal event into delivery ROWS in one quick pass,
+   * while a delivery waits on a retry ladder that reaches twenty-four hours, and
+   * putting a slow receiver inside the dispatcher's pass would let one endpoint
+   * hold up every other tenant's triage.
+   */
+  startWebhookDeliveryWorker();
+
+  /**
+   * Said once, loudly, at boot rather than discovered at the first registration.
+   *
+   * The key is deliberately not required — see `config/index.ts` — so this is
+   * the only place a deployment learns that webhook management will answer 503
+   * until the secret is set. Nothing is degraded silently: no endpoint can be
+   * registered without a secret, so no delivery can go out unsigned.
+   */
+  if (!webhookSecretStorageConfigured()) {
+    logger.warn(
+      'WEBHOOK_SECRET_ENCRYPTION_KEY is unset: webhook endpoint registration and rotation will answer 503.',
+    );
+  }
+
   await new Promise<void>((resolve) => {
     server.listen(config.port, resolve);
   });
@@ -91,6 +119,7 @@ function shutdown(signal: NodeJS.Signals): void {
   // once the lease expires, so a shutdown mid-handler is a delay rather than a
   // stranded row.
   stopOutboxDispatcher();
+  stopWebhookDeliveryWorker();
 
   server.close((error) => {
     if (error) {

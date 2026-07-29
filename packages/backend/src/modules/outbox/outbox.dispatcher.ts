@@ -62,6 +62,20 @@ export function resetOutboxHandlers(): void {
 }
 
 /**
+ * The event types that currently have a consumer.
+ *
+ * This is the set `claimNext` filters on, and it is the whole reason the outbox
+ * can be trusted: a type absent from it is one whose rows stay pending rather
+ * than being marked done by a loop that did nothing with them. Exposing it makes
+ * "which consumers did this process wire up?" answerable without running a pass
+ * — and running a pass is exactly what a second suite must not do against a
+ * shared database.
+ */
+export function registeredOutboxEventTypes(): readonly OutboxEventType[] {
+  return [...handlers.keys()];
+}
+
+/**
  * How long a claim is held before another dispatcher may take the row.
  *
  * Longer than any handler should run and short enough that a crashed process
