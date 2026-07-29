@@ -77,11 +77,42 @@ describe('the first request creates the profile (§8.1)', () => {
     expect(response.status).toBe(200);
     expect(response.body.state).toBe('applicant');
     expect(response.body.reviewerId).toMatch(/^rvw_/);
-    expect(response.body.categories).toEqual([]);
-    // Consent starts at the safe end: standard material only, no families.
-    expect(response.body.maxSensitivityRank).toBe(0);
-    expect(response.body.consentedSensitiveCategories).toEqual([]);
-    expect(response.body.isAdult).toBe(false);
+    expect(response.body.preferences.categories).toEqual([]);
+    // Consent starts at the safe end: standard material only, no families, and
+    // no acceptance of the reviewing rules until this person gives it.
+    expect(response.body.consent.maxSensitivity).toBe('standard');
+    expect(response.body.consent.sensitiveCategories).toEqual([]);
+    expect(response.body.consent.ageConfirmed).toBe(false);
+    expect(response.body.consent.rulesAcceptedAt).toBeNull();
+  });
+
+  it('names the eligibility a new applicant has not met yet (§8.2)', async () => {
+    /**
+     * The list is what lets the app say WHY the button is unavailable instead of
+     * letting somebody press it and receive a refusal with no explanation. Every
+     * entry has to be a check the server actually performs, so an applicant who
+     * has done nothing must show every acquirable one unmet.
+     */
+    const response = await request(app)
+      .get('/v1/reviewer/profile')
+      .set(asReviewer(newOxyUserId()));
+
+    const unmet = response.body.eligibility
+      .filter((requirement: { met: boolean }) => !requirement.met)
+      .map((requirement: { id: string }) => requirement.id)
+      .sort();
+
+    expect(unmet).toEqual([
+      'age',
+      'calibration_current',
+      'categories_selected',
+      'languages_selected',
+      'personhood',
+      'rules_accepted',
+      'training_current',
+    ]);
+    // The account is the one thing they arrived with.
+    expect(response.body.eligibility).toContainEqual({ id: 'oxy_account', met: true });
   });
 
   it('is idempotent — a second request is the same reviewer, not a second one', async () => {
@@ -104,6 +135,8 @@ describe('the first request creates the profile (§8.1)', () => {
     const response = await request(app).get('/v1/reviewer/profile').set(asReviewer(newOxyUserId()));
     expect(response.body.samplingKey).toBeUndefined();
     expect(response.body.riskClusterId).toBeUndefined();
+    expect(response.body.suspectedSockPuppet).toBeUndefined();
+    expect(response.body.personhoodConfidence).toBeUndefined();
   });
 
   it('refuses without a session', async () => {
@@ -113,20 +146,36 @@ describe('the first request creates the profile (§8.1)', () => {
   });
 
   it('tracks the Oxy verification flag as it changes', async () => {
+    /**
+     * The number is asserted against the DOCUMENT and the gate against the API,
+     * because the projection does not publish `personhoodConfidence`: what a
+     * reviewer needs is whether they clear the threshold, and a bare score
+     * invites them to optimise a figure whose inputs they cannot see. Checking
+     * both keeps the stored value honest AND the disclosure minimal.
+     */
     const oxyUserId = newOxyUserId();
 
-    const unverified = await request(app).get('/v1/reviewer/profile').set(asReviewer(oxyUserId));
-    expect(unverified.body.personhoodConfidence).toBe(0.3);
+    async function personhoodMet(verified: boolean): Promise<boolean> {
+      const response = await request(app)
+        .get('/v1/reviewer/profile')
+        .set(asReviewer(oxyUserId, verified));
+      expect(response.body.personhoodConfidence).toBeUndefined();
+      return response.body.eligibility.some(
+        (requirement: { id: string; met: boolean }) =>
+          requirement.id === 'personhood' && requirement.met,
+      );
+    }
 
-    const verified = await request(app)
-      .get('/v1/reviewer/profile')
-      .set(asReviewer(oxyUserId, true));
-    expect(verified.body.personhoodConfidence).toBe(0.7);
+    expect(await personhoodMet(false)).toBe(false);
+    expect((await reviewerProfiles.findOne({ oxyUserId }))?.personhoodConfidence).toBe(0.3);
+
+    expect(await personhoodMet(true)).toBe(true);
+    expect((await reviewerProfiles.findOne({ oxyUserId }))?.personhoodConfidence).toBe(0.7);
 
     // And back down again: losing verification must lower the score without
     // waiting for the reviewer to edit something.
-    const again = await request(app).get('/v1/reviewer/profile').set(asReviewer(oxyUserId));
-    expect(again.body.personhoodConfidence).toBe(0.3);
+    expect(await personhoodMet(false)).toBe(false);
+    expect((await reviewerProfiles.findOne({ oxyUserId }))?.personhoodConfidence).toBe(0.3);
   });
 });
 
@@ -141,9 +190,53 @@ describe('preferences and consent (§13.7)', () => {
       .send({ languages: ['es', 'en'], categories: [FAMILY], dailyReviewLimit: 8 });
 
     expect(response.status).toBe(200);
-    expect(response.body.languages).toEqual(['es', 'en']);
-    expect(response.body.categories).toEqual([FAMILY]);
-    expect(response.body.dailyReviewLimit).toBe(8);
+    expect(response.body.preferences.languages).toEqual(['es', 'en']);
+    expect(response.body.preferences.categories).toEqual([FAMILY]);
+    expect(response.body.preferences.dailyLimit).toBe(8);
+    // §13.7's exposure travels with the profile, so a screen showing the limit
+    // can show what is left of it without a second request.
+    expect(response.body.exposure).toEqual({
+      reviewedToday: 0,
+      dailyLimit: 8,
+      openAssignments: 0,
+      maxOpenAssignments: 3,
+      breakRequiredUntil: null,
+    });
+  });
+
+  it('records acceptance of the reviewing rules once, and never moves it (§13.7)', async () => {
+    const oxyUserId = newOxyUserId();
+    await request(app).get('/v1/reviewer/profile').set(asReviewer(oxyUserId));
+
+    const accepted = await request(app)
+      .post('/v1/reviewer/preferences')
+      .set(asReviewer(oxyUserId))
+      .send({ rulesAccepted: true });
+
+    expect(accepted.status).toBe(200);
+    const acceptedAt = accepted.body.consent.rulesAcceptedAt;
+    expect(typeof acceptedAt).toBe('string');
+
+    const again = await request(app)
+      .post('/v1/reviewer/preferences')
+      .set(asReviewer(oxyUserId))
+      .send({ rulesAccepted: true });
+
+    // A second acceptance is not a second consent, and overwriting the instant
+    // would lose the moment an audit needs.
+    expect(again.body.consent.rulesAcceptedAt).toBe(acceptedAt);
+  });
+
+  it('refuses an attempt to UN-accept the rules', async () => {
+    const oxyUserId = newOxyUserId();
+    await request(app).get('/v1/reviewer/profile').set(asReviewer(oxyUserId));
+
+    const response = await request(app)
+      .post('/v1/reviewer/preferences')
+      .set(asReviewer(oxyUserId))
+      .send({ rulesAccepted: false });
+
+    expect(response.status).toBe(400);
   });
 
   it('lets consent be WITHDRAWN, not only added', async () => {
@@ -169,8 +262,8 @@ describe('preferences and consent (§13.7)', () => {
       .set(asReviewer(oxyUserId))
       .send({ consentedSensitiveCategories: ['harassment'], maxSensitivity: 'standard' });
 
-    expect(withdrawn.body.consentedSensitiveCategories).toEqual(['harassment']);
-    expect(withdrawn.body.maxSensitivityRank).toBe(0);
+    expect(withdrawn.body.consent.sensitiveCategories).toEqual(['harassment']);
+    expect(withdrawn.body.consent.maxSensitivity).toBe('standard');
   });
 
   it('refuses adult-category consent from a profile that has not attested adulthood', async () => {
@@ -232,7 +325,7 @@ describe('training and calibration (§8.1, §9.7)', () => {
     await request(app)
       .post('/v1/reviewer/preferences')
       .set(asReviewer(oxyUserId))
-      .send({ languages: ['es'], categories: [FAMILY] });
+      .send({ rulesAccepted: true, languages: ['es'], categories: [FAMILY] });
 
     for (const module of TRAINING_MODULES) {
       const response = await request(app)
@@ -391,6 +484,7 @@ describe('promotion (§8.1)', () => {
     maxSensitivityRank: 0,
     consentedSensitiveCategories: [],
     declaredConflictApplications: [],
+    rulesAcceptedAt: new Date(),
     available: true,
     dailyReviewLimit: 20,
     trainingCompletedModules: [],
