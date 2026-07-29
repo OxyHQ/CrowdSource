@@ -92,5 +92,15 @@ export type { CaseView, ReadOptions } from './cases';
 export { Uploads } from './uploads';
 export type { EvidenceAsset, UploadInput } from './uploads';
 
+export { WebhookEndpoints } from './webhookEndpoints';
+export type {
+  RegisterWebhookEndpointInput,
+  RotateSecretOptions,
+  RotatedWebhookSecret,
+  WebhookEndpoint,
+  WebhookEndpointRequestOptions,
+  WebhookSecret,
+} from './webhookEndpoints';
+
 export { DEFAULT_MAX_ATTEMPTS, DEFAULT_TIMEOUT_MS } from './transport';
 export type { FetchLike } from './transport';

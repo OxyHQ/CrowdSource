@@ -33,6 +33,7 @@ import {
   SeveritySchema,
   TaxonomyCodeSchema,
 } from './taxonomy';
+import type { Closed } from './closed';
 
 /** §3.2 decision states. */
 export const DECISION_STATUSES = ['provisional', 'final', 'superseded', 'corrected'] as const;
@@ -86,7 +87,7 @@ export const DecisionFindingSchema = z.looseObject({
   attribution: FindingAttributionSchema.optional(),
   policyRuleIds: z.array(PolicyRuleIdSchema).max(CONTRACT_LIMITS.POLICY_RULE_IDS_MAX).optional(),
 });
-export type DecisionFinding = z.infer<typeof DecisionFindingSchema>;
+export type DecisionFinding = Closed<z.infer<typeof DecisionFindingSchema>>;
 
 /**
  * A recommended action bound to what it applies to (Appendix B).
@@ -109,7 +110,7 @@ export const DecisionRecommendedActionSchema = z.looseObject({
     .max(CONTRACT_LIMITS.RESOURCE_REFS_PER_FINDING_MAX)
     .optional(),
 });
-export type DecisionRecommendedAction = z.infer<typeof DecisionRecommendedActionSchema>;
+export type DecisionRecommendedAction = Closed<z.infer<typeof DecisionRecommendedActionSchema>>;
 
 /** Floating point: `winningVotes / decisiveVotes` will not be exact. */
 const AGREEMENT_TOLERANCE = 1e-6;
@@ -162,7 +163,7 @@ export const DecisionJurySchema = z
       });
     }
   });
-export type DecisionJury = z.infer<typeof DecisionJurySchema>;
+export type DecisionJury = Closed<z.infer<typeof DecisionJurySchema>>;
 
 /**
  * One immutable revision of a case's outcome (Appendix B).
@@ -213,4 +214,4 @@ export const DecisionSchema = z
       });
     }
   });
-export type Decision = z.infer<typeof DecisionSchema>;
+export type Decision = Closed<z.infer<typeof DecisionSchema>>;

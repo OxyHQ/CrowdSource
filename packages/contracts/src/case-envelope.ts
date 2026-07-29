@@ -45,6 +45,7 @@ import {
   ResourceSchema,
 } from './resources';
 import { SensitivityHintSchema, TaxonomyCodeSchema } from './taxonomy';
+import type { Closed } from './closed';
 
 /**
  * The contract version carried inside the payload.
@@ -368,7 +369,7 @@ export const CaseEnvelopeSchema = z
           });
         }
       }
-      const key = `${relation.from} ${relation.type} ${relation.to}`;
+      const key = `${relation.from}\u0000${relation.type}\u0000${relation.to}`;
       if (seenRelations.has(key)) {
         ctx.addIssue({
           code: 'custom',
@@ -430,4 +431,4 @@ export const CreateReportResponseSchema = z.looseObject({
   status: ReportStatusSchema,
   merged: z.boolean(),
 });
-export type CreateReportResponse = z.infer<typeof CreateReportResponseSchema>;
+export type CreateReportResponse = Closed<z.infer<typeof CreateReportResponseSchema>>;

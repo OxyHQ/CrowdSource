@@ -33,6 +33,7 @@
  * names.
  */
 
+export * from './closed';
 export * from './primitives';
 export * from './taxonomy';
 export * from './policies';
