@@ -30,6 +30,16 @@
   ],
   "author": "OxyHQ",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OxyHQ/CrowdSource",
+    "directory": "packages/contracts"
+  },
+  "homepage": "https://github.com/OxyHQ/CrowdSource/tree/main/packages/contracts#readme",
+  "bugs": "https://github.com/OxyHQ/CrowdSource/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "zod": "^4.4.3"
   },
@@ -39,6 +49,8 @@
     "vitest": "^4.1.10"
   },
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "src/**/*",
+    "!src/**/__tests__/**"
   ]
 }
