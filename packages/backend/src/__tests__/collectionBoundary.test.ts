@@ -10,7 +10,11 @@ import { DRIVER_ACCESS_ALLOWED, findDriverEscapes, type ScannedFile } from '../d
 // assertion below vacuously true.
 import '../modules/audit/audit.collection';
 import '../modules/cases/case.collection';
+import '../modules/console/console.collections';
+import '../modules/console/staffAudit.collection';
 import '../modules/ingestion/report.collection';
+import '../modules/trust/applicationTrust.collection';
+import '../modules/trust/usageCounter.collection';
 import '../modules/outbox/outbox.collection';
 import '../modules/policy/policySet.collection';
 import '../modules/review/review.collection';
@@ -121,6 +125,46 @@ describe('driver access', () => {
   });
 });
 
+describe('the directories allowed to reach the driver', () => {
+  /**
+   * Pinned to an exact set, for the same reason the unscoped collections below are.
+   *
+   * Until this existed, `DRIVER_ACCESS_ALLOWED` was the one authority in the access
+   * layer that no test constrained: a new directory could be added to it and the whole
+   * suite would still pass, so the FIRST entry to arrive would set the precedent that
+   * entries arrive without a test change — and a pin added afterwards would simply bless
+   * whatever was already there. Widening the allowlist is now an edit to this list too.
+   */
+  it('is exactly the set that owns the connection, each with a stated reason', () => {
+    expect(Object.keys(DRIVER_ACCESS_ALLOWED).sort()).toEqual([
+      'src/db/',
+      /**
+       * The privileged cross-tenant reads. A FILE and not a directory: Trust & Safety
+       * reads across tenants by design (§4.3), and confining that to one named module of
+       * projected queries is what keeps every future cross-tenant read a reviewed
+       * addition instead of a new filter passed to an already-sanctioned call.
+       */
+      'src/modules/trust/crossTenantReads.ts',
+      'src/utils/database.ts',
+      'src/utils/mongoTopology.ts',
+    ]);
+
+    for (const [path, why] of Object.entries(DRIVER_ACCESS_ALLOWED)) {
+      expect(why.trim().length, `${path} must say why it may reach the driver`).toBeGreaterThanOrEqual(30);
+    }
+  });
+
+  /**
+   * The vacuity guard on the pin itself: prove the comparison can distinguish a widened
+   * set from the pinned one. Without this, a pin whose expectation was accidentally
+   * written as the actual value would pass forever while checking nothing.
+   */
+  it('would notice a directory that was added without updating the pin', () => {
+    const widened = [...Object.keys(DRIVER_ACCESS_ALLOWED), 'src/modules/somewhere/'].sort();
+    expect(widened).not.toEqual(Object.keys(DRIVER_ACCESS_ALLOWED).sort());
+  });
+});
+
 describe('collections that are exempt from tenant scoping', () => {
   /**
    * Pinned, so adding an exemption is an edit to this list and not something
@@ -135,6 +179,14 @@ describe('collections that are exempt from tenant scoping', () => {
       'Application',
       'ApplicationCredential',
       /**
+       * Application standing. Trust & Safety compares it ACROSS applications
+       * (§4.3), and the ingestion gate reads the row that is about to establish
+       * the tenant — so a filter by that tenant would be circular. Every read
+       * serving one tenant goes through `applicationTrustFor`, which states the
+       * filter explicitly.
+       */
+      'ApplicationTrust',
+      /**
        * The jury collections. A case belongs to one tenant; a REVIEWER belongs
        * to none — they are drawn across every application, and the caller
        * reading these presents an Oxy session, which carries no tenant to scope
@@ -143,12 +195,31 @@ describe('collections that are exempt from tenant scoping', () => {
        */
       'Assignment',
       'Organization',
+      /**
+       * A console membership is what ESTABLISHES the tenant for a session caller, so
+       * the tenant a filter would use is derived from this very row. Nothing outside
+       * `src/modules/console/` imports it, and no route returns a row that was not
+       * resolved from the caller's own authenticated Oxy identity.
+       */
+      'OrganizationMember',
       'OutboxEvent',
       'Review',
       'ReviewerAffinity',
       'ReviewerProfile',
       'ReviewerRelation',
       'SortitionDraw',
+      /**
+       * The trail of privileged activity. A staff read spans every tenant at once, so
+       * filing it in the tenant-scoped `audit_events` would force a choice between an
+       * incomplete trail and filling every customer's trail with operator activity.
+       */
+      'StaffAuditEvent',
+      /**
+       * Trust & Safety staff act ACROSS every tenant by definition (§4.3), so there
+       * is no tenant to scope the row by. The row grants authority rather than
+       * belonging to a customer.
+       */
+      'TrustSafetyStaff',
       /**
        * The webhook delivery worker's CLAIM spans every tenant, exactly like the
        * outbox dispatcher's, so the row it claims cannot be found through a
@@ -179,6 +250,13 @@ describe('collections that are exempt from tenant scoping', () => {
         'WebhookEndpoint',
         'WebhookSecret',
         'WebhookAttempt',
+        /**
+         * The usage meter IS scopable and therefore is scoped. It counts one tenant's
+         * accepted reports, it is read by that tenant's quota check and by its own
+         * console, and no cross-tenant reader needs it — so it belongs on this side of
+         * the boundary even though the trust row next to it does not.
+         */
+        'UsageCounter',
       ]),
     );
   });

@@ -26,23 +26,30 @@ jobs:
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     outputs:
-      deploy: ${{ steps.filter.outputs.deploy }}
+      # One output per Pages project. They are separate targets with separate markers,
+      # so a console-only change must not redeploy the reviewer and vice versa.
+      reviewer: ${{ steps.reviewer.outputs.deploy }}
+      console: ${{ steps.console.outputs.deploy }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ env.DEPLOY_SHA }}
-          # The scope diff runs from the `deployed/frontend` marker to the
+          # Each scope diff runs from its own `deployed/<target>` marker to the
           # candidate, so this job needs the marker tags and the history that
           # connects them to the candidate.
           fetch-depth: 0
           fetch-tags: true
-      - name: Detect frontend deployment scope
-        id: filter
+      - name: Detect reviewer deployment scope
+        id: reviewer
         run: bash .github/scripts/deployment-scope.sh frontend
+
+      - name: Detect console deployment scope
+        id: console
+        run: bash .github/scripts/deployment-scope.sh console
 
   deploy-frontend:
     needs: scope
-    if: needs.scope.outputs.deploy == 'true'
+    if: needs.scope.outputs.reviewer == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 70
     environment: production
@@ -209,9 +216,177 @@ jobs:
             >/dev/null
           echo "::warning::Cloudflare Pages rolled back to $PREVIOUS_DEPLOYMENT_ID."
 
+  # The developer + Trust & Safety console (PLAN §4.2, §4.3). A separate Cloudflare
+  # Pages project because it is a separate Expo web export with its own entry bundle,
+  # and a separate hostname because the console and the reviewer app are different
+  # audiences — one of them staff.
+  #
+  # GATED ON A REPOSITORY VARIABLE, and deliberately. The steps below create a
+  # Cloudflare Pages project and write a DNS record into the `oxy.so` zone, which
+  # carries every live Oxy backend. Merging this workflow must not do either of those
+  # things on its own: set `CROWDSOURCE_CONSOLE_PAGES` to `ready` when the hostname is
+  # agreed, and the job starts running on the next push to main. Until then the job is
+  # skipped and nothing else about the release changes.
+  deploy-console:
+    needs: scope
+    if: needs.scope.outputs.console == 'true' && vars.CROWDSOURCE_CONSOLE_PAGES == 'ready'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 2
+
+      - name: Verify current main before building
+        run: bash .github/scripts/require-current-main.sh
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install exact dependency graph
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Build shared contracts package
+        run: bun run build:contracts
+
+      - name: Build console
+        run: bun run build:console
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_ENV: production
+          EXPO_PUBLIC_API_URL: https://api.crowdsource.oxy.so
+          # The SAME registered Oxy application as the reviewer app: one product, one
+          # client id. The redirect surface differs per origin, so this host has to be
+          # registered as an additional redirect URI on that application before
+          # interactive sign-in works here.
+          EXPO_PUBLIC_OXY_CLIENT_ID: oxy_dk_2a44549e571029e1c1de32a2e9b6e08cf45393fce5e96133
+          EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://console.crowdsource.oxy.so
+          EXPO_PUBLIC_WEB_BASE_URL: https://console.crowdsource.oxy.so
+
+      - name: Validate static hosting contract
+        run: bun .github/scripts/validate-frontend-static-output.mjs packages/console/dist
+
+      - name: Verify current main before production changes
+        run: bash .github/scripts/require-current-main.sh
+
+      - name: Ensure the Cloudflare Pages project exists
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PAGES_PROJECT_NAME: crowdsource-console
+          PAGES_PRODUCTION_BRANCH: main
+        run: bash .github/scripts/cloudflare-pages.sh ensure-project
+
+      - name: Capture the current production deployment
+        id: previous
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PAGES_PROJECT_NAME: crowdsource-console
+        run: bash .github/scripts/cloudflare-pages.sh capture-production
+
+      - name: Deploy an immutable Cloudflare Pages preview
+        id: preview
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: bun
+          wranglerVersion: '4.81.0'
+          command: pages deploy packages/console/dist --project-name=crowdsource-console --branch=candidate-${{ env.DEPLOY_SHA }}
+
+      - name: Wait for the first certificate on a project that has never released
+        if: steps.previous.outputs.has_previous == 'false'
+        env:
+          PREVIEW_ORIGIN: ${{ steps.preview.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            if curl --silent --output /dev/null --max-time 15 "$PREVIEW_ORIGIN/"; then
+              echo "TLS is serving after ${attempt} attempt(s)."
+              exit 0
+            fi
+            echo "::notice::No certificate yet for the new project; retrying in 15s (${attempt}/20)."
+            sleep 15
+          done
+          echo "::error::TLS did not come up within 5 minutes on a newly created Pages project."
+          exit 1
+
+      - name: Smoke test the exact preview deployment
+        env:
+          WEB_ORIGIN: ${{ steps.preview.outputs.deployment-url }}
+        run: bash .github/scripts/smoke-frontend.sh
+
+      - name: Re-verify current main before production promotion
+        run: bash .github/scripts/require-current-main.sh
+
+      - name: Promote the validated assets to Cloudflare Pages production
+        id: production
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: bun
+          wranglerVersion: '4.81.0'
+          command: pages deploy packages/console/dist --project-name=crowdsource-console --branch=main
+
+      - name: Smoke test the exact production deployment
+        id: production_smoke
+        env:
+          DEPLOYMENT_ORIGIN: ${{ steps.production.outputs.deployment-url }}
+        run: WEB_ORIGIN="$DEPLOYMENT_ORIGIN" bash .github/scripts/smoke-frontend.sh
+
+      - name: Attach the public custom domain
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PAGES_PROJECT_NAME: crowdsource-console
+          PAGES_CUSTOM_DOMAIN: console.crowdsource.oxy.so
+        run: bash .github/scripts/cloudflare-pages.sh attach-domain
+
+      - name: Ensure the public DNS record
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PAGES_PROJECT_NAME: crowdsource-console
+          PAGES_CUSTOM_DOMAIN: console.crowdsource.oxy.so
+          PAGES_DNS_ZONE: oxy.so
+        run: bash .github/scripts/cloudflare-pages.sh ensure-dns-record
+
+      - name: Roll back Cloudflare Pages after a failed production smoke
+        if: >-
+          failure() &&
+          steps.production.outcome == 'success' &&
+          steps.production_smoke.outcome == 'failure' &&
+          steps.previous.outputs.has_previous == 'true'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PREVIOUS_DEPLOYMENT_ID: ${{ steps.previous.outputs.deployment_id }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data '{}' \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/crowdsource-console/deployments/$PREVIOUS_DEPLOYMENT_ID/rollback" \
+            >/dev/null
+          echo "::warning::Cloudflare Pages rolled back to $PREVIOUS_DEPLOYMENT_ID."
+
   record-deployment:
     # Runs only after a green production rollout, so a failed or rolled back
     # release stays inside the next candidate's scope diff.
+    #
+    # ONE marker per target, and the console has its own below rather than sharing this
+    # one. Sharing looks tidier and is wrong twice: GitHub Actions skips a job whose
+    # dependency was skipped, so a `needs` on the gated console job would stop this
+    # marker moving at all — and if it did move, a console rollout that failed while the
+    # reviewer succeeded would have its change dropped from the next scope diff and
+    # orphaned permanently.
     needs: deploy-frontend
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -227,3 +402,19 @@ jobs:
 
       - name: Record the deployed frontend revision
         run: bash .github/scripts/record-deployment.sh frontend
+
+  record-console-deployment:
+    needs: deploy-console
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Only this job may move the console marker; the build job keeps a read-only token.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 1
+
+      - name: Record the deployed console revision
+        run: bash .github/scripts/record-deployment.sh console

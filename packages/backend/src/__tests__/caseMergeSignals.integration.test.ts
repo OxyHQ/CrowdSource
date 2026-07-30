@@ -136,9 +136,13 @@ describe('counting distinct reporters', () => {
   });
 
   /**
-   * The fingerprint is salted with the application id, so the same person under
-   * two tenants produces two unrelated values and the case collection cannot
-   * become a cross-tenant correlation table (§13.5).
+   * The fingerprint is domain-separated by application id, so the same person under
+   * two tenants produces two unrelated values and the case collection cannot become a
+   * cross-tenant correlation table (§13.5).
+   *
+   * Domain separation and not a keyed MAC: this asserts non-correlation ACROSS tenants,
+   * which is what the digest actually provides, and not secrecy from the application
+   * itself — which it does not. See `reporterFingerprint`.
    */
   it('produces a fingerprint that is neither the reporter id nor comparable across tenants', async () => {
     const other = await provisionTenant();

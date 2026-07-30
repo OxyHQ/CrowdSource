@@ -74,7 +74,11 @@ describe('authenticateServiceCredential', () => {
 
     // It works first, so the rejection below is revocation and not a bad fixture.
     await expect(authenticateServiceCredential(tenant.token)).resolves.toBeDefined();
-    await revokeCredential(credentialId);
+    await revokeCredential({
+      organizationId: tenant.organizationId,
+      applicationId: tenant.applicationId,
+      credentialId,
+    });
 
     await expectUnauthorized(authenticateServiceCredential(tenant.token));
   });

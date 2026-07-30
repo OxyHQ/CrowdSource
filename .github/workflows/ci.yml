@@ -95,6 +95,13 @@ jobs:
             command: bun run --cwd packages/testing test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/testing-tests.json"
             build: bun run build:contracts && bun run --cwd packages/sdk build
             minimum_tests: 13
+          # The console has no coverage threshold of its own yet, so it runs the plain
+          # suite: a `coverage: true` entry whose package publishes no summary would fail
+          # the upload step below with `if-no-files-found: error`, which is a CI failure
+          # about an artifact rather than about the code.
+          - package: console
+            command: bun run --cwd packages/console test
+            coverage: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2

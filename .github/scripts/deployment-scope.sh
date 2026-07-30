@@ -5,9 +5,9 @@ target="${1:-}"
 sha="${DEPLOY_SHA:-HEAD}"
 
 case "$target" in
-  backend | frontend) ;;
+  backend | frontend | console) ;;
   *)
-    echo "usage: deployment-scope.sh <backend|frontend>" >&2
+    echo "usage: deployment-scope.sh <backend|frontend|console>" >&2
     exit 2
     ;;
 esac
@@ -51,12 +51,19 @@ for path in "${changed_paths[@]}"; do
     frontend:.github/scripts/require-current-main.sh | \
     frontend:.github/scripts/smoke-frontend.sh | \
     frontend:.github/scripts/cloudflare-pages.sh | \
-    frontend:.github/scripts/validate-frontend-static-output.mjs)
+    frontend:.github/scripts/validate-frontend-static-output.mjs | \
+    console:packages/console/* | \
+    console:packages/contracts/* | \
+    console:.github/scripts/require-current-main.sh | \
+    console:.github/scripts/smoke-frontend.sh | \
+    console:.github/scripts/cloudflare-pages.sh | \
+    console:.github/scripts/validate-frontend-static-output.mjs)
       deploy=true
       break
       ;;
     backend:package.json | backend:bun.lock | backend:bunfig.toml | backend:tsconfig.json | backend:.dockerignore | backend:patches/* | \
-    frontend:package.json | frontend:bun.lock | frontend:bunfig.toml | frontend:tsconfig.json | frontend:patches/*)
+    frontend:package.json | frontend:bun.lock | frontend:bunfig.toml | frontend:tsconfig.json | frontend:patches/* | \
+    console:package.json | console:bun.lock | console:bunfig.toml | console:tsconfig.json | console:patches/*)
       deploy=true
       break
       ;;

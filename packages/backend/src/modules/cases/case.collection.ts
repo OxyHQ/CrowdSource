@@ -62,13 +62,18 @@ export interface CaseDocument extends TenantContext {
   allegationCodes: TaxonomyCode[];
   reportCount: number;
   /**
-   * One opaque value per distinct reporter, salted per application.
+   * One opaque value per distinct reporter, domain-separated per application.
    *
    * §7.4 needs distinct-reporter counts and §9.1 forbids showing a reviewer
    * anything about the reporters, so the case stores a fingerprint rather than
-   * an identity: it counts, it cannot be reversed into the application's own id,
-   * and because the salt is the application id it cannot be correlated with the
-   * same person's fingerprint under another tenant.
+   * an identity: it counts, and because the application id is part of the digest
+   * it cannot be correlated with the same person's fingerprint under another
+   * tenant.
+   *
+   * NOT reversible by a reviewer or another tenant, and NOT proof against the
+   * application itself — the digest is keyless, so its owner can recompute it over
+   * its own users. See `reporterFingerprint` in `case.service.ts`; the containment
+   * is that no surface ever returns these values to an application.
    */
   reporterFingerprints: string[];
 

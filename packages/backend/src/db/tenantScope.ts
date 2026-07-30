@@ -6,9 +6,27 @@
  * code — which means it holds only as long as every query goes through this
  * module. Two rules follow, and neither is optional:
  *
- *  1. A `TenantContext` is derived from the authenticated service credential.
- *     NEVER from a request body, path parameter, query string or header. A
- *     tenant id a caller can choose is not an isolation boundary, it is an IDOR.
+ *  1. A `TenantContext` is derived from AUTHENTICATED PROOF, never from a request
+ *     body, path parameter, query string or header. A tenant id a caller can choose
+ *     is not an isolation boundary, it is an IDOR.
+ *
+ *     There are exactly TWO sources of that proof, and they are two sources — not
+ *     two constructors. Both land here, in this type, through this layer:
+ *
+ *       - a **service credential**, resolved by `modules/tenancy/credential.service.ts`.
+ *         The credential names its application, so the tenant is a property of the key.
+ *       - an **organization membership**, resolved by
+ *         `modules/console/membership.service.ts`. A console session belongs to a person
+ *         rather than to an application, so the caller names an application id in the
+ *         path — and the tenant is still not taken from it: the application row is read
+ *         by that id, `organizationId` comes off the STORED row, and an active membership
+ *         of that organization is required before this function is called at all.
+ *
+ *     The second looks superficially like the IDOR the first rule forbids and is not
+ *     one, because what the caller chooses is WHICH OF ITS OWN tenants to act on while
+ *     the database decides which are its own. If a third source is ever added, it goes
+ *     through `createTenantContext` too; a module that assembles the two keys itself is
+ *     how isolation stops being a property of this codebase.
  *  2. No module reaches the Mongoose driver around this layer. Every read and
  *     write on a tenant-owned collection is scoped here.
  *
@@ -32,8 +50,10 @@ const TENANT_KEYS = ['organizationId', 'applicationId'] as const;
 /**
  * The only constructor for a `TenantContext`.
  *
- * Call it where the service credential is resolved, so there is exactly one
- * place in the codebase to audit when asking "can a caller influence this?".
+ * Call it where the PROOF is resolved — the service credential, or the organization
+ * membership — so there is exactly one place in the codebase to audit when asking "can a
+ * caller influence this?". Never construct the two keys as an object literal elsewhere:
+ * the value would satisfy the type and skip the only checks that make it meaningful.
  */
 export function createTenantContext(
   organizationId: string,

@@ -5,9 +5,9 @@ set -euo pipefail
 target="${1:-}"
 
 case "$target" in
-  backend | frontend | mcp) ;;
+  backend | frontend | console) ;;
   *)
-    echo "usage: record-deployment.sh <backend|frontend|mcp>" >&2
+    echo "usage: record-deployment.sh <backend|frontend|console>" >&2
     exit 2
     ;;
 esac

@@ -45,7 +45,7 @@ export type ExclusionReason = (typeof EXCLUSION_REASONS)[number];
  * Everything about a case that decides who is entangled with it.
  *
  * Assembled once per draw. Note what is NOT here and cannot be: the identities
- * of the reporters. The case stores salted fingerprints (§7.4, §9.1) precisely
+ * of the reporters. The case stores domain-separated fingerprints (§7.4, §9.1) precisely
  * so nothing downstream can enumerate them, so the reporter test runs in the
  * only direction available — fingerprint the candidate, look them up.
  */

@@ -57,6 +57,15 @@ export const DRIVER_ACCESS_ALLOWED = {
   'src/db/': 'The access layer itself — it is what wraps the driver.',
   'src/utils/database.ts': 'Opens and closes the connection.',
   'src/utils/mongoTopology.ts': 'Asks the deployment whether it can run transactions.',
+  /**
+   * ONE FILE, not the directory it sits in. Trust & Safety is by definition the audience
+   * that reads across tenants (§4.3), and the tenant-scoped wrapper has no unscoped read
+   * — correctly, and it must not gain one. So the cross-tenant reads live in a single
+   * named module of specific projected queries; a directory entry would let any future
+   * sibling reach the driver without a second thought.
+   */
+  'src/modules/trust/crossTenantReads.ts':
+    'Trust & Safety reads across tenants by design; named queries only, projections baked in.',
 } as const;
 
 function isAllowed(path: string): boolean {

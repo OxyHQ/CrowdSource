@@ -6,6 +6,8 @@ import helmet from 'helmet';
 import { errorHandler, notFoundHandler } from './http/errorHandler';
 import { appealsRouter } from './modules/appeals/appeals.routes';
 import { casesRouter } from './modules/cases/cases.routes';
+import { consoleRouter } from './modules/console/console.routes';
+import { trustSafetyRouter } from './modules/console/trustSafety.routes';
 import { decisionsRouter } from './modules/decision/decisions.routes';
 import { reportsRouter } from './modules/ingestion/reports.routes';
 import { reviewerRouter } from './modules/reviewer/reviewer.routes';
@@ -23,12 +25,12 @@ import { healthRouter } from './routes/health.routes';
  * The moderation modules of the plan mount here as they are built. Two caller
  * classes now have a surface, and neither may satisfy the other's routes:
  * SERVICE CREDENTIALS reach ingestion, case and decision read-back and webhook
- * endpoint management; an OXY SESSION reaches the reviewer and assignment
- * routes. Evidence, the policy registry, triage, sortition's draw, CONSENSUS and
- * webhook DELIVERY have no HTTP surface of their own — the first is reached
- * through ingestion and the rest through the outbox and their workers, which is
- * what keeps "nobody chooses the case they review" and "no reviewer sees a
- * partial result" true by there being nothing to ask. The reputation bridge is
+ * endpoint management; an OXY SESSION reaches the reviewer and assignment routes
+ * and the console. Evidence, the policy registry, triage, sortition's draw,
+ * CONSENSUS and webhook DELIVERY have no HTTP surface of their own — the first is
+ * reached through ingestion and the rest through the outbox and their workers,
+ * which is what keeps "nobody chooses the case they review" and "no reviewer sees
+ * a partial result" true by there being nothing to ask. The reputation bridge is
  * not written.
  */
 export function createApp(): Express {
@@ -80,6 +82,22 @@ export function createApp(): Express {
    */
   v1.use(reviewerRouter);
   v1.use(assignmentsRouter);
+
+  /**
+   * The console (§4.2, §4.3). A THIRD authorization on the second caller class: the
+   * same Oxy session as the reviewer surface, and then either an organization
+   * membership or a Trust & Safety role.
+   *
+   * The two routers are separate because the audiences are a security boundary, not a
+   * navigation choice. `consoleRouter` is scoped to one tenant on every route, derived
+   * from the stored application row after a membership check; `trustSafetyRouter` sees
+   * across tenants and every route on it requires a staff role. A developer cannot
+   * reach the second, and neither can a service credential reach either — the shared
+   * SDK does not recognise a service token as a session, so it never reaches a
+   * handler.
+   */
+  v1.use(consoleRouter);
+  v1.use(trustSafetyRouter);
 
   app.use('/v1', v1);
 

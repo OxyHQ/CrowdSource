@@ -30,14 +30,14 @@ packages/
   contracts/      @oxyhq/crowdsource-contracts  Zod + JSON Schema contracts (published)
   backend/        @crowdsource/backend          Express modular monolith
   reviewer/       @crowdsource/reviewer         Expo Router reviewer app (web + native)
-  console/        @crowdsource/console          Developer + Trust & Safety console (not scaffolded)
+  console/        @crowdsource/console          Developer + Trust & Safety console (Expo Router, web only)
   sdk/            @oxyhq/crowdsource            TypeScript client (published)
   sdk-express/    @oxyhq/crowdsource-express    Webhook middleware (published)
   testing/        @oxyhq/crowdsource-testing    Fixtures + webhook simulator (published)
 docs/{architecture,api,policies,runbooks}
 ```
 
-Current state: contracts, sdk, sdk-express and testing are written; the reviewer app is the foundation without review surfaces; the console is not scaffolded. Each package README says what it holds.
+Current state: contracts, sdk, sdk-express and testing are written; the reviewer app is the foundation without review surfaces; the console covers the developer surface and the Trust & Safety trust/delivery surfaces. Each package README says what it holds.
 
 The three integration packages target **near-zero configuration**, which is a product requirement rather than a nicety: one environment variable and the object being reported. Two consequences bind every change to them.
 
@@ -119,7 +119,9 @@ Case material must never reach device storage, logs or analytics. `utils/storage
 
 ## Oxy integration
 
-- **Two authentication surfaces, neither bypassing the other.** Reviewer and Trust & Safety callers are Oxy sessions, verified with `@oxyhq/core/server` (`createOxyAuthMiddleware`, `requireOxyAuth`, `getRequiredOxyUserId`, `authSocket`) — never an app-local bearer parser or `AuthRequest` type. Application-API callers are service credentials, which are CrowdSource's own and are what `applicationId` is derived from. A service credential must never reach a reviewer route, and an Oxy session must never satisfy an application-API route.
+- **Two authentication surfaces, neither bypassing the other.** Reviewer, developer-console and Trust & Safety callers are Oxy sessions, verified with `@oxyhq/core/server` — never an app-local bearer parser or `AuthRequest` type. Session verification is defined ONCE, in `src/modules/identity/oxySession.ts`; a second module-level client with its own failure message is a second, divergent definition of what a valid session is. Application-API callers are service credentials, which are CrowdSource's own and are what `applicationId` is derived from. A service credential must never reach a session route, and an Oxy session must never satisfy an application-API route.
+- **THREE authorizations on that one authenticated identity, and they are not interchangeable.** A reviewer profile (`reviewerAuth.ts`), an organization membership (`console/membership.service.ts`) and a Trust & Safety role (`console/consoleAuth.ts`) each mean something different. A verified session by itself grants none of them: every Oxy account in existence authenticates. Staff authority is a further check on a valid session, folded into the SAME middleware array as the session so a route cannot be mounted with one and not the other, and there is deliberately no HTTP route that grants a staff role — `console/staff.service.ts` says why.
+- **A console caller names a resource; it never names a tenant.** `/console/applications/{id}` is not an IDOR because `organizationId` is read off the STORED application row and a membership is required before a `TenantContext` is built. The four steps are in `resolveApplicationForMember`, and every console route that touches tenant data starts there. No console handler reads an `organizationId` from a body or query string.
 - Security helpers come from the same place: `safeFetch` (SSRF), `createOxyCors` (no hand-rolled wildcard), `verifySecret` (constant-time; never `!==`).
 - **Files and media**: `oxyServices.getFileDownloadUrl(id, variant)` plus Bloom's `ImageResolver`, registered once at the app root. Never a per-app URL helper, never a hardcoded host, never an `avatarUrl` field on a DTO.
 - **Identity in the app**: one `OxyProvider` in `components/providers/AppProviders.tsx`, web and native alike. No app-local auth routes, token providers or `Authorization` headers.
@@ -128,7 +130,7 @@ Case material must never reach device storage, logs or analytics. `utils/storage
 
 ## AWS deployment
 
-- **Port**: `3000` | **Domain**: `api.crowdsource.oxy.so` | **Reviewer**: Cloudflare Pages project `crowdsource-frontend`.
+- **Port**: `3000` | **Domain**: `api.crowdsource.oxy.so` | **Reviewer**: Cloudflare Pages project `crowdsource-frontend` | **Console**: Pages project `crowdsource-console` at `console.crowdsource.oxy.so`, whose deploy job is gated on the repository variable `CROWDSOURCE_CONSOLE_PAGES == 'ready'` because it creates a project and writes DNS into the zone that carries every live Oxy backend.
 - **ECR**: `237343248947.dkr.ecr.us-west-2.amazonaws.com/oxy/crowdsource`
 - **Deploy**: `git push origin main` → `.github/workflows/deploy-aws.yml` (backend) + `deploy-frontends.yml` (reviewer), both gated on CI.
 - **Secrets**: GitHub Actions secrets → SSM `/oxy/crowdsource/*`. Only what `src/config` actually reads is synced; a parameter nothing consumes never rotates and nothing fails when it goes stale.
@@ -141,10 +143,12 @@ Case material must never reach device storage, logs or analytics. `utils/storage
 bun run dev                 # all packages
 bun run dev:backend         # backend watch mode
 bun run dev:reviewer        # reviewer app (Expo tunnel)
+bun run dev:console         # console (Expo web, web only)
 bun run build               # contracts, backend, SDKs
 bun run build:reviewer      # reviewer static web export
+bun run build:console       # console static web export
 bun run check               # doctor + workflows + security audit + build + typecheck + lint
-bun run test                # contracts + backend (vitest) + reviewer (jest)
+bun run test                # contracts + backend (vitest) + reviewer and console (jest)
 ```
 
 ## Planning

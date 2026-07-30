@@ -1,0 +1,16 @@
+{
+    "ignore_dirs": [
+        "../backend",
+        "../contracts/src",
+        "../reviewer",
+        "../../node_modules",
+        "../../docs",
+        ".expo",
+        ".expo-shared",
+        ".metro",
+        ".cache",
+        "dist",
+        "node_modules/.cache",
+        "__tests__"
+    ]
+}
