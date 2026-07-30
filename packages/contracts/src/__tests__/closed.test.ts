@@ -16,12 +16,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { CreateReportResponseSchema } from '../case-envelope';
-import { DecisionSchema } from '../decisions';
-import { WebhookEventEnvelopeSchema } from '../webhooks';
-import type { Closed } from '../closed';
-import type { CreateReportResponse, Decision } from '../index';
-import { decisionExample } from './support/examples';
+import { CreateReportResponseSchema } from '../case-envelope.js';
+import { DecisionSchema } from '../decisions.js';
+import { WebhookEventEnvelopeSchema } from '../webhooks.js';
+import type { Closed } from '../closed.js';
+import type { CreateReportResponse, Decision } from '../index.js';
+import { decisionExample } from './support/examples.js';
 
 describe('outbound schemas stay loose at runtime', () => {
   it('preserves a field this version of the contract does not know', () => {

@@ -27,16 +27,16 @@
 
 import { z } from 'zod';
 
-import type { Closed } from './closed';
-import { DecisionSchema } from './decisions';
+import type { Closed } from './closed.js';
+import { DecisionSchema } from './decisions.js';
 import {
   CONTRACT_LIMITS,
   ExternalIdSchema,
   IdentifierSchema,
   MetadataBagSchema,
   TimestampSchema,
-} from './primitives';
-import { ResourceIdSchema } from './resources';
+} from './primitives.js';
+import { ResourceIdSchema } from './resources.js';
 
 /**
  * Why an appeal was filed.

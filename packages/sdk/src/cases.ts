@@ -17,8 +17,8 @@
 import { DecisionSchema, type Decision, type TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 import { z } from 'zod';
 
-import { CrowdSourceTransportError } from './errors';
-import type { Transport } from './transport';
+import { CrowdSourceTransportError } from './errors.js';
+import type { Transport } from './transport.js';
 
 /**
  * The projection §10.2 returns for a case.

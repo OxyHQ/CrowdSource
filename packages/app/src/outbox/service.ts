@@ -3,14 +3,14 @@ import type { ClientSession, Model } from 'mongoose';
 import {
   MODERATION_OUTBOX_RETENTION_SECONDS,
   type ModerationOutboxDocument,
-} from '../models';
+} from '../models/index.js';
 import type {
   ModerationDispatchResult,
   ModerationLogger,
   ModerationOutboxEvent,
   ModerationOutboxKind,
   ModerationOutboxPayload,
-} from '../types';
+} from '../types.js';
 
 /**
  * Claiming, completing and failing moderation outbox events.

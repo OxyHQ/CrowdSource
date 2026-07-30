@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   MODERATION_DECISION_FINALIZED_EVENT_TYPE,
   ReputationEventSchema,
-} from '../reputation-events';
-import { accepted, rejectionIssues, rejectionPaths } from './support/assertions';
-import { reputationEventExample } from './support/examples';
+} from '../reputation-events.js';
+import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
+import { reputationEventExample } from './support/examples.js';
 
 describe('ModerationDecisionFinalizedEvent (§11.6)', () => {
   it('accepts the reference event', () => {

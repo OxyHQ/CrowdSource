@@ -1,10 +1,10 @@
 import type { Connection, Model } from 'mongoose';
-import { reportSubmitEventId, type OutboxService } from './outbox/service';
+import { reportSubmitEventId, type OutboxService } from './outbox/service.js';
 import type {
   ModerationLogger,
   ModerationReconciliationResult,
   ModerationReportFields,
-} from './types';
+} from './types.js';
 
 /**
  * Finding the reports the pipeline lost sight of.

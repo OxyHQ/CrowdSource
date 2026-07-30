@@ -15,8 +15,8 @@ import {
 } from '@oxyhq/crowdsource';
 import { describe, expect, it } from 'vitest';
 
-import { caseDecidedEventFixture, caseEnvelopeFixture, decisionFixture } from '../fixtures';
-import { createCrowdSourceSandbox, type CrowdSourceSandbox } from '../sandbox';
+import { caseDecidedEventFixture, caseEnvelopeFixture, decisionFixture } from '../fixtures.js';
+import { createCrowdSourceSandbox, type CrowdSourceSandbox } from '../sandbox.js';
 
 function connect(sandbox: CrowdSourceSandbox): CrowdSource {
   return new CrowdSource({

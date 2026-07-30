@@ -52,8 +52,8 @@
 
 import { z } from 'zod';
 
-import { DecisionOutcomeSchema } from './decisions';
-import { PolicyRuleSchema, PolicySetIdSchema, PolicyVersionSchema } from './policies';
+import { DecisionOutcomeSchema } from './decisions.js';
+import { PolicyRuleSchema, PolicySetIdSchema, PolicyVersionSchema } from './policies.js';
 import {
   CustomPayloadSchema,
   IdentifierSchema,
@@ -62,7 +62,7 @@ import {
   MimeTypeSchema,
   TimestampSchema,
   UnitIntervalSchema,
-} from './primitives';
+} from './primitives.js';
 import {
   AudioResourceDataSchema,
   ConversationResourceDataSchema,
@@ -79,14 +79,14 @@ import {
   TextResourceDataSchema,
   VideoResourceDataSchema,
   type Resource,
-} from './resources';
-import { ReviewOutcomeSchema } from './reviews';
+} from './resources.js';
+import { ReviewOutcomeSchema } from './reviews.js';
 import {
   SensitivityHintSchema,
   TAXONOMY_FAMILIES,
   TaxonomyCodeSchema,
   TaxonomyFamilySchema,
-} from './taxonomy';
+} from './taxonomy.js';
 
 // --- vocabularies ------------------------------------------------------------
 

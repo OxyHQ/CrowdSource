@@ -21,15 +21,15 @@
 
 import { z } from 'zod';
 
-import { CONTRACT_LIMITS, UnitIntervalSchema } from './primitives';
-import { PolicyRuleIdSchema } from './policies';
-import { ResourceIdSchema } from './resources';
+import { CONTRACT_LIMITS, UnitIntervalSchema } from './primitives.js';
+import { PolicyRuleIdSchema } from './policies.js';
+import { ResourceIdSchema } from './resources.js';
 import {
   FindingContextSchema,
   RecommendedActionSchema,
   SeveritySchema,
   TaxonomyCodeSchema,
-} from './taxonomy';
+} from './taxonomy.js';
 
 /**
  * What a single reviewer can conclude.

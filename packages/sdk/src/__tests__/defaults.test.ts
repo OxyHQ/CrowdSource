@@ -25,7 +25,7 @@ import {
   DEFAULT_RETENTION_DAYS,
   allegationsForbiddingCommunityReview,
   defaultPrivacy,
-} from '../defaults';
+} from '../defaults.js';
 
 const BASELINE_SOURCE_PATH = path.resolve(
   __dirname,

@@ -15,9 +15,9 @@ import {
 } from '@oxyhq/crowdsource-contracts';
 import { z } from 'zod';
 
-import { composeCaseEnvelope, defaultIdempotencyKey, type ReportInput } from './envelope';
-import { CrowdSourceTransportError } from './errors';
-import type { Transport } from './transport';
+import { composeCaseEnvelope, defaultIdempotencyKey, type ReportInput } from './envelope.js';
+import { CrowdSourceTransportError } from './errors.js';
+import type { Transport } from './transport.js';
 
 /**
  * `GET /v1/reports/{id}` (§10.2 "receipt, caseId and limited status").

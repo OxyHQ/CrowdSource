@@ -35,17 +35,17 @@ import {
   IdentifierSchema,
   MetadataBagSchema,
   TimestampSchema,
-} from './primitives';
-import { CasePolicyRefSchema } from './policies';
+} from './primitives.js';
+import { CasePolicyRefSchema } from './policies.js';
 import {
   PRINCIPAL_TARGETED_RELATION_TYPES,
   PrincipalRefSchema,
   RelationSchema,
   ResourceIdSchema,
   ResourceSchema,
-} from './resources';
-import { SensitivityHintSchema, TaxonomyCodeSchema } from './taxonomy';
-import type { Closed } from './closed';
+} from './resources.js';
+import { SensitivityHintSchema, TaxonomyCodeSchema } from './taxonomy.js';
+import type { Closed } from './closed.js';
 
 /**
  * The contract version carried inside the payload.

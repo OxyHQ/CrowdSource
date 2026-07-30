@@ -23,9 +23,9 @@ import {
   ModerationRestoreDirectionError,
   assertRestoreDirection,
   planEnforcement,
-} from '../enforcement/planner';
-import { decision } from './support/decisions';
-import type { ModerationEnforcementConfig } from '../types';
+} from '../enforcement/planner.js';
+import { decision } from './support/decisions.js';
+import type { ModerationEnforcementConfig } from '../types.js';
 
 type CommerceAction = 'delist' | 'relist' | 'flag' | 'unflag' | 'review' | 'none';
 

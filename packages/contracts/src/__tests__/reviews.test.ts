@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { RecusalSubmissionSchema, ReviewSubmissionSchema } from '../reviews';
-import { accepted, rejectionIssues, rejectionPaths } from './support/assertions';
-import { reviewSubmissionExample } from './support/examples';
+import { RecusalSubmissionSchema, ReviewSubmissionSchema } from '../reviews.js';
+import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
+import { reviewSubmissionExample } from './support/examples.js';
 
 describe('ReviewSubmissionSchema', () => {
   it('accepts §9.3\'s result shape', () => {

@@ -26,15 +26,15 @@ import {
 } from '@oxyhq/crowdsource-testing';
 import mongoose, { Schema, type Connection, type Model } from 'mongoose';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createModerationIntegration, type ModerationIntegration } from '../integration';
+import { createModerationIntegration, type ModerationIntegration } from '../integration.js';
 import {
   applyModerationReportIndexes,
   moderationReportSchemaFields,
-} from '../models/report';
-import { planEnforcement } from '../enforcement/planner';
-import { decision } from './support/decisions';
-import type { ModerationEnforcementConfig, ModerationReportFields } from '../types';
-import { startWebhookApp, type RunningWebhookApp } from './support/webhookApp';
+} from '../models/report.js';
+import { planEnforcement } from '../enforcement/planner.js';
+import { decision } from './support/decisions.js';
+import type { ModerationEnforcementConfig, ModerationReportFields } from '../types.js';
+import { startWebhookApp, type RunningWebhookApp } from './support/webhookApp.js';
 
 const WEBHOOK_SECRET = 'whsec_test_0123456789abcdef0123456789abcdef';
 

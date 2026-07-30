@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { DECISION_OUTCOMES, DecisionSchema } from '../decisions';
-import { accepted, rejectionPaths } from './support/assertions';
-import { decisionExample } from './support/examples';
+import { DECISION_OUTCOMES, DecisionSchema } from '../decisions.js';
+import { accepted, rejectionPaths } from './support/assertions.js';
+import { decisionExample } from './support/examples.js';
 
 describe('DecisionSchema', () => {
   it('accepts Appendix B\'s shape', () => {

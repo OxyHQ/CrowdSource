@@ -33,16 +33,16 @@
  * names.
  */
 
-export * from './closed';
-export * from './primitives';
-export * from './taxonomy';
-export * from './policies';
-export * from './resources';
-export * from './case-envelope';
-export * from './reviews';
-export * from './reviewer-surface';
-export * from './decisions';
-export * from './appeals';
-export * from './webhooks';
-export * from './reputation-events';
-export * from './json-schema';
+export * from './closed.js';
+export * from './primitives.js';
+export * from './taxonomy.js';
+export * from './policies.js';
+export * from './resources.js';
+export * from './case-envelope.js';
+export * from './reviews.js';
+export * from './reviewer-surface.js';
+export * from './decisions.js';
+export * from './appeals.js';
+export * from './webhooks.js';
+export * from './reputation-events.js';
+export * from './json-schema.js';

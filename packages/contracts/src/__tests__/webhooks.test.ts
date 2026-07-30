@@ -12,9 +12,9 @@ import {
   WebhookSignatureHeaderSchema,
   WebhookTimestampHeaderSchema,
   buildWebhookSignedPayload,
-} from '../webhooks';
-import { accepted, rejectionIssues, rejectionPaths } from './support/assertions';
-import { caseDecidedEventExample, decisionExample } from './support/examples';
+} from '../webhooks.js';
+import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
+import { caseDecidedEventExample, decisionExample } from './support/examples.js';
 
 describe('the event catalogue', () => {
   it('publishes exactly the eight events §10.6 lists', () => {

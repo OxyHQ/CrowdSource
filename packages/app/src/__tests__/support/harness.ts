@@ -3,16 +3,16 @@ import type { Decision, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 import {
   applyModerationReportIndexes,
   moderationReportSchemaFields,
-} from '../../models/report';
-import { createModerationIntegration } from '../../integration';
-import type { ModerationIntegration } from '../../integration';
+} from '../../models/report.js';
+import { createModerationIntegration } from '../../integration.js';
+import type { ModerationIntegration } from '../../integration.js';
 import type {
   EnforcementEffect,
   ModerationEnforcementConfig,
   ModerationLogger,
   ModerationReportFields,
   ModerationSubjectProvider,
-} from '../../types';
+} from '../../types.js';
 
 /**
  * A fictional application, wired the way an adopter wires one.

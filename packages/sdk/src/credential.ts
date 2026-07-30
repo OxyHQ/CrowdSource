@@ -32,7 +32,7 @@
 
 import { IdentifierSchema } from '@oxyhq/crowdsource-contracts';
 
-import { CrowdSourceConfigurationError } from './errors';
+import { CrowdSourceConfigurationError } from './errors.js';
 
 const SERVICE_KEY_SEPARATOR = ':';
 

@@ -48,9 +48,9 @@ import {
   type TaxonomyCode,
 } from '@oxyhq/crowdsource-contracts';
 
-import { DEFAULT_POLICY, allegationsForbiddingCommunityReview, defaultPrivacy } from './defaults';
-import { canonicalJson, resourceDigest, sha256Digest, type CanonicalValue } from './digest';
-import { CrowdSourceError } from './errors';
+import { DEFAULT_POLICY, allegationsForbiddingCommunityReview, defaultPrivacy } from './defaults.js';
+import { canonicalJson, resourceDigest, sha256Digest, type CanonicalValue } from './digest.js';
+import { CrowdSourceError } from './errors.js';
 
 /** `Omit` that survives a discriminated union instead of collapsing it. */
 type DistributiveOmit<T, K extends keyof never> = T extends unknown ? Omit<T, K> : never;

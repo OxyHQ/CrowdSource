@@ -1,6 +1,6 @@
 {
   "name": "@oxyhq/crowdsource-contracts",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Versioned CrowdSource contracts: case envelope, resources, taxonomy, policies, reviews, decisions, webhooks and reputation events",
   "type": "commonjs",
   "main": "dist/index.js",
@@ -8,14 +8,14 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
+      "import": "./dist/esm/index.js",
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs",
     "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",

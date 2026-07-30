@@ -3,8 +3,8 @@ import type { ProcessedEventStore } from '@oxyhq/crowdsource-express';
 import {
   MODERATION_EVENT_RETENTION_SECONDS,
   type ModerationEventDocument,
-} from './models';
-import { decisionApplyEventId, type OutboxService } from './outbox/service';
+} from './models/index.js';
+import { decisionApplyEventId, type OutboxService } from './outbox/service.js';
 
 /**
  * What happens between "a signed decision arrived" and "2xx".

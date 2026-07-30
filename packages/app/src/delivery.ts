@@ -1,13 +1,13 @@
 import type { Model } from 'mongoose';
-import type { CrowdSourceClientProvider } from './client';
-import { buildModerationReportInput, type SubjectRegistry } from './evidence';
+import type { CrowdSourceClientProvider } from './client.js';
+import { buildModerationReportInput, type SubjectRegistry } from './evidence.js';
 import type {
   ModerationLogger,
   ModerationMetrics,
   ModerationOutboxEvent,
   ModerationReportFields,
   ModerationTaxonomy,
-} from './types';
+} from './types.js';
 
 /**
  * Delivering a stored report to CrowdSource.

@@ -17,7 +17,7 @@ import { WebhookSimulator, caseDecidedEventFixture } from '@oxyhq/crowdsource-te
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { crowdsourceWebhooks, type CrowdSourceWebhooksOptions } from '../middleware';
+import { crowdsourceWebhooks, type CrowdSourceWebhooksOptions } from '../middleware.js';
 
 const SECRET = 'webhook-secret-under-test';
 const PREVIOUS_SECRET = 'webhook-secret-being-retired';

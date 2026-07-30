@@ -24,7 +24,7 @@ import {
   CrowdSourceTransportError,
   apiErrorCodeForStatus,
   isCrowdSourceApiErrorCode,
-} from './errors';
+} from './errors.js';
 
 export type FetchLike = typeof globalThis.fetch;
 

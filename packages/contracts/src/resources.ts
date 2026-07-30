@@ -41,9 +41,9 @@ import {
   OxyFileIdSchema,
   Sha256DigestSchema,
   TimestampSchema,
-} from './primitives';
-import { PolicyVersionSchema } from './policies';
-import { SensitivityHintSchema } from './taxonomy';
+} from './primitives.js';
+import { PolicyVersionSchema } from './policies.js';
+import { SensitivityHintSchema } from './taxonomy.js';
 
 /** A resource id, unique within one envelope (§5.2 `id`). */
 export const ResourceIdSchema = IdentifierSchema;

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { crowdsourceWebhooks, type ProcessedEventStore } from '@oxyhq/crowdsource-express';
-import type { InboundService } from './inbound';
-import type { ModerationLogger, ModerationMetrics } from './types';
+import type { InboundService } from './inbound.js';
+import type { ModerationLogger, ModerationMetrics } from './types.js';
 
 /**
  * `POST /crowdsource` — where decisions come back.

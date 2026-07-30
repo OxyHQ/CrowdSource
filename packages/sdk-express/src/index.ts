@@ -29,15 +29,15 @@ export {
   CrowdSourceWebhookConfigurationError,
   WEBHOOK_PREVIOUS_SECRET_ENV_VAR,
   WEBHOOK_SECRET_ENV_VAR,
-} from './middleware';
-export type { CrowdSourceWebhooksOptions, WebhookEventHandlers } from './middleware';
+} from './middleware.js';
+export type { CrowdSourceWebhooksOptions, WebhookEventHandlers } from './middleware.js';
 
-export { memoryProcessedEventStore } from './store';
-export type { MemoryProcessedEventStoreOptions, ProcessedEventStore } from './store';
+export { memoryProcessedEventStore } from './store.js';
+export type { MemoryProcessedEventStoreOptions, ProcessedEventStore } from './store.js';
 
 export {
   signedPayloadBytes,
   verifyWebhookDelivery,
   WEBHOOK_REJECTIONS,
-} from './verify';
-export type { WebhookRejection, WebhookVerification, WebhookVerificationInput } from './verify';
+} from './verify.js';
+export type { WebhookRejection, WebhookVerification, WebhookVerificationInput } from './verify.js';

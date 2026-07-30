@@ -1,0 +1,35 @@
+{
+  // ---------------------------------------------------------------------------
+  // The ESM half of the published build.
+  //
+  // Emits the same sources to `dist/esm/` as real ES modules, so the `import`
+  // condition resolves to something that IS ESM rather than to CommonJS wearing
+  // an ESM label. Pointing `import` at the CJS file is what took a consumer's
+  // backend down on 2026-07-30: a bundler targeting ESM inlines it and rewrites
+  // each internal `require()` of an external into a shim that throws at first
+  // call.
+  //
+  // Relative specifiers in `src/` carry explicit `.js` extensions, which is what
+  // makes ONE source tree emit correctly under both module systems — TypeScript
+  // maps `./x.js` back to `./x.ts`, and Node's ESM resolver requires the
+  // extension at runtime.
+  //
+  // `dist/esm/package.json` (`{"type":"module"}`) is written by the build
+  // script; without it Node reads the root manifest's `"type": "commonjs"` and
+  // parses these files as CJS.
+  // ---------------------------------------------------------------------------
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "outDir": "./dist/esm",
+    // Declarations ship once, from the CommonJS build; emitting them twice would
+    // put two copies of every type in the tarball for no consumer benefit.
+    // `composite` goes with them: TypeScript refuses a composite project that
+    // disables declaration emit, and this pass is a leaf that nothing references.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "tsBuildInfoFile": "./esm.tsbuildinfo"
+  }
+}

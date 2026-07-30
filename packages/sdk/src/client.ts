@@ -20,18 +20,18 @@
  * outcome rather than a limitation to work around.
  */
 
-import { Cases, Decisions } from './cases';
-import { parseServiceKey, type ServiceCredential } from './credential';
-import { DEFAULT_BASE_URL } from './defaults';
-import { CrowdSourceConfigurationError } from './errors';
-import { Reports } from './reports';
+import { Cases, Decisions } from './cases.js';
+import { parseServiceKey, type ServiceCredential } from './credential.js';
+import { DEFAULT_BASE_URL } from './defaults.js';
+import { CrowdSourceConfigurationError } from './errors.js';
+import { Reports } from './reports.js';
 import {
   DEFAULT_MAX_ATTEMPTS,
   DEFAULT_TIMEOUT_MS,
   Transport,
   type FetchLike,
-} from './transport';
-import { WebhookEndpoints } from './webhookEndpoints';
+} from './transport.js';
+import { WebhookEndpoints } from './webhookEndpoints.js';
 
 /** The environment variable a zero-configuration integration reads. */
 export const SERVICE_KEY_ENV_VAR = 'CROWDSOURCE_SERVICE_KEY';

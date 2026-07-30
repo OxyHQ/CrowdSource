@@ -1,27 +1,27 @@
 import type { Router } from 'express';
-import { createClientProvider, type CrowdSourceClientProvider } from './client';
-import { createDecisionWorker } from './decision';
-import { createDeliveryWorker } from './delivery';
-import { createEnforcementExecutor, type EnforcementExecutor } from './enforcement/executor';
-import { assertRestoreDirection } from './enforcement/planner';
-import { createSubjectRegistry, type SubjectRegistry } from './evidence';
-import { createInboundService, createProcessedEventStore } from './inbound';
-import { registerModerationModels, type ModerationModels } from './models';
-import { ModerationOutboxDispatcher, createOutboxRouter } from './outbox/dispatcher';
-import { createOutboxService, type OutboxService } from './outbox/service';
-import { createIntake } from './intake';
+import { createClientProvider, type CrowdSourceClientProvider } from './client.js';
+import { createDecisionWorker } from './decision.js';
+import { createDeliveryWorker } from './delivery.js';
+import { createEnforcementExecutor, type EnforcementExecutor } from './enforcement/executor.js';
+import { assertRestoreDirection } from './enforcement/planner.js';
+import { createSubjectRegistry, type SubjectRegistry } from './evidence.js';
+import { createInboundService, createProcessedEventStore } from './inbound.js';
+import { registerModerationModels, type ModerationModels } from './models/index.js';
+import { ModerationOutboxDispatcher, createOutboxRouter } from './outbox/dispatcher.js';
+import { createOutboxService, type OutboxService } from './outbox/service.js';
+import { createIntake } from './intake.js';
 import {
   ModerationReconciliationJob,
   createReconciliation,
   type ReconcileModerationReports,
-} from './reconciliation';
-import { createWebhookRouter } from './webhook';
+} from './reconciliation.js';
+import { createWebhookRouter } from './webhook.js';
 import type {
   CreateReportInput,
   CreateReportResult,
   ModerationIntegrationConfig,
   ModerationReportFields,
-} from './types';
+} from './types.js';
 
 /**
  * Everything wired together, from one object.

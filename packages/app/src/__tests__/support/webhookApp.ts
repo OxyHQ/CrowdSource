@@ -1,8 +1,8 @@
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import express, { type Express, type Request } from 'express';
-import type { ModerationIntegration } from '../../integration';
-import type { ModerationReportFields } from '../../types';
+import type { ModerationIntegration } from '../../integration.js';
+import type { ModerationReportFields } from '../../types.js';
 
 /**
  * An application's HTTP wiring, with the mount order in ONE place.

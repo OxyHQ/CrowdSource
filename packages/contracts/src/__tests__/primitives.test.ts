@@ -10,8 +10,8 @@ import {
   Sha256DigestSchema,
   TimestampSchema,
   UnitIntervalSchema,
-} from '../primitives';
-import { accepted, rejectionIssues, rejectionPaths } from './support/assertions';
+} from '../primitives.js';
+import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
 
 describe('IdentifierSchema', () => {
   it('accepts every identifier notation the plan actually writes', () => {

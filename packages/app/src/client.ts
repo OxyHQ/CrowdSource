@@ -1,5 +1,5 @@
 import { CrowdSource } from '@oxyhq/crowdsource';
-import type { CrowdSourceConnectionConfig, ModerationLogger } from './types';
+import type { CrowdSourceConnectionConfig, ModerationLogger } from './types.js';
 
 /**
  * The CrowdSource client, built once and only when configured.

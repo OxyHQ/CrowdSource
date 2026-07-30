@@ -44,7 +44,7 @@ import {
   type TaxonomyCode,
 } from '@oxyhq/crowdsource-contracts';
 
-import { WebhookSimulator, type WebhookDeliveryResult } from './webhook-simulator';
+import { WebhookSimulator, type WebhookDeliveryResult } from './webhook-simulator.js';
 
 export interface SandboxReport {
   readonly reportId: string;

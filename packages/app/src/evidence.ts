@@ -5,7 +5,7 @@ import type {
   ModerationSubjectProvider,
   ModerationSubjectSnapshot,
   ModerationTaxonomy,
-} from './types';
+} from './types.js';
 
 /**
  * Turning a stored report into the thing the SDK delivers.

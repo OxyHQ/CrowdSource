@@ -13,7 +13,7 @@ import {
   type ReviewerResource,
   type ReviewerResourceOf,
   type Resource,
-} from '../index';
+} from '../index.js';
 
 /**
  * The reviewer wire surface, checked against itself and against the envelope.

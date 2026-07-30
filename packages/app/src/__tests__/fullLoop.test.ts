@@ -19,8 +19,8 @@ import {
   type CrowdSourceSandbox,
 } from '@oxyhq/crowdsource-testing';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createHarness, type Harness } from './support/harness';
-import { startWebhookApp, type RunningWebhookApp } from './support/webhookApp';
+import { createHarness, type Harness } from './support/harness.js';
+import { startWebhookApp, type RunningWebhookApp } from './support/webhookApp.js';
 
 const WEBHOOK_SECRET = 'whsec_test_0123456789abcdef0123456789abcdef';
 

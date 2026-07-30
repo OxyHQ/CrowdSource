@@ -44,15 +44,15 @@
  * one definition.
  */
 
-export { createModerationIntegration } from './integration';
-export type { ModerationIntegration } from './integration';
+export { createModerationIntegration } from './integration.js';
+export type { ModerationIntegration } from './integration.js';
 
 export {
   moderationReportSchemaFields,
   applyModerationReportIndexes,
   MODERATION_LOCAL_STATUSES,
-} from './models/report';
-export type { ModerationReportSchemaOptions } from './models/report';
+} from './models/report.js';
+export type { ModerationReportSchemaOptions } from './models/report.js';
 
 export {
   MODERATION_ENFORCEMENT_COLLECTION,
@@ -60,63 +60,63 @@ export {
   MODERATION_EVENT_RETENTION_SECONDS,
   MODERATION_OUTBOX_COLLECTION,
   MODERATION_OUTBOX_RETENTION_SECONDS,
-} from './models';
+} from './models/index.js';
 export type {
   ModerationEnforcementDocument,
   ModerationEventDocument,
   ModerationEventState,
   ModerationModels,
   ModerationOutboxDocument,
-} from './models';
+} from './models/index.js';
 
 export {
   ModerationOutboxTransactionError,
   decisionApplyEventId,
   isRetryableDeliveryError,
   reportSubmitEventId,
-} from './outbox/service';
+} from './outbox/service.js';
 export type {
   ModerationOutboxFailure,
   ModerationOutboxHandler,
   OutboxService,
-} from './outbox/service';
+} from './outbox/service.js';
 
-export { ModerationOutboxDispatcher } from './outbox/dispatcher';
-export { ModerationReconciliationJob } from './reconciliation';
-export type { ReconcileModerationReports } from './reconciliation';
+export { ModerationOutboxDispatcher } from './outbox/dispatcher.js';
+export { ModerationReconciliationJob } from './reconciliation.js';
+export type { ReconcileModerationReports } from './reconciliation.js';
 
-export { DuplicateReportError } from './intake';
+export { DuplicateReportError } from './intake.js';
 
 export {
   CrowdSourceUnavailableError,
   ModerationDeliveryRejectedError,
-} from './delivery';
+} from './delivery.js';
 
 export {
   ModerationDecisionDeferredError,
   ModerationDecisionRejectedError,
-} from './decision';
+} from './decision.js';
 
 export {
   ModerationSubjectUnsupportedError,
   ModerationTaxonomyError,
   createSubjectRegistry,
   snapshotHash,
-} from './evidence';
-export type { ModerationReportInput, SubjectRegistry } from './evidence';
+} from './evidence.js';
+export type { ModerationReportInput, SubjectRegistry } from './evidence.js';
 
 export {
   ModerationRestoreDirectionError,
   assertRestoreDirection,
   planEnforcement,
   primaryAction,
-} from './enforcement/planner';
-export type { EnforcementExecutor } from './enforcement/executor';
+} from './enforcement/planner.js';
+export type { EnforcementExecutor } from './enforcement/executor.js';
 
-export { localStatusForDecision } from './reportStatus';
+export { localStatusForDecision } from './reportStatus.js';
 
-export { createProcessedEventStore } from './inbound';
-export type { InboundService, RecordDecisionEventInput } from './inbound';
+export { createProcessedEventStore } from './inbound.js';
+export type { InboundService, RecordDecisionEventInput } from './inbound.js';
 
 export type {
   CreateReportInput,
@@ -146,4 +146,4 @@ export type {
   ModerationTaxonomy,
   PlannedEnforcementAction,
   ReportDecisionExtraFields,
-} from './types';
+} from './types.js';

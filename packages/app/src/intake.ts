@@ -1,11 +1,11 @@
 import type { ClientSession, Connection, Model } from 'mongoose';
-import type { SubjectRegistry } from './evidence';
-import { reportSubmitEventId, type OutboxService } from './outbox/service';
+import type { SubjectRegistry } from './evidence.js';
+import { reportSubmitEventId, type OutboxService } from './outbox/service.js';
 import type {
   CreateReportInput,
   CreateReportResult,
   ModerationReportFields,
-} from './types';
+} from './types.js';
 
 /**
  * Storing a report and, when there is somewhere to send it, the promise to

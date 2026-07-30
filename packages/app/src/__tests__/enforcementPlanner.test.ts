@@ -10,9 +10,9 @@
 
 
 import { describe, expect, it } from 'vitest';
-import { planEnforcement, primaryAction } from '../enforcement/planner';
-import type { ModerationEnforcementConfig } from '../types';
-import { decision } from './support/decisions';
+import { planEnforcement, primaryAction } from '../enforcement/planner.js';
+import type { ModerationEnforcementConfig } from '../types.js';
+import { decision } from './support/decisions.js';
 
 type TestAction = 'restrict' | 'restore' | 'flag' | 'unflag' | 'review' | 'none';
 

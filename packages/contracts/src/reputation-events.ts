@@ -36,15 +36,15 @@
 
 import { z } from 'zod';
 
-import { CONTRACT_LIMITS, IdentifierSchema, Sha256DigestSchema } from './primitives';
-import { PrincipalTypeSchema } from './case-envelope';
-import { ReputationPolicyVersionsSchema } from './policies';
+import { CONTRACT_LIMITS, IdentifierSchema, Sha256DigestSchema } from './primitives.js';
+import { PrincipalTypeSchema } from './case-envelope.js';
+import { ReputationPolicyVersionsSchema } from './policies.js';
 import {
   FindingAttributionSchema,
   ReputationEligibleFindingScopeSchema,
   SeveritySchema,
   TaxonomyCodeSchema,
-} from './taxonomy';
+} from './taxonomy.js';
 
 /**
  * §11.6 names one event type. §11.5 names four bridge operations — apply,
