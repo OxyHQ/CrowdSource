@@ -3,10 +3,12 @@
 Two routers, one authentication, three authorizations. `/v1/console/*` serves an
 application's own team; `/v1/trust-safety/*` serves Oxy staff across tenants.
 
-Both are **Oxy session** callers. A service credential satisfies neither: the
-shared SDK does not recognise a service token as a session, so it never reaches a
-handler. That is the structural half of the separation — a leaked integrator key
-cannot read a console.
+Both are **Oxy session** callers, and they are the third and fourth of
+[the four caller classes](./README.md#four-caller-classes-and-none-of-them-substitutes-for-another).
+A service credential satisfies neither: the shared SDK does not recognise a
+service token as a session, so it never reaches a handler. That is the
+structural half of the separation — a leaked integrator key cannot read a
+console.
 
 ## The three authorizations
 
