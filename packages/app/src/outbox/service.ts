@@ -359,6 +359,16 @@ export function createOutboxService(input: {
        * server-side update validation, so nothing in the schema, the types or a
        * mocked driver reveals it.
        *
+       * The error is **code 40, `ConflictingUpdateOperators`**, and it carries no
+       * error labels. That matters for two reasons. It is DETERMINISTIC and NOT
+       * retryable — measured: the identical document fails identically on a
+       * second attempt — so a driver's retry logic cannot mask any of it, and an
+       * observed failure count is traffic rather than the surviving remainder of
+       * something partially absorbed. And it is a DIFFERENT failure from code
+       * 112 `WriteConflict`/`TransientTransactionError`, which is what the
+       * inferior fix below causes under concurrency; blending the two sends
+       * whoever greps the logs after the wrong string.
+       *
        * `createdAt` is NOT symmetric with it, and the difference is worth
        * stating because the tempting rule ("never name a timestamp here") sends
        * people to churn upserts that are perfectly fine. Mongoose puts
