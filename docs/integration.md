@@ -139,16 +139,20 @@ between two deliveries of one report.
 **A `409` is not retryable.** It means the payload has to change. Everything
 else your outbox should retry is already marked `retryable: true`.
 
-### Attaching media
+### Attaching media — text-only reports work today; attachments may not
 
-Upload the bytes through the Oxy media chokepoint with your own Oxy
-credentials, then pass the **bare file id**:
+**Start with text.** `content` and `context` carry text resources and need
+nothing but the report itself. Everything above works for a text-only
+integration right now.
+
+An attachment is a different matter, and this is a step to plan around rather
+than to follow:
 
 ```ts
 attachments: [{
   type: 'image',
   asset: {
-    fileId: post.imageFileId,
+    fileId: post.imageFileId,   // a bare Oxy file id — REQUIRED
     mimeType: 'image/jpeg',
     sha256: `sha256:${digestOf(bytes)}`,
     url: post.remoteImageUrl,   // optional provenance. Never fetched.
@@ -156,13 +160,25 @@ attachments: [{
 }]
 ```
 
-CrowdSource has no upload route of its own, deliberately. `asset.sha256` is
-required, so you already hold the bytes you are reporting; putting them through
-the chokepoint asks for nothing new.
+`AssetRefSchema` **requires** `fileId`, a bare Oxy file id
+(`packages/contracts/src/resources.ts`). CrowdSource has no upload route of its
+own, deliberately: the presigned design was superseded by the Oxy media
+chokepoint before it was ever built, and `packages/sdk/src/uploads.ts` was
+deleted. So a file id is the only way bytes reach a reviewer, and the only place
+one comes from is the ecosystem's media service.
 
-**Known gap:** nothing copies those bytes into storage CrowdSource controls, so
-a file id resolves to whatever `cloud.oxy.so` currently serves. An author who
-deletes an image removes it from the reviewer's screen mid-case.
+**Pending, and it decides whether attachments are usable at all:** nothing in
+this repository establishes whether a **non-first-party** application can obtain
+a `cloud.oxy.so` file id. If uploading is first-party only, an external adopter
+can send text and cannot attach an image, and there is no fallback — `url` is a
+provenance record that nothing ever resolves. That question is being answered
+outside this repository; until it is, do not plan an attachment path, and do not
+read the snippet above as an instruction.
+
+**And a gap that holds either way:** nothing copies those bytes into storage
+CrowdSource controls, and nothing verifies a fetched stream against the declared
+`sha256`. A file id resolves to whatever `cloud.oxy.so` currently serves, so an
+author who deletes an image removes it from the reviewer's screen mid-case.
 
 ---
 

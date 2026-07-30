@@ -370,6 +370,54 @@ describe('the route tables describe the routes that are served', () => {
     }
   });
 
+  /**
+   * `api/README.md`'s "what is not served" list, asserted against the routing
+   * table.
+   *
+   * This is the section with the worst failure mode in the whole tree, and it has
+   * already failed once: a served/not-served list written from prose rather than
+   * from `app.ts` named appeals, the reviewer history route and the console as
+   * unserved when all three existed. A reader believes an absence and either
+   * builds the thing that is already there or stops looking for the thing that is
+   * not. So each bullet is a pattern no served route may match, and the day one
+   * does the build fails instead of the page going quietly wrong.
+   */
+  it.each([
+    ['upload route', /\/uploads?(\/|$)/],
+    ['enforcement route', /\/enforcement(\/|$)/],
+    ['policy or schema registry route', /\/(policy-sets|policies|resource-schemas|schemas)(\/|$)/],
+    ['reputation route', /\/reputation(\/|$)/],
+    ['reviewer route addressed by a case id', /^\w+ \/reviewer\/.*cases?\//],
+    ['case-search route', /^GET \/cases$/],
+    ['staff-role grant', /\/trust-safety\/staff/],
+    ['webhook endpoint list on the application API', /^GET \/webhook-endpoints/],
+  ])('is right that there is no %s', (_name, forbidden) => {
+    const offenders = served
+      .filter((route) => forbidden.test(route.signature))
+      .map((route) => `${route.signature} (${route.file})`);
+
+    expect(offenders, 'api/README.md says this is not served').toEqual([]);
+  });
+
+  it('mutation: the not-served patterns match what they are meant to match', () => {
+    // Each pattern above is only worth anything if it would fire on the thing it
+    // forbids. Proven against synthetic signatures rather than against the tree,
+    // because the tree is supposed to contain none of them.
+    const cases: readonly [RegExp, string][] = [
+      [/\/uploads?(\/|$)/, 'POST /uploads'],
+      [/\/enforcement(\/|$)/, 'POST /cases/*/enforcement'],
+      [/\/(policy-sets|policies|resource-schemas|schemas)(\/|$)/, 'POST /policy-sets'],
+      [/\/reputation(\/|$)/, 'POST /reputation/effects'],
+      [/^\w+ \/reviewer\/.*cases?\//, 'GET /reviewer/cases/*'],
+      [/^GET \/cases$/, 'GET /cases'],
+      [/\/trust-safety\/staff/, 'POST /trust-safety/staff'],
+      [/^GET \/webhook-endpoints/, 'GET /webhook-endpoints'],
+    ];
+    for (const [pattern, signature] of cases) {
+      expect(pattern.test(signature), `${pattern} should match ${signature}`).toBe(true);
+    }
+  });
+
   it('mutation: a route that stopped being served, or changed guard, is caught', () => {
     const documented = documentedRoutes(applicationApi);
 

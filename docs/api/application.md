@@ -269,10 +269,19 @@ delivery is dropped — `@oxyhq/crowdsource-express` reads the retiring one from
 
 ## Evidence
 
-**There is no upload route, deliberately.** An asset carries a bare Oxy
-`fileId`; the bytes live behind the one Oxy media chokepoint the ecosystem
-already uses, so there is no second place for bytes to be, no presigned URL to
-leak and no bucket to configure.
+**There is no upload route, and it was superseded rather than left unbuilt.** A
+presigned-upload design existed; the Oxy media chokepoint replaced it before it
+was implemented, `packages/sdk/src/uploads.ts` was deleted, and `AssetRefSchema`
+now **requires** a bare Oxy `fileId`. That distinction matters: an unbuilt
+endpoint sends somebody off to build it, and this one must not be built. The
+bytes live behind the one chokepoint the ecosystem already uses, so there is no
+second place for bytes to be, no presigned URL to leak and no bucket to
+configure.
+
+**Pending:** nothing in this repository establishes whether a non-first-party
+application can obtain a `cloud.oxy.so` file id. If it cannot, an external
+adopter can report text and cannot attach media at all — see
+[the integration guide](../integration.md#attaching-media--text-only-reports-work-today-attachments-may-not).
 
 ```ts
 attachments: [{

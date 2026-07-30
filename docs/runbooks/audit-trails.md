@@ -173,22 +173,30 @@ successful query returning nothing:
   whose access logging is the platform's, not CrowdSource's. Nothing here records
   a file being viewed.
 
-## Where the boundary actually is for juror data
+## Juror data is protected by FIELDS, not by the tenant
 
-Worth stating because it is counter-intuitive and it is what a reviewer must not
-get wrong when adding a query. `Assignment`, `Review`, `ReviewerProfile`,
-`SortitionDraw`, `ReviewerAffinity` and `ReviewerRelation` are **unscoped**
-collections — correctly, since a reviewer belongs to no tenant and the draw
-spans every application by design.
+The one thing to carry away before adding any query near a review, because it is
+counter-intuitive and the intuition is dangerous. `Assignment`, `Review`,
+`ReviewerProfile`, `SortitionDraw`, `ReviewerAffinity` and `ReviewerRelation` are
+declared through `defineUnscopedCollection` — correctly, since a reviewer belongs
+to no tenant and the draw spans every application by design.
 
-So the tenant filter is **not** the control for juror data and cannot be. A
-module wanting juror identity across tenants needs no allowlist entry at all: it
-can read `Review` through the ordinary wrapper.
+**So the tenant filter is not the control here, and there is nothing underneath
+it to fall back on.** A module wanting juror identity across every application
+needs no allowlist entry and no new primitive: it can read `Review` unfiltered
+through the ordinary wrapper today. The named-query control protects `cases` and
+`decisions`, which are tenant collections. It does not protect these.
 
-**The control is the fields.** No console-reachable accessor returns a
-`reviewerId`, an assignment, or a per-juror vote, and the forbidden-field list
+What holds instead is that **no console-reachable accessor returns a
+`reviewerId`, an assignment, or a per-juror vote**, and the forbidden-field list
 names juror identity explicitly so a rename cannot quietly drop it. A
-group-by-reviewer aggregation would be one field away from naming somebody.
+group-by-reviewer aggregation would be one field away from naming somebody; a
+count cannot name anybody whatever is added to it.
+
+The full analysis — including why this is the weakest protection in the system
+and what becomes load-bearing the moment a privileged module reads these
+collections — is [threat model §5](../architecture/threat-model.md). Read it
+before writing the query, not after.
 
 ## Machine-checked claims
 

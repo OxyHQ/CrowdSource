@@ -94,21 +94,44 @@ working key (`serviceCredentialAuth.ts`).
 
 ## What is not served
 
-Naming these is the point of this section: an endpoint that is absent should be
-absent from the documentation too, or the next person builds against it.
+Naming these is the point of this section — but **a removed capability and an
+unbuilt one look identical in a list, and only one of them should send somebody
+off to build it**, so each says which it is.
 
-- **No upload route.** Evidence is a bare Oxy `fileId` resolved through the
-  ecosystem media chokepoint; `packages/sdk/src/uploads.ts` was removed rather
-  than a server half built. See [`application.md`](./application.md#evidence).
-- **No case search, and no reviewer route that takes a case id.** Every reviewer
-  route is addressed by assignment (`modules/sortition/assignments.routes.ts`),
-  which is what makes "nobody chooses the case they review" a property of the
-  routing table rather than a rule.
-- **No webhook endpoint list, read-back or delete on the application API.** The
-  plan defines two routes and two exist. The list is on the console surface
-  instead (`GET /v1/console/applications/{id}/webhook-endpoints`).
-- **No enforcement route and no reputation bridge.**
+**Superseded — do not build:**
+
+- **The upload route.** A presigned-upload design existed and was replaced by the
+  Oxy media chokepoint before it was implemented; `packages/sdk/src/uploads.ts`
+  was deleted and `AssetRefSchema` now requires a bare `fileId`. See
+  [`application.md`](./application.md#evidence).
+
+**Deliberately absent, and must stay absent:**
+
+- **Any reviewer route that takes a case id, and any case search.** Every
+  reviewer route is addressed by assignment
+  (`modules/sortition/assignments.routes.ts`), which is what makes "nobody
+  chooses the case they review" a property of the routing table rather than a
+  rule somebody enforces.
+- **Any route that grants a Trust & Safety role.** Privileged authority must not
+  be self-grantable, and the way to guarantee that is for there to be no route —
+  `modules/console/staff.service.ts` says so.
+
+**Not built yet:**
+
+- **Enforcement acknowledgements, the policy registry and the schema registry.**
   `crowdsource:enforcement:write`, `crowdsource:policies:manage` and
   `crowdsource:schemas:manage` are grantable scopes
-  (`modules/tenancy/scopes.ts`) with no route behind them yet.
-- **No route that grants a Trust & Safety role**, deliberately.
+  (`modules/tenancy/scopes.ts`) with no route behind them.
+- **The reputation bridge**, which belongs in Oxy Trust rather than here.
+  CrowdSource emits a decision; it never writes a reputation figure.
+
+**Elsewhere, not missing:**
+
+- **The webhook endpoint list.** The application API defines exactly two
+  webhook-management routes and serves two; the list is on the console surface
+  (`GET /v1/console/applications/{id}/webhook-endpoints`), which closes the gap
+  without widening the application API.
+
+Every bullet above is asserted by `docsClaims.test.ts` against the routing table
+— a route that appears for any of them fails the build rather than quietly
+making this section wrong.
