@@ -36,7 +36,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** The packages whose `dist` is published. */
-const PUBLISHED = ["contracts", "sdk", "sdk-express", "testing"];
+const PUBLISHED = ["contracts", "sdk", "sdk-express", "testing", "app"];
 
 /** Output suffixes, longest first so `.d.ts.map` is stripped before `.map`. */
 const OUTPUT_SUFFIXES = [".d.ts.map", ".d.ts", ".js.map", ".js"];

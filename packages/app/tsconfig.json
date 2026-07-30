@@ -1,0 +1,40 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // CommonJS emit so Node consumers, an application backend and bundlers all
+    // resolve the same build; `node` resolution matches that module format.
+    "module": "commonjs",
+    "moduleResolution": "node",
+
+    // --- Intentional override of the root base's `lib: ["ES2020"]`, matching
+    // `packages/sdk`: `new Error(message, { cause })` is ES2022. `target` stays
+    // ES2020 — `lib` changes what is TYPED, not what is emitted.
+    "lib": ["ES2022"],
+
+    // --- Emit settings (the root base is type-check only / noEmit).
+    "noEmit": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // Contracts and the two SDKs resolve through the workspace `node_modules`
+    // symlinks to their PUBLISHED declaration surfaces, not to their sources.
+    // Deliberate for a published package: it type-checks against exactly what an
+    // integrator installs, so a symbol that exists in a sibling's source but not
+    // in its `exports` cannot compile here and fail for them. It also keeps
+    // `rootDir` honest — a `paths` mapping into `../sdk/src` pulls files from
+    // outside this project into the program (TS6059).
+    "baseUrl": "."
+  },
+  "include": ["src/**/*"],
+  // Tests stay out of the EMITTING project so they never reach `dist/` and
+  // therefore never reach the published tarball; `tsconfig.test.json` covers
+  // them and `bun run lint` runs both projects.
+  "exclude": ["node_modules", "dist", "src/__tests__"],
+  "references": [
+    { "path": "../contracts" },
+    { "path": "../sdk" },
+    { "path": "../sdk-express" }
+  ]
+}

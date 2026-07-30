@@ -1,0 +1,73 @@
+{
+  "name": "@oxyhq/crowdsource-app",
+  "version": "0.3.0",
+  "description": "The application half of a CrowdSource integration: a transactional outbox, delivery, a webhook receiver, decision application and idempotent enforcement, wired to your own subjects",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",
+    "test": "bun run test:unit && bun run test:invariants",
+    "test:unit": "node ../../node_modules/vitest/vitest.mjs run",
+    "test:invariants": "bun ./scripts/test-invariants.mjs",
+    "test:watch": "node ../../node_modules/vitest/vitest.mjs",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "crowdsource",
+    "moderation",
+    "outbox",
+    "webhooks",
+    "express",
+    "mongoose"
+  ],
+  "author": "OxyHQ",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OxyHQ/CrowdSource",
+    "directory": "packages/app"
+  },
+  "homepage": "https://github.com/OxyHQ/CrowdSource/tree/main/packages/app#readme",
+  "bugs": "https://github.com/OxyHQ/CrowdSource/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@oxyhq/crowdsource": "workspace:*",
+    "@oxyhq/crowdsource-express": "workspace:*"
+  },
+  "devDependencies": {
+    "@oxyhq/crowdsource-contracts": "workspace:*",
+    "@oxyhq/crowdsource-testing": "workspace:*",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.5",
+    "express": "^5.2.1",
+    "mongodb-memory-server": "^11.2.0",
+    "mongoose": "^8.24.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*",
+    "!src/**/__tests__/**"
+  ],
+  "peerDependencies": {
+    "@oxyhq/crowdsource-contracts": "^0.3.0",
+    "express": ">=4.18.0 <6",
+    "mongoose": "^8.0.0"
+  }
+}
