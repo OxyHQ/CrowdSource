@@ -34,7 +34,7 @@ import { fileURLToPath } from "node:url";
 
 const CONTRACTS = "@oxyhq/crowdsource-contracts";
 /** Every published package that consumes the contracts package. */
-const CONSUMERS = ["sdk", "sdk-express", "testing"];
+const CONSUMERS = ["sdk", "sdk-express", "testing", "app"];
 
 const repositoryRoot =
   process.argv[2] === undefined

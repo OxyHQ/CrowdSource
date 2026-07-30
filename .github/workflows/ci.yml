@@ -110,6 +110,15 @@ jobs:
             command: bun run --cwd packages/testing test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/testing-tests.json"
             build: bun run build:contracts && bun run --cwd packages/sdk build
             minimum_tests: 12
+          # `test:unit` rather than `test`, because the package's own `test` chains
+          # the invariant mutation run and the reporter flags below would land on
+          # that script instead of on vitest. Both halves still run here: the
+          # mutation script is what proves the two invariant tests can fail at all,
+          # so a job that skipped it would gate nothing that matters.
+          - package: app
+            command: bun run --cwd packages/app test:unit -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/app-tests.json" && bun run --cwd packages/app test:invariants
+            build: bun run build:contracts && bun run --cwd packages/sdk build && bun run --cwd packages/sdk-express build && bun run --cwd packages/testing build
+            minimum_tests: 40
           # The console has no coverage threshold of its own yet, so it runs the plain
           # suite: a `coverage: true` entry whose package publishes no summary would fail
           # the upload step below with `if-no-files-found: error`, which is a CI failure

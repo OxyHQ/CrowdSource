@@ -40,6 +40,11 @@ function healthyTree() {
       peerDependencies: { [CONTRACTS]: "^0.2.0" },
       devDependencies: { [CONTRACTS]: "workspace:*" },
     },
+    app: {
+      name: "@oxyhq/crowdsource-app",
+      peerDependencies: { [CONTRACTS]: "^0.2.0" },
+      devDependencies: { [CONTRACTS]: "workspace:*" },
+    },
   };
 }
 
@@ -84,6 +89,17 @@ const cases = [
     mustMention: "@oxyhq/crowdsource-testing",
     mutate: (tree) => {
       delete tree.testing.devDependencies;
+      return tree;
+    },
+  },
+  {
+    name: "contracts as a normal dependency of the app package is caught",
+    expectFailure: true,
+    mustMention: "@oxyhq/crowdsource-app",
+    // The app package is the one an adopter installs ALONGSIDE contracts, so a
+    // nested second copy here is the shape that reaches production soonest.
+    mutate: (tree) => {
+      tree.app.dependencies = { [CONTRACTS]: "^0.2.0" };
       return tree;
     },
   },

@@ -34,16 +34,18 @@ packages/
   sdk/            @oxyhq/crowdsource            TypeScript client (published)
   sdk-express/    @oxyhq/crowdsource-express    Webhook middleware (published)
   testing/        @oxyhq/crowdsource-testing    Fixtures + webhook simulator (published)
+  app/            @oxyhq/crowdsource-app        The application half: outbox, delivery, receiver, enforcement (published)
 docs/{architecture,api,policies,runbooks}
 ```
 
-Current state: contracts, sdk, sdk-express and testing are written; the reviewer app is the foundation without review surfaces; the console covers the developer surface and the Trust & Safety trust/delivery surfaces. Each package README says what it holds.
+Current state: contracts, sdk, sdk-express, testing and app are written; the reviewer app is the foundation without review surfaces; the console covers the developer surface and the Trust & Safety trust/delivery surfaces. Each package README says what it holds.
 
-The three integration packages target **near-zero configuration**, which is a product requirement rather than a nicety: one environment variable and the object being reported. Two consequences bind every change to them.
+The four integration packages target **near-zero configuration**, which is a product requirement rather than a nicety: one environment variable and the object being reported. Two consequences bind every change to them.
 
 - **`applicationId` is read off the credential, and there is no surface that can carry one.** The service key an integrator configures is `applicationId:credentialId:secret` — the three values `issueApplicationCredential` already returns, joined — so the client knows its own application without being told. Never add an `applicationId` option, field or parameter; the envelope's copy exists so a mismatch can be DETECTED, and the credential is its only source.
 - **A default must be a pinned version, never "whatever is current".** `DEFAULT_POLICY` in `packages/sdk/src/defaults.ts` names an immutable published version and MUST equal `BASELINE_POLICY_SET_ID`/`BASELINE_POLICY_VERSION` in the backend's `policyBaseline.ts`; `sdk/src/__tests__/defaults.test.ts` reads that file and asserts it. A resolved-at-ingress "latest" would move the policy under an application that changed nothing and would split §7.3's dedup key, giving one post two cases.
 - **Nothing the client composes may vary between two deliveries of the same report.** Ingress fingerprints the whole `{ externalReportId, envelope }` to detect §10.5's payload conflict, so an invented timestamp, a random id or an unsorted list turns a legitimate outbox retry into a permanent 409 — silently, days later, as moderation work stuck in a queue. This is why resource ids are positional, principal refs are derived from the identity, and `source.submittedAt` has no default.
+- **`packages/app` owns the adopter's half, and an adopting application writes only four things**: its subject providers, its category→allegation mapping, its enforcement tables plus one `apply`, and its own report model. Anything an application would otherwise copy — the transactional outbox, delivery, the webhook receiver, cross-instance dedupe, decision application, the enforcement claim and the enforcement PLANNING ALGORITHM — belongs here, not in seven repos. The planner is shared even though its tables are per-app for one reason worth restating: a correction arrives as `no_violation` + `no_action`, meaning "take no NEW action" rather than "leave what you already did in place", and mapping it straight through leaves the removed object removed forever with no error, no log line and no failing test. Its suite runs against a real `mongodb-memory-server` replica set rather than a mocked driver — a mock agrees with any claim about transactions and unique indexes, and that choice immediately caught a total-failure bug (`$setOnInsert` naming `createdAt`/`updatedAt` against a `timestamps: true` schema) that the reference implementation's mocked tests could not see.
 
 ### Backend
 
