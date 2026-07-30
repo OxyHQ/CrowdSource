@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
 
 /**
@@ -44,16 +45,28 @@ function newOxyUserId(): string {
 }
 
 /**
- * The family this suite's reviewers accept.
+ * The cells this suite's reviewers accept.
  *
  * Reviewer profiles are global — a reviewer belongs to no tenant — so anyone who
  * completes onboarding here becomes a candidate for every case in the database,
  * including other suites' running concurrently against the same replica set.
- * `privacy` is a family no test case alleges, and §8.2 requires a reviewer to
- * accept EVERY family a case alleges, so these reviewers can never be drawn.
- * The isolation is the product's own eligibility rule, not a fixture trick.
+ * That applies to this file as much as to any other even though it never calls
+ * the fixture helpers: `trainedReviewer` drives the real routes all the way
+ * through calibration, and what comes out the far end is a `community` profile
+ * indistinguishable from an inserted one. It was the easiest suite in the
+ * directory to overlook for exactly that reason, and it shared `(privacy, es)`
+ * with `reviewerFailureModes.integration.test.ts` until the registry made both
+ * claims visible in one place.
+ *
+ * The languages below therefore come from `support/reviewerAxes.ts` rather than
+ * being written here, and they are the file's isolation axis: `privacy` stays
+ * shared with that suite, and §8.2's language gate is what keeps the two pools
+ * apart in both directions.
  */
-const FAMILY = 'privacy' as const;
+const axes = reviewerAxesFor(import.meta.url);
+const FAMILY = axes('onboarding').family;
+const LANGUAGE = axes('onboarding').language;
+const SECOND_LANGUAGE = axes('secondary').language;
 
 const CORRECT_ANSWERS = CALIBRATION_ITEMS.map((item) => ({
   itemId: item.itemId,
@@ -187,10 +200,10 @@ describe('preferences and consent (§13.7)', () => {
     const response = await request(app)
       .post('/v1/reviewer/preferences')
       .set(asReviewer(oxyUserId))
-      .send({ languages: ['es', 'en'], categories: [FAMILY], dailyReviewLimit: 8 });
+      .send({ languages: [LANGUAGE, SECOND_LANGUAGE], categories: [FAMILY], dailyReviewLimit: 8 });
 
     expect(response.status).toBe(200);
-    expect(response.body.preferences.languages).toEqual(['es', 'en']);
+    expect(response.body.preferences.languages).toEqual([LANGUAGE, SECOND_LANGUAGE]);
     expect(response.body.preferences.categories).toEqual([FAMILY]);
     expect(response.body.preferences.dailyLimit).toBe(8);
     // §13.7's exposure travels with the profile, so a screen showing the limit
@@ -325,7 +338,7 @@ describe('training and calibration (§8.1, §9.7)', () => {
     await request(app)
       .post('/v1/reviewer/preferences')
       .set(asReviewer(oxyUserId))
-      .send({ rulesAccepted: true, languages: ['es'], categories: [FAMILY] });
+      .send({ rulesAccepted: true, languages: [LANGUAGE], categories: [FAMILY] });
 
     for (const module of TRAINING_MODULES) {
       const response = await request(app)

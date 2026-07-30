@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
 
 /**
@@ -102,19 +103,24 @@ type ProvisionedTenant = Awaited<ReturnType<typeof provisionTenant>>;
 const app = createApp();
 
 /**
- * This suite's isolation axes.
+ * This suite's isolation axis, which it does not get to choose for itself.
  *
  * Reviewer profiles are global, so anybody created here is a candidate for every
  * case in the database — including other suites' running against the same replica
- * set. `harassment` is a family no other file serves, and `ast` a language no
- * other file uses; §8.2 requires a reviewer to have BOTH, so neither pool can be
- * drawn for the other's cases. `hate` is deliberately avoided: `sortitionPanel`
- * reserves it as a family NOBODY serves so its undersized-pool refusal has
- * something to refuse.
+ * set. §8.2 requires a reviewer to accept the case's family AND hold its
+ * language, so a `(family, language)` cell no other file holds is a wall in both
+ * directions. This file used to name that cell itself, in a comment asserting it
+ * was unique. It was not: `appeals.integration.test.ts` had claimed
+ * `(harassment, ast)` too, and the two suites were one shift in execution order
+ * away from seating each other's reviewers. `support/reviewerAxes.ts` now owns
+ * the assignment for every suite and `reviewerAxes.test.ts` fails if two claim
+ * the same cell, which is the only version of this rule that a reader cannot
+ * accidentally break.
  */
-const FAMILY = 'harassment' as const;
+const axes = reviewerAxesFor(import.meta.url);
+const FAMILY = axes('contract').family;
 const CODE = 'harassment.targeted_abuse';
-const LANGUAGE = 'ast';
+const LANGUAGE = axes('contract').language;
 
 /** The reported text, so the assertion can prove the MATERIAL survived. */
 const REPORTED_TEXT = 'you are worthless and everyone should tell you so';
@@ -166,8 +172,33 @@ beforeAll(async () => {
 
   const seated = new Set(seats.map((seat) => seat.reviewerId));
   const holder = pool.find((reviewer) => seated.has(reviewer.reviewerId));
-  expect(holder).toBeDefined();
-  reviewerOxyUserId = holder?.oxyUserId ?? '';
+
+  /**
+   * A full panel is not enough: every test below acts AS this person, so the
+   * fixture needs one seat held by a reviewer THIS file created. Weakening the
+   * claim to "three seats exist" would leave `reviewerOxyUserId` empty and 404
+   * every request in the file — a suite-wide failure three screens from its
+   * cause, which is the shape this file was written to stop happening.
+   *
+   * The failure is reported rather than asserted so it can carry the evidence
+   * that tells the two causes apart. A draw that seated NOBODY from this pool is
+   * almost never a broken selector; it is another suite holding this file's
+   * `(family, language)` cell and its reviewers winning the sortition, and the
+   * seated ids below are what makes that visible immediately instead of after an
+   * afternoon in the sortition module. `support/reviewerAxes.ts` is where the
+   * cell is assigned, and `reviewerAxes.test.ts` should have failed first.
+   */
+  if (holder === undefined) {
+    throw new Error(
+      `sortition seated none of this suite's ${pool.length} reviewers for ` +
+        `(${FAMILY}, ${LANGUAGE}). Seated: ${[...seated].join(', ')}. This ` +
+        `suite's pool: ${pool.map((reviewer) => reviewer.reviewerId).join(', ')}. ` +
+        'Reviewer profiles are global, so the likely cause is another test file ' +
+        'holding the same cell — check support/reviewerAxes.ts.',
+    );
+  }
+
+  reviewerOxyUserId = holder.oxyUserId;
 }, 180_000);
 
 afterAll(async () => {

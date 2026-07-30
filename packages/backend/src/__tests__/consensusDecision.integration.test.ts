@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { RecommendedAction, Severity, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 
+import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
 
 /**
@@ -66,9 +67,11 @@ const app = createApp();
  *  - `hate` is reserved by `sortitionPanel.integration.test.ts` as the family
  *    NOBODY serves, so that its undersized-pool refusal has something to refuse.
  *
- * So every block below takes `integrity` — a family no other suite alleges — and
- * its own language tag, none of them `es`. Nothing else in the suite creates a
- * non-`es` reviewer or a non-`es` case, so the walls hold in both directions.
+ * So every block below takes `integrity` and its own language tag, none of them
+ * `es`. Which cells those are is not this file's to decide — `integrity` is
+ * shared with `decisionRevision.integration.test.ts`, and the pairs are assigned
+ * centrally in `support/reviewerAxes.ts` so that no two suites can pick the same
+ * one while each believes it is alone. `reviewerAxes.test.ts` enforces it.
  * Separate pools per block are needed for a second reason too: `POST
  * /assignments/next` hands back the assignment a reviewer was given LONGEST AGO
  * (§8.7), which is correct behaviour and makes a shared pool ambiguous — a juror
@@ -78,15 +81,17 @@ const app = createApp();
  * row — the only row where §8.6's three-of-three is reachable, and therefore the
  * only row the definition of done can be demonstrated on.
  */
-const FAMILY = 'integrity' as const;
+const axes = reviewerAxesFor(import.meta.url);
+/** Every block here alleges the same family; the language is what separates them. */
+const FAMILY = axes('unanimous').family;
 const UNANIMOUS_CODE: TaxonomyCode = 'integrity.spam';
-const UNANIMOUS_LANGUAGE = 'gl';
+const UNANIMOUS_LANGUAGE = axes('unanimous').language;
 const LADDER_CODE: TaxonomyCode = 'integrity.fraud';
-const LADDER_LANGUAGE = 'ca';
+const LADDER_LANGUAGE = axes('ladder').language;
 const RECUSAL_CODE: TaxonomyCode = 'integrity.coordinated_manipulation';
-const RECUSAL_LANGUAGE = 'br';
+const RECUSAL_LANGUAGE = axes('recusal').language;
 const DIMENSIONS_CODE: TaxonomyCode = 'integrity.scam';
-const DIMENSIONS_LANGUAGE = 'an';
+const DIMENSIONS_LANGUAGE = axes('dimensions').language;
 
 let tenant: ProvisionedTenant;
 
