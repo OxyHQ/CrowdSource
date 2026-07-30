@@ -52,9 +52,21 @@ COPY --from=manifests /app/packages/testing/package.json packages/testing/
 RUN --mount=type=cache,target=/root/.bun/install/cache \
   bun install --frozen-lockfile --omit=dev --omit=peer --omit=optional --ignore-scripts \
     --filter @oxyhq/crowdsource-contracts --filter @crowdsource/backend
-# Only the two runtime workspaces may exist in the final image; the client and
-# SDK manifests above exist solely so the workspace lockfile resolves.
-RUN rm -rf packages/reviewer packages/console packages/sdk packages/sdk-express packages/testing
+# Only the two runtime workspaces may exist in the final image; every other
+# manifest above exists solely so the workspace lockfile resolves.
+#
+# Expressed as "keep these two" rather than "delete those five" on purpose. The
+# delete-list is the complement of `EXPECTED_WORKSPACE_PACKAGES` in
+# `audit-runtime-image.mjs`, so an enumeration has to be updated in two files
+# whenever a package is added — and the failure is a broken deploy discovered
+# after merge. `packages/app` was added to the COPY lines and not here, and the
+# audit caught it exactly that way.
+RUN for dir in packages/*/; do \
+      case "$dir" in \
+        packages/backend/|packages/contracts/) ;; \
+        *) rm -rf "$dir" ;; \
+      esac; \
+    done
 
 COPY --from=builder /app/packages/contracts/dist/ packages/contracts/dist/
 COPY --from=builder /app/packages/backend/dist/ packages/backend/dist/
