@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import {
+  ASSIGNMENT_TOKEN_HEADER,
   RecusalSubmissionSchema,
   ReviewSubmissionSchema,
-  type CaseEnvelope,
+  type AssignmentPackage,
+  type IssuedAssignmentPackage,
 } from '@oxyhq/crowdsource-contracts';
 
 import { createTenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';
+import { parseOrThrow } from '../../http/parseBody';
 import { isPublicId } from '../../utils/identifiers';
 import { appealForRevision } from '../appeals/appeal.service';
 import { cases } from '../cases/case.collection';
@@ -15,11 +18,8 @@ import { resolvePolicy } from '../policy/policy.registry';
 import { requestReviewer, requireReviewerSession } from '../reviewer/reviewerAuth';
 import { submitReview } from '../review/review.service';
 import type { AssignmentDocument } from './assignment.collection';
-import {
-  authorizeAssignment,
-  nextAssignment,
-  recuseAssignment,
-} from './assignment.service';
+import { authorizeAssignment, nextAssignment, recuseAssignment } from './assignment.service';
+import { buildReviewPackage } from './reviewPackage';
 
 /**
  * The reviewer's assignment surface (§10.3), and §9.1's blind review.
@@ -55,9 +55,6 @@ import {
 
 export const assignmentsRouter: Router = Router();
 
-/** The header the assignment token travels in (§8.7). */
-const ASSIGNMENT_TOKEN_HEADER = 'x-assignment-token';
-
 function presentedToken(headerValue: string | undefined): string | null {
   if (typeof headerValue !== 'string') return null;
   const trimmed = headerValue.trim();
@@ -72,65 +69,32 @@ function requireAssignmentId(value: unknown): string {
 }
 
 /**
- * The renderable package a juror is authorised to see.
+ * Loads what `buildReviewPackage` needs, and does nothing else.
  *
- * `caseId` is deliberately absent even though the reviewer holds an assignment
- * for it: §8.7 asks for resource and application ids to be pseudonymised where
- * they are not needed, and a case id is not needed to judge material. The
- * resource ids ARE needed — a finding names the resource it is about — so they
- * stay.
+ * The projection itself is pure and lives in `reviewPackage.ts`, because §9.1 is
+ * a statement about which fields exist and testing that should not require a
+ * database, a draw and an HTTP request. This function is the I/O half: the case
+ * and its policy, read under the tenant the ASSIGNMENT was stamped with — never a
+ * tenant from the request, which a reviewer's session could not carry anyway.
  */
-async function reviewPackage(assignment: AssignmentDocument): Promise<Record<string, unknown>> {
+async function reviewPackage(assignment: AssignmentDocument): Promise<AssignmentPackage> {
   const context = createTenantContext(assignment.organizationId, assignment.applicationId);
   const stored = await cases.findOne(context, { caseId: assignment.caseId });
   if (!stored) {
     throw new ApiError('not_found', 'No such assignment.');
   }
 
-  const snapshot: CaseEnvelope['resources'] = stored.contentSnapshot.resources;
   const policy = await resolvePolicy(context, {
     policySetId: stored.policySetId,
     version: policyVersionOfToken(stored.policyVersion, stored.policySetId),
   });
 
-  return {
-    assignmentId: assignment.assignmentId,
-    caseRevision: assignment.caseRevision,
-    expiresAt: assignment.expiresAt.toISOString(),
-
-    /** §9.1: the allegation, labelled as what it is — a claim nobody verified. */
-    allegations: {
-      unverified: true,
-      codes: stored.allegationCodes,
-    },
-
-    /**
-     * §9.1: the applicable policy and its rules, in full.
-     *
-     * A reviewer is asked whether material breaks a rule, so they are given the
-     * rules — including the severities and actions each rule suggests, which is
-     * §9.2's second step. Withholding them would be asking somebody to apply a
-     * standard nobody showed them.
-     */
-    policy: {
-      policySetId: policy.policySetId,
-      version: policy.version,
-      taxonomyVersion: policy.taxonomyVersion,
-      rules: policy.policySet.rules,
-    },
-
-    /** §9.1: language, warnings, sensitivity — and §13.7's blur decision. */
-    presentation: {
-      sensitivityClass: assignment.sensitivityClass,
-      requiresRedaction: stored.requiresRedaction,
-      blurBeforeReveal: assignment.sensitivityClass !== 'standard',
-    },
-
-    resources: snapshot,
-    relations: stored.contentSnapshot.relations,
-
-    ...(await appealAddition(assignment)),
-  };
+  return buildReviewPackage(
+    assignment,
+    stored,
+    policy,
+    await appealAuthorContext(assignment),
+  );
 }
 
 /**
@@ -150,25 +114,23 @@ async function reviewPackage(assignment: AssignmentDocument): Promise<Record<str
  * looking at a contested case, because somebody is contesting it in their own
  * words; they cannot tell what anybody concluded.
  */
-async function appealAddition(
+async function appealAuthorContext(
   assignment: AssignmentDocument,
-): Promise<Record<string, unknown>> {
-  if (assignment.caseRevision <= 1) return {};
+): Promise<AssignmentPackage['authorContext']> {
+  if (assignment.caseRevision <= 1) return undefined;
 
   const appeal = await appealForRevision(
     createTenantContext(assignment.organizationId, assignment.applicationId),
     assignment.caseId,
     assignment.caseRevision,
   );
-  if (!appeal || appeal.authorContext === null) return {};
+  if (!appeal || appeal.authorContext === null) return undefined;
 
   return {
-    authorContext: {
-      unverified: true,
-      statement: appeal.authorContext.statement,
-      resourceIds: appeal.authorContext.resourceIds,
-      fields: appeal.authorContext.fields,
-    },
+    unverified: true,
+    statement: appeal.authorContext.statement,
+    resourceIds: appeal.authorContext.resourceIds,
+    fields: appeal.authorContext.fields,
   };
 }
 
@@ -195,11 +157,12 @@ assignmentsRouter.post(
       issued.token,
     );
 
-    response.status(200).json({
+    const issuedPackage: IssuedAssignmentPackage = {
+      ...(await reviewPackage(assignment)),
       /** Returned once, here. Only its hash is stored (§8.7). */
       token: issued.token,
-      ...(await reviewPackage(assignment)),
-    });
+    };
+    response.status(200).json(issuedPackage);
   },
 );
 
@@ -232,20 +195,16 @@ assignmentsRouter.post(
       presentedToken(request.get(ASSIGNMENT_TOKEN_HEADER)),
     );
 
-    const parsed = ReviewSubmissionSchema.safeParse(request.body);
-    if (!parsed.success) {
-      throw new ApiError('invalid_request', 'The review is not valid.', {
-        issues: parsed.error.issues
-          .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
-          .join('; ')
-          .slice(0, 500),
-      });
-    }
+    const submission = parseOrThrow(
+      ReviewSubmissionSchema,
+      request.body,
+      'The review is not valid.',
+    );
 
     const submitted = await submitReview({
       assignmentId,
       reviewerId: reviewer.reviewerId,
-      submission: parsed.data,
+      submission,
     });
 
     /**
@@ -267,16 +226,17 @@ assignmentsRouter.post(
     const reviewer = requestReviewer(request);
     const assignmentId = requireAssignmentId(request.params.assignmentId);
 
-    const parsed = RecusalSubmissionSchema.safeParse(request.body);
-    if (!parsed.success) {
-      throw new ApiError('invalid_request', 'The recusal is not valid.');
-    }
+    const recusal = parseOrThrow(
+      RecusalSubmissionSchema,
+      request.body,
+      'The recusal is not valid.',
+    );
 
     await recuseAssignment(
       reviewer.reviewerId,
       assignmentId,
       presentedToken(request.get(ASSIGNMENT_TOKEN_HEADER)),
-      parsed.data.reason,
+      recusal.reason,
     );
 
     /**

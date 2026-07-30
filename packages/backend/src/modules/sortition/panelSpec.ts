@@ -1,7 +1,7 @@
-import type { TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import type { ReviewerState, TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
 
 import type { ReviewPool } from '../triage/triage';
-import { REVIEWER_STATE_RANK, type ReviewerState } from '../reviewer/reviewerState';
+import { REVIEWER_STATE_RANK } from '../reviewer/reviewerState';
 
 /**
  * Panel composition (§8.3) and the escalation ladder (§8.6), as data.

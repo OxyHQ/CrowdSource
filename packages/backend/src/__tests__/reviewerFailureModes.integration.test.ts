@@ -465,7 +465,9 @@ describe('the session payload is read defensively', () => {
       .set({ 'x-test-oxy-user': oxyUserId, 'x-test-oxy-verified': 'not-a-boolean' });
 
     expect(response.status).toBe(200);
-    expect(response.body.personhoodConfidence).toBe(0.3);
+    // Read from the document: the projection does not publish the score, and the
+    // point of this test is the SIGNAL that fed it, not what a screen shows.
+    expect((await reviewerProfiles.findOne({ oxyUserId }))?.personhoodConfidence).toBe(0.3);
   });
 });
 

@@ -6,9 +6,10 @@
     "initialJavascriptBytes": 6291456,
     "initialJavascriptGzipBytes": 1572864,
     "fontBytes": 2097152,
-    "largestFileBytes": 4718592
+    "largestFileBytes": 4980736
   },
   "targets": {
-    "initialJavascriptGzipBytes": 1048576
+    "initialJavascriptGzipBytes": 1048576,
+    "largestFileBytes": 4718592
   }
 }

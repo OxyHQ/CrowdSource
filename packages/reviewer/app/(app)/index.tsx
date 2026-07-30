@@ -24,7 +24,7 @@ import { Panel, Screen } from '@/components/Screen';
 import { assignmentBlockers } from '@/lib/eligibility';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { useRequestNextAssignment, useReviewerProfile } from '@/lib/reviewer-api/queries';
-import type { ReviewerProfile } from '@/lib/reviewer-api/types';
+import type { ReviewerProfileView } from '@oxyhq/crowdsource-contracts';
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -83,7 +83,7 @@ function OpenCasePanel() {
 }
 
 interface ReviewerStandingProps {
-  profile: ReviewerProfile;
+  profile: ReviewerProfileView;
   hasOpenAssignment: boolean;
 }
 

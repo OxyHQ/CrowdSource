@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { RequestHandler } from 'express';
-import type { TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import type { ReviewerState, TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
 
 import { TRAINING_MODULES } from '../../modules/reviewer/calibration';
 import { personhoodConfidence } from '../../modules/reviewer/personhood';
@@ -9,7 +9,7 @@ import {
   type ReviewerPrincipalLink,
   type ReviewerProfileDocument,
 } from '../../modules/reviewer/reviewer.collection';
-import type { ReviewerState } from '../../modules/reviewer/reviewerState';
+
 
 /**
  * Support for the reviewer and sortition integration tests.
@@ -115,6 +115,14 @@ export async function createReviewer(
     maxSensitivityRank: options.maxSensitivityRank ?? 0,
     consentedSensitiveCategories: [...(options.consentedSensitiveCategories ?? [])],
     declaredConflictApplications: [...(options.declaredConflictApplications ?? [])],
+    /**
+     * §13.7's acceptance, set because a real reviewer at any drawable state has
+     * given it — `openCalibrationIfReady` will not open the gate without it and
+     * `eligibilityRejection` refuses a profile that lacks it. A fixture that
+     * omitted it would be a reviewer the draw refuses, which is not what any test
+     * using this helper is about.
+     */
+    rulesAcceptedAt: now,
     available: options.available ?? true,
     dailyReviewLimit: 20,
     trainingCompletedModules: TRAINING_MODULES.map((module) => module.moduleId),

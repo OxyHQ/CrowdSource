@@ -176,13 +176,46 @@ const resourceBaseShape = {
 const inlineResourceShape = { ...resourceBaseShape, sha256: Sha256DigestSchema };
 const assetResourceShape = { ...resourceBaseShape, sha256: Sha256DigestSchema.optional() };
 
+/**
+ * The `data` of each resource type, named.
+ *
+ * Extracted so the reviewer surface (`reviewer-surface.ts`) can build its own
+ * resource union — same content, no `sha256`, a media handle instead of an asset
+ * locator — out of THESE schemas rather than restating twelve content shapes.
+ * A second copy would drift, and the direction it would drift in is a jury shown
+ * less than the application sent.
+ */
+export const TextResourceDataSchema = z.strictObject({
+  text: z.string().min(1).max(CONTRACT_LIMITS.TEXT_RESOURCE_MAX_LENGTH),
+  formatting: TextFormattingSchema.optional(),
+});
+
 const TextResourceSchema = z.strictObject({
   ...inlineResourceShape,
   type: z.literal('text'),
-  data: z.strictObject({
-    text: z.string().min(1).max(CONTRACT_LIMITS.TEXT_RESOURCE_MAX_LENGTH),
-    formatting: TextFormattingSchema.optional(),
-  }),
+  data: TextResourceDataSchema,
+});
+
+export const VideoResourceDataSchema = z.strictObject({
+  timeRange: z
+    .strictObject({
+      startSeconds: z.number().nonnegative(),
+      endSeconds: z.number().positive(),
+    })
+    .refine((range) => range.endSeconds > range.startSeconds, {
+      message: 'endSeconds must be greater than startSeconds',
+      path: ['endSeconds'],
+    })
+    .optional(),
+});
+
+export const AudioResourceDataSchema = z.strictObject({
+  transcript: z.string().max(CONTRACT_LIMITS.EXTRACTED_TEXT_MAX_LENGTH).optional(),
+});
+
+export const DocumentResourceDataSchema = z.strictObject({
+  title: z.string().min(1).max(CONTRACT_LIMITS.SHORT_TEXT_MAX_LENGTH),
+  extractedText: z.string().max(CONTRACT_LIMITS.EXTRACTED_TEXT_MAX_LENGTH).optional(),
 });
 
 const ImageResourceSchema = z
@@ -198,20 +231,7 @@ const VideoResourceSchema = z
     ...assetResourceShape,
     type: z.literal('video'),
     asset: AssetRefSchema,
-    data: z
-      .strictObject({
-        timeRange: z
-          .strictObject({
-            startSeconds: z.number().nonnegative(),
-            endSeconds: z.number().positive(),
-          })
-          .refine((range) => range.endSeconds > range.startSeconds, {
-            message: 'endSeconds must be greater than startSeconds',
-            path: ['endSeconds'],
-          })
-          .optional(),
-      })
-      .optional(),
+    data: VideoResourceDataSchema.optional(),
   })
   .superRefine((resource, ctx) => {
     mediaTypeMismatch(ctx, resource.asset.mimeType, ['video/']);
@@ -229,11 +249,7 @@ const AudioResourceSchema = z
     ...assetResourceShape,
     type: z.literal('audio'),
     asset: AssetRefSchema,
-    data: z
-      .strictObject({
-        transcript: z.string().max(CONTRACT_LIMITS.EXTRACTED_TEXT_MAX_LENGTH).optional(),
-      })
-      .optional(),
+    data: AudioResourceDataSchema.optional(),
   })
   .superRefine((resource, ctx) => {
     mediaTypeMismatch(ctx, resource.asset.mimeType, ['audio/']);
@@ -251,34 +267,30 @@ const DocumentResourceSchema = z
     ...assetResourceShape,
     type: z.literal('document'),
     asset: AssetRefSchema,
-    data: z.strictObject({
-      title: z.string().min(1).max(CONTRACT_LIMITS.SHORT_TEXT_MAX_LENGTH),
-      extractedText: z.string().max(CONTRACT_LIMITS.EXTRACTED_TEXT_MAX_LENGTH).optional(),
-    }),
+    data: DocumentResourceDataSchema,
   })
   .superRefine((resource, ctx) =>
     mediaTypeMismatch(ctx, resource.asset.mimeType, ['application/', 'text/']),
   );
 
+export const LinkResourceDataSchema = z.strictObject({
+  url: HttpUrlSchema,
+  title: z.string().max(CONTRACT_LIMITS.SHORT_TEXT_MAX_LENGTH).optional(),
+  resolvedHost: z
+    .string()
+    .max(253)
+    .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/, 'must be a hostname')
+    .optional(),
+  snapshot: z.string().max(CONTRACT_LIMITS.EXTRACTED_TEXT_MAX_LENGTH).optional(),
+});
+
 const LinkResourceSchema = z.strictObject({
   ...inlineResourceShape,
   type: z.literal('link'),
-  data: z.strictObject({
-    url: HttpUrlSchema,
-    title: z.string().max(CONTRACT_LIMITS.SHORT_TEXT_MAX_LENGTH).optional(),
-    resolvedHost: z
-      .string()
-      .max(253)
-      .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/, 'must be a hostname')
-      .optional(),
-    snapshot: z.string().max(CONTRACT_LIMITS.EXTRACTED_TEXT_MAX_LENGTH).optional(),
-  }),
+  data: LinkResourceDataSchema,
 });
 
-const ProfileResourceSchema = z.strictObject({
-  ...inlineResourceShape,
-  type: z.literal('profile'),
-  data: z.strictObject({
+export const ProfileResourceDataSchema = z.strictObject({
     /**
      * Every field is optional on purpose. A federated or unresolved actor
      * routinely has no display name, and requiring one would push applications
@@ -289,41 +301,50 @@ const ProfileResourceSchema = z.strictObject({
     bio: z.string().max(CONTRACT_LIMITS.LONG_TEXT_MAX_LENGTH).optional(),
     /** An `image` resource in the same envelope. */
     avatarRef: ResourceIdSchema.optional(),
-    claims: MetadataBagSchema.optional(),
-  }),
+  claims: MetadataBagSchema.optional(),
 });
 
-const ConversationResourceSchema = z.strictObject({
+const ProfileResourceSchema = z.strictObject({
   ...inlineResourceShape,
-  type: z.literal('conversation'),
-  data: z.strictObject({
+  type: z.literal('profile'),
+  data: ProfileResourceDataSchema,
+});
+
+export const ConversationResourceDataSchema = z.strictObject({
     /**
      * Ordered (§5.3). §13.5 asks for five messages around the incident rather
      * than the whole thread, which is why this is a bounded list of ids the
      * application chose, not a pointer to a conversation.
      */
-    messageResourceIds: z
-      .array(ResourceIdSchema)
-      .min(1)
-      .max(CONTRACT_LIMITS.CONVERSATION_MESSAGES_MAX),
-  }),
+  messageResourceIds: z
+    .array(ResourceIdSchema)
+    .min(1)
+    .max(CONTRACT_LIMITS.CONVERSATION_MESSAGES_MAX),
+});
+
+const ConversationResourceSchema = z.strictObject({
+  ...inlineResourceShape,
+  type: z.literal('conversation'),
+  data: ConversationResourceDataSchema,
+});
+
+export const ListingResourceDataSchema = z.strictObject({
+  title: z.string().min(1).max(CONTRACT_LIMITS.SHORT_TEXT_MAX_LENGTH),
+  description: z.string().max(CONTRACT_LIMITS.LONG_TEXT_MAX_LENGTH).optional(),
+  price: z.number().finite().nonnegative().optional(),
+  currency: z
+    .string()
+    .regex(/^[A-Z]{3}$/, 'must be an ISO 4217 alphabetic code')
+    .optional(),
+  sellerRef: PrincipalRefSchema.optional(),
+  mediaRefs: z.array(ResourceIdSchema).max(CONTRACT_LIMITS.LISTING_MEDIA_REFS_MAX).optional(),
 });
 
 const ListingResourceSchema = z
   .strictObject({
     ...inlineResourceShape,
     type: z.literal('listing'),
-    data: z.strictObject({
-      title: z.string().min(1).max(CONTRACT_LIMITS.SHORT_TEXT_MAX_LENGTH),
-      description: z.string().max(CONTRACT_LIMITS.LONG_TEXT_MAX_LENGTH).optional(),
-      price: z.number().finite().nonnegative().optional(),
-      currency: z
-        .string()
-        .regex(/^[A-Z]{3}$/, 'must be an ISO 4217 alphabetic code')
-        .optional(),
-      sellerRef: PrincipalRefSchema.optional(),
-      mediaRefs: z.array(ResourceIdSchema).max(CONTRACT_LIMITS.LISTING_MEDIA_REFS_MAX).optional(),
-    }),
+    data: ListingResourceDataSchema,
   })
   .superRefine((resource, ctx) => {
     const hasPrice = resource.data.price !== undefined;
@@ -343,15 +364,17 @@ const COARSE_COORDINATE_DECIMALS = 2;
 const isCoarse = (value: number): boolean =>
   Number.isInteger(value * 10 ** COARSE_COORDINATE_DECIMALS);
 
+export const LocationResourceDataSchema = z.strictObject({
+  label: z.string().max(CONTRACT_LIMITS.SHORT_TEXT_MAX_LENGTH).optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+});
+
 const LocationResourceSchema = z
   .strictObject({
     ...inlineResourceShape,
     type: z.literal('location'),
-    data: z.strictObject({
-      label: z.string().max(CONTRACT_LIMITS.SHORT_TEXT_MAX_LENGTH).optional(),
-      latitude: z.number().min(-90).max(90).optional(),
-      longitude: z.number().min(-180).max(180).optional(),
-    }),
+    data: LocationResourceDataSchema,
   })
   .superRefine((resource, ctx) => {
     const { label, latitude, longitude } = resource.data;
@@ -391,12 +414,15 @@ const LocationResourceSchema = z
     }
   });
 
+export const MetadataResourceDataSchema = MetadataBagSchema.refine(
+  (bag) => Object.keys(bag).length >= 1,
+  { message: 'a metadata resource must carry at least one field' },
+);
+
 const MetadataResourceSchema = z.strictObject({
   ...inlineResourceShape,
   type: z.literal('metadata'),
-  data: MetadataBagSchema.refine((bag) => Object.keys(bag).length >= 1, {
-    message: 'a metadata resource must carry at least one field',
-  }),
+  data: MetadataResourceDataSchema,
 });
 
 const CustomResourceSchema = z.strictObject({

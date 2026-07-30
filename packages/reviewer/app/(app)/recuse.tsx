@@ -23,15 +23,16 @@ import { ChoiceRow } from '@/components/ChoiceRow';
 import { Panel, Screen } from '@/components/Screen';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { useRecuseFromAssignment } from '@/lib/reviewer-api/queries';
-import type { RecusalReason } from '@/lib/reviewer-api/types';
+import { RECUSAL_REASONS, type RecusalReason } from '@oxyhq/crowdsource-contracts';
 
-const RECUSAL_REASONS: readonly RecusalReason[] = [
-  'conflict_of_interest',
-  'language',
-  'too_sensitive',
-  'insufficient_context',
-  'unavailable',
-];
+/**
+ * §4.1's four reasons, from the contract.
+ *
+ * The app used to offer a fifth, `unavailable`, which `RecusalSubmissionSchema`
+ * has never accepted — a reviewer choosing it got a `400`. Wanting to stop for now
+ * is a different action anyway, and it has its own: the wellbeing screen's
+ * availability switch takes them out of every draw without spending an assignment.
+ */
 
 export default function RecuseScreen() {
   const { t } = useTranslation();

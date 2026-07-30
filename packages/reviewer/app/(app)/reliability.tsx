@@ -56,7 +56,7 @@ export default function ReliabilityScreen() {
             ) : null}
             {profileQuery.data.standings.map((standing, index) => (
               <View
-                key={`${standing.category}:${standing.language}`}
+                key={standing.category}
                 className={
                   index < profileQuery.data.standings.length - 1
                     ? 'gap-1 border-b border-border pb-3'
@@ -66,18 +66,20 @@ export default function ReliabilityScreen() {
                 <Text className="text-base font-semibold text-foreground">
                   {t(`category.${standing.category}`, { defaultValue: standing.category })}
                 </Text>
+                {/* Per category and not per (category, language): reliability is
+                    seeded by calibration and moved by gold cases and audits, none
+                    of which is measured per language. §4.1 asks for both axes and
+                    this is the honest half of it. */}
                 <Text className="text-sm text-muted-foreground">
                   {t('reliability.standings.row', {
-                    language: standing.language,
                     reliability: Math.round(standing.reliability * 100),
-                    reviews: standing.reviewsCompleted,
                   })}
                 </Text>
-                <Text className="text-sm text-muted-foreground">
-                  {standing.calibrationCurrent
-                    ? t('reliability.standings.calibrated')
-                    : t('reliability.standings.needsCalibration')}
-                </Text>
+                {standing.specialist ? (
+                  <Text className="text-sm text-muted-foreground">
+                    {t('reliability.standings.specialist')}
+                  </Text>
+                ) : null}
               </View>
             ))}
           </Panel>
@@ -86,21 +88,19 @@ export default function ReliabilityScreen() {
             title={t('reliability.eligibility.title')}
             description={t('reliability.eligibility.help')}
           >
+            {/* Localized from the requirement ID, never from a server-authored
+                sentence: this app is translated, and a string composed by a
+                backend with no locale arrives in the wrong language. */}
             {profileQuery.data.eligibility.map((requirement) => (
-              <View key={requirement.id} className="gap-1">
-                <Text className="text-sm font-semibold text-foreground">
-                  {requirement.met
-                    ? t('reliability.eligibility.met', {
-                        requirement: t(`eligibility.${requirement.id}`),
-                      })
-                    : t('reliability.eligibility.unmet', {
-                        requirement: t(`eligibility.${requirement.id}`),
-                      })}
-                </Text>
-                {requirement.detail ? (
-                  <Text className="text-sm text-muted-foreground">{requirement.detail}</Text>
-                ) : null}
-              </View>
+              <Text key={requirement.id} className="text-sm font-semibold text-foreground">
+                {requirement.met
+                  ? t('reliability.eligibility.met', {
+                      requirement: t(`eligibility.${requirement.id}`),
+                    })
+                  : t('reliability.eligibility.unmet', {
+                      requirement: t(`eligibility.${requirement.id}`),
+                    })}
+              </Text>
             ))}
           </Panel>
 
@@ -111,6 +111,21 @@ export default function ReliabilityScreen() {
                 limit: profileQuery.data.exposure.dailyLimit,
               })}
             </Text>
+            <Text className="text-sm text-muted-foreground">
+              {t('reliability.exposure.open', {
+                open: profileQuery.data.exposure.openAssignments,
+                limit: profileQuery.data.exposure.maxOpenAssignments,
+              })}
+            </Text>
+            <Text className="text-sm text-muted-foreground">
+              {t('reliability.exposure.completed', {
+                count: profileQuery.data.completedReviewCount,
+              })}
+            </Text>
+            {/* §13.7's rest applies to the SENSITIVE route only — somebody who has
+                worked through several distressing cases can still judge a spam
+                report — so it is named for what it is rather than read as a block
+                on everything. */}
             {profileQuery.data.exposure.breakRequiredUntil ? (
               <Text className="text-sm text-muted-foreground">
                 {t('reliability.exposure.break', {

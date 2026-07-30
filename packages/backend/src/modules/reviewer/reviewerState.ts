@@ -1,9 +1,19 @@
+import { REVIEWER_STATES, type ReviewerState } from '@oxyhq/crowdsource-contracts';
+
 /**
- * Reviewer onboarding states (§8.1) — CrowdSource's own, and deliberately not
- * Oxy's.
+ * What the reviewer onboarding states MEAN (§8.1) — the ladder, the legal moves,
+ * and who may decide a real case.
  *
- * This is the file that answers "who may decide a real case", and it exists
- * because the answer could not be borrowed. Oxy's civic validator selects on
+ * The seven states themselves are declared in `@oxyhq/crowdsource-contracts`
+ * (`reviewer-surface.ts`) because they cross the reviewer API boundary: the app
+ * displays them, and when they were declared twice the two copies drifted into
+ * `community` against `community_reviewer` with nothing to catch it. This file
+ * owns the BEHAVIOUR, which no client needs and which is nobody's business but
+ * the draw's.
+ *
+ * ## Why the vocabulary could not be borrowed from Oxy
+ *
+ * Oxy's civic validator selects on
  * `ReputationBalance.trustTier` and nothing else, and a production check of that
  * pool found: zero accounts at `trusted`, zero at `high_trust`, an eligible
  * population of five internal accounts qualifying only through `User.verified`,
@@ -16,25 +26,12 @@
  * explicit consent, and exposure. Oxy contributes an authenticated account and a
  * personhood signal — see `personhood.ts` — and nothing else.
  *
- * The seven states are §8.1's, verbatim. They are ORDERED, which the plan's
- * table implies rather than states: a Trusted Reviewer can do everything a
- * Community Reviewer can, and a Category Specialist is not a person who lost the
- * ability to sit on an ordinary panel. What a specialist specialises IN is a
- * separate, per-category field on the profile, because "specialist" without a
- * category is not a capability.
+ * The states are ORDERED, which §8.1's table implies rather than states: a
+ * Trusted Reviewer can do everything a Community Reviewer can, and a Category
+ * Specialist is not a person who lost the ability to sit on an ordinary panel.
+ * What a specialist specialises IN is a separate, per-category field on the
+ * profile, because "specialist" without a category is not a capability.
  */
-
-/** §8.1's states, ordered from least to most capable. `suspended` is apart. */
-export const REVIEWER_STATES = [
-  'applicant',
-  'calibrating',
-  'community',
-  'trusted',
-  'specialist',
-  'appeals',
-  'suspended',
-] as const;
-export type ReviewerState = (typeof REVIEWER_STATES)[number];
 
 /**
  * The ladder, as a number.

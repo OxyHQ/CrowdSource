@@ -13,9 +13,18 @@
  * is how a submitted review comes back as still-pending.
  */
 
+import {
+  ASSIGNMENT_TOKEN_HEADER,
+  type RecusalSubmission,
+  type ReviewerCalibrationSubmission,
+  type ReviewerPreferencesUpdate,
+  type ReviewSubmission,
+} from '@oxyhq/crowdsource-contracts';
+
 import { API_URL } from '@/config';
 import { oxyServices } from '@/lib/oxyServices';
 
+import { activeAssignmentToken } from './active-assignment';
 import {
   AssignmentNotHeldError,
   ReviewerApiUnavailableError,
@@ -32,12 +41,21 @@ const linkedClient = oxyServices.createLinkedClient({ baseURL: API_URL, enableCa
  */
 const REQUEST_TIMEOUT_MS = 15_000;
 
-/** PLAN §10.3 — every reviewer endpoint this app depends on, in one place. */
+/**
+ * PLAN §10.3 — every reviewer endpoint this app depends on, in one place.
+ *
+ * There is no `POST /v1/reviewer/onboarding`. §10.3's route table has no such
+ * endpoint, and everything §4.1's onboarding screen collects — languages,
+ * categories, sensitive consent, age, acceptance of the rules — is what §10.3
+ * says `POST /v1/reviewer/preferences` updates. The app used to call a route that
+ * had never existed on any server.
+ */
 export const REVIEWER_ENDPOINTS = {
   profile: 'GET /v1/reviewer/profile',
   preferences: 'POST /v1/reviewer/preferences',
-  onboarding: 'POST /v1/reviewer/onboarding',
   training: 'GET /v1/reviewer/training',
+  completeModule: 'POST /v1/reviewer/training/{moduleId}/complete',
+  calibration: 'POST /v1/reviewer/training/calibration',
   nextAssignment: 'POST /v1/reviewer/assignments/next',
   assignment: 'GET /v1/reviewer/assignments/{id}',
   submitReview: 'POST /v1/reviewer/assignments/{id}/reviews',
@@ -66,6 +84,16 @@ interface RequestSpec {
   endpoint: ReviewerEndpoint;
   notFound: NotFoundMeaning;
   body?: unknown;
+  /**
+   * §8.7's assignment token, for the three routes scoped to one assignment.
+   *
+   * Read at the moment the request is built rather than passed down from a
+   * screen, so the token never sits in a component, a query key or a log line.
+   * `null` is sent as no header at all: the server compares against a
+   * never-matching hash either way, so a missing token costs exactly what a wrong
+   * one does and neither can be told from the other.
+   */
+  assignmentId?: string;
 }
 
 /**
@@ -74,12 +102,21 @@ interface RequestSpec {
  * Returns the raw payload as `unknown` on purpose: nothing in the app consumes a
  * response without passing it through a projection in `redaction.ts` first.
  */
-async function request({ method, path, endpoint, notFound, body }: RequestSpec): Promise<unknown> {
+async function request({
+  method,
+  path,
+  endpoint,
+  notFound,
+  body,
+  assignmentId,
+}: RequestSpec): Promise<unknown> {
+  const token = assignmentId === undefined ? null : activeAssignmentToken(assignmentId);
   try {
     return await linkedClient.client.request<unknown>({
       method,
       url: path,
       data: body,
+      ...(token === null ? {} : { headers: { [ASSIGNMENT_TOKEN_HEADER]: token } }),
       // ONE retry authority. The SDK's HttpService retries on its own schedule
       // and React Query retries on top of it, which multiplies out to a screen
       // that spins for the better part of a minute against a backend that is
@@ -121,7 +158,7 @@ export function getReviewerProfile(): Promise<unknown> {
   });
 }
 
-export function putReviewerPreferences(body: unknown): Promise<unknown> {
+export function postReviewerPreferences(body: ReviewerPreferencesUpdate): Promise<unknown> {
   return request({
     method: 'POST',
     path: '/v1/reviewer/preferences',
@@ -131,11 +168,20 @@ export function putReviewerPreferences(body: unknown): Promise<unknown> {
   });
 }
 
-export function postOnboarding(body: unknown): Promise<unknown> {
+export function postCompleteTrainingModule(moduleId: string): Promise<unknown> {
   return request({
     method: 'POST',
-    path: '/v1/reviewer/onboarding',
-    endpoint: REVIEWER_ENDPOINTS.onboarding,
+    path: `/v1/reviewer/training/${encodeURIComponent(moduleId)}/complete`,
+    endpoint: REVIEWER_ENDPOINTS.completeModule,
+    notFound: 'unavailable',
+  });
+}
+
+export function postCalibration(body: ReviewerCalibrationSubmission): Promise<unknown> {
+  return request({
+    method: 'POST',
+    path: '/v1/reviewer/training/calibration',
+    endpoint: REVIEWER_ENDPOINTS.calibration,
     notFound: 'unavailable',
     body,
   });
@@ -172,26 +218,35 @@ export function getAssignment(assignmentId: string): Promise<unknown> {
     path: `/v1/reviewer/assignments/${encodeURIComponent(assignmentId)}`,
     endpoint: REVIEWER_ENDPOINTS.assignment,
     notFound: 'gone',
+    assignmentId,
   });
 }
 
-export function postReview(assignmentId: string, body: unknown): Promise<unknown> {
+export function postReview(
+  assignmentId: string,
+  body: ReviewSubmission,
+): Promise<unknown> {
   return request({
     method: 'POST',
     path: `/v1/reviewer/assignments/${encodeURIComponent(assignmentId)}/reviews`,
     endpoint: REVIEWER_ENDPOINTS.submitReview,
     notFound: 'gone',
     body,
+    assignmentId,
   });
 }
 
-export function postRecusal(assignmentId: string, body: unknown): Promise<unknown> {
+export function postRecusal(
+  assignmentId: string,
+  body: RecusalSubmission,
+): Promise<unknown> {
   return request({
     method: 'POST',
     path: `/v1/reviewer/assignments/${encodeURIComponent(assignmentId)}/recuse`,
     endpoint: REVIEWER_ENDPOINTS.recuse,
     notFound: 'gone',
     body,
+    assignmentId,
   });
 }
 

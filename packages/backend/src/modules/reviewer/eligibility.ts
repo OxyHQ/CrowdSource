@@ -94,6 +94,7 @@ export const ELIGIBILITY_REJECTIONS = [
   'suspended',
   'unavailable',
   'personhood_below_threshold',
+  'rules_not_accepted',
   'calibration_expired',
   'category_not_accepted',
   'language_mismatch',
@@ -132,6 +133,19 @@ export function eligibilityRejection(
   if (!meetsPersonhoodThreshold(profile.personhoodConfidence)) {
     return 'personhood_below_threshold';
   }
+  /**
+   * §13.7's consent to the reviewing rules, checked HERE and not only at the
+   * `applicant` → `calibrating` gate.
+   *
+   * The gate covers everybody who climbs the ladder, and this covers everybody who
+   * did not: a profile written before acceptance existed, or moved by an operator,
+   * would otherwise sit in `community` and be drawn for real cases having agreed
+   * to nothing. The reviewer app advertises this as a blocker, and the two have to
+   * be the same answer — a check that lives only on the device is not a gate, and
+   * the app saying "accept the rules first" while the server hands out a case is
+   * the worse of the two ways for them to disagree.
+   */
+  if (profile.rulesAcceptedAt === null) return 'rules_not_accepted';
   if (!isCalibrationCurrent(profile.calibrationPassedAt, now)) return 'calibration_expired';
 
   /**
@@ -222,6 +236,9 @@ export function eligibilityFilter(
     accountActive: true,
     available: true,
     suspectedSockPuppet: false,
+    // Narrows on exactly the population the predicate above rejects, so the
+    // filter stays a SUPERSET of the truth while doing less work.
+    rulesAcceptedAt: { $ne: null },
     $and: [
       { $or: [{ suspendedUntil: null }, { suspendedUntil: { $lte: now } }] },
       ...(criteria.requiresAdult ? [{ isAdult: true }] : []),

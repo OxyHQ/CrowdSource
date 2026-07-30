@@ -21,15 +21,19 @@
  *     complete, so a partially-filled form has no representation on the wire.
  */
 
-import type {
-  CertaintyLevel,
-  ContextSufficiency,
-  FindingSeverity,
-  MissingContextCode,
-  PolicyRule,
-  ReviewOutcome,
-  ReviewSubmission,
-} from '@/lib/reviewer-api/types';
+import {
+  FINDING_CONTEXTS,
+  REVIEW_OUTCOMES as CONTRACT_REVIEW_OUTCOMES,
+  SEVERITIES,
+  type ContextSufficiency,
+  type FindingContext,
+  type PolicyRule,
+  type RecommendedAction,
+  type ReviewFinding,
+  type ReviewOutcome,
+  type ReviewSubmission,
+  type Severity,
+} from '@oxyhq/crowdsource-contracts';
 
 /**
  * Step 1 vocabulary. Every entry describes something OBSERVABLE in the material.
@@ -54,54 +58,93 @@ export const CONTENT_DESCRIPTORS = [
 
 export type ContentDescriptor = (typeof CONTENT_DESCRIPTORS)[number];
 
-export const MISSING_CONTEXT_CODES: readonly MissingContextCode[] = [
+/**
+ * What context the reviewer says is missing.
+ *
+ * App-local, and it stays app-local: nothing on the wire carries these. They feed
+ * the reviewer's own `contextSufficiency` answer in step 2, which is the field
+ * §9.4 measures consensus on. Sending the list too would put a second, unread
+ * description of the material into the record — §13.5 minimisation.
+ */
+export const MISSING_CONTEXT_CODES = [
   'none',
   'preceding_conversation',
   'author_intent',
   'translation',
   'source_or_provenance',
   'local_cultural_context',
-];
+] as const;
 
-export const CERTAINTY_LEVELS: readonly CertaintyLevel[] = ['low', 'medium', 'high'];
-
-export const REVIEW_OUTCOMES: readonly ReviewOutcome[] = [
-  'violation',
-  'no_violation',
-  'insufficient_context',
-  'content_unavailable',
-];
-
-export const FINDING_SEVERITIES: readonly FindingSeverity[] = ['low', 'medium', 'high', 'critical'];
+export type MissingContextCode = (typeof MISSING_CONTEXT_CODES)[number];
 
 /**
- * PLAN §9.3 carries a `confidence` in 0..1 per finding. A free scalar invites a
- * reviewer to invent precision they do not have, so the form offers three points
- * and SHOWS the reviewer the number each one asserts.
+ * How sure the reviewer is, as three points rather than a free scalar.
+ *
+ * PLAN §9.3 carries a `confidence` in 0..1 per finding, and a slider invites
+ * somebody to invent precision they do not have. The form offers three points and
+ * SHOWS the number each one asserts.
  */
+export const CERTAINTY_LEVELS = ['low', 'medium', 'high'] as const;
+
+export type CertaintyLevel = (typeof CERTAINTY_LEVELS)[number];
+
+export const REVIEW_OUTCOMES: readonly ReviewOutcome[] = CONTRACT_REVIEW_OUTCOMES;
+
+export const FINDING_SEVERITIES: readonly Severity[] = SEVERITIES;
+
+/**
+ * §6.2's and §9.4's "excepción" — the context that makes a classification not
+ * mean what it usually means.
+ *
+ * A CLOSED list from the contract, not a per-policy list the server sends. §9.4
+ * makes the exception one of the six dimensions consensus is measured on, and two
+ * reviewers who answer `no_violation` for incompatible reasons have not agreed —
+ * which only works if both were choosing from the same vocabulary. It belongs to
+ * ONE finding, beside its code and severity, because "artistic nudity" is a
+ * different description of the material rather than a different verdict about it.
+ */
+export const FINDING_EXCEPTIONS: readonly FindingContext[] = FINDING_CONTEXTS;
+
+/** The number each certainty point asserts, shown to the reviewer as such. */
 export const FINDING_CONFIDENCE: Record<CertaintyLevel, number> = {
   low: 0.5,
   medium: 0.75,
   high: 0.95,
 };
 
-export const RECOMMENDED_ACTIONS = [
+/**
+ * The actions a reviewer may recommend.
+ *
+ * A five-item subset of the contract's twenty-two, typed as
+ * `readonly RecommendedAction[]` so a rename or removal upstream is a compile
+ * error here rather than a `400` at submit time. The app used to offer
+ * `add_warning_label`, `restrict_visibility` and `escalate_to_specialist`, none of
+ * which the contract has ever accepted; these are the real tokens for the same
+ * five intentions. The rest of the vocabulary is for the CONSENSUS engine and the
+ * Trust & Safety console — a juror recommending `legal_queue` or `freeze_transaction`
+ * is a juror making a routing decision that is not theirs.
+ */
+export const REVIEWER_RECOMMENDED_ACTIONS: readonly RecommendedAction[] = [
   'no_action',
-  'add_warning_label',
-  'restrict_visibility',
+  'label',
+  'reduce_distribution',
   'remove_or_restrict',
-  'escalate_to_specialist',
-] as const;
-
-export type RecommendedAction = (typeof RECOMMENDED_ACTIONS)[number];
+  'specialist_queue',
+];
 
 export type ReviewStep = 'descriptive' | 'policy';
 
-/** One selected policy rule, with the severity and confidence the reviewer gives it. */
+/**
+ * One selected policy rule, with what the reviewer says about it.
+ *
+ * `exception` is §6.2's `context` and it is per finding, not per form: the same
+ * review can find one thing documentary and another not.
+ */
 export interface SelectedFinding {
   ruleId: string;
-  severity: FindingSeverity;
+  severity: Severity;
   confidence: CertaintyLevel;
+  exception: FindingContext | null;
 }
 
 export interface ReviewFormState {
@@ -115,7 +158,6 @@ export interface ReviewFormState {
   outcome: ReviewOutcome | null;
   contextSufficiency: ContextSufficiency | null;
   findings: SelectedFinding[];
-  appliedExceptionIds: string[];
   recommendedActions: RecommendedAction[];
   notes: string;
 }
@@ -130,9 +172,9 @@ export type ReviewFormAction =
   | { type: 'setOutcome'; outcome: ReviewOutcome }
   | { type: 'setContextSufficiency'; sufficiency: ContextSufficiency }
   | { type: 'toggleFinding'; ruleId: string }
-  | { type: 'setFindingSeverity'; ruleId: string; severity: FindingSeverity }
+  | { type: 'setFindingSeverity'; ruleId: string; severity: Severity }
   | { type: 'setFindingConfidence'; ruleId: string; confidence: CertaintyLevel }
-  | { type: 'toggleException'; exceptionId: string }
+  | { type: 'setFindingException'; ruleId: string; exception: FindingContext | null }
   | { type: 'toggleAction'; action: RecommendedAction }
   | { type: 'setNotes'; notes: string };
 
@@ -153,7 +195,6 @@ export function createInitialReviewFormState(): ReviewFormState {
     outcome: null,
     contextSufficiency: null,
     findings: [],
-    appliedExceptionIds: [],
     recommendedActions: [],
     notes: '',
   };
@@ -219,7 +260,18 @@ export function reviewFormReducer(
         ...state,
         findings: existing
           ? state.findings.filter((finding) => finding.ruleId !== action.ruleId)
-          : [...state.findings, { ruleId: action.ruleId, severity: 'medium', confidence: 'medium' }],
+          : [
+              ...state.findings,
+              {
+                ruleId: action.ruleId,
+                severity: 'medium',
+                // Seeded from step 1's certainty rather than a fixed default: the
+                // reviewer has already said how sure they are of what they are
+                // looking at, and asking again from scratch discards that answer.
+                confidence: state.certainty ?? 'medium',
+                exception: null,
+              },
+            ],
       };
     }
     case 'setFindingSeverity':
@@ -236,8 +288,13 @@ export function reviewFormReducer(
           finding.ruleId === action.ruleId ? { ...finding, confidence: action.confidence } : finding,
         ),
       };
-    case 'toggleException':
-      return { ...state, appliedExceptionIds: toggle(state.appliedExceptionIds, action.exceptionId) };
+    case 'setFindingException':
+      return {
+        ...state,
+        findings: state.findings.map((finding) =>
+          finding.ruleId === action.ruleId ? { ...finding, exception: action.exception } : finding,
+        ),
+      };
     case 'toggleAction':
       return { ...state, recommendedActions: toggle(state.recommendedActions, action.action) };
     case 'setNotes':
@@ -262,6 +319,18 @@ export function isPolicyComplete(state: ReviewFormState): boolean {
   if (state.outcome === 'violation' && state.findings.length === 0) {
     return false;
   }
+  /**
+   * A finding must say what it is about.
+   *
+   * `ReviewFindingSchema` requires a non-empty `resourceIds` because §9.4 makes
+   * the affected resource one of the dimensions consensus is measured on — a
+   * finding that names no resource cannot be agreed or disagreed with. Enforced
+   * here so the reviewer is told by a disabled button, rather than by a `400`
+   * after they have written the whole thing.
+   */
+  if (state.findings.length > 0 && state.affectedResourceIds.length === 0) {
+    return false;
+  }
   return state.recommendedActions.length > 0;
 }
 
@@ -270,6 +339,22 @@ export function isPolicyComplete(state: ReviewFormState): boolean {
  *
  * `rules` is the policy brief's rule list — the SERVER's applicable policy. A
  * finding's taxonomy code comes from there, never from the allegation.
+ *
+ * ## Step 1's answers are not on the wire, and that is the contract's decision
+ *
+ * `ReviewSubmissionSchema` is `.strict()` and has no branch for the descriptive
+ * step. §9.2 gives the split two purposes and both survive without persisting it:
+ * anchoring is reduced by the ORDER (the reviewer describes before they see the
+ * allegation), and findings are reusable under different policies because a
+ * finding carries a universal taxonomy code alongside the application's
+ * `policyRuleIds` — layer one and layer two, kept apart.
+ *
+ * What step 1 does reach the wire through: `affectedResourceIds` becomes every
+ * finding's `resourceIds`, and `certainty` seeds each finding's confidence. What
+ * it does not: `contentDescriptors` and `missingContext`, which nothing reads.
+ * Storing a second description of case material that no consumer looks at is
+ * exactly §13.5's minimisation problem — it would let this service answer
+ * questions nobody asked it, about reported content.
  */
 export function buildReviewSubmission(
   state: ReviewFormState,
@@ -282,36 +367,35 @@ export function buildReviewSubmission(
     return null;
   }
 
-  const findings = state.findings.flatMap((finding) => {
+  const findings = state.findings.flatMap<ReviewFinding>((finding) => {
     const rule = rules.find((candidate) => candidate.id === finding.ruleId);
-    if (!rule) {
-      // The rule vanished between render and submit (a policy version change).
-      // Dropping it is correct: this app must not invent a taxonomy code.
+    /**
+     * A rule declares which universal findings it responds to (§6.2), and a
+     * multi-code rule gives no way to pick one — so the FIRST is used and a rule
+     * that vanished between render and submit (a policy version change) is
+     * dropped. Dropping is correct: this app must not invent a taxonomy code.
+     */
+    const code = rule?.taxonomyCodes[0];
+    if (rule === undefined || code === undefined) {
       return [];
     }
     return [
       {
-        code: rule.taxonomyCode,
+        code,
         resourceIds: state.affectedResourceIds,
         severity: finding.severity,
         confidence: FINDING_CONFIDENCE[finding.confidence],
         policyRuleIds: [rule.id],
+        ...(finding.exception === null ? {} : { context: finding.exception }),
       },
     ];
   });
 
   const notes = state.notes.trim();
   return {
-    descriptive: {
-      contentDescriptors: [...state.contentDescriptors],
-      affectedResourceIds: [...state.affectedResourceIds],
-      missingContext: [...state.missingContext],
-      certainty: state.certainty,
-    },
     outcome: state.outcome,
     contextSufficiency: state.contextSufficiency,
     findings,
-    appliedExceptionIds: [...state.appliedExceptionIds],
     recommendedActions: [...state.recommendedActions],
     ...(notes ? { notes } : {}),
   };

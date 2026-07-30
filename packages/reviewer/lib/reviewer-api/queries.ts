@@ -23,36 +23,45 @@ import { useCallback } from 'react';
 
 import { createScopedLogger } from '@/lib/logger';
 
-import { clearActiveAssignment, setActiveAssignment } from './active-assignment';
+import type {
+  AssignmentPackage,
+  RecusalSubmission,
+  ReviewerCalibrationResultView,
+  ReviewerCalibrationSubmission,
+  ReviewerPreferencesUpdate,
+  ReviewerProfileView,
+  ReviewerTrainingView,
+  ReviewHistoryPage,
+  ReviewSubmission,
+} from '@oxyhq/crowdsource-contracts';
+
+import {
+  clearActiveAssignment,
+  refreshActiveAssignment,
+  setActiveAssignment,
+} from './active-assignment';
 import {
   getAssignment,
   getHistory,
   getReviewerProfile,
   getTraining,
+  postCalibration,
+  postCompleteTrainingModule,
   postNextAssignment,
-  postOnboarding,
   postRecusal,
   postReview,
-  putReviewerPreferences,
+  postReviewerPreferences,
 } from './client';
 import { isAssignmentNotHeld, isReviewerApiUnavailable } from './errors';
 import {
   projectAssignmentPackage,
+  projectCalibrationResult,
   projectHistoryPage,
+  projectIssuedAssignment,
   projectReviewerProfile,
   projectTrainingState,
   scanForForbiddenFields,
 } from './redaction';
-import type {
-  AssignmentPackage,
-  OnboardingSubmission,
-  RecusalSubmission,
-  ReviewHistoryPage,
-  ReviewSubmission,
-  ReviewerPreferences,
-  ReviewerProfile,
-  TrainingState,
-} from './types';
 import { reviewerQueryKeys } from './query-keys';
 import { useReviewerViewer } from './use-reviewer-viewer';
 import { UNRESOLVED_VIEWER_KEY } from './viewer';
@@ -79,20 +88,19 @@ function reviewerQueryRetry(failureCount: number, error: unknown): boolean {
  * or not anyone is watching. This warning exists so that a backend regression is
  * visible while it is still cheap to fix.
  */
-function ingestAssignment(payload: unknown): AssignmentPackage {
+function alarmOnForbiddenFields(payload: unknown): void {
   const forbiddenPaths = scanForForbiddenFields(payload);
   if (forbiddenPaths.length > 0) {
-    logger.warn('Assignment payload carried fields a reviewer must not see; dropped', {
+    logger.warn('Assignment payload carried fields a reviewer must not see', {
       // Paths only. Never values.
       paths: forbiddenPaths,
     });
   }
-  return projectAssignmentPackage(payload);
 }
 
-export function useReviewerProfile(): UseQueryResult<ReviewerProfile, Error> {
+export function useReviewerProfile(): UseQueryResult<ReviewerProfileView, Error> {
   const viewer = useReviewerViewer();
-  return useQuery<ReviewerProfile, Error>({
+  return useQuery<ReviewerProfileView, Error>({
     queryKey: reviewerQueryKeys.profile(viewer.key ?? UNRESOLVED_VIEWER_KEY),
     queryFn: async () => projectReviewerProfile(await getReviewerProfile()),
     enabled: viewer.canQuery,
@@ -100,9 +108,9 @@ export function useReviewerProfile(): UseQueryResult<ReviewerProfile, Error> {
   });
 }
 
-export function useTrainingState(): UseQueryResult<TrainingState, Error> {
+export function useTrainingState(): UseQueryResult<ReviewerTrainingView, Error> {
   const viewer = useReviewerViewer();
-  return useQuery<TrainingState, Error>({
+  return useQuery<ReviewerTrainingView, Error>({
     queryKey: reviewerQueryKeys.training(viewer.key ?? UNRESOLVED_VIEWER_KEY),
     queryFn: async () => projectTrainingState(await getTraining()),
     enabled: viewer.canQuery,
@@ -150,10 +158,19 @@ export function useRequestNextAssignment(): UseMutationResult<
       if (payload === null || payload === undefined || payload === '') {
         return null;
       }
-      return ingestAssignment(payload);
+      alarmOnForbiddenFields(payload);
+      /**
+       * The ISSUED shape, which is the one that carries §8.7's token. Parsing it
+       * as the plain package would drop the token silently, and every later call
+       * on this assignment would then be refused with a 404 that looked like an
+       * expiry.
+       */
+      return projectIssuedAssignment(payload);
     },
-    onSuccess: (assignment) => {
-      setActiveAssignment(assignment);
+    onSuccess: (issued) => {
+      if (issued !== null) {
+        setActiveAssignment(issued);
+      }
     },
   });
 }
@@ -167,9 +184,15 @@ export function useRequestNextAssignment(): UseMutationResult<
  */
 export function useRefreshAssignment(): UseMutationResult<AssignmentPackage, Error, string> {
   return useMutation({
-    mutationFn: async (assignmentId: string) => ingestAssignment(await getAssignment(assignmentId)),
+    mutationFn: async (assignmentId: string) => {
+      const payload = await getAssignment(assignmentId);
+      alarmOnForbiddenFields(payload);
+      // No token on this response: the one `next` issued is still the live one,
+      // so the refresh replaces what is rendered and keeps what authorises.
+      return projectAssignmentPackage(payload);
+    },
     onSuccess: (assignment) => {
-      setActiveAssignment(assignment);
+      refreshActiveAssignment(assignment);
     },
     onError: (error) => {
       if (isAssignmentNotHeld(error)) {
@@ -216,15 +239,15 @@ export function useRecuseFromAssignment(): UseMutationResult<
 }
 
 export function useUpdatePreferences(): UseMutationResult<
-  ReviewerProfile,
+  ReviewerProfileView,
   Error,
-  ReviewerPreferences
+  ReviewerPreferencesUpdate
 > {
   const queryClient = useQueryClient();
   const viewer = useReviewerViewer();
   return useMutation({
     mutationFn: async (preferences) =>
-      projectReviewerProfile(await putReviewerPreferences(preferences)),
+      projectReviewerProfile(await postReviewerPreferences(preferences)),
     onSuccess: (profile) => {
       // The response IS the new profile, so write it rather than invalidate: a
       // reviewer who has just revoked consent for a category must not see the
@@ -238,20 +261,60 @@ export function useUpdatePreferences(): UseMutationResult<
   });
 }
 
-export function useCompleteOnboarding(): UseMutationResult<
-  ReviewerProfile,
+/**
+ * PLAN §8.1 — one training module completed.
+ *
+ * The response is the refreshed training view, which is what the screen showing
+ * the modules needs: reading it back from the profile would tell the reviewer
+ * their state and not which module they just finished.
+ */
+export function useCompleteTrainingModule(): UseMutationResult<
+  ReviewerTrainingView,
   Error,
-  OnboardingSubmission
+  string
 > {
   const queryClient = useQueryClient();
   const viewer = useReviewerViewer();
   return useMutation({
-    mutationFn: async (submission) => projectReviewerProfile(await postOnboarding(submission)),
-    onSuccess: (profile) => {
+    mutationFn: async (moduleId) =>
+      projectTrainingState(await postCompleteTrainingModule(moduleId)),
+    onSuccess: (training) => {
       queryClient.setQueryData(
-        reviewerQueryKeys.profile(viewer.key ?? UNRESOLVED_VIEWER_KEY),
-        profile,
+        reviewerQueryKeys.training(viewer.key ?? UNRESOLVED_VIEWER_KEY),
+        training,
       );
+      // Completing the last module can move an applicant to `calibrating`
+      // (PLAN §8.1), and the state lives on the profile rather than here.
+      void queryClient.invalidateQueries({
+        queryKey: reviewerQueryKeys.profile(viewer.key ?? UNRESOLVED_VIEWER_KEY),
+      });
+    },
+  });
+}
+
+/**
+ * PLAN §9.7 — a calibration attempt, graded by the server.
+ *
+ * The result carries the score and which items were wrong, never which answer was
+ * right. A pass can promote `calibrating` to `community`, so the profile is
+ * invalidated either way.
+ */
+export function useSubmitCalibration(): UseMutationResult<
+  ReviewerCalibrationResultView,
+  Error,
+  ReviewerCalibrationSubmission
+> {
+  const queryClient = useQueryClient();
+  const viewer = useReviewerViewer();
+  return useMutation({
+    mutationFn: async (submission) => projectCalibrationResult(await postCalibration(submission)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: reviewerQueryKeys.profile(viewer.key ?? UNRESOLVED_VIEWER_KEY),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: reviewerQueryKeys.training(viewer.key ?? UNRESOLVED_VIEWER_KEY),
+      });
     },
   });
 }

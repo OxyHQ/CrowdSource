@@ -1,6 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-import { CaseEnvelopeSchema, type CaseEnvelope } from '@oxyhq/crowdsource-contracts';
+import {
+  CaseEnvelopeSchema,
+  type CaseEnvelope,
+  type Resource,
+} from '@oxyhq/crowdsource-contracts';
 
 import { config } from '../../config';
 import { ensureIndexes } from '../../db/collections';
@@ -195,6 +199,15 @@ export interface SampleEnvelopeOptions {
   readonly retentionDays?: number;
   readonly reach?: number;
   readonly resourceUrl?: string;
+  /**
+   * Extra resources appended verbatim, for suites that need a resource type the
+   * default envelope does not carry.
+   *
+   * Opt-in and appended rather than replacing, so no existing suite's fixture
+   * changes shape: `res_post` stays the subject and stays first, which several
+   * tests depend on by position.
+   */
+  readonly extraResources?: readonly Resource[];
 }
 
 export function sampleEnvelope(options: SampleEnvelopeOptions): CaseEnvelope {
@@ -246,6 +259,7 @@ export function sampleEnvelope(options: SampleEnvelopeOptions): CaseEnvelope {
               sha256: digestOf(options.resourceUrl),
             },
           ]),
+      ...(options.extraResources ?? []),
     ],
     relations:
       options.resourceUrl === undefined

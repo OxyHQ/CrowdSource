@@ -1,5 +1,9 @@
 import type { ClientSession } from 'mongoose';
-import { TAXONOMY_FAMILIES, type TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import {
+  TAXONOMY_FAMILIES,
+  type ReviewerState,
+  type TaxonomyFamily,
+} from '@oxyhq/crowdsource-contracts';
 
 import { ApiError } from '../../http/apiError';
 import { newPublicId } from '../../utils/identifiers';
@@ -24,7 +28,7 @@ import {
   type ReviewerProfileDocument,
   type ReviewerRelationSource,
 } from './reviewer.collection';
-import { canTransition, type ReviewerState } from './reviewerState';
+import { canTransition } from './reviewerState';
 
 /**
  * The reviewer profile lifecycle (§8.1, §8.2, §13.7).
@@ -121,6 +125,7 @@ type ProfileMutation = Partial<
     | 'maxSensitivityRank'
     | 'consentedSensitiveCategories'
     | 'declaredConflictApplications'
+    | 'rulesAcceptedAt'
     | 'available'
     | 'dailyReviewLimit'
     | 'trainingCompletedModules'
@@ -249,6 +254,7 @@ export async function ensureReviewerProfile(
         maxSensitivityRank: sensitivityRank('standard'),
         consentedSensitiveCategories: [],
         declaredConflictApplications: [],
+        rulesAcceptedAt: null,
         available: true,
         dailyReviewLimit: DAILY_REVIEW_LIMIT_DEFAULT,
         trainingCompletedModules: [],
@@ -277,10 +283,21 @@ export async function ensureReviewerProfile(
   return created;
 }
 
-/** §10.3's `POST /v1/reviewer/preferences`, as named fields. */
+/**
+ * §10.3's `POST /v1/reviewer/preferences`, as named fields.
+ *
+ * The parsed shape of `ReviewerPreferencesUpdateSchema` in the published
+ * contracts, restated as an interface because this function takes NAMED
+ * arguments and never a spread of a request body — see `ProfileMutation`.
+ * `maxSensitivity` widens to triage's `SensitivityClass` here: the schema admits
+ * only the three a reviewer may consent to, and `sensitivityRank` throws on the
+ * fourth, so the widening cannot smuggle `prohibited` in.
+ */
 export interface ReviewerPreferences {
   readonly languages?: readonly string[];
   readonly categories?: readonly TaxonomyFamily[];
+  /** §13.7: acceptance of the reviewing rules. One-way; never revoked here. */
+  readonly rulesAccepted?: true;
   readonly isAdult?: boolean;
   readonly available?: boolean;
   readonly dailyReviewLimit?: number;
@@ -336,6 +353,13 @@ export async function updateReviewerPreferences(
   const mutation: ProfileMutation = {
     ...(preferences.languages === undefined ? {} : { languages: [...preferences.languages] }),
     ...(preferences.categories === undefined ? {} : { categories: [...preferences.categories] }),
+    /**
+     * Recorded once and never moved. A second acceptance is not a second
+     * consent, and overwriting the instant would lose the moment an audit needs.
+     */
+    ...(preferences.rulesAccepted !== true || current.rulesAcceptedAt !== null
+      ? {}
+      : { rulesAcceptedAt: new Date() }),
     ...(preferences.isAdult === undefined ? {} : { isAdult: preferences.isAdult }),
     ...(preferences.available === undefined ? {} : { available: preferences.available }),
     ...(preferences.dailyReviewLimit === undefined
@@ -362,16 +386,21 @@ export async function updateReviewerPreferences(
 /**
  * Moves an applicant into `calibrating` once they can actually be calibrated.
  *
- * Both conditions matter. Training must be complete, because §9.7 asks us to
+ * Every condition matters. Training must be complete, because §9.7 asks us to
  * tell a reasonable error from random answering and that is impossible if the
  * error was ours for never teaching the taxonomy. Categories and languages must
  * be set, because a calibrated reviewer with neither can never be drawn and
- * would sit in `community` looking eligible while matching no case.
+ * would sit in `community` looking eligible while matching no case. And the
+ * reviewing rules must have been accepted (§4.1's onboarding, §13.7): the app
+ * shows an unaccepted reviewer an `onboarding_incomplete` blocker, and a check
+ * that lives only on the device is the one thing standing between somebody who
+ * consented to nothing and real case material.
  */
 async function openCalibrationIfReady(
   profile: ReviewerProfileDocument,
 ): Promise<ReviewerProfileDocument> {
   if (profile.state !== 'applicant') return profile;
+  if (profile.rulesAcceptedAt === null) return profile;
   if (!hasCompletedTraining(profile.trainingCompletedModules)) return profile;
   if (profile.languages.length === 0 || profile.categories.length === 0) return profile;
 

@@ -34,7 +34,7 @@ import {
 } from '@/lib/review-form';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { useReviewerProfile, useSubmitReview } from '@/lib/reviewer-api/queries';
-import type { AssignmentPackage, ReviewSubmission } from '@/lib/reviewer-api/types';
+import type { AssignmentPackage, ReviewSubmission } from '@oxyhq/crowdsource-contracts';
 
 export default function ReviewScreen() {
   const { t } = useTranslation();
@@ -107,10 +107,17 @@ function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlo
     createInitialReviewFormState,
   );
 
-  // Fails closed: until the profile confirms consent for this category, no
-  // sensitive resource can be revealed (PLAN §13.7).
+  /**
+   * Fails closed, and against EVERY family the case alleges.
+   *
+   * §8.2 requires consent for each family a case carries, so `some` would let a
+   * reviewer who consented to one of three reveal material from the other two.
+   * An empty profile (still loading, or failed) consents to nothing.
+   */
   const consentedCategories = profileQuery.data?.consent.sensitiveCategories ?? [];
-  const consented = consentedCategories.includes(assignment.category);
+  const consented =
+    assignment.families.length > 0 &&
+    assignment.families.every((family) => consentedCategories.includes(family));
 
   const submission = buildReviewSubmission(formState, assignment.policy.rules);
 
@@ -122,9 +129,15 @@ function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlo
 
   return (
     <Screen title={t('review.title')}>
+      {/* Families, plural: a case is the union of every report about the same
+          material (§7.3), and a reviewer is only drawn when they accept ALL of
+          them (§8.2) — naming one would misdescribe what they were asked to
+          judge. The language is nullable because an envelope may declare none. */}
       <Text className="text-base leading-6 text-muted-foreground">
-        {t('review.subtitle', {
-          category: t(`category.${assignment.category}`, { defaultValue: assignment.category }),
+        {t(assignment.language === null ? 'review.subtitleNoLanguage' : 'review.subtitle', {
+          category: assignment.families
+            .map((family) => t(`category.${family}`, { defaultValue: family }))
+            .join(t('history.familySeparator')),
           language: assignment.language,
         })}
       </Text>
@@ -137,23 +150,36 @@ function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlo
           time: new Date(assignment.expiresAt).toLocaleString(),
         })}
       >
-        {assignment.warnings.length > 0 ? (
-          <View className="gap-1 rounded-md bg-muted p-3">
-            {assignment.warnings.map((warning) => (
-              <Text key={warning} className="text-sm text-muted-foreground">
-                {t(`warning.${warning}`, { defaultValue: warning })}
-              </Text>
-            ))}
-          </View>
-        ) : null}
+        {/* §9.1's "advertencias": the codes that were alleged, and the class
+            triage computed. There is no separate warning list on the wire — the
+            allegation IS the warning, and inventing a second one would mean
+            showing the reviewer a claim the server never made. */}
+        <View className="gap-1 rounded-md bg-muted p-3">
+          <Text className="text-sm text-muted-foreground">
+            {t(`sensitivity.${assignment.presentation.sensitivityClass}`)}
+          </Text>
+          {assignment.allegations.codes.map((code) => (
+            <Text key={code} className="text-sm text-muted-foreground">
+              {t(`taxonomy.${code}`, { defaultValue: code })}
+            </Text>
+          ))}
+          {assignment.presentation.requiresRedaction ? (
+            <Text className="text-sm text-muted-foreground">{t('review.material.redacted')}</Text>
+          ) : null}
+        </View>
 
         <WatermarkedMaterial label={assignment.watermark}>
           <View className="gap-3">
+            {/* The gate is decided by the CASE's computed class, not by a
+                per-resource flag: §13.7 blurs before revealing whenever triage
+                classed the case above `standard`, and the tenant's own
+                per-resource hint is a hint, never a verdict (§5.2). */}
             {assignment.resources.map((resource) =>
-              resource.sensitive ? (
+              assignment.presentation.blurBeforeReveal ? (
                 <SensitiveGate
                   key={resource.id}
-                  warnings={resource.warnings}
+                  sensitivityClass={assignment.presentation.sensitivityClass}
+                  allegationCodes={assignment.allegations.codes}
                   consented={consented}
                 >
                   <ResourceView resource={resource} />
@@ -172,11 +198,22 @@ function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlo
         ) : null}
       </Panel>
 
-      {assignment.context.length > 0 ? (
+      {/* §5.5's relations, which is the context the envelope actually carries:
+          which resource replies to, quotes or contextualises which. The app used
+          to expect server-authored prose notes, which nothing has ever produced —
+          and which would have arrived untranslated if anything had. */}
+      {assignment.relations.length > 0 ? (
         <Panel title={t('review.context.title')} description={t('review.context.help')}>
-          {assignment.context.map((note) => (
-            <Text key={note.id} className="text-sm leading-5 text-foreground" selectable={false}>
-              {note.text}
+          {assignment.relations.map((relation) => (
+            <Text
+              key={`${relation.from}:${relation.type}:${relation.to}`}
+              className="text-sm leading-5 text-foreground"
+            >
+              {t('review.context.relation', {
+                from: relation.from,
+                relation: t(`relation.${relation.type}`, { defaultValue: relation.type }),
+                to: relation.to,
+              })}
             </Text>
           ))}
         </Panel>
@@ -197,7 +234,7 @@ function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlo
           state={formState}
           dispatch={dispatch}
           policy={assignment.policy}
-          allegation={assignment.allegation}
+          allegations={assignment.allegations}
         />
       )}
 

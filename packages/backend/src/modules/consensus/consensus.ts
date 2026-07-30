@@ -4,6 +4,7 @@ import {
   type DecisionOutcome,
   type FindingContext,
   type RecommendedAction,
+  type ReviewerState,
   type ReviewFinding,
   type ReviewOutcome,
   type Severity,
@@ -11,7 +12,7 @@ import {
 } from '@oxyhq/crowdsource-contracts';
 
 import type { SensitivityClass } from '../triage/triage';
-import { REVIEWER_STATE_RANK, type ReviewerState } from '../reviewer/reviewerState';
+import { REVIEWER_STATE_RANK } from '../reviewer/reviewerState';
 
 /**
  * The consensus engine (§9.4, §8.6) — pure, and deliberately so.

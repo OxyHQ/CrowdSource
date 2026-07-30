@@ -61,14 +61,25 @@ export default function HistoryScreen() {
                 index < entries.length - 1 ? 'gap-1 border-b border-border pb-3' : 'gap-1'
               }
             >
+              {/* Plural: a case is the union of every report about the same
+                  material (§7.3), and reporters do not all choose the same
+                  family. Naming one would misdescribe what was judged. */}
               <Text className="text-base font-semibold text-foreground">
-                {t(`category.${entry.category}`, { defaultValue: entry.category })}
+                {entry.families.length === 0
+                  ? t('history.familiesUnknown')
+                  : entry.families
+                      .map((family) => t(`category.${family}`, { defaultValue: family }))
+                      .join(t('history.familySeparator'))}
               </Text>
               <Text className="text-sm text-muted-foreground">
-                {t('history.submitted', {
-                  date: new Date(entry.submittedAt).toLocaleString(),
-                  language: entry.language,
-                })}
+                {entry.language === null
+                  ? t('history.submittedNoLanguage', {
+                      date: new Date(entry.submittedAt).toLocaleString(),
+                    })
+                  : t('history.submitted', {
+                      date: new Date(entry.submittedAt).toLocaleString(),
+                      language: entry.language,
+                    })}
               </Text>
               <Text className="text-sm text-muted-foreground">
                 {t('history.yourOutcome', { outcome: t(`outcome.${entry.outcome}`) })}

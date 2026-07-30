@@ -28,12 +28,16 @@ import {
   useStopShowingCase,
   useUpdatePreferences,
 } from '@/lib/reviewer-api/queries';
-import type { ReviewerPreferences, ReviewerProfile } from '@/lib/reviewer-api/types';
+import type {
+  ReviewerPreferencesUpdate,
+  ReviewerProfileView,
+  TaxonomyFamily,
+} from '@oxyhq/crowdsource-contracts';
 import { CONSENTABLE_FAMILIES, OPT_IN_FAMILIES } from '@/lib/taxonomy';
 
 const DAILY_LIMIT_OPTIONS = [5, 10, 20, 40];
 
-function toggle(list: string[], value: string): string[] {
+function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
@@ -74,17 +78,35 @@ export default function WellbeingScreen() {
   );
 }
 
-function WellbeingForm({ profile }: { profile: ReviewerProfile }) {
+function WellbeingForm({ profile }: { profile: ReviewerProfileView }) {
   const { t } = useTranslation();
   const updatePreferences = useUpdatePreferences();
 
   // Seeded once, from the profile that had already loaded when this component
   // mounted. Our own save writes the server's answer straight into the query
   // cache, so there is no second source of truth to reconcile and no effect.
-  const [draft, setDraft] = useState<ReviewerPreferences>(() => ({
+  /**
+   * The draft is the app's own working shape, not the wire body.
+   *
+   * `sensitiveCategories` lives under `consent` on the profile and is called
+   * `consentedSensitiveCategories` on the update, and `dailyLimit` is
+   * `dailyReviewLimit` there. Keeping the draft in the names the CONTROLS use and
+   * translating once, at save, is what stops a screen inventing a body shape —
+   * which is what it was doing: three of the five keys it used to send were
+   * refused outright by the strict preferences schema.
+   */
+  interface PreferencesDraft {
+    languages: string[];
+    categories: TaxonomyFamily[];
+    sensitiveCategories: TaxonomyFamily[];
+    dailyLimit: number;
+    availableForAssignment: boolean;
+  }
+
+  const [draft, setDraft] = useState<PreferencesDraft>(() => ({
     languages: [...profile.preferences.languages],
     categories: [...profile.preferences.categories],
-    sensitiveCategories: [...profile.preferences.sensitiveCategories],
+    sensitiveCategories: [...profile.consent.sensitiveCategories],
     dailyLimit: profile.preferences.dailyLimit,
     availableForAssignment: profile.preferences.availableForAssignment,
   }));
@@ -94,13 +116,27 @@ function WellbeingForm({ profile }: { profile: ReviewerProfile }) {
     : [...DAILY_LIMIT_OPTIONS, draft.dailyLimit].sort((a, b) => a - b);
 
   const handleSave = () => {
-    updatePreferences.mutate({
-      ...draft,
-      // Consent cannot outlive the category it belongs to.
-      sensitiveCategories: draft.sensitiveCategories.filter((family) =>
-        draft.categories.includes(family),
-      ),
-    });
+    // Consent cannot outlive the category it belongs to.
+    const consented = draft.sensitiveCategories.filter((family) =>
+      draft.categories.includes(family),
+    );
+    const update: ReviewerPreferencesUpdate = {
+      languages: draft.languages,
+      categories: draft.categories,
+      dailyReviewLimit: draft.dailyLimit,
+      available: draft.availableForAssignment,
+      consentedSensitiveCategories: consented,
+      /**
+       * §13.7's withdrawal has to move BOTH: the per-family list and the class
+       * ceiling. Leaving the ceiling raised while the list is empty means the
+       * draw refuses on `category_consent_missing` rather than on consent being
+       * withdrawn, and dropping the ceiling while a family stays consented means
+       * the draw refuses on `sensitivity_above_consent` — either way a reviewer
+       * sees consent as granted and is never drawn, with nothing saying why.
+       */
+      maxSensitivity: consented.length > 0 ? 'sensitive' : 'standard',
+    };
+    updatePreferences.mutate(update);
   };
 
   return (

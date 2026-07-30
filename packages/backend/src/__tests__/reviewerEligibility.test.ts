@@ -27,7 +27,9 @@ import {
   PERSONHOOD_WEIGHTS,
 } from '../modules/reviewer/personhood';
 import type { ReviewerProfileDocument } from '../modules/reviewer/reviewer.collection';
-import { canTransition, DRAWABLE_STATES, REVIEWER_STATES } from '../modules/reviewer/reviewerState';
+import { REVIEWER_STATES } from '@oxyhq/crowdsource-contracts';
+
+import { canTransition, DRAWABLE_STATES } from '../modules/reviewer/reviewerState';
 
 /**
  * §8.2's eligibility, §8.1's ladder and the personhood model — the part of this
@@ -59,6 +61,7 @@ function profile(overrides: Partial<ReviewerProfileDocument> = {}): ReviewerProf
     maxSensitivityRank: 0,
     consentedSensitiveCategories: [],
     declaredConflictApplications: [],
+    rulesAcceptedAt: NOW,
     available: true,
     dailyReviewLimit: 20,
     trainingCompletedModules: TRAINING_MODULES.map((module) => module.moduleId),
@@ -387,6 +390,7 @@ describe('the eligibility predicate (§8.2)', () => {
         reject({ suspendedUntil: new Date(NOW.getTime() + 86_400_000) }),
         reject({ available: false }),
         reject({ personhoodConfidence: 0 }),
+        reject({ rulesAcceptedAt: null }),
         reject({ calibrationPassedAt: null }),
         reject({ categories: [] }),
         reject({ languages: ['de'] }),
