@@ -19,7 +19,7 @@
     "audit:security": "bun ./scripts/audit-security.mjs",
     "check:lockfile": "bun ./scripts/check-lockfile-sync.mjs",
     "doctor": "bun ./scripts/doctor.mjs",
-    "check": "bun run doctor && bun run validate:workflows && bun run audit:security && bun run check:peers && bun run build && bun run check:dist && bun run --cwd packages/reviewer typecheck && bun run lint",
+    "check": "bun run doctor && bun run validate:workflows && bun run audit:security && bun run check:peers && bun run build && bun run check:dist && bun run check:schemas && bun run --cwd packages/reviewer typecheck && bun run lint",
     "test": "bun run test:contracts && bun run test:backend && bun run test:sdk && bun run test:testing && bun run test:sdk-express && bun run test:reviewer",
     "test:contracts": "bun run --cwd packages/contracts test",
     "test:backend": "bun run --cwd packages/backend test",
@@ -43,7 +43,8 @@
     "start:backend": "bun run --cwd packages/backend start",
     "postinstall": "bun run build:contracts",
     "check:peers": "bun ./scripts/check-peer-contracts.mjs && bun ./scripts/test-check-peer-contracts.mjs",
-    "check:dist": "bun ./scripts/check-dist-orphans.mjs && bun ./scripts/test-check-dist-orphans.mjs"
+    "check:dist": "bun ./scripts/check-dist-orphans.mjs && bun ./scripts/test-check-dist-orphans.mjs",
+    "check:schemas": "bun ./scripts/test-check-published-json-schemas.mjs && bun ./scripts/check-published-json-schemas.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
