@@ -27,6 +27,7 @@
 
 import { z } from 'zod';
 
+import type { Closed } from './closed';
 import { DecisionSchema } from './decisions';
 import {
   CONTRACT_LIMITS,
@@ -214,4 +215,15 @@ export const AppealSchema = z
       });
     }
   });
-export type Appeal = z.infer<typeof AppealSchema>;
+/**
+ * `Closed`, like every other outbound type in this package.
+ *
+ * The schema stays loose — §10.11 requires unknown fields to pass through — and
+ * the exported type drops the index signature that looseness contributes. This
+ * DTO is the one in the package most likely to be misnamed by an integrator:
+ * `appeal.appealId` reads naturally and the field is `id`, and the webhook
+ * payload carries `data.appealId` beside `data.appeal.id`, so the two spellings
+ * sit next to each other in the same body. With an index signature both compile
+ * and one is `undefined` at runtime; closed, only the real one does.
+ */
+export type Appeal = Closed<z.infer<typeof AppealSchema>>;

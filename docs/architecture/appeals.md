@@ -72,11 +72,14 @@ redacción." It does not say what structured evidence is.
 **already in the case snapshot**, and a flat scalar `fields` bag. No URLs, no
 blobs, no nesting.
 
-New media evidence enters through §10.2's upload endpoints, where it is hashed
-and its type checked. Those do not exist yet (phase 2), so today an appeal can
-re-point at material the jury already has and argue about it. A URL here would
-be an unvalidated resource on a reviewer's screen (§7.2.7) and worse — see the
-next section.
+New media evidence enters as an **Oxy file id** on an asset ref
+(`AssetRefSchema`), resolved through the Oxy media chokepoint — contracts 0.3.0
+made that id required and removed `uploadId` and the `Uploads` namespace, so
+there is exactly one way for a byte to reach a reviewer and it is not this field.
+No ingress path for author-supplied media exists yet either way, so today an
+appeal re-points at material the jury already has and argues about it. A URL here
+would be an unvalidated resource on a reviewer's screen (§7.2.7) and worse — see
+the next section.
 
 ## 4. What redaction means for text the subject of a case wrote
 
