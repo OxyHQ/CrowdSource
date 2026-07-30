@@ -126,22 +126,37 @@ export function createEnforcementExecutor<TAction extends string>(input: {
   ): Promise<
     { previousState?: EnforcementPreviousState; previousAction: TAction } | undefined
   > => {
-    const reversed = config.reverses?.[action];
+    const reversed: TAction | readonly TAction[] | undefined = config.reverses?.[action];
     if (reversed === undefined) return undefined;
+    /**
+     * One action may reverse several. The most recent APPLIED row across the
+     * whole set wins, so `apply` receives what actually happened last rather
+     * than what a single declared action happened to be.
+     */
+    const candidates: readonly TAction[] =
+      typeof reversed === 'string' ? [reversed] : reversed;
+    if (candidates.length === 0) return undefined;
     const row = await model
       .findOne({
         subjectType: subject.type,
         subjectId: subject.id,
-        action: reversed,
+        action: { $in: [...candidates] },
         applied: true,
       })
       .sort({ createdAt: -1 })
-      .select('previousState')
-      .lean<Pick<ModerationEnforcementDocument, 'previousState'> | null>();
+      .select('previousState action')
+      .lean<Pick<ModerationEnforcementDocument, 'previousState' | 'action'> | null>();
     if (row === null) return undefined;
+    /**
+     * The row's own action, narrowed THROUGH the declared set rather than cast.
+     * The query guarantees membership; finding it here is what lets
+     * `previousAction` be a `TAction` without asserting that it is one.
+     */
+    const previousAction = candidates.find((candidate) => candidate === row.action);
+    if (previousAction === undefined) return undefined;
     return {
       ...(row.previousState === undefined ? {} : { previousState: row.previousState }),
-      previousAction: reversed,
+      previousAction,
     };
   };
 

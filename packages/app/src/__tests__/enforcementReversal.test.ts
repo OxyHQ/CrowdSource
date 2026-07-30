@@ -162,3 +162,75 @@ describe('an action that could not apply to THIS object is labelled honestly', (
     expect(row?.applied).toBe(false);
   });
 });
+
+describe('one action reversing several', () => {
+  it('reads the most recent applied row across the whole declared set', async () => {
+    /**
+     * `mercaria`'s shape: their `restore` reverses whichever of `restrict`,
+     * `request_changes` or `freeze_transaction` actually applied, because on a
+     * listing all three are reversible and any of them may be the thing that
+     * happened. The harness models it with `restore: ['restrict', 'flag']`.
+     *
+     * The discriminator is that the two applied rows record DIFFERENT previous
+     * states, and the more recent one is not the first entry in the declared
+     * list. So the widget's final status says which row was read: the `flag`
+     * row carries no `status`, so a correct lookup falls back to `published`,
+     * while reading the older `restrict` row would restore `draft`.
+     */
+    harness = await createHarness();
+    const widget = await harness.widgets.create({
+      body: 'a draft nobody has seen',
+      ownerId: 'oxy-owner',
+      status: 'draft',
+    });
+    const subject = { type: 'widget', id: String(widget._id) };
+
+    // Older applied row: restrict, displacing `draft`.
+    expect(
+      await harness.moderation.enforcement.apply({
+        decision: decision({ revision: 1, recommendedActions: [{ action: 'remove' }] }),
+        caseId: CASE_ID,
+        subject,
+      }),
+    ).toEqual([{ action: 'restrict', result: 'applied' }]);
+
+    // NEWER applied row: flag, displacing `flagged: false`.
+    expect(
+      await harness.moderation.enforcement.apply({
+        decision: decision({ revision: 2, recommendedActions: [{ action: 'label' }] }),
+        caseId: CASE_ID,
+        subject,
+      }),
+    ).toEqual([{ action: 'flag', result: 'applied' }]);
+
+    const applied = await harness.moderation.models.enforcement
+      .find({ subjectId: subject.id, applied: true })
+      .sort({ createdAt: -1 })
+      .lean();
+    expect(applied.map((row) => row.action)).toEqual(['flag', 'restrict']);
+    expect(applied[0].previousState).toEqual({ flagged: false });
+    expect(applied[1].previousState).toEqual({ status: 'draft' });
+
+    // The correction. Its restore must read the FLAG row, not the restrict one.
+    expect(
+      await harness.moderation.enforcement.apply({
+        decision: decision({
+          revision: 3,
+          outcome: 'no_violation',
+          findings: [],
+          recommendedActions: [],
+        }),
+        caseId: CASE_ID,
+        subject,
+      }),
+    ).toEqual([{ action: 'restore', result: 'applied' }]);
+
+    /**
+     * `published`, from the harness's fallback, because the newest applied row
+     * recorded a flag rather than a status. Reading the older `restrict` row
+     * instead would put the widget back to `draft` — the right answer to a
+     * question nobody asked, drawn from a row two revisions stale.
+     */
+    expect((await harness.widgets.findById(widget._id).lean())?.status).toBe('published');
+  });
+});
