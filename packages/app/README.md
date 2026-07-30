@@ -22,7 +22,11 @@ bun add @oxyhq/crowdsource-app @oxyhq/crowdsource-contracts
 missing peer silently with no warning at all — so install it explicitly. Two
 copies of contracts produce no type error and no diagnostic; the symptom is every
 webhook answering `400 malformed_event`, which reads as a delivery problem.
-`mongoose` and `express` are peers too.
+
+`mongoose` (8 or 9) and `express` (4.18+ or 5) are peers too. The same silence
+applies in the other direction: bun will install a mongoose that does **not**
+satisfy the range without saying so, so a peer mismatch here is something you
+check rather than something you get told.
 
 ---
 
