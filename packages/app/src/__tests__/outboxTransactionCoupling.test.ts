@@ -197,6 +197,81 @@ describe('intake commits the report and its delivery event together, or neither'
 
     expect(await harness.moderation.models.outbox.countDocuments({})).toBe(1);
   });
+
+  it('leaves an existing row completely untouched on a repeated enqueue', async () => {
+    /**
+     * The property that makes a repeated enqueue safe, and it is stronger than
+     * "no duplicate row": the upsert must not WRITE at all.
+     *
+     * A repeated enqueue is ordinary — a transaction retry, two concurrent
+     * duplicate submissions, a reconciliation sweep re-deriving an event — and
+     * the dispatcher is concurrently taking, renewing and completing leases on
+     * these same rows. If the upsert wrote (which it does when Mongoose owns
+     * `updatedAt` and adds its own `$set`), it would conflict with a live lease
+     * update and abort the enclosing transaction. `updatedAt` is the observable
+     * edge of that: unchanged means nothing was written.
+     */
+    harness = await createHarness();
+    const eventId = 'moderation:report.submit:repeat-is-a-no-op';
+    const enqueueOnce = async (): Promise<void> => {
+      const session = await harness?.connection.startSession();
+      if (session === undefined) throw new Error('no connection');
+      try {
+        await session.withTransaction(async () => {
+          await harness?.moderation.outbox.enqueue(
+            { eventId, kind: 'report.submit', payload: { reportId: 'repeat' } },
+            session,
+          );
+        });
+      } finally {
+        await session.endSession();
+      }
+    };
+
+    await enqueueOnce();
+    const first = await harness.moderation.models.outbox.findById(eventId).lean();
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    await enqueueOnce();
+    const second = await harness.moderation.models.outbox.findById(eventId).lean();
+
+    expect(first?.createdAt).toBeInstanceOf(Date);
+    expect(second?.updatedAt?.getTime()).toBe(first?.updatedAt?.getTime());
+    expect(await harness.moderation.models.outbox.countDocuments({})).toBe(1);
+  });
+
+  it('re-enqueues inside a transaction without conflicting with a live lease', async () => {
+    /**
+     * The reconciliation shape, exactly: a sweep re-derives a delivery event in
+     * its own transaction while the dispatcher holds and updates the lease on
+     * the same row. This is the failure the no-op property above prevents, and
+     * it is invisible until both run at once against a real server.
+     */
+    harness = await createHarness();
+    const eventId = 'moderation:report.submit:contended';
+    const enqueue = async (): Promise<void> => {
+      const session = await harness?.connection.startSession();
+      if (session === undefined) throw new Error('no connection');
+      try {
+        await session.withTransaction(async () => {
+          await harness?.moderation.outbox.enqueue(
+            { eventId, kind: 'report.submit', payload: { reportId: 'contended' } },
+            session,
+          );
+          // The dispatcher, mid-flight on the same row.
+          await harness?.moderation.models.outbox.updateOne(
+            { _id: eventId },
+            { $set: { leaseOwner: 'another-task' } },
+          );
+        });
+      } finally {
+        await session.endSession();
+      }
+    };
+
+    await enqueue();
+    await expect(enqueue()).resolves.toBeUndefined();
+    expect(await harness.moderation.models.outbox.countDocuments({})).toBe(1);
+  });
 });
 
 describe('intake refuses an identifier that is not a string', () => {
