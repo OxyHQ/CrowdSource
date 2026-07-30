@@ -91,7 +91,33 @@ export interface ModerationSubjectSnapshot {
 export interface ModerationSubjectProvider {
   /** The application's own name for the noun, as it arrives on a report. */
   readonly reportedType: string;
-  /** The namespaced universal subject type, or `custom.<org>.<object_type>`. */
+  /**
+   * The namespaced universal subject type, or `custom.<org>.<object_type>`.
+   *
+   * ## Reporting an ACCOUNT has a tenancy consequence worth knowing first
+   *
+   * `applicationId` is read off the service credential, so a report this
+   * application submits opens a case in ITS tenant. For an object the
+   * application owns that is exactly right. For an Oxy IDENTITY it is not: the
+   * case names a principal only Oxy can act on, and when a second Oxy
+   * application reports the same person under its own credential the dedup key
+   * (`applicationId + subject external id + content hash + policy version`)
+   * differs by tenant — so one person yields two cases, two juries and two
+   * consequences, breaking "one penalty per incident" at a layer nothing inside
+   * either application can repair.
+   *
+   * That is an argument for care, not a prohibition: `identity.profile` is a
+   * legitimate subject type, and an application whose own surfaces are what a
+   * jury would judge may well register one. What it is not is a way to have
+   * somebody's Oxy account sanctioned — an application can never move a
+   * reputation figure directly, and cross-application hand-off is a design
+   * question the contract does not answer yet. Registering no provider for a
+   * reported account is a supported answer: the report is still stored, and
+   * still counted, it simply never leaves.
+   *
+   * Credit: `mercaria` surfaced this while deciding not to give `seller` a
+   * provider, and it is app-independent enough to belong here.
+   */
   readonly subjectType: string;
   /**
    * Describes the object, or returns `null` when it no longer exists.
@@ -219,20 +245,36 @@ export interface ModerationEnforcementConfig<TAction extends string> {
   readonly reviewAction: TAction;
 
   /**
-   * The action that undoes an earlier restriction, if the application has one.
+   * The action that undoes an earlier restriction, or `null` when the
+   * application has nothing to undo.
    *
-   * Declaring it makes `no_violation` ALWAYS plan it, and that is load-bearing.
-   * A correction is a new revision whose outcome is `no_violation` and whose
-   * recommendation is frequently `no_action` — which means "take no NEW action",
-   * not "leave what you already did in place". Mapping that straight through
-   * plans nothing, and the object an earlier revision removed stays removed
-   * forever: the appeal succeeded, the case says the content was fine, and
-   * nothing ever puts it back. No error, no log line, no failing test.
+   * **Required, and `null` is a real answer.** Naming an action makes
+   * `no_violation` ALWAYS plan it, and that is load-bearing: a correction is a
+   * new revision whose outcome is `no_violation` and whose recommendation is
+   * frequently `no_action` — which means "take no NEW action", not "leave what
+   * you already did in place". Mapping that straight through plans nothing, and
+   * the object an earlier revision removed stays removed forever: the appeal
+   * succeeded, the case says the content was fine, and nothing ever puts it
+   * back. No error, no log line, no failing test.
+   *
+   * It is required rather than optional because an ABSENT key cannot be told
+   * apart from a forgotten one, and forgetting is exactly the silent bug above.
+   * `null` says an application considered it and has no restriction to lift —
+   * true of an application with no sanction primitive at all, and the compiler
+   * makes saying so a deliberate act.
    */
-  readonly restoreAction?: TAction;
+  readonly restoreAction: TAction | null;
 
-  /** What each recommendation becomes. Anything unmapped becomes `reviewAction`. */
-  readonly recommendationToAction: Partial<Record<RecommendedAction, TAction>>;
+  /**
+   * What each recommendation becomes. Anything unmapped becomes
+   * {@link reviewAction}.
+   *
+   * Optional, because an empty table and an absent one mean the same thing: a
+   * recommendation this application has no action for goes to a human, recorded
+   * with the recommendation that produced it. An application with no sanction
+   * primitive omits it entirely.
+   */
+  readonly recommendationToAction?: Partial<Record<RecommendedAction, TAction>>;
 
   /**
    * What a `violation` with NO recommendation becomes, by highest severity.
@@ -241,8 +283,12 @@ export interface ModerationEnforcementConfig<TAction extends string> {
    * anything for is not something to remove an object over, and `critical`
    * material is routed to a specialist team under legal protocol — neither is an
    * automatic effect a mapping table should decide.
+   *
+   * Optional, and any severity left unmapped falls to {@link reviewAction}. An
+   * application with nothing to enforce can omit it entirely; the cautious
+   * default is the only honest one when a table says nothing.
    */
-  readonly severityFallback: Readonly<Record<Severity, TAction>>;
+  readonly severityFallback?: Partial<Readonly<Record<Severity, TAction>>>;
 
   /**
    * Actions that absorb weaker ones when both are planned.
@@ -256,8 +302,11 @@ export interface ModerationEnforcementConfig<TAction extends string> {
   /**
    * Strongest first. Decides the ONE action written onto the report when a plan
    * produced several.
+   *
+   * Optional; defaults to {@link actions}, so listing `actions` strongest-first
+   * is enough for most applications.
    */
-  readonly precedence: readonly TAction[];
+  readonly precedence?: readonly TAction[];
 
   /**
    * Actions `manual` mode still applies automatically.
@@ -273,8 +322,17 @@ export interface ModerationEnforcementConfig<TAction extends string> {
    *
    * Called at most once per `decisionId + revision + action`, and only when the
    * mode allows it. `previousState` is handed back to a later reversal.
+   *
+   * **Optional.** An application with no sanction primitive at all — nothing to
+   * remove, restrict, label or suspend — omits it, and every planned action is
+   * recorded as `recorded` with a reason. That is a supported shape rather than
+   * an unfinished one: the plan, the idempotency claim and the audit row are
+   * still real, so "CrowdSource decided this and we have no way to carry it
+   * out" is written down instead of being lost. Omitting `apply` is NOT the same
+   * as `observe` mode — the mode is a deployment choice that can be switched
+   * off, and this is a property of the application.
    */
-  apply(input: {
+  apply?(input: {
     readonly action: TAction;
     readonly subject: EnforcementSubject;
     /**
