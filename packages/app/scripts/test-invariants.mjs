@@ -122,6 +122,27 @@ const MUTATIONS = [
     test: 'src/__tests__/reviewOnlyApplication.test.ts',
     expects: 'records the decision, and never claims an effect it did not have',
   },
+  {
+    /**
+     * The reversal lookup reading a row whose effect never happened. The obvious
+     * test of this cannot fail — see the file's own comment — so the mutation is
+     * the only thing that proves the arrangement in it is load-bearing.
+     */
+    name: 'a reversal reads the newest row instead of the newest APPLIED row',
+    file: 'src/enforcement/executor.ts',
+    edits: [
+      {
+        find: `        action: reversed,
+        applied: true,
+      })`,
+        replace: `        action: reversed,
+      })`,
+      },
+    ],
+    absent: `        action: reversed,\n        applied: true,`,
+    test: 'src/__tests__/enforcementReversal.test.ts',
+    expects: 'reads the applied row, not the newer recorded-only one',
+  },
 ];
 
 const digest = (value) => createHash('sha256').update(value, 'utf8').digest('hex');

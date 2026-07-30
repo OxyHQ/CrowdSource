@@ -28,7 +28,7 @@ export interface TestWidget {
   _id: mongoose.Types.ObjectId;
   body: string;
   ownerId: string;
-  status: 'published' | 'restricted';
+  status: 'draft' | 'published' | 'restricted';
   flagged: boolean;
 }
 

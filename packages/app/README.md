@@ -161,7 +161,31 @@ can try again.
 `previousState` is yours and opaque to this package: it is written on the
 enforcement row when an action is applied, and handed back to `apply` when a later
 revision reverses it (per `reverses`). Keep it small, flat and JSON-serialisable,
-and never put reported material in it.
+and never put reported material in it. The lookup reads the most recent
+**applied** row, so an action that was claimed but never carried out — observe
+mode, a mode that declined it, an effect that found nothing to do — can never be
+mistaken for one that changed something.
+
+#### Adding the state your `apply` sets: the drift that survives testing
+
+Almost every adopter adds a new value to an existing status enum — `restricted`,
+`frozen`, `hidden`, whatever `apply` writes. Two things make getting it wrong
+invisible, and they compound:
+
+**A hand-written list satisfies the type.** If your Mongoose schema restates the
+values (`const STATUSES: readonly ListingStatus[] = [...]`), a *subset* still
+type-checks, so the schema enum silently never learns the new value. No compile
+error. Export one list and have both the union and the schema read it.
+
+**`updateOne` does not run validators; `save()` does.** So your enforcement path
+writes the new status happily and every moderation test passes — while an
+unrelated user path that ends in `save()` starts failing validation on a field
+the user never touched. In `mercaria` this surfaced as a seller editing the
+*title* of a restricted listing and getting
+`ValidationError: status: 'restricted' is not a valid enum value`.
+
+Worth a table test that creates your object at each value in the exported list.
+Credit: `mercaria`, who lost an afternoon to it so you do not have to.
 
 Three modes. `observe` runs the plan, the claim and the audit row and skips only
 the effect, so it is a real rehearsal rather than a log line. `manual` additionally
