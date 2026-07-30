@@ -182,3 +182,12 @@ Until a reviewer can sign in, the reviewer API is reachable only by a client
 holding an Oxy session obtained elsewhere, and the production jury pool cannot
 grow. A case that cannot empanel is covered in
 [the runbook](../runbooks/case-cannot-empanel.md).
+
+## Machine-checked claims
+
+```docs-claims
+review-outcomes: violation, no_violation, insufficient_context, content_unavailable
+recusal-reasons: conflict_of_interest, language, too_sensitive, insufficient_context
+context-sufficiencies: sufficient, insufficient
+assignment-token-header: x-assignment-token
+```

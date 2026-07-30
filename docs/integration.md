@@ -304,3 +304,23 @@ moderation stream; shipping one to a browser or a mobile bundle hands every user
 of your application the ability to file reports as you, read your cases and
 exhaust your quota. The package depends on `node:crypto` and does not build for
 a browser, which is the intended outcome.
+
+## Machine-checked claims
+
+```docs-claims
+service-key-env-var: CROWDSOURCE_SERVICE_KEY
+base-url-env-var: CROWDSOURCE_BASE_URL
+webhook-secret-env-var: CROWDSOURCE_WEBHOOK_SECRET
+webhook-previous-secret-env-var: CROWDSOURCE_WEBHOOK_SECRET_PREVIOUS
+service-key-parts: 3
+service-key-separator: :
+bearer-token-separator: .
+default-policy-set-id: crowdsource.baseline
+default-policy-version: 2026.07
+sandbox-reports-per-day: 5000
+sandbox-webhook-endpoints: 25
+trusted-reports-per-day: 250000
+restricted-reports-per-day: 0
+application-standings: sandbox, trusted, restricted
+console-issued-credential-fields: credentialId, scopes, token, createdAt
+```

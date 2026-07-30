@@ -159,3 +159,18 @@ calibration before they can be drawn at all.
   `legal_queue` to the *application* as a recommended action; it does not move
   the case. Doing that automatically would draw panels from pools that may be
   empty with nobody accountable for it.
+
+## Machine-checked claims
+
+```docs-claims
+draw-statuses: drawn, refused
+draw-kinds: initial, replacement, expansion
+panel-refusal-reasons: candidate_pool_too_small, reliability_minimum, slot_unfillable
+eligibility-rejections: account_inactive, state_not_drawable, suspended, unavailable, personhood_below_threshold, rules_not_accepted, calibration_expired, category_not_accepted, language_mismatch, sensitivity_above_consent, category_consent_missing, adult_attestation_missing, sock_puppet_signal, daily_limit_reached, open_assignment_limit, sensitive_exposure_rest
+exclusion-reasons: subject_principal, reporter, prior_juror, declared_relation, application_conflict, party_risk_cluster
+slot-types: reliable_general, category_specialist, intermediate, calibrated_newcomer, appeals_reviewer
+community-round-seats: 3, 5, 7
+specialist-round-seats: 3, 5, 7
+candidate-sample-size: 400
+sortition-rules-version: 2026.1
+```

@@ -130,3 +130,12 @@ delivery that fails all seven becomes visible as a dead letter at roughly 32.5
 hours. The schedule is the more specific statement and the one an integrator can
 observe, so it wins; the SLO is the number that needs revising. Do not treat a
 dead letter appearing at hour 30 as a breach.
+
+## Machine-checked claims
+
+```docs-claims
+dead-letter-reasons: attempts_exhausted, client_error, endpoint_disabled, endpoint_gone, unsafe_target
+failure-kinds: endpoint_disabled, http_status, secret_unavailable, unsafe_target, upstream_unreachable
+delivery-lease-ms: 60000
+staff-dead-letter-role: security
+```

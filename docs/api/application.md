@@ -300,3 +300,23 @@ evidence is referenced and never fetched. A `fileId` resolves to whatever
 from the reviewer's screen** mid-case. The reviewer is told plainly and
 `insufficient_context` and recusal stay open, which bounds the damage without
 removing it.
+
+## Machine-checked claims
+
+Compared against the code by
+`packages/backend/src/__tests__/docsClaims.test.ts`. The route table above is
+checked too — every documented row must exist, every served route must be
+documented, and every one of them must be behind a service credential.
+
+```docs-claims
+application-scopes: crowdsource:reports:write, crowdsource:reports:read, crowdsource:cases:read, crowdsource:appeals:write, crowdsource:enforcement:write, crowdsource:webhooks:manage, crowdsource:policies:manage, crowdsource:schemas:manage
+privileged-scopes: crowdsource:decisions:emit, reputation:moderation:apply, crowdsource:trust-safety:operate
+decision-outcomes: violation, no_violation, insufficient_context, inconclusive, content_unavailable, duplicate, escalated
+report-statuses: received, merged, invalid, withdrawn, closed
+appealable-outcomes: violation, inconclusive, insufficient_context
+appeal-reasons: context_missing, policy_misapplied, finding_incorrect, exception_applies, not_responsible, procedural_error
+decision-finding-fields: code, resourceIds, severity, context, scope, attribution, policyRuleIds
+error-codes: invalid_request, unauthorized, forbidden, not_found, conflict, payload_too_large, unprocessable_envelope, rate_limited, internal_error, service_unavailable
+ingress-refusal-reasons: schema_invalid, application_mismatch, unsafe_resource_url, policy_unknown, payload_conflict
+evidence-module-files: contentSnapshot.ts
+```

@@ -128,3 +128,14 @@ case never got a panel.
   correlation of one piece of material across applications **does not exist**.
   The reputation-effect index that would be built on it has nothing to be built
   on.
+
+## Machine-checked claims
+
+```docs-claims
+outbox-statuses: pending, dispatching, dispatched, failed
+outbox-max-attempts: 8
+outbox-lease-ms: 60000
+outbox-event-types: report.received, case.ready_for_triage, case.ready_for_review, assignment.vacated, review.submitted, case.decided, decision.corrected, appeal.created, appeal.decided
+no-incident-module: true
+no-queue-dependency: true
+```

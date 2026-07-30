@@ -174,3 +174,16 @@ await simulator.deliver(caseDecidedEventFixture(), { tamperedBody: '…' }); // 
 ```
 
 A suite that only ever sends valid deliveries proves the receiver can say yes.
+
+## Machine-checked claims
+
+```docs-claims
+webhook-event-types: report.received, case.created, case.escalated, case.decided, decision.corrected, appeal.created, appeal.decided, case.closed
+wired-webhook-events: report.received, case.decided, decision.corrected, appeal.created, appeal.decided
+retry-schedule-seconds: 30, 120, 900, 3600, 21600, 86400
+webhook-max-attempts: 7
+webhook-client-error-max-attempts: 3
+webhook-timestamp-tolerance-seconds: 300
+webhook-signature-version: v1
+webhook-headers: X-CrowdSource-Event-Id, X-CrowdSource-Timestamp, X-CrowdSource-Signature
+```

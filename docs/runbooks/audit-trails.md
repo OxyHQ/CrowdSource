@@ -189,3 +189,15 @@ can read `Review` through the ordinary wrapper.
 `reviewerId`, an assignment, or a per-juror vote, and the forbidden-field list
 names juror identity explicitly so a rename cannot quietly drop it. A
 group-by-reviewer aggregation would be one field away from naming somebody.
+
+## Machine-checked claims
+
+```docs-claims
+audit-collection: audit_events
+staff-audit-collection: staff_audit_events
+audit-actions: report.ingress.accepted, report.ingress.replayed, report.ingress.rejected, report.receipt.read, case.read, decision.read, appeal.filed, appeal.filed.replayed, console.credential.issued, console.credential.revoked, console.webhook.secret.rotated, console.delivery.replayed, console.application.created
+audit-reasons: schema_invalid, application_mismatch, unsafe_resource_url, policy_unknown, payload_conflict
+staff-audit-actions: staff.applications.read, staff.escalated.read, staff.metrics.read, staff.deadletter.read, staff.standing.changed
+staff-roles: policy, appeals, evidence, security
+console-seats: owner, admin, developer, viewer
+```

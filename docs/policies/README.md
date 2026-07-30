@@ -31,7 +31,7 @@ exists — it does not.
 
 ## The universal taxonomy
 
-Version `2026.1` (`UNIVERSAL_TAXONOMY_VERSION`). **39 codes in 11 families**,
+Version `2026.1` (`UNIVERSAL_TAXONOMY_VERSION`). **40 codes in 11 families**,
 and the list is **closed** — `packages/contracts/src/taxonomy.ts`. An open
 string would let one tenant mint private codes, which is exactly the
 cross-application comparability layer 1 exists to protect.
@@ -74,7 +74,7 @@ rule.** The submission (`ReviewSubmissionSchema` in
 
 | Field | |
 | --- | --- |
-| `code` | One of the 39 above. |
+| `code` | One of the 40 above. |
 | `resourceIds` | Which material this finding is about. Required, non-empty. |
 | `severity` | `low` · `medium` · `high` · `critical` |
 | `context` | Optional. The exception that changes what the classification means. |
@@ -293,3 +293,31 @@ look at. The reasoning for each inclusion and each exclusion is in
 
 **A published decision is never edited, only superseded.** An appeal creates a
 new revision; the superseded one keeps its id and its content forever.
+
+## Machine-checked claims
+
+Compared against the code by
+`packages/backend/src/__tests__/docsClaims.test.ts`.
+
+```docs-claims
+taxonomy-version: 2026.1
+taxonomy-code-count: 40
+taxonomy-families: integrity, harassment, hate, violence, sexual_content, child_safety, self_harm, privacy, commerce, platform_abuse, other
+severities: low, medium, high, critical
+finding-contexts: artistic, educational, documentary, newsworthy, satire, counter_speech, medical, consensual, fictional
+finding-scopes: application_local, oxy_network, identity_integrity
+recommended-action-count: 22
+review-outcomes: violation, no_violation, insufficient_context, content_unavailable
+decision-outcomes: violation, no_violation, insufficient_context, inconclusive, content_unavailable, duplicate, escalated
+appealable-outcomes: violation, inconclusive, insufficient_context
+baseline-policy-set-id: crowdsource.baseline
+baseline-policy-version: 2026.07
+oxy-conduct-policy-version: oxy.2026.1
+baseline-rule-ids: crowdsource.baseline.integrity, crowdsource.baseline.harassment, crowdsource.baseline.hate, crowdsource.baseline.violence, crowdsource.baseline.sexual_content, crowdsource.baseline.child_safety, crowdsource.baseline.self_harm, crowdsource.baseline.privacy, crowdsource.baseline.commerce, crowdsource.baseline.platform_abuse, crowdsource.baseline.other
+policy-rule-fields: id, title, description, taxonomyCodes, defaultSeverity, recommendedActions
+policy-set-version-fields: policySetId, version, status, title, locale, publishedAt, rules
+sensitivity-classes: standard, sensitive, restricted, prohibited
+review-pools: community, specialist, legal
+minimum-agreeing-votes: low=3, medium=4, high=5, critical=Infinity
+round-agreeing-votes: 1=3, 2=4, 3=5
+```
