@@ -256,6 +256,12 @@ failure the "one penalty per incident" invariant exists to prevent.
   JSON Schema at ingress", and there is no schema registry, no registration route
   and no ingress check against a registered schema. The structural pass is real;
   the semantic one is not.
-- `POST /v1/uploads` is called by the published SDK and served by nothing, so an
-  `asset.uploadId` cannot currently be produced through the documented path (see
-  ADR 0001 §3).
+- ~~`POST /v1/uploads` is called by the published SDK and served by nothing.~~
+  **Closed by `9f577343`.** `AssetRefSchema` now requires a bare `fileId`
+  (`OxyFileIdSchema`) and the SDK's upload module is deleted, so an asset is a
+  reference into the ecosystem media chokepoint rather than something CrowdSource
+  ingests. `url` survives as an optional record of where the material was found —
+  "recorded, never fetched", which keeps §7.2.7's scheme rule from being mistaken
+  for an SSRF control. Note this also removed the earlier `superRefine` requiring
+  exactly one of `uploadId`/`url`: the two are no longer alternatives, since
+  `fileId` is now the only source of bytes. See ADR 0001 §3.

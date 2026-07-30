@@ -138,13 +138,34 @@ retention and the "record every access to sensitive media" rule in §13.5
 therefore have to be implemented in CrowdSource's own domain, against an object
 store that will happily keep serving a file after the case is closed.
 
-**Gap.** There is no evidence-upload path in the backend at all. The SDK calls
-`POST /v1/uploads` and `POST /v1/uploads/{id}/complete`
-(`packages/sdk/src/uploads.ts`) and no route in
-`packages/backend/src/app.ts` serves either. What exists of the evidence module
-is the content snapshot and its canonical hash
-(`packages/backend/src/modules/evidence/contentSnapshot.ts`). Inline text
-resources are snapshotted; binary evidence is referenced and never fetched.
+**Resolved since this ADR was first written, and in the direction of this
+divergence.** `9f577343` ("assets carry an Oxy file id, and Uploads is removed")
+finished the choice rather than working around it: `AssetRefSchema` now requires a
+bare `fileId` (`OxyFileIdSchema`) and `packages/sdk/src/uploads.ts` is deleted, so
+there is no upload API to serve and no second URL authority to build. `url` remains
+as an optional record of where the material was found — "recorded, never fetched",
+which is the SSRF position §7.2.7 asks for. The earlier draft of this ADR recorded
+the absent upload route as a gap; that gap is now closed by removal, and what
+replaces it is the ecosystem chokepoint this row is about.
+
+**What remains a gap** is the other half, and it is not about uploads: nothing
+copies the bytes into storage CrowdSource controls, and nothing verifies a fetched
+stream against the declared `sha256` — see the threat model's
+"author editing or deleting evidence" row. A file id resolves to whatever
+`cloud.oxy.so` currently serves.
+
+**Historical note.** Before `9f577343` the published SDK called
+`POST /v1/uploads` and `POST /v1/uploads/{id}/complete` and no route in
+`packages/backend/src/app.ts` served either — a published client calling an
+endpoint that had never existed. Removing the client half rather than building the
+server half is the right resolution given this row's decision, and it is recorded
+because the earlier reading ("the upload route is missing") would send somebody to
+build the wrong thing.
+
+What exists of the evidence module either way is the content snapshot and its
+canonical hash (`packages/backend/src/modules/evidence/contentSnapshot.ts`).
+Inline text resources are snapshotted; binary evidence is referenced and never
+fetched.
 
 ## 4. One environment instead of sandbox + staging + production
 
@@ -246,27 +267,53 @@ would have caught it.
 
 ### In flight — do not read the above as final
 
-Two changes to the tenancy model are being built as this ADR is written. Neither is
-in the tree, so neither is described here as a guard that exists; both are recorded
-so the sentences above cannot go quietly false.
+Two changes to the tenancy model are written but **not committed anywhere**. Status,
+checked rather than assumed: `origin/main` is `6457cf63` and contains none of it —
+`tenantScope.ts` there is still the credential-only version described above, and
+`packages/backend/src/modules/trust/crossTenantReads.ts` does not exist on main. The
+code lives as **uncommitted working-tree changes** in
+`/home/nate/Oxy/CrowdSource-worktrees/phase9-console` (branch `phase9/console`, zero
+commits ahead of `978d31ac`, 61 changed paths of which 32 are untracked).
 
-**Two sources of proof, still one construction path.** An `organization_members`
-mapping is being added, because a developer console's whole authorization story is
-"which organization does this Oxy user belong to" and there is no such mapping
-today. After it lands a `TenantContext` may be derived either from a service
-credential or from an Oxy session plus a membership check against the stored
-application document — **two sources of proof, one constructor.** A second
-constructor is forbidden. When it lands, the "one source of proof — today" clause
-above stops being true and the "one construction path" rule does not, which is
-exactly why they are written as two clauses.
+So nothing below is a guard that exists. What it is: a description **verified against
+that working tree**, recorded so the sentences above cannot go quietly false and so
+that the day it is committed this section becomes a status edit rather than a
+rewrite. Anything a reviewer relies on must be re-checked against whatever actually
+merges.
+
+**Two sources of proof, still one construction path.** A membership mapping is being
+added, because a developer console's whole authorization story is "which organization
+does this Oxy user belong to" and there is no such mapping today. After it lands a
+`TenantContext` may be derived either from a service credential or from an Oxy
+session plus an organization membership — **two sources of proof, one constructor.**
+A second constructor is forbidden, and the doc comment in that worktree's
+`tenantScope.ts` says so in those terms ("two sources … not two constructors").
+
+The membership path is the one worth reading closely, because at a glance it looks
+like the IDOR the first clause forbids and it is not. The caller **does** name an
+application id in the path — but the tenant is not taken from it. The application row
+is *read* by that id, `organizationId` comes off the **stored row**, and an active
+membership of that organization is required first. The caller therefore selects
+*which* row to be checked against; it does not supply the tenant. That distinction is
+the whole reason the shape is legitimate, and it is the thing to verify has survived
+whenever this lands, because it is one refactor away from becoming the bug.
 
 **A privileged cross-tenant read for Trust & Safety.** §4.3 and §10.4 define
 Trust & Safety as the audience that sees across tenants, and the tenant collections
 deliberately expose no unscoped read (above). The shape being built is
-**specific named queries with the projection baked in**, allowlisted to one
-privileged module through the `driverEscapes.ts` machinery, plus scalars-only
-aggregation for §16.4's metrics. A general `findAcrossTenants(filter)` was rejected,
-and the reason is the part worth carrying forward:
+**specific named queries with the projection baked in**, plus scalars-only
+aggregation for §16.4's metrics. Two details verified in that worktree:
+
+- The allowlist entry is a **single file**, `src/modules/trust/crossTenantReads.ts`,
+  not a directory — so the escape does not widen as the module grows a second file.
+- The projection is a declared constant (`ESCALATED_QUEUE_FIELDS`) applied **in the
+  Mongo query itself** (`.select(ESCALATED_QUEUE_FIELDS.join(' '))`), not to a
+  document already in memory. That is materially stronger than projecting before
+  returning: a forbidden field never enters the process, so no later
+  `JSON.stringify` of an intermediate value can leak what was never loaded.
+
+A general `findAcrossTenants(filter)` was rejected, and the reason is the part worth
+carrying forward:
 
 > A cross-tenant read of `cases` is a **privacy** boundary as much as a tenancy
 > one. Case documents carry reported material, and §11 forbids reporter identity,
@@ -276,12 +323,27 @@ and the reason is the part worth carrying forward:
 > named query, not at the screen — or the tenancy control would be satisfied while
 > the privacy one was bypassed by an argument.
 
-Note also that `AGENTS.md` states cross-tenant correlation happens "ONLY through
-`Incident`, in a privileged module". There is **no `Incident` collection or module
-in the tree**; `cases.incidentId` exists as a field and is `null` on every
-document. So the T&S read is arriving without the chokepoint that sentence names,
-and whichever lands second should reconcile the two rather than leave both
-descriptions standing.
+**`AGENTS.md`'s `Incident` bullet becomes wrong on both halves, not one.** It says
+cross-tenant correlation happens "ONLY through `Incident`, in a privileged module
+that never returns another tenant's data to an application-API caller."
+
+- *Correlation via `Incident`* remains absent: there is no `Incident` collection or
+  module, and `cases.incidentId` is `null` on every document.
+- *Cross-tenant reading* will also happen through the named-query module, so "ONLY
+  through `Incident`" stops being true of reading even while staying true of
+  correlation.
+- "never to an **application-API** caller" is the wrong axis entirely. The new module
+  returns cross-tenant data to a **staff session** caller, which is correct and which
+  that sentence does not describe at all. Rewriting it to name the caller class it
+  actually constrains is the fix; tightening the `Incident` half is not.
+
+**Also owed when this lands.** Three unique indexes belong in §6's list and are not
+there yet: `organizationId + oxyUserId` on the membership collection,
+`applicationId + day` on the usage counter, and `oxyUserId` on
+`trust_safety_staff`. The first is the one with teeth: without it two concurrent
+invitations give one person two role rows, and every later permission check answers
+whichever Mongo returns first — which presents as an intermittent authorization bug,
+not as a duplicate.
 
 ## 6. Unique compound indexes instead of relational constraints
 
@@ -340,7 +402,10 @@ something:
 
 - BullMQ is decided and unbuilt; there is no queue, no `REDIS_URL`, and no
   shared-Valkey database-index guard in `deploy-aws.yml`.
-- There is no evidence-upload route, though the published SDK calls one.
+- ~~There is no evidence-upload route, though the published SDK calls one.~~
+  **Closed by `9f577343`**: uploads were removed from the contract and the SDK, and
+  an asset is now a bare Oxy `fileId`. The remaining evidence gap is the asset copy
+  and hash verification, not the route — see §3.
 - §11.13 application trust standing does not exist, so the `sandbox` source
   environment currently changes nothing about how a report is handled.
 - The three-environment model's absence means no migration has ever been

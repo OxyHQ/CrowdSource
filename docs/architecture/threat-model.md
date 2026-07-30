@@ -20,8 +20,8 @@ affect:
   `packages/backend/src/db/collections.ts` is isolated by nothing, and the only
   thing that would notice is a source-scanning test at build time (ADR 0001 §5).
 - **Several surfaces named in the plan do not exist yet**: the appeal object, the
-  Trust & Safety console, the developer console, the reputation bridge, the
-  evidence upload path, and application trust standing. A threat against a
+  Trust & Safety console, the developer console, the reputation bridge, and
+  application trust standing. A threat against a
   surface that does not exist is not mitigated — it is unreached, and it becomes
   live the day the surface lands. Those rows are marked **unreached**.
 - **Two tenancy changes are in flight and are not in the tree**: an
@@ -453,8 +453,9 @@ general; this one is about the specific surface being built now, and it deserves
 its own row because the control that will stop it is a very particular one and
 easy to build in the wrong place.
 
-**What stops it today.** Nothing purpose-built, and nothing needs to be, because
-the surface does not exist:
+**What stops it today** — "today" meaning `origin/main` at `6457cf63`, checked, not
+the working tree of any agent. Nothing purpose-built, and nothing needs to be,
+because the surface does not exist there:
 
 - There is no Trust & Safety console and no `packages/console` in the tree.
 - `crowdsource:trust-safety:operate` is in `PRIVILEGED_SCOPES`
@@ -476,11 +477,42 @@ So today this threat is **unreached**, in the precise sense used throughout this
 document: not mitigated, merely not yet possible.
 
 **What will stop it, and why the shape matters.** A privileged cross-tenant read is
-being built for Trust & Safety, because §4.3 and §10.4 make T&S the audience that
-sees across tenants. The shape is **specific named queries with the projection
-baked in**, allowlisted to one privileged module through the `driverEscapes.ts`
-machinery, plus scalars-only aggregation for §16.4's metrics. A general
-`findAcrossTenants(filter)` was rejected, and the reasoning is the guard:
+written for Trust & Safety, because §4.3 and §10.4 make T&S the audience that sees
+across tenants. It is **not committed anywhere** — see ADR 0001 §5 *In flight* for
+the checked status — so what follows is verified against that working tree and is
+not yet a guard in the tree. The shape is **specific named queries with the
+projection baked in**, allowlisted to one *file* rather than a directory, plus
+scalars-only aggregation for §16.4's metrics.
+
+Three properties of it are worth stating precisely, because each is stronger than
+the obvious version and the difference is what a reviewer should protect:
+
+1. **The projection is applied in the Mongo query, not to a loaded document.**
+   `ESCALATED_QUEUE_FIELDS` is a declared constant passed to
+   `.select(ESCALATED_QUEUE_FIELDS.join(' '))`. A forbidden field therefore never
+   enters the process. That is materially stronger than "projected before
+   returning": a later `JSON.stringify` of an intermediate, a debug log, an error
+   that quotes the document — none of them can leak what was never loaded.
+2. **Juror data is protected by FIELDS, not by the tenant.** This is the finding
+   from §5 turned into the control. No console-reachable accessor returns a
+   `reviewerId`, an assignment, or a per-juror vote. The review-activity summary
+   uses `distinct` on the *outcome* with a count per value rather than an
+   aggregation grouping by reviewer — deliberately, because a group-by-reviewer
+   pipeline is one field away from naming somebody, while a count cannot name
+   anybody however it is later extended. Given that the juror collections are
+   already unscoped (§5), field discipline is the *only* control available here;
+   there is no tenant filter to fall back on.
+3. **A staff read that cannot be audited must fail.** `staff_audit_events` is a
+   separate collection from `audit_events` precisely because a staff read spans
+   every tenant at once while the tenant trail is tenant-scoped — one row cannot
+   honestly belong to one tenant. It records the operator, the roles held **at the
+   time** (copied, not joined: the question in an investigation is what they were
+   entitled to *then*, and a join answers what they are entitled to *now*), and at
+   most one application id. If the audit write fails the read fails, because the
+   trail is the only control §13.1 offers against a legitimate operator, and an
+   unaudited privileged read is indistinguishable from an abusive one.
+
+A general `findAcrossTenants(filter)` was rejected, and the reasoning is the guard:
 
 > A cross-tenant read of `cases` is a **privacy** boundary as much as a tenancy
 > one, because case documents carry reported material. **A filter parameter
@@ -497,11 +529,17 @@ layout instead of by projection — which the reviewer app got right
 here: build the object field by field, so a field reaches a T&S screen only because
 somebody edited a reviewable allowlist.
 
-**Tested.** Nothing yet, because nothing exists. When it lands, the three
-assertions worth having are: the named query returns exactly the declared fields
-and no others for a document that carries all of them; no module outside the
-privileged one can reach the primitive; and the aggregation path cannot return a
-document, only scalars.
+**Tested.** Nothing on `main`, because nothing exists there. In the uncommitted
+worktree the three assertions this row asked for do exist, verified:
+`packages/backend/src/__tests__/crossTenantReads.test.ts` (the projection, asserted
+against `ESCALATED_QUEUE_FIELDS`), and `collectionBoundary.test.ts` now pins
+`DRIVER_ACCESS_ALLOWED` to an exact set
+(`expect(Object.keys(DRIVER_ACCESS_ALLOWED).sort()).toEqual([…])`) — with a comment
+recording that it had been the one unpinned authority in the access layer. It landed
+*before* the new module joined that list, which is the right order: the precedent is
+now "an entry arrives with a test change", not the reverse.
+
+None of that is a passing gate until it is committed and CI has run it.
 
 **Residual risk.** A privileged operator will legitimately see across tenants —
 that is the job. What the projection buys is that the *maximum* they can see is
@@ -531,17 +569,27 @@ reporter's standing may nudge queue priority by at most
 `TRIAGE_WEIGHTS.REPORTER_PRIORITY_BOOST_MAX` (5 points) and is never shown to a
 jury. Dedup guarantees a hundred reports become one case.
 
-**Be precise about what the fingerprint is.** Source comments in
-`case.service.ts`, `case.collection.ts` and `exclusions.ts` call it "salted", and
-the property they claim from that is true: because the application id is mixed in,
-the same person under two tenants produces two unrelated values, so the case
-collection cannot become a cross-tenant correlation table. But the application id
-is not a secret — it is the tenant's own public identifier — so **this is domain
-separation, not a keyed MAC.** Anyone holding an application id and a candidate
-`externalPrincipalId` can confirm a guess with one hash. It defeats bulk
-correlation and casual exposure downstream; it does not withstand a targeted
-confirmation attack by a party who already knows the id space, which for its own
-tenant is every application.
+**Be precise about what the fingerprint is.** It is **domain separation, not a keyed
+MAC.** Because the application id is mixed in, the same person under two tenants
+produces two unrelated values, so the case collection cannot become a cross-tenant
+correlation table — that property is real. But the application id is not a secret,
+and neither is the tenant's own `externalPrincipalId`, so **an application can
+recompute the fingerprints of its whole user table** and recover which of its users
+reported what. It is non-reversible to a party that does *not* know the inputs — a
+reviewer, another tenant — which is the property §9.1 needs. It is not
+non-reversible to the tenant itself.
+
+The consequence is a rule, not a nuance: **no surface returns these values to an
+application at any role, not even as a distinct count.** Containment is that nothing
+serves them; making the digest keyed would close it properly and is a migration
+rather than an edit, since every stored fingerprint would have to be recomputed.
+
+The misleading source comments that called this "salted" have been corrected across
+the sites that carried them (verified in the uncommitted `phase9/console` worktree:
+zero occurrences of "salted" remain in `case.service.ts`, `case.collection.ts` and
+`exclusions.ts`, replaced by a statement of the above plus the rule). **The digest
+itself is unchanged**, so this remains a live finding about the mechanism and not
+only about its documentation.
 
 **Gaps.** `platform_abuse.report_abuse` exists as a taxonomy code and nothing
 else: there is no report-abuse flow, no campaign detection, and no reporter
@@ -566,7 +614,9 @@ case rather than mutating an old one.
 **Gap — the asset copy does not exist.** §13.1's control for this row is
 "snapshot, hash and **copy of assets**", and §5.6 is explicit about not depending
 on a URL the application controls. Inline text is snapshotted; binary evidence is
-a reference. There is no upload route (ADR 0001 §3), nothing copies an asset into
+a reference — now a bare Oxy `fileId` since `9f577343` removed uploads from the
+contract, so the bytes live behind the ecosystem media chokepoint and CrowdSource
+never ingests them. Nothing copies an asset into
 storage CrowdSource controls, and nothing verifies a fetched byte stream against
 its declared `sha256`. **An author who deletes an image after reporting removes it
 from the reviewer's screen**, and the hash proves only that whatever *is* served
@@ -702,7 +752,9 @@ watermark value, so nothing populates it today.
 1. No rate limiting anywhere in the service; no quotas.
 2. No evidence asset copy and no byte-level hash verification, so evidence can
    still disappear from under a reviewer.
-3. No evidence upload route, though the published SDK calls one.
+3. ~~No evidence upload route, though the published SDK calls one.~~ **Closed by
+   `9f577343`** — uploads removed from the contract and the SDK; an asset is a bare
+   Oxy `fileId`. Gap 2 above is the part that survives.
 4. Appeals do not exist as an object; appellant free text will be the first
    author prose aimed at a reviewer and is not yet covered.
 5. `riskClusterId` and `suspectedSockPuppet` are read by the draw and written by
@@ -728,22 +780,33 @@ watermark value, so nothing populates it today.
 15. `startAssignmentExpirySweep` is the only thing that expires an assignment, and
     the shared-Valkey leader guard that will matter when a queue exists is not in
     `deploy-aws.yml`.
-16. The reporter fingerprint is domain-separated, not keyed. Source comments call
-    it "salted", which overstates it — see the malicious-reporter row. If reporter
-    identity needs to withstand a targeted guess, the mix-in has to become a
-    secret, and that is a migration (every stored fingerprint changes) rather than
-    an edit.
-17. `DRIVER_ACCESS_ALLOWED` is not pinned to an exact set by any test, unlike
-    `unscopedCollectionReasons()`. Adding a directory to it passes the whole suite —
-    which is the allowlist the privileged cross-tenant module of §7 will be added
-    to.
+16. The reporter fingerprint is domain-separated, not keyed — an application can
+    recompute its own users' fingerprints. **The digest is unchanged and this stands.**
+    Containment is that no surface returns them at any role; making it keyed is a
+    migration, not an edit. (The misleading "salted" comments are corrected in the
+    uncommitted `phase9/console` worktree, which changes the documentation and not
+    the mechanism.)
+17. ~~`DRIVER_ACCESS_ALLOWED` is not pinned to an exact set by any test.~~ **Pinned
+    in the uncommitted `phase9/console` worktree**, and pinned *before* the new
+    privileged module joined the list. Reopen this if it does not survive the merge —
+    it is the guard on the escape hatch §7 depends on.
 18. There is no `Incident` collection or module, so `AGENTS.md`'s "cross-tenant
     correlation happens ONLY through `Incident`" names a chokepoint that does not
-    exist. The §7 read is arriving without it, and `cases.incidentId` is `null` on
-    every document.
-19. `AUDIT_ACTIONS` has no entry that could record a Trust & Safety read, so the
-    §7 surface currently has nowhere to write its trail even if it wanted one.
-20. **The juror collections (`Assignment`, `Review`, `ReviewerProfile`,
+    exist — and once the §7 read lands that sentence is wrong on both halves and on
+    its caller axis too (it constrains "application-API caller"; the new module
+    serves a **staff session**). See ADR 0001 §5 *In flight*.
+19. `AUDIT_ACTIONS` has no entry that could record a Trust & Safety read. The
+    uncommitted work answers this with a **separate `staff_audit_events`
+    collection** rather than an entry, because a staff read spans every tenant at
+    once and one row cannot honestly belong to one tenant — so this gap closes by a
+    different shape than the one it was written against.
+20. Three unique indexes are owed with the tenancy work and are not in `AGENTS.md`'s
+    list: `organizationId + oxyUserId` on membership, `applicationId + day` on the
+    usage counter, `oxyUserId` on `trust_safety_staff`. The first has teeth: without
+    it two concurrent invitations give one person two role rows and every later
+    permission check answers whichever Mongo returns first — an intermittent
+    authorization bug, not a visible duplicate.
+21. **The juror collections (`Assignment`, `Review`, `ReviewerProfile`,
     `SortitionDraw`, `ReviewerAffinity`, `ReviewerRelation`) are unscoped, so they
     are already readable across every tenant with no filter.** The exemption is
     justified — a reviewer belongs to no tenant — and the rows do carry their case's
@@ -754,7 +817,10 @@ watermark value, so nothing populates it today.
 
 ## Checks worth adding
 
-All four are cheap, each guards a claim in this document, and none is built:
+The last two below were named here first and are now **written in the uncommitted
+`phase9/console` worktree** (along with a cross-tenant-read scan,
+`crossTenantReads.test.ts`), so they are struck through. The first two are the ones
+nobody has taken.
 
 - **A no-injection-sink scan.** A test that fails when any package introduces
   `dangerouslySetInnerHTML`, `innerHTML`/`outerHTML`, a `WebView` component,
@@ -771,18 +837,16 @@ All four are cheap, each guards a claim in this document, and none is built:
   `projectAssignmentPackage`. It would have caught gap 13 the day it appeared, and
   it is the check that makes the §9.1 allowlist a live guard rather than a
   well-written intention.
-- **Pin `DRIVER_ACCESS_ALLOWED` to an exact set**, three lines beside the existing
-  assertion that already pins `unscopedCollectionReasons()` in
-  `collectionBoundary.test.ts`. It costs nothing, and it converts "widening the
-  driver allowlist is a visible edit" from a convention into a failing build. Worth
-  landing *before* §7's privileged module is added to that list, not after —
-  otherwise the first entry establishes that entries arrive without a test change.
-- **Assert each §7 named query's projection against a document carrying every
-  forbidden field.** Build a `case` document with reporter fingerprints, an
-  `incidentId`, the full content snapshot and sensitive resources, run the named
-  cross-tenant query, and assert the returned keys are *exactly* the declared set.
-  This is the one check that distinguishes "the projection is inside the query" from
-  "the projection is at the screen", which is the entire content of that control —
-  and it must be written to fail if a field is added, not merely to confirm the
-  fields it expects are present. A test that only checks presence passes a query
-  that returns everything.
+- ~~**Pin `DRIVER_ACCESS_ALLOWED` to an exact set**, beside the assertion that
+  already pins `unscopedCollectionReasons()`.~~ **Written** in
+  `collectionBoundary.test.ts` in the `phase9/console` worktree, and landed before
+  the privileged module joined the list — so the precedent is "an entry arrives with
+  a test change" rather than the reverse.
+- ~~**Assert each §7 named query's projection against a document carrying every
+  forbidden field**, written to fail when a field is ADDED rather than merely
+  confirming the expected fields are present — a presence-only assertion passes a
+  query that returns everything.~~ **Written** as
+  `packages/backend/src/__tests__/crossTenantReads.test.ts`. Worth confirming on
+  review that it fails on an added field, since that is the property that
+  distinguishes "the projection is inside the query" from "the projection is at the
+  screen".
