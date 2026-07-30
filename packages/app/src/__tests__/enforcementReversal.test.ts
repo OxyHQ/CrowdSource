@@ -305,3 +305,57 @@ describe('a correction undoes every reversible action, not just the first', () =
     });
   });
 });
+
+describe('the restore dedup is per action, not per set', () => {
+  it('still adds the other reversal when one is already recommended', async () => {
+    /**
+     * The case a whole-set dedup gets wrong, and it is not exotic: a
+     * `no_violation` whose recommendation IS one of the restore actions.
+     *
+     * `restore` arrives from the recommendation table, so it is already in the
+     * plan. A dedup asking "is any restore already planned?" then suppresses the
+     * ENTIRE set and `unflag` is never added — the same permanent label as the
+     * singular bug, reached by a different route and only on decisions that
+     * happen to recommend a restore. Asking per action keeps them independent.
+     */
+    harness = await createHarness();
+    const widget = await harness.widgets.create({
+      body: 'hidden and labelled',
+      ownerId: 'oxy-owner',
+      status: 'published',
+    });
+    const subject = { type: 'widget', id: String(widget._id) };
+
+    await harness.moderation.enforcement.apply({
+      decision: decision({ revision: 1, recommendedActions: [{ action: 'label' }] }),
+      caseId: CASE_ID,
+      subject,
+    });
+    await harness.moderation.enforcement.apply({
+      decision: decision({ revision: 2, recommendedActions: [{ action: 'remove' }] }),
+      caseId: CASE_ID,
+      subject,
+    });
+
+    const outcomes = await harness.moderation.enforcement.apply({
+      decision: decision({
+        revision: 3,
+        outcome: 'no_violation',
+        findings: [],
+        // The recommendation IS a restore. `unflag` must survive it.
+        recommendedActions: [{ action: 'restore' }],
+      }),
+      caseId: CASE_ID,
+      subject,
+    });
+
+    expect(outcomes.map((outcome) => outcome.action).sort()).toEqual([
+      'restore',
+      'unflag',
+    ]);
+    expect(await harness.widgets.findById(widget._id).lean()).toMatchObject({
+      status: 'published',
+      flagged: false,
+    });
+  });
+});
