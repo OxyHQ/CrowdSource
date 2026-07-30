@@ -104,22 +104,28 @@ function reviewerSensitivity(
  * An asset as a reviewer receives it (§9.1's last hidden row, and the Oxy media
  * chokepoint).
  *
- * The envelope's `AssetRef` carries `uploadId` OR `url`. `url` is a location on
- * the REPORTING APPLICATION's own host, so passing it through would put that
- * application's brand in front of the jury, and it would bypass the one place
- * every Oxy surface resolves files through. `sha256` is what pins a case to the
- * exact bytes reported; a reviewer does not verify that, the case does.
+ * `fileId` is the ONLY thing that crosses. An `AssetRef` also carries `url`, and
+ * `url` is a location on the REPORTING APPLICATION's own host: passing it through
+ * would put that application's brand in front of the jury (§9.1), bypass the one
+ * place every Oxy surface resolves files through, and — worse than either — a
+ * reviewer's browser fetching it would tell that host its content is under review,
+ * which attacks the blind-jury invariant rather than merely leaking a hostname.
+ * `sha256` does not cross either; it is what pins a case to the exact bytes
+ * reported, and the case verifies that, not a reviewer.
  *
- * So a url-backed asset arrives `retrievable: false` rather than being dropped.
- * Dropping it would hide from the jury that material existed at all; saying it
- * cannot be shown is why `content_unavailable` is one of the four outcomes a
- * reviewer may return.
+ * `retrievable` is `true` for every asset the contract can now express, because
+ * §5.2 requires a `fileId`. It is not vacuous: it is the field that will carry
+ * "material existed and cannot be shown" once evidence retention is built, since
+ * nothing today copies bytes into storage CrowdSource controls and an author who
+ * deletes a file removes it from the reviewer's screen. Saying so beats dropping
+ * the resource, which would hide from the jury that material existed at all —
+ * that is why `content_unavailable` is one of the outcomes a reviewer may return.
  */
 function reviewerAsset(asset: Extract<Resource, { asset: unknown }>['asset']): ReviewerAssetView {
   return {
     mediaType: asset.mimeType,
-    ...(asset.uploadId === undefined ? {} : { fileId: asset.uploadId }),
-    retrievable: asset.uploadId !== undefined,
+    fileId: asset.fileId,
+    retrievable: true,
     ...(asset.sizeBytes === undefined ? {} : { sizeBytes: asset.sizeBytes }),
     ...(asset.width === undefined ? {} : { width: asset.width }),
     ...(asset.height === undefined ? {} : { height: asset.height }),

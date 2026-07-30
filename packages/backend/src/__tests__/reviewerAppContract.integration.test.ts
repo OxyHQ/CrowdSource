@@ -369,6 +369,10 @@ describe('the app’s review form → POST .../reviews', () => {
     expect(submission?.findings).toHaveLength(1);
     expect(submission?.findings[0]?.policyRuleIds).toEqual([rule?.id]);
 
+    // `buildReviewSubmission` returns null for an incomplete form, and the point
+    // of this test is that a COMPLETE one crosses — so narrow rather than coerce.
+    if (submission === null) throw new Error('the form produced no submission to send');
+
     const submitted = await request(app)
       .post(`/v1/reviewer/assignments/${assignmentId}/reviews`)
       .set(asReviewer(reviewerOxyUserId))

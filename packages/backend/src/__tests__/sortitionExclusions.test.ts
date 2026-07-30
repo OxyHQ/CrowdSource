@@ -56,6 +56,7 @@ function profile(overrides: Partial<ReviewerProfileDocument> = {}): ReviewerProf
     samplingKey: 0.5,
     principalLinks: [],
     suspendedUntil: null,
+    rulesAcceptedAt: now,
     createdAt: now,
     updatedAt: now,
     ...overrides,

@@ -58,6 +58,7 @@ import {
   CustomPayloadSchema,
   IdentifierSchema,
   LanguageTagSchema,
+  MetadataBagSchema,
   MimeTypeSchema,
   TimestampSchema,
   UnitIntervalSchema,
@@ -422,8 +423,16 @@ export const AssignmentPackageSchema = z.strictObject({
     .strictObject({
       unverified: z.literal(true),
       statement: z.string().min(1),
-      resourceIds: z.array(ResourceIdSchema),
-      fields: z.array(z.strictObject({ label: z.string().min(1), value: z.string() })),
+      /**
+       * The same shapes `AppealAuthorContextSchema` stores, reused rather than
+       * restated: `resourceIds` point at material already in the case snapshot,
+       * and `fields` is §9.8's "evidencia estructurada" as a flat bag of scalars.
+       * Restating them as some reviewer-shaped variant would need a translation
+       * step, and a translation step between two declarations of one shape is how
+       * the drift this file exists to end got started.
+       */
+      resourceIds: z.array(ResourceIdSchema).optional(),
+      fields: MetadataBagSchema.optional(),
     })
     .optional(),
 });
