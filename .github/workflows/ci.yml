@@ -80,7 +80,10 @@ jobs:
           # a stated count that job reads as coverage forever.
           - package: contracts
             command: bun run --cwd packages/contracts test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/contracts-tests.json"
-            minimum_tests: 170
+            # Raised with the appeals contracts (§9.8): the suite runs 201, and a
+            # floor of 170 would let all 25 of those tests be deleted with the job
+            # still green — which is the erosion this gate exists to catch.
+            minimum_tests: 195
           - package: sdk
             command: bun run --cwd packages/sdk test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/sdk-tests.json"
             minimum_tests: 75
