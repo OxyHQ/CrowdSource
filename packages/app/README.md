@@ -372,6 +372,29 @@ it refuses rather than verifying a signature over a re-serialisation. Test the
 property, not the arrangement: assert `typeof req.body === 'undefined'` from
 inside the route. Asserting the mount order only proves the order.
 
+### Writing a check that can actually fail
+
+Four rules, each of which cost somebody an afternoon while this package was
+built. They are about verification, not about this package, and they transfer.
+
+- **The obvious fix passes the obvious test.** A retry test asserting
+  `countDocuments === 1` stays green through a defect where the retry WRITES —
+  "same row" and "no write happened" are different claims, and only the second
+  is the property. Name the property, then ask what would still pass without it.
+- **A guard that reads as the proof is how the proof stops being looked for.**
+  Say in the file which assertion is load-bearing and which is corroboration.
+- **An unbounded observation of a race has no verdict.** Three of us measured one
+  defect on one topology and got an abort, an 88-second hang, and a clean pass.
+  Bound it (`maxTimeMS`) so it fails fast and NAMED, or a red run tells the next
+  person nothing about whether the guard or the harness broke.
+- **Pick the security control your route depends on, imagine deleting it, and
+  ask which test goes red.** On the webhook route the HMAC is the entire
+  authentication; six tests can cover that route and all six still pass with
+  verification removed.
+
+Credit, in order: `mercaria`, `noted-moovo` and `mercaria` again, `allo` and
+`noted-moovo`, `alia-syra`.
+
 `packages/app/scripts/test-invariants.mjs` breaks each guard on purpose and
 asserts the named test goes red — verifying first that the edit landed and that
 the mutated tree still type-checks, because a mutation that did not apply produces
