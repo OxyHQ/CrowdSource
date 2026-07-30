@@ -68,6 +68,7 @@ const { sortitionDraws } = await import('../modules/sortition/draw.collection');
 const { registerOutboxWorkers } = await import('../modules/outbox/workers');
 const { CALIBRATION_ITEMS, TRAINING_MODULES } = await import('../modules/reviewer/calibration');
 const { createReviewerPool } = await import('./support/reviewers');
+const { reviewerProfiles } = await import('../modules/reviewer/reviewer.collection');
 const { deliveryBody, drainUntil, provisionTenant, startDatabase, stopDatabase } = await import(
   './support/tenants'
 );
@@ -162,39 +163,44 @@ beforeAll(async () => {
   registerOutboxWorkers();
   tenant = await provisionTenant();
 
-  // Comfortably more than a round-1 panel of three, so a draw that refused would
-  // be a refusal rather than an empty database.
-  const pool = await createReviewerPool(FAMILY, 9, [LANGUAGE]);
+  /**
+   * Comfortably more than a round-1 panel of three, so a draw that refused would
+   * be a refusal rather than an empty database. The RESULT is deliberately
+   * unused: this file needs candidates to exist, not to be the ones drawn.
+   */
+  await createReviewerPool(FAMILY, 9, [LANGUAGE]);
 
   const caseId = await openCase(`post_contract_${Date.now()}`);
   const seats = await assignments.find({ caseId });
   expect(seats).toHaveLength(3);
 
-  const seated = new Set(seats.map((seat) => seat.reviewerId));
-  const holder = pool.find((reviewer) => seated.has(reviewer.reviewerId));
-
   /**
-   * A full panel is not enough: every test below acts AS this person, so the
-   * fixture needs one seat held by a reviewer THIS file created. Weakening the
-   * claim to "three seats exist" would leave `reviewerOxyUserId` empty and 404
-   * every request in the file — a suite-wide failure three screens from its
-   * cause, which is the shape this file was written to stop happening.
+   * The seated reviewer, read from the profile store rather than matched against
+   * this file's own pool.
    *
-   * The failure is reported rather than asserted so it can carry the evidence
-   * that tells the two causes apart. A draw that seated NOBODY from this pool is
-   * almost never a broken selector; it is another suite holding this file's
-   * `(family, language)` cell and its reviewers winning the sortition, and the
-   * seated ids below are what makes that visible immediately instead of after an
-   * afternoon in the sortition module. `support/reviewerAxes.ts` is where the
-   * cell is assigned, and `reviewerAxes.test.ts` should have failed first.
+   * Every test below acts AS a seated juror, so the fixture needs one seat and
+   * that juror's Oxy id — NOT that the draw happened to pick reviewers this file
+   * created. Requiring the latter made the fixture depend on the outcome of a
+   * random selection over a GLOBAL pool (`candidatePool` has no tenant filter,
+   * because juries are cross-tenant by design), which is a property this file is
+   * not named for and was never trying to test.
+   *
+   * `support/reviewerAxes.ts` and `reviewerAxes.test.ts` detect a collision on
+   * this suite's `(family, language)` cell directly, and they detect it first.
+   * With both in place a collision degrades to a slower draw here rather than a
+   * red suite three screens from its cause.
+   *
+   * Reported rather than asserted so the type narrows without a `!` and the
+   * failure carries its evidence; a `?? ''` would swallow it into a 404 on every
+   * request in the file instead.
    */
-  if (holder === undefined) {
+  const [seat] = seats;
+  const holder = await reviewerProfiles.findOne({ reviewerId: seat.reviewerId });
+  if (holder === null) {
     throw new Error(
-      `sortition seated none of this suite's ${pool.length} reviewers for ` +
-        `(${FAMILY}, ${LANGUAGE}). Seated: ${[...seated].join(', ')}. This ` +
-        `suite's pool: ${pool.map((reviewer) => reviewer.reviewerId).join(', ')}. ` +
-        'Reviewer profiles are global, so the likely cause is another test file ' +
-        'holding the same cell — check support/reviewerAxes.ts.',
+      `no reviewer profile exists for seated reviewer '${seat.reviewerId}'. ` +
+        'A seat naming a reviewer the profile store does not have means the draw ' +
+        'and the profiles have diverged, not that this suite is misconfigured.',
     );
   }
 
