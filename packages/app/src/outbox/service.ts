@@ -350,14 +350,30 @@ export function createOutboxService(input: {
        * interchangeable with dropping the explicit fields.
        *
        * **It has to be one or the other.** The schema declares
-       * `timestamps: true`, so Mongoose adds `createdAt` to `$setOnInsert` and
-       * `updatedAt` to `$set` on an upsert. Naming either field here as well
-       * puts one path under two operators and the server rejects the whole
+       * `timestamps: true`, so on an upsert Mongoose adds `createdAt` to
+       * `$setOnInsert` and `updatedAt` to `$set`. Naming `updatedAt` here as
+       * well puts ONE PATH UNDER TWO OPERATORS and the server rejects the whole
        * write — "Updating the path 'updatedAt' would create a conflict at
        * 'updatedAt'" — which, inside intake's transaction, aborts the report
        * too. Every report submission fails, from the first one. It is a
        * server-side update validation, so nothing in the schema, the types or a
        * mocked driver reveals it.
+       *
+       * `createdAt` is NOT symmetric with it, and the difference is worth
+       * stating because the tempting rule ("never name a timestamp here") sends
+       * people to churn upserts that are perfectly fine. Mongoose puts
+       * `createdAt` under `$setOnInsert` too — the SAME operator — so naming it
+       * merges rather than collides. Measured on mongoose 8.24.2, one upsert per
+       * row against a real replica set:
+       *
+       *     createdAt only   -> OK
+       *     updatedAt only   -> MongoServerError: … conflict at 'updatedAt'
+       *     both             -> MongoServerError: … conflict at 'updatedAt'
+       *     neither          -> OK
+       *
+       * So only an upsert naming `updatedAt` is broken. Credit: `mention-finish`
+       * measured this while fixing the two live instances in Mention and used it
+       * to leave three innocent sites alone with evidence rather than churn.
        *
        * **And it has to be THIS one.** Letting Mongoose own the timestamps
        * instead would leave its `$set: { updatedAt }` on the update, which turns
