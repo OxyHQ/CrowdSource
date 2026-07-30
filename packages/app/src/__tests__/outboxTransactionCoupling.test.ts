@@ -239,12 +239,32 @@ describe('intake commits the report and its delivery event together, or neither'
     expect(await harness.moderation.models.outbox.countDocuments({})).toBe(1);
   });
 
-  it('re-enqueues inside a transaction without conflicting with a live lease', async () => {
+  it('re-enqueues inside a transaction without blocking a live lease write', async () => {
     /**
-     * The reconciliation shape, exactly: a sweep re-derives a delivery event in
-     * its own transaction while the dispatcher holds and updates the lease on
-     * the same row. This is the failure the no-op property above prevents, and
-     * it is invisible until both run at once against a real server.
+     * The reconciliation shape: a sweep re-derives a delivery event in its own
+     * transaction while the dispatcher writes the lease on the same row.
+     *
+     * ## This is a regression guard, NOT the evidence for the fix
+     *
+     * Stated plainly because it would otherwise read as the proof, and it is
+     * not: the load-bearing assertion is the `updatedAt`-unchanged test above,
+     * which is deterministic everywhere. This one observes a LOCK, and lock
+     * contention is environment-sensitive — `mercaria` measured the same defect
+     * and saw no conflict at all on their single-node set, so a version of this
+     * test that only checked "did it throw" would pass with and without the
+     * defect for them, which is the false green this project keeps finding.
+     *
+     * ## Why it is bounded
+     *
+     * `maxTimeMS` is the difference between a guard and a trap. Unbounded, this
+     * test does fail under the defect — measured, by HANGING for 88 seconds
+     * until the runner's timeout. A failure mode of "hang" cannot distinguish a
+     * broken guard from a broken harness (a slow CI box, a stalled mongod), so
+     * a red run would tell the next person nothing about which. Bounded, the
+     * blocked write fails as a NAMED server error in about two seconds.
+     *
+     * Credit: `noted-moovo` designed this bound for Moovo's copy and named the
+     * reason before I had measured the hang here.
      */
     harness = await createHarness();
     const eventId = 'moderation:report.submit:contended';
@@ -257,11 +277,11 @@ describe('intake commits the report and its delivery event together, or neither'
             { eventId, kind: 'report.submit', payload: { reportId: 'contended' } },
             session,
           );
-          // The dispatcher, mid-flight on the same row.
-          await harness?.moderation.models.outbox.updateOne(
-            { _id: eventId },
-            { $set: { leaseOwner: 'another-task' } },
-          );
+          // The dispatcher, mid-flight on the same row and outside the
+          // transaction. A no-op enqueue takes no lock, so this returns at once.
+          await harness?.moderation.models.outbox
+            .updateOne({ _id: eventId }, { $set: { leaseOwner: 'another-task' } })
+            .maxTimeMS(2_000);
         });
       } finally {
         await session.endSession();
