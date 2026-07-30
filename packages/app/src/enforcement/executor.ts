@@ -3,6 +3,7 @@ import type { Decision } from '@oxyhq/crowdsource-contracts';
 import type { ModerationEnforcementDocument } from '../models';
 import { planEnforcement } from './planner';
 import type {
+  EnforcementEffect,
   EnforcementOutcome,
   EnforcementPreviousState,
   EnforcementSubject,
@@ -209,24 +210,41 @@ export function createEnforcementExecutor<TAction extends string>(input: {
        * decided this and this application has no way to carry it out" is written
        * down — which is the record that would justify building the primitive.
        */
-      const effect = await (config.apply?.({
+      const noPrimitive: EnforcementEffect<TAction> = {
+        changed: false,
+        reason: 'This application has no enforcement primitive for any action',
+      };
+      const effect: EnforcementEffect<TAction> = await (config.apply?.({
         action: planned.action,
         subject,
         ...(reversal ?? {}),
         decision,
-      }) ??
-        Promise.resolve({
-          changed: false as const,
-          reason: 'This application has no enforcement primitive for any action',
-        }));
+      }) ?? Promise.resolve(noPrimitive));
 
       if (!effect.changed) {
+        /**
+         * `recordedAs` corrects the LABEL, never the claim. The row keeps the
+         * planned action because that is half the idempotency key and is what
+         * was decided; the effective label rides alongside it and is what
+         * reaches the report.
+         */
         await model.updateOne(
           { _id: recordId },
-          { $set: { skippedReason: effect.reason.slice(0, 300) } },
+          {
+            $set: {
+              skippedReason: effect.reason.slice(0, 300),
+              ...(effect.recordedAs === undefined
+                ? {}
+                : { recordedAs: effect.recordedAs }),
+            },
+          },
         );
         count(planned.action, mode, 'recorded');
-        return { action: planned.action, result: 'recorded' };
+        return {
+          action: planned.action,
+          result: 'recorded',
+          ...(effect.recordedAs === undefined ? {} : { recordedAs: effect.recordedAs }),
+        };
       }
 
       await model.updateOne(

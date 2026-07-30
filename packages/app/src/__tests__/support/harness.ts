@@ -28,7 +28,7 @@ export interface TestWidget {
   _id: mongoose.Types.ObjectId;
   body: string;
   ownerId: string;
-  status: 'published' | 'restricted';
+  status: 'draft' | 'published' | 'restricted';
   flagged: boolean;
 }
 
@@ -110,6 +110,25 @@ export function widgetSubjectProvider(
   };
 }
 
+/**
+ * A second deliverable noun with no enforcement lever, mirroring Moovo's
+ * customer/delivery types. It is DELIVERABLE — a jury can review it — but no
+ * action in the table can act on it, which is exactly the case `recordedAs`
+ * exists for.
+ */
+export function doodadSubjectProvider(): ModerationSubjectProvider {
+  return {
+    reportedType: 'doodad',
+    subjectType: 'custom.test.doodad',
+    async snapshot(reportedId) {
+      return {
+        subject: { externalId: reportedId, type: 'custom.test.doodad' },
+        content: { type: 'text', data: { text: 'a reported doodad' } },
+      };
+    },
+  };
+}
+
 export function testEnforcement(
   widgets: Model<TestWidget>,
 ): ModerationEnforcementConfig<TestAction> {
@@ -145,12 +164,22 @@ export function testEnforcement(
     reversibleActions: ['restore', 'unflag'],
     reverses: { restore: 'restrict', unflag: 'flag' },
 
-    async apply({ action, subject, previousState }): Promise<EnforcementEffect> {
+    async apply({ action, subject, previousState }): Promise<EnforcementEffect<TestAction>> {
       if (action === 'none' || action === 'review') {
         return { changed: false, reason: `Action '${action}' has no effect by definition` };
       }
       if (subject.type !== 'widget') {
-        return { changed: false, reason: `No '${action}' effect for a ${subject.type}` };
+        /**
+         * A subject type with no lever of its own. `recordedAs` corrects the
+         * label so the report does not read "decided: restore" about an object
+         * that was never restricted — the plan could not know, and this is the
+         * only place that does.
+         */
+        return {
+          changed: false,
+          reason: `No '${action}' effect for a ${subject.type}`,
+          recordedAs: 'none',
+        };
       }
       if (!mongoose.isValidObjectId(subject.id)) {
         return { changed: false, reason: 'The reported widget no longer exists' };
@@ -242,7 +271,7 @@ export async function createHarness(
   const ReportSchema = new Schema<TestReport>(
     {
       ...moderationReportSchemaFields({
-        reportedTypes: ['widget', 'gizmo'],
+        reportedTypes: ['widget', 'gizmo', 'doodad'],
         categories: ['spam', 'harassment', 'other'],
       }),
       legacyStatus: { type: String, required: true, default: 'pending' },
@@ -271,7 +300,7 @@ export async function createHarness(
       outboxPollIntervalMs: 50,
     },
     reportModel: reports,
-    subjects: options.subjects ?? [widgetSubjectProvider(widgets)],
+    subjects: options.subjects ?? [widgetSubjectProvider(widgets), doodadSubjectProvider()],
     taxonomy: testTaxonomy(),
     enforcement: testEnforcement(widgets),
     logger: recordingLogger(logs),

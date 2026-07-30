@@ -111,7 +111,9 @@ const MUTATIONS = [
     edits: [
       {
         find: `            at: outcomes.some(
-              (outcome) => outcome.action === enforcedAction && outcome.result === 'applied',
+              (outcome) =>
+                effectiveAction(outcome) === enforcedAction &&
+                outcome.result === 'applied',
             )
               ? new Date()
               : null,`,
@@ -121,6 +123,46 @@ const MUTATIONS = [
     absent: `outcome.result === 'applied'`,
     test: 'src/__tests__/reviewOnlyApplication.test.ts',
     expects: 'records the decision, and never claims an effect it did not have',
+  },
+  {
+    /**
+     * The reversal lookup reading a row whose effect never happened. The obvious
+     * test of this cannot fail — see the file's own comment — so the mutation is
+     * the only thing that proves the arrangement in it is load-bearing.
+     */
+    name: 'a reversal reads the newest row instead of the newest APPLIED row',
+    file: 'src/enforcement/executor.ts',
+    edits: [
+      {
+        find: `        action: reversed,
+        applied: true,
+      })`,
+        replace: `        action: reversed,
+      })`,
+      },
+    ],
+    absent: `        action: reversed,\n        applied: true,`,
+    test: 'src/__tests__/enforcementReversal.test.ts',
+    expects: 'reads the applied row, not the newer recorded-only one',
+  },
+  {
+    /**
+     * The report falling back to the PLANNED action instead of the effective
+     * one. Silent by construction: the plan is subject-blind, so the label is
+     * wrong only for subjects no lever can act on — which for some applications
+     * is most of them.
+     */
+    name: 'the report records the planned action instead of the effective one',
+    file: 'src/decision.ts',
+    edits: [
+      {
+        find: `      outcomes.map(effectiveAction),`,
+        replace: `      outcomes.map((outcome) => outcome.action),`,
+      },
+    ],
+    absent: 'outcomes.map(effectiveAction)',
+    test: 'src/__tests__/fullLoop.test.ts',
+    expects: 'uses the effective action for a subject no lever can act on',
   },
 ];
 

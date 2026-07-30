@@ -216,6 +216,12 @@ export interface ModerationEnforcementDocument {
 
   outcome: string;
   recommendedAction?: string;
+  /**
+   * What the action amounted to, when the effect said it was not what was
+   * planned. The `action` field above stays the PLANNED one — it is half the
+   * idempotency key and it is what was decided.
+   */
+  recordedAs?: string;
   /** Why this action, in words an operator can read. Never reported material. */
   reason: string;
 
@@ -255,6 +261,7 @@ function enforcementSchema(
 
       outcome: { type: String, required: true },
       recommendedAction: { type: String },
+      recordedAs: { type: String, enum: [...actions] },
       reason: { type: String, required: true, maxlength: 500 },
 
       mode: { type: String, required: true, enum: ['observe', 'manual', 'automatic'] },
