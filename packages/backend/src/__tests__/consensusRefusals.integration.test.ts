@@ -46,9 +46,8 @@ const { fanOutWebhookEvent } = await import('../modules/webhooks/fanout');
 const { registerWebhookEndpoint } = await import('../modules/webhooks/endpoint.service');
 const { OUTBOX_EVENT_TYPES } = await import('../modules/outbox/outbox.collection');
 const { newPublicId } = await import('../utils/identifiers');
-const { UNIVERSAL_TAXONOMY_VERSION, OXY_CONDUCT_POLICY_VERSION } = await import(
-  '@oxyhq/crowdsource-contracts'
-);
+const { CASE_ENVELOPE_SCHEMA_VERSION, UNIVERSAL_TAXONOMY_VERSION, OXY_CONDUCT_POLICY_VERSION } =
+  await import('@oxyhq/crowdsource-contracts');
 const { BASELINE_POLICY_VERSION } = await import('../modules/policy/policyBaseline');
 const { deliveryBody, drainUntil, provisionTenant, startDatabase, stopDatabase } = await import(
   './support/tenants'
@@ -144,7 +143,17 @@ describe('cases no jury decides', () => {
       primaryResourceId: 'res_post',
       policySetId: 'crowdsource.baseline',
       taxonomyVersion: UNIVERSAL_TAXONOMY_VERSION,
-      contentSnapshot: { resources: [], relations: [], principals: [] },
+      contentSnapshot: {
+        schemaVersion: CASE_ENVELOPE_SCHEMA_VERSION,
+        subject: {
+          externalId: `subject_${caseId}`,
+          type: 'social.post',
+          primaryResourceId: 'res_post',
+        },
+        resources: [],
+        relations: [],
+        principals: [],
+      },
       status: 'received',
       allegationCodes: [],
       reportCount: 1,

@@ -45,7 +45,7 @@ afterAll(async () => {
   await stopDatabase();
 });
 
-function deliver(externalReportId: string, body: unknown) {
+function deliver(externalReportId: string, body: object) {
   return request(app)
     .post('/v1/reports')
     .set('Authorization', `Bearer ${tenant.token}`)

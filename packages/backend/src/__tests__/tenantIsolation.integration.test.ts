@@ -205,6 +205,11 @@ describe('applicationId comes from the credential', () => {
       // The tenant keys are not a parameter a caller may pass. Supplying them is
       // rejected loudly rather than silently corrected, so the belief that a
       // caller picks its tenant surfaces here instead of in production.
+      //
+      // The signature already omits the tenant keys, so the compiler refuses to
+      // build this argument at all. The cast is what keeps the RUNTIME guard under
+      // test — the caller this protects against is untyped, and a test that can
+      // only be written when the types permit it would stop covering them.
       reports.insertOne(beta.tenant, {
         applicationId: alpha.applicationId,
         reportId: 'rpt_00000000000000000000000000000001',
@@ -218,7 +223,7 @@ describe('applicationId comes from the credential', () => {
         receivedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
-      }),
+      } as Parameters<typeof reports.insertOne>[1]),
     ).rejects.toThrow(/must not set 'applicationId'/);
   });
 });
