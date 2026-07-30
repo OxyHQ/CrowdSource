@@ -353,7 +353,7 @@ describe('standing changes', () => {
       await cases.updateOne(
         tenant.tenant,
         { caseId: delivered.body.caseId },
-        { set: { escalated: true, status: 'escalated', sensitivityClass: 'high', reviewPool: 'specialist' } },
+        { set: { escalated: true, status: 'escalated', sensitivityClass: 'restricted', reviewPool: 'specialist' } },
       );
     }
 
@@ -380,7 +380,7 @@ describe('standing changes', () => {
     );
     // Triage fields, which a staff operator running the queue genuinely needs — and which
     // are withheld from every tenant-facing view for the opposite reason.
-    expect(row.sensitivityClass).toBe('high');
+    expect(row.sensitivityClass).toBe('restricted');
     expect(row.reviewPool).toBe('specialist');
     expect(typeof row.priorityScore).toBe('number');
     expect(row.contentSnapshot).toBeUndefined();
