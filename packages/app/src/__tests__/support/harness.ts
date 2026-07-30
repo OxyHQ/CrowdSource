@@ -136,7 +136,7 @@ export function testEnforcement(
     actions: TEST_ACTIONS,
     noneAction: 'none',
     reviewAction: 'review',
-    restoreAction: 'restore',
+    restoreAction: ['restore', 'unflag'],
     recommendationToAction: {
       remove: 'restrict',
       remove_or_restrict: 'restrict',

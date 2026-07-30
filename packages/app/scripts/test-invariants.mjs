@@ -179,6 +179,30 @@ const MUTATIONS = [
     test: 'src/__tests__/enforcementReversal.test.ts',
     expects: 'reads the most recent applied row across the whole declared set',
   },
+  {
+    /**
+     * A correction that undoes only the FIRST reversible action. Found in
+     * Mention as `unlabel_sensitive` — fully implemented, mode-gated, and
+     * reachable from nothing — and present here too. The object comes back
+     * visible and stays labelled forever: the appeal succeeded, the warning
+     * never lifts, and nothing errors.
+     */
+    name: 'a correction plans only the first declared restore',
+    file: 'src/enforcement/planner.ts',
+    edits: [
+      {
+        find: `  const missing = restoreActions(declared).filter(
+    (action) => !planned.some((entry) => entry.action === action),
+  );`,
+        replace: `  const missing = restoreActions(declared)
+    .slice(0, 1)
+    .filter((action) => !planned.some((entry) => entry.action === action));`,
+      },
+    ],
+    absent: 'const missing = restoreActions(declared).filter(',
+    test: 'src/__tests__/enforcementReversal.test.ts',
+    expects: 'lifts a label as well as a restriction',
+  },
 ];
 
 const digest = (value) => createHash('sha256').update(value, 'utf8').digest('hex');

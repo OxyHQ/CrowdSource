@@ -290,8 +290,21 @@ export interface ModerationEnforcementConfig<TAction extends string> {
    * `null` says an application considered it and has no restriction to lift —
    * true of an application with no sanction primitive at all, and the compiler
    * makes saying so a deliberate act.
+   *
+   * **A LIST when more than one action is reversible, and this is the shape most
+   * applications actually need.** An application whose levers are "hide it" and
+   * "label it" has TWO things a correction must undo, and naming only one leaves
+   * the other permanently stuck: the object is un-hidden and stays labelled
+   * forever. Every planned restore that finds nothing to undo records
+   * `changed: false` with its reason, so listing an action that did not apply
+   * costs an audit row rather than a wrong effect — which is the cheap side of
+   * the trade.
+   *
+   * Credit: `mention-finish`, who found `unlabel_sensitive` fully implemented,
+   * mode-gated, and reachable from nothing in Mention — the correction fix
+   * applied to one of two reversible actions. This package had the same gap.
    */
-  readonly restoreAction: TAction | null;
+  readonly restoreAction: TAction | readonly TAction[] | null;
 
   /**
    * What each recommendation becomes. Anything unmapped becomes

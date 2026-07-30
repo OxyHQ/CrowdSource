@@ -131,7 +131,7 @@ const enforcement: ModerationEnforcementConfig<CommerceAction> = {
   actions: ['delist', 'relist', 'flag', 'unflag', 'review', 'none'],
   noneAction: 'none',
   reviewAction: 'review',
-  restoreAction: 'relist',
+  restoreAction: ['relist', 'unflag'],  // EVERY reversible action, not just one
   recommendationToAction: { remove: 'delist', hide: 'delist', label: 'flag', restore: 'relist', /* … */ },
   severityFallback: { critical: 'review', high: 'delist', medium: 'flag', low: 'review' },
   absorb: { delist: ['flag', 'none', 'relist'] },
@@ -145,6 +145,12 @@ const enforcement: ModerationEnforcementConfig<CommerceAction> = {
   },
 };
 ```
+
+**Declare every reversible action in `restoreAction`, not just one.** If your
+levers are "hide it" and "label it", a correction has two things to undo, and
+naming one leaves the other stuck forever — the object comes back visible and
+stays labelled, with no error and nothing failing. A restore that finds nothing
+to undo costs an audit row, not a wrong effect.
 
 **Declare `restoreAction` if you have one.** A correction is a new revision whose
 outcome is `no_violation` and whose recommendation is frequently `no_action` —
