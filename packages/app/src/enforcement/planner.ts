@@ -96,10 +96,17 @@ function highestSeverity(decision: Decision): Severity | undefined {
  * restricted" when that is the case, which is evidence rather than a silent
  * no-op.
  */
+function restoreActions<TAction extends string>(
+  declared: TAction | readonly TAction[] | null,
+): readonly TAction[] {
+  if (declared === null) return [];
+  return typeof declared === 'string' ? [declared] : declared;
+}
+
 function withRestoreForNoViolation<TAction extends string>(
   decision: Decision,
   planned: readonly PlannedEnforcementAction<TAction>[],
-  restoreAction: TAction | null,
+  declared: TAction | readonly TAction[] | null,
 ): readonly PlannedEnforcementAction<TAction>[] {
   /**
    * `null` is a decision the application made, not an omission — the type
@@ -107,12 +114,28 @@ function withRestoreForNoViolation<TAction extends string>(
    * has nothing an earlier revision could have removed, so there is nothing for
    * a correction to put back.
    */
-  if (restoreAction === null) return planned;
   if (decision.outcome !== 'no_violation') return planned;
-  if (planned.some((entry) => entry.action === restoreAction)) return planned;
+  /**
+   * EVERY declared restore, not just the first. An application whose levers are
+   * "hide it" and "label it" has two things a correction must undo, and planning
+   * one leaves the other stuck forever — the object is un-hidden and stays
+   * labelled, with no error and nothing failing. That is the same failure this
+   * function exists to prevent, applied to the second reversible action instead
+   * of the first.
+   *
+   * A restore with nothing to undo is not waste: the executor records
+   * `changed: false` with its reason, which is evidence that it was checked.
+   */
+  const missing = restoreActions(declared).filter(
+    (action) => !planned.some((entry) => entry.action === action),
+  );
+  if (missing.length === 0) return planned;
   return [
     ...planned,
-    { action: restoreAction, reason: 'No violation: undo any earlier restriction' },
+    ...missing.map((action) => ({
+      action,
+      reason: 'No violation: undo any earlier restriction',
+    })),
   ];
 }
 
@@ -219,19 +242,20 @@ export function planEnforcement<TAction extends string>(
        * checked and there was nothing to undo" is distinguishable from "we never
        * looked".
        */
-      return config.restoreAction === null
-        ? [
-            {
-              action: config.noneAction,
-              reason: 'No violation, and this application has nothing to restore',
-            },
-          ]
-        : [
-            {
-              action: config.restoreAction,
+      {
+        const declared = restoreActions(config.restoreAction);
+        return declared.length === 0
+          ? [
+              {
+                action: config.noneAction,
+                reason: 'No violation, and this application has nothing to restore',
+              },
+            ]
+          : declared.map((action) => ({
+              action,
               reason: 'No violation: undo any earlier restriction',
-            },
-          ];
+            }));
+      }
 
     case 'insufficient_context':
     case 'inconclusive':

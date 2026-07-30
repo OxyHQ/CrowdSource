@@ -102,7 +102,9 @@ describe('a reversal restores what was actually displaced', () => {
       caseId: CASE_ID,
       subject,
     });
-    expect(third).toEqual([{ action: 'restore', result: 'applied' }]);
+    // Every declared restore is planned; this test is about which ROW the
+    // restore reads, so it asserts that entry rather than the whole plan.
+    expect(third).toContainEqual({ action: 'restore', result: 'applied' });
 
     /**
      * `draft`, not `published`. Reading the newer recorded-only row would hand
@@ -147,9 +149,11 @@ describe('an action that could not apply to THIS object is labelled honestly', (
     });
 
     // The PLAN named `restore`; the effect said it amounted to nothing.
-    expect(outcomes).toEqual([
-      { action: 'restore', result: 'recorded', recordedAs: 'none' },
-    ]);
+    expect(outcomes).toContainEqual({
+      action: 'restore',
+      result: 'recorded',
+      recordedAs: 'none',
+    });
 
     /**
      * The claim row keeps the planned action — it is half the idempotency key
@@ -223,7 +227,7 @@ describe('one action reversing several', () => {
         caseId: CASE_ID,
         subject,
       }),
-    ).toEqual([{ action: 'restore', result: 'applied' }]);
+    ).toContainEqual({ action: 'restore', result: 'applied' });
 
     /**
      * `published`, from the harness's fallback, because the newest applied row
@@ -232,5 +236,72 @@ describe('one action reversing several', () => {
      * question nobody asked, drawn from a row two revisions stale.
      */
     expect((await harness.widgets.findById(widget._id).lean())?.status).toBe('published');
+  });
+});
+
+describe('a correction undoes every reversible action, not just the first', () => {
+  it('lifts a label as well as a restriction', async () => {
+    /**
+     * `mention-finish` found `unlabel_sensitive` fully implemented in Mention,
+     * mode-gated, and reachable from NOTHING — the correction fix had been
+     * applied to one of two reversible actions. A post hidden and labelled by
+     * one revision, then cleared by a correction, came back visible and stayed
+     * labelled forever: the appeal succeeded, the warning never lifted, and
+     * nothing errored.
+     *
+     * This package had the same gap. The symptom was even visible here — an
+     * earlier test was deleted because `unflag` was "unreachable from the
+     * harness's tables", which was read as a fixture quirk. The unreachability
+     * WAS the bug.
+     */
+    harness = await createHarness();
+    const widget = await harness.widgets.create({
+      body: 'hidden and labelled',
+      ownerId: 'oxy-owner',
+      status: 'published',
+    });
+    const subject = { type: 'widget', id: String(widget._id) };
+
+    // One revision does both: restrict and flag.
+    await harness.moderation.enforcement.apply({
+      decision: decision({ revision: 1, recommendedActions: [{ action: 'label' }] }),
+      caseId: CASE_ID,
+      subject,
+    });
+    await harness.moderation.enforcement.apply({
+      decision: decision({ revision: 2, recommendedActions: [{ action: 'remove' }] }),
+      caseId: CASE_ID,
+      subject,
+    });
+    expect(await harness.widgets.findById(widget._id).lean()).toMatchObject({
+      status: 'restricted',
+      flagged: true,
+    });
+
+    // The correction. BOTH must be undone.
+    const outcomes = await harness.moderation.enforcement.apply({
+      decision: decision({
+        revision: 3,
+        outcome: 'no_violation',
+        findings: [],
+        recommendedActions: [{ action: 'no_action' }],
+      }),
+      caseId: CASE_ID,
+      subject,
+    });
+    expect(outcomes.map((outcome) => outcome.action).sort()).toEqual([
+      'restore',
+      'unflag',
+    ]);
+
+    /**
+     * `flagged: false` is the assertion that bites. Planning only the first
+     * declared restore leaves the widget visible and labelled — the exact state
+     * an appellant is told they were cleared of.
+     */
+    expect(await harness.widgets.findById(widget._id).lean()).toMatchObject({
+      status: 'published',
+      flagged: false,
+    });
   });
 });
