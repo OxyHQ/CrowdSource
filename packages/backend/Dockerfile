@@ -3,7 +3,15 @@
 FROM oven/bun:1.3.14-alpine AS manifests
 WORKDIR /app
 
+# Every workspace `packages/*` resolves to MUST be listed here, even ones this
+# image never builds. `bun.lock` records the whole workspace set, so a manifest
+# missing from the build context makes the set differ from the lockfile and
+# `--frozen-lockfile` fails with `lockfile had changes, but lockfile is frozen`.
+# Adding a package to `packages/` and not to this list breaks the deploy while
+# every in-repo lockfile check still passes — both layers run where all the
+# manifests exist. `packages/app` cost four hours of dead deploys that way.
 COPY package.json bun.lock bunfig.toml tsconfig.json ./
+COPY packages/app/package.json packages/app/
 COPY packages/contracts/package.json packages/contracts/
 COPY packages/backend/package.json packages/backend/
 COPY packages/reviewer/package.json packages/reviewer/
@@ -32,6 +40,7 @@ RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
 ENV NODE_ENV=production
 
 COPY --from=manifests /app/package.json /app/bun.lock /app/bunfig.toml ./
+COPY --from=manifests /app/packages/app/package.json packages/app/
 COPY --from=manifests /app/packages/contracts/package.json packages/contracts/
 COPY --from=manifests /app/packages/backend/package.json packages/backend/
 COPY --from=manifests /app/packages/reviewer/package.json packages/reviewer/
