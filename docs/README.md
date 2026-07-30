@@ -14,7 +14,7 @@ first decision, in five steps.
 | [`api/`](./api/README.md) | The HTTP contracts, organised by the four caller classes: application service credentials, reviewer sessions, developer-console sessions, Trust & Safety staff sessions. |
 | [`policies/`](./policies/README.md) | The universal taxonomy, the baseline policy set, and what a jury is actually asked. For the people who judge cases. |
 | [`runbooks/`](./runbooks/README.md) | Dead letters, outbox backlogs, cases that cannot empanel, and the two audit trails. |
-| [`architecture/`](./architecture/README.md) | Decision records: divergence from the plan, the case envelope, reputation axes, appeals, and the threat model. |
+| [`architecture/`](./architecture/README.md) | Decision records. [`appeals.md`](./architecture/appeals.md) is here; the divergence, case-envelope and reputation-axes ADRs and the threat model are written and unmerged on `docs/adrs-threat-model`. |
 
 ## Three rules keep this tree honest
 
