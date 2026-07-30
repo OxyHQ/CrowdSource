@@ -22,12 +22,12 @@ import {
   type ReviewFormAction,
   type ReviewFormState,
 } from '@/lib/review-form';
-import type { ReviewResource } from '@/lib/reviewer-api/types';
+import type { ReviewerResource } from '@oxyhq/crowdsource-contracts';
 
 interface DescriptiveStepProps {
   state: ReviewFormState;
   dispatch: (action: ReviewFormAction) => void;
-  resources: ReviewResource[];
+  resources: readonly ReviewerResource[];
 }
 
 export function DescriptiveStep({ state, dispatch, resources }: DescriptiveStepProps) {
@@ -60,7 +60,7 @@ export function DescriptiveStep({ state, dispatch, resources }: DescriptiveStepP
               onCheckedChange={() => dispatch({ type: 'toggleResource', resourceId: resource.id })}
               label={t('review.step1.resources.item', {
                 index: index + 1,
-                kind: t(`review.resource.kind.${resource.kind}`, { defaultValue: resource.kind }),
+                kind: t(`review.resource.kind.${resource.type}`, { defaultValue: resource.type }),
               })}
             />
           ))}

@@ -27,24 +27,28 @@ import { Panel } from '@/components/Screen';
 import {
   CERTAINTY_LEVELS,
   FINDING_CONFIDENCE,
+  FINDING_EXCEPTIONS,
   FINDING_SEVERITIES,
-  RECOMMENDED_ACTIONS,
   REVIEW_OUTCOMES,
+  REVIEWER_RECOMMENDED_ACTIONS,
   type ReviewFormAction,
   type ReviewFormState,
 } from '@/lib/review-form';
-import type { Allegation, ContextSufficiency, PolicyBrief } from '@/lib/reviewer-api/types';
+import type {
+  AssignmentPackage,
+  ContextSufficiency,
+} from '@oxyhq/crowdsource-contracts';
 
 const CONTEXT_SUFFICIENCY: readonly ContextSufficiency[] = ['sufficient', 'insufficient'];
 
 interface PolicyStepProps {
   state: ReviewFormState;
   dispatch: (action: ReviewFormAction) => void;
-  policy: PolicyBrief;
-  allegation: Allegation;
+  policy: AssignmentPackage['policy'];
+  allegations: AssignmentPackage['allegations'];
 }
 
-export function PolicyStep({ state, dispatch, policy, allegation }: PolicyStepProps) {
+export function PolicyStep({ state, dispatch, policy, allegations }: PolicyStepProps) {
   const { t } = useTranslation();
 
   return (
@@ -53,43 +57,43 @@ export function PolicyStep({ state, dispatch, policy, allegation }: PolicyStepPr
         title={t('review.step2.allegation.title')}
         description={t('review.step2.allegation.help')}
       >
-        <Text className="text-base text-foreground">
-          {t(`taxonomy.${allegation.code}`, { defaultValue: allegation.code })}
-        </Text>
-        {allegation.statement ? (
-          <Text className="text-sm leading-5 text-muted-foreground" selectable={false}>
-            {allegation.statement}
+        {/* Plural, and labelled from `unverified` rather than from a comment: a
+            case is the union of every report about the same material (§7.3), and
+            reporters do not all choose the same code. There is no reporter
+            statement — §9.1 keeps the reporter's own words, identity and count off
+            this screen entirely. */}
+        {allegations.unverified ? (
+          <Text className="text-sm font-semibold text-muted-foreground">
+            {t('review.step2.allegation.unverified')}
           </Text>
         ) : null}
+        {allegations.codes.map((code) => (
+          <Text key={code} className="text-base text-foreground">
+            {t(`taxonomy.${code}`, { defaultValue: code })}
+          </Text>
+        ))}
       </Panel>
 
       <Panel
         title={t('review.step2.policy.title')}
         description={t('review.step2.policy.version', {
           policySet: policy.policySetId,
-          version: policy.policyVersion,
+          version: policy.version,
         })}
       >
+        {/* §9.1 also asks for "ejemplos", and the published policy contract has no
+            field for them: `PolicySetVersion` carries rules and nothing else. The
+            rules ARE given in full, with the severities and actions each suggests
+            (§9.2 step two) — inventing an examples field the policy registry
+            cannot fill would show a reviewer text nobody authored. */}
         {policy.rules.map((rule) => (
           <View key={rule.id} className="gap-1">
             <Text className="text-sm font-semibold text-foreground">{rule.title}</Text>
-            <Text className="text-sm leading-5 text-muted-foreground">{rule.text}</Text>
+            {rule.description === undefined ? null : (
+              <Text className="text-sm leading-5 text-muted-foreground">{rule.description}</Text>
+            )}
           </View>
         ))}
-        {policy.examples.length > 0 ? (
-          <View className="gap-2 rounded-md bg-muted p-3">
-            <Text className="text-xs uppercase tracking-wide text-muted-foreground">
-              {t('review.step2.policy.examples')}
-            </Text>
-            {policy.examples.map((example) => (
-              <Text key={example.id} className="text-sm leading-5 text-foreground">
-                {example.violating
-                  ? t('review.step2.policy.exampleViolating', { text: example.text })
-                  : t('review.step2.policy.examplePermitted', { text: example.text })}
-              </Text>
-            ))}
-          </View>
-        ) : null}
       </Panel>
 
       <Panel title={t('review.step2.outcome.title')} description={t('review.step2.outcome.help')}>
@@ -128,7 +132,9 @@ export function PolicyStep({ state, dispatch, policy, allegation }: PolicyStepPr
                 checked={finding !== undefined}
                 onCheckedChange={() => dispatch({ type: 'toggleFinding', ruleId: rule.id })}
                 label={rule.title}
-                description={t('review.step2.findings.code', { code: rule.taxonomyCode })}
+                description={t('review.step2.findings.code', {
+                  code: rule.taxonomyCodes.join(t('history.familySeparator')),
+                })}
               />
               {finding ? (
                 <View className="gap-3 pl-8">
@@ -169,6 +175,35 @@ export function PolicyStep({ state, dispatch, policy, allegation }: PolicyStepPr
                       </SegmentedControlItem>
                     ))}
                   </SegmentedControl>
+                  {/* §6.2 puts the exception BESIDE the code and severity, not in
+                      a form-level list: "artistic nudity" is a different
+                      description of the material rather than a different verdict
+                      about it, and one review can find one thing documentary and
+                      another not. The vocabulary is closed because §9.4 measures
+                      consensus on it — two reviewers who answer `no_violation` for
+                      incompatible reasons have not agreed. */}
+                  <View className="gap-1">
+                    <Text className="text-xs uppercase tracking-wide text-muted-foreground">
+                      {t('review.step2.findings.exception')}
+                    </Text>
+                    <ChoiceRow
+                      label={t('review.step2.findings.noException')}
+                      selected={finding.exception === null}
+                      onSelect={() =>
+                        dispatch({ type: 'setFindingException', ruleId: rule.id, exception: null })
+                      }
+                    />
+                    {FINDING_EXCEPTIONS.map((exception) => (
+                      <ChoiceRow
+                        key={exception}
+                        label={t(`findingContext.${exception}`)}
+                        selected={finding.exception === exception}
+                        onSelect={() =>
+                          dispatch({ type: 'setFindingException', ruleId: rule.id, exception })
+                        }
+                      />
+                    ))}
+                  </View>
                 </View>
               ) : null}
             </View>
@@ -176,28 +211,9 @@ export function PolicyStep({ state, dispatch, policy, allegation }: PolicyStepPr
         })}
       </Panel>
 
-      {policy.exceptions.length > 0 ? (
-        <Panel
-          title={t('review.step2.exceptions.title')}
-          description={t('review.step2.exceptions.help')}
-        >
-          {policy.exceptions.map((exception) => (
-            <Checkbox
-              key={exception.id}
-              checked={state.appliedExceptionIds.includes(exception.id)}
-              onCheckedChange={() =>
-                dispatch({ type: 'toggleException', exceptionId: exception.id })
-              }
-              label={exception.title}
-              description={exception.text}
-            />
-          ))}
-        </Panel>
-      ) : null}
-
       <Panel title={t('review.step2.actions.title')} description={t('review.step2.actions.help')}>
         <View className="gap-1">
-          {RECOMMENDED_ACTIONS.map((action) => (
+          {REVIEWER_RECOMMENDED_ACTIONS.map((action) => (
             <Checkbox
               key={action}
               checked={state.recommendedActions.includes(action)}

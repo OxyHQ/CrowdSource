@@ -6,8 +6,15 @@
  * sensitive material — per category, and revocable from the wellbeing screen at
  * any time afterwards (§13.7).
  *
- * Completing this does not make anyone a juror. It moves an `applicant` to
- * `calibrating`, where their answers train them and decide nothing (§8.1).
+ * Completing this does not make anyone a juror. It moves an `applicant` toward
+ * `calibrating` — the server opens that gate once the rules are accepted, the
+ * languages and categories are set AND every training module is done (§8.1) — and
+ * a calibrating reviewer's answers train them and decide nothing.
+ *
+ * It submits `POST /v1/reviewer/preferences`, not an onboarding endpoint. §10.3's
+ * route table has no such endpoint and never did; everything this screen collects
+ * is exactly what §10.3 says preferences updates. The app used to call
+ * `POST /v1/reviewer/onboarding`, which has never existed on any server.
  */
 
 import { Button } from '@oxyhq/bloom/button';
@@ -20,8 +27,8 @@ import { Text, View } from 'react-native';
 import { ApiStateNotice } from '@/components/ApiStateNotice';
 import { Panel, Screen } from '@/components/Screen';
 import { SUPPORTED_LANGUAGES } from '@/lib/constants';
-import { useCompleteOnboarding } from '@/lib/reviewer-api/queries';
-import { CONSENTABLE_FAMILIES, OPT_IN_FAMILIES } from '@/lib/taxonomy';
+import { useUpdatePreferences } from '@/lib/reviewer-api/queries';
+import { CONSENTABLE_FAMILIES, OPT_IN_FAMILIES, type ConsentableFamily } from '@/lib/taxonomy';
 
 const RULES = [
   'noChoosing',
@@ -32,20 +39,20 @@ const RULES = [
   'noSharing',
 ] as const;
 
-function toggle(list: string[], value: string): string[] {
+function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
 export default function OnboardingScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const completeOnboarding = useCompleteOnboarding();
+  const updatePreferences = useUpdatePreferences();
 
   const [acceptRules, setAcceptRules] = useState(false);
   const [confirmAge, setConfirmAge] = useState(false);
   const [languages, setLanguages] = useState<string[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [sensitiveCategories, setSensitiveCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<ConsentableFamily[]>([]);
+  const [sensitiveCategories, setSensitiveCategories] = useState<ConsentableFamily[]>([]);
 
   const complete = acceptRules && confirmAge && languages.length > 0 && categories.length > 0;
 
@@ -53,15 +60,23 @@ export default function OnboardingScreen() {
     if (!complete) {
       return;
     }
-    completeOnboarding.mutate(
+    // Consent can only be given for a category the reviewer actually took, so a
+    // category dropped above cannot leave a stray consent behind.
+    const consented = sensitiveCategories.filter((family) => categories.includes(family));
+    updatePreferences.mutate(
       {
-        acceptRules,
-        confirmAge,
+        rulesAccepted: true,
+        isAdult: confirmAge,
         languages,
         categories,
-        // Consent can only be given for a category the reviewer actually took,
-        // so a category dropped above cannot leave a stray consent behind.
-        sensitiveCategories: sensitiveCategories.filter((family) => categories.includes(family)),
+        consentedSensitiveCategories: consented,
+        /**
+         * The class ceiling has to move with the per-family consent or the draw
+         * refuses on `sensitivity_above_consent` while the profile shows consent
+         * granted — a reviewer would see themselves as eligible and never be
+         * drawn, with nothing saying why.
+         */
+        maxSensitivity: consented.length > 0 ? 'sensitive' : 'standard',
       },
       { onSuccess: () => router.replace('/') },
     );
@@ -144,13 +159,13 @@ export default function OnboardingScreen() {
         </Text>
       </Panel>
 
-      {completeOnboarding.error ? <ApiStateNotice error={completeOnboarding.error} /> : null}
+      {updatePreferences.error ? <ApiStateNotice error={updatePreferences.error} /> : null}
 
       <Button
         variant="primary"
         onPress={handleSubmit}
         disabled={!complete}
-        loading={completeOnboarding.isPending}
+        loading={updatePreferences.isPending}
       >
         {t('onboarding.action')}
       </Button>

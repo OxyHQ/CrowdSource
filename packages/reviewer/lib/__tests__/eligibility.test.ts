@@ -8,34 +8,52 @@
  */
 
 import { assignmentBlockers } from '@/lib/eligibility';
-import type { EligibilityRequirement, ReviewerProfile } from '@/lib/reviewer-api/types';
+import type {
+  ReviewerEligibilityRequirement,
+  ReviewerProfileView,
+} from '@oxyhq/crowdsource-contracts';
 
 const NOW = new Date('2026-07-28T12:00:00.000Z');
 
-const ALL_MET: EligibilityRequirement[] = [
+const ALL_MET: ReviewerEligibilityRequirement[] = [
   { id: 'oxy_account', met: true },
   { id: 'personhood', met: true },
+  { id: 'age', met: true },
+  { id: 'rules_accepted', met: true },
+  { id: 'languages_selected', met: true },
+  { id: 'categories_selected', met: true },
   { id: 'training_current', met: true },
+  { id: 'calibration_current', met: true },
 ];
 
-function profile(overrides: Partial<ReviewerProfile> = {}): ReviewerProfile {
+function profile(overrides: Partial<ReviewerProfileView> = {}): ReviewerProfileView {
   return {
-    state: 'community_reviewer',
+    reviewerId: 'rvw_1',
+    // The short form. The app used to declare `community_reviewer`, which no
+    // server has ever sent — the persisted vocabulary is §8.1's identifiers.
+    state: 'community',
     eligibility: ALL_MET,
     standings: [],
+    completedReviewCount: 4,
     preferences: {
       languages: ['en-US'],
       categories: ['harassment'],
-      sensitiveCategories: [],
       dailyLimit: 10,
       availableForAssignment: true,
     },
     consent: {
       rulesAcceptedAt: '2026-07-01T00:00:00.000Z',
       ageConfirmed: true,
+      maxSensitivity: 'standard',
       sensitiveCategories: [],
     },
-    exposure: { reviewedToday: 2, dailyLimit: 10, breakRequiredUntil: null },
+    exposure: {
+      reviewedToday: 2,
+      dailyLimit: 10,
+      openAssignments: 0,
+      maxOpenAssignments: 3,
+      breakRequiredUntil: null,
+    },
     ...overrides,
   };
 }
@@ -52,7 +70,12 @@ describe('assignmentBlockers', () => {
     expect(
       assignmentBlockers(
         profile({
-          consent: { rulesAcceptedAt: null, ageConfirmed: true, sensitiveCategories: [] },
+          consent: {
+            rulesAcceptedAt: null,
+            ageConfirmed: true,
+            maxSensitivity: 'standard',
+            sensitiveCategories: [],
+          },
         }),
         NOW,
       ),
@@ -84,7 +107,6 @@ describe('assignmentBlockers', () => {
         preferences: {
           languages: ['en-US'],
           categories: ['harassment'],
-          sensitiveCategories: [],
           dailyLimit: 10,
           availableForAssignment: false,
         },
@@ -98,26 +120,61 @@ describe('assignmentBlockers', () => {
   it('blocks at the daily limit the reviewer set', () => {
     expect(
       assignmentBlockers(
-        profile({ exposure: { reviewedToday: 10, dailyLimit: 10, breakRequiredUntil: null } }),
+        profile({
+          exposure: {
+            reviewedToday: 10,
+            dailyLimit: 10,
+            openAssignments: 0,
+            maxOpenAssignments: 3,
+            breakRequiredUntil: null,
+          },
+        }),
         NOW,
       ),
     ).toContain('daily_limit_reached');
   });
 
-  it('blocks during a break and stops blocking once it has passed', () => {
+  it('blocks at the open-assignment ceiling, which the reviewer did not set', () => {
+    // A different limit from the daily one, and named differently on screen: this
+    // one is the system's (MAX_OPEN_ASSIGNMENTS), and telling somebody they hit
+    // "their" limit when they hit ours is the wrong explanation.
+    const blockers = assignmentBlockers(
+      profile({
+        exposure: {
+          reviewedToday: 1,
+          dailyLimit: 10,
+          openAssignments: 3,
+          maxOpenAssignments: 3,
+          breakRequiredUntil: null,
+        },
+      }),
+      NOW,
+    );
+    expect(blockers).toContain('open_assignment_limit');
+    expect(blockers).not.toContain('daily_limit_reached');
+  });
+
+  it('blocks during §13.7’s sensitive rest and stops once it has passed', () => {
     const during = profile({
       exposure: {
         reviewedToday: 1,
         dailyLimit: 10,
+        openAssignments: 0,
+        maxOpenAssignments: 3,
         breakRequiredUntil: '2026-07-28T12:30:00.000Z',
       },
     });
-    expect(assignmentBlockers(during, NOW)).toContain('break_required');
+    // Named for the route it rests: §13.7 rests SENSITIVE material only, and the
+    // server will still draw this reviewer for a spam report. Calling it a plain
+    // "break" would tell them they are out of the pool when they are not.
+    expect(assignmentBlockers(during, NOW)).toContain('sensitive_break_required');
 
     const after = profile({
       exposure: {
         reviewedToday: 1,
         dailyLimit: 10,
+        openAssignments: 0,
+        maxOpenAssignments: 3,
         breakRequiredUntil: '2026-07-28T11:30:00.000Z',
       },
     });

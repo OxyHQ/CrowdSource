@@ -1,522 +1,574 @@
 {
+  "action": {
+    "label": "Add a label",
+    "no_action": "No action",
+    "reduce_distribution": "Reduce how widely it is shown",
+    "remove_or_restrict": "Remove or restrict it",
+    "specialist_queue": "Send to a specialist queue"
+  },
   "app": {
     "name": "CrowdSource"
   },
-  "signIn": {
-    "tagline": "Community review of reported content, one case at a time.",
-    "action": "Sign in with Oxy",
-    "unconfigured": "Sign-in is unavailable: no Oxy client has been registered for this app yet."
-  },
-  "notFound": {
-    "body": "Nothing lives at that address. Cases are never reachable by URL — the server assigns one when you ask for it.",
-    "title": "This page does not exist.",
-    "action": "Go home",
-    "heading": "Not found"
-  },
-  "error": {
-    "boundary": {
-      "title": "Something went wrong",
-      "message": "The screen could not be displayed. Nothing you were reviewing was submitted.",
-      "retry": "Try again"
-    }
-  },
-  "sidebar": {
-    "home": "Review",
-    "training": "Training",
-    "history": "History",
-    "reliability": "Reliability",
-    "wellbeing": "Wellbeing"
+  "blocker": {
+    "daily_limit_reached": "You have reached the daily limit you set for yourself.",
+    "eligibility_unmet": "One or more eligibility requirements are not met. See Reliability for which.",
+    "onboarding_incomplete": "Read the rules and set your preferences first.",
+    "open_assignment_limit": "You are already holding as many cases as anyone may hold at once.",
+    "paused_by_reviewer": "You have paused assignments. Turn them back on under Wellbeing.",
+    "sensitive_break_required": "A rest from sensitive material is in progress. Other categories are unaffected.",
+    "suspended": "Your account is suspended from draws."
   },
   "bottomBar": {
-    "home": "Review",
-    "training": "Training",
     "history": "History",
+    "home": "Review",
     "reliability": "Reliability",
+    "training": "Training",
     "wellbeing": "Wellbeing"
   },
-  "shell": {
-    "openMenu": "Open the menu",
-    "closeMenu": "Close the menu"
-  },
-  "rightBar": {
-    "principles": {
-      "title": "How review works",
-      "assigned": "You never choose a case. The server draws one that matches your categories, languages and consent.",
-      "blind": "You never see who reported the material, who wrote it, who else is reviewing it, or how anyone has voted.",
-      "recusal": "Stepping back from a case costs you nothing. It is never held against you."
-    },
-    "support": {
-      "title": "Looking after yourself",
-      "body": "Change what you are shown, take a break, or stop for the day. None of it needs a reason.",
-      "action": "Go to wellbeing"
-    },
-    "privacy": "Privacy",
-    "terms": "Terms",
-    "cookies": "Cookies",
-    "reputation": {
-      "title": "Your reputation",
-      "points": "points",
-      "none": "Nothing recorded yet. Reputation is earned by reviewing, and it is only ever yours to see.",
-      "tier": "Trust tier: {{tier}}",
-      "help": "Reputation affects how often you are drawn for a case. It never makes your vote count for more than one."
-    }
-  },
-  "state": {
-    "loading": "Loading…",
-    "unavailable": {
-      "title": "This part of the service is not running yet",
-      "body": "The screen is finished; the endpoint it reads from has not been deployed. Nothing is being hidden from you, and no sample data is being shown in its place.",
-      "endpointLabel": "Waiting on"
-    },
-    "unreachable": {
-      "title": "The service could not be reached",
-      "body": "No response from {{origin}}. This is usually a connection problem rather than a fault in the review service."
-    },
-    "notHeld": {
-      "title": "This case is no longer assigned to you",
-      "body": "Assignments expire, and an expired one is redrawn to somebody else so the case is not left waiting. Nothing was lost and nothing counts against you."
-    },
-    "error": {
-      "title": "That did not work",
-      "body": "The request failed. Nothing was submitted."
-    }
-  },
-  "home": {
-    "title": "Review",
-    "signedInAs": "Signed in as {{name}}",
-    "rule": "You cannot choose what you review. When you ask for a case, the server draws one that matches your categories, languages and consent — and you never see the cases you were not given.",
-    "openCase": {
-      "title": "You have a case open",
-      "body": "It is held for this session only. Closing the app or reloading the page ends the sitting.",
-      "action": "Continue the case"
-    },
-    "state": {
-      "title": "Where you stand",
-      "exposure": "{{reviewed}} of {{limit}} reviews today.",
-      "startOnboarding": "Read the rules and set your preferences",
-      "continueTraining": "See your calibration progress"
-    },
-    "request": {
-      "title": "Review next case",
-      "help": "This asks the server for a case. It may answer that there is none for you right now.",
-      "action": "Review next case",
-      "noCaseTitle": "Nothing for you right now",
-      "noCase": "No case matches you right now. That is normal — try again later."
-    }
-  },
-  "reviewerState": {
-    "applicant": "Applicant. Finish the rules, consent and preferences to start calibrating.",
-    "calibrating": "Calibrating. You receive training and gold cases; your answers do not decide real cases yet.",
-    "community_reviewer": "Community reviewer. You are entered into standard draws for your approved categories.",
-    "trusted_reviewer": "Trusted reviewer. You reach more complex cases and are drawn more often.",
-    "category_specialist": "Category specialist. You review specific categories, escalations and some disagreements.",
-    "appeals_reviewer": "Appeals reviewer. You can sit on appeal juries, never on one you already reviewed.",
-    "suspended": "Suspended. You are not entered into draws until this is resolved or you recalibrate."
-  },
-  "blocker": {
-    "onboarding_incomplete": "Read the rules and set your preferences first.",
-    "suspended": "Your account is suspended from draws.",
-    "eligibility_unmet": "One or more eligibility requirements are not met. See Reliability for which.",
-    "paused_by_reviewer": "You have paused assignments. Turn them back on under Wellbeing.",
-    "daily_limit_reached": "You have reached the daily limit you set for yourself.",
-    "break_required": "A break is in progress."
-  },
-  "eligibility": {
-    "oxy_account": "An active, authenticated Oxy account",
-    "personhood": "Enough personhood confidence to decide real cases",
-    "age": "An age compatible with your categories",
-    "language_region": "A compatible language and cultural region",
-    "training_current": "Current training and calibration",
-    "sensitive_consent": "Explicit consent for sensitive material",
-    "no_conflict": "No relationship to the people or application involved",
-    "no_coordination_signals": "No signals of a shared device or coordinated group",
-    "no_prior_participation": "No previous involvement in this case or incident",
-    "exposure_headroom": "Exposure and rest limits available"
-  },
   "category": {
-    "integrity": "Integrity",
-    "integrity.help": "Spam, scams, fraud, impersonation and coordinated manipulation.",
+    "child_safety": "Child safety",
+    "child_safety.help": "Reviewed only by trained specialists.",
+    "commerce": "Commerce",
+    "commerce.help": "Prohibited items, counterfeits, misleading listings and unsafe products.",
     "harassment": "Harassment",
     "harassment.help": "Insults, targeted abuse, sexual harassment, doxxing and credible threats.",
     "hate": "Hate",
     "hate.help": "Dehumanisation, slurs, incitement and targeting of protected groups.",
-    "violence": "Violence",
-    "violence.help": "Graphic violence, threats, instructions and celebration of violence.",
-    "sexual_content": "Sexual content",
-    "sexual_content.help": "Nudity, explicit activity, and non-consensual or exploitative material.",
-    "child_safety": "Child safety",
-    "child_safety.help": "Reviewed only by trained specialists.",
-    "self_harm": "Self-harm",
-    "self_harm.help": "Promotion, instruction and imminent risk.",
-    "privacy": "Privacy",
-    "privacy.help": "Personal information, intimate media and exposure of someone's location.",
-    "commerce": "Commerce",
-    "commerce.help": "Prohibited items, counterfeits, misleading listings and unsafe products.",
+    "integrity": "Integrity",
+    "integrity.help": "Spam, scams, fraud, impersonation and coordinated manipulation.",
+    "other": "Other",
+    "other.help": "Policy-specific and unclassifiable material.",
     "platform_abuse": "Platform abuse",
     "platform_abuse.help": "Ban evasion, abuse of the report system and automation abuse.",
-    "other": "Other",
-    "other.help": "Policy-specific and unclassifiable material."
+    "privacy": "Privacy",
+    "privacy.help": "Personal information, intimate media and exposure of someone's location.",
+    "self_harm": "Self-harm",
+    "self_harm.help": "Promotion, instruction and imminent risk.",
+    "sexual_content": "Sexual content",
+    "sexual_content.help": "Nudity, explicit activity, and non-consensual or exploitative material.",
+    "violence": "Violence",
+    "violence.help": "Graphic violence, threats, instructions and celebration of violence."
+  },
+  "certainty": {
+    "high": "Very",
+    "low": "Not very",
+    "medium": "Reasonably"
+  },
+  "contextSufficiency": {
+    "insufficient": "No, I was working with gaps",
+    "sufficient": "Yes, there was enough"
+  },
+  "descriptor": {
+    "commercial_promotion": "Commercial promotion",
+    "contested_factual_claim": "A factual claim that is contested",
+    "graphic_injury": "Graphic injury or death",
+    "impersonation_claim": "An attempt to pass as someone else",
+    "insults_or_slurs": "Insults or slurs",
+    "minor_appears_present": "Someone who appears to be a minor",
+    "nothing_notable": "None of the above",
+    "nudity": "Nudity",
+    "personal_information": "Someone's personal information",
+    "self_harm": "Self-harm",
+    "sexual_content": "Sexual content",
+    "threat_of_violence": "A threat of violence"
+  },
+  "eligibility": {
+    "age": "An age compatible with your categories",
+    "calibration_current": "Calibration passed and still current",
+    "categories_selected": "At least one category chosen",
+    "languages_selected": "At least one language chosen",
+    "oxy_account": "An active, authenticated Oxy account",
+    "personhood": "Enough personhood confidence to decide real cases",
+    "rules_accepted": "You have accepted the reviewing rules",
+    "training_current": "Current training and calibration"
+  },
+  "error": {
+    "boundary": {
+      "message": "The screen could not be displayed. Nothing you were reviewing was submitted.",
+      "retry": "Try again",
+      "title": "Something went wrong"
+    }
+  },
+  "findingContext": {
+    "artistic": "Artistic",
+    "consensual": "Consensual",
+    "counter_speech": "Counter-speech",
+    "documentary": "Documentary",
+    "educational": "Educational",
+    "fictional": "Fictional",
+    "medical": "Medical",
+    "newsworthy": "Newsworthy",
+    "satire": "Satire"
+  },
+  "history": {
+    "decision": "Decided: {{outcome}} on {{date}}",
+    "decisionPending": "The case is still open. You are not shown how it is going.",
+    "empty": "You have not completed any reviews yet.",
+    "emptyHelp": "Reviews appear here once you complete them. Ask for a case from the Review screen.",
+    "familiesUnknown": "Category no longer available",
+    "familySeparator": ", ",
+    "loadMore": "Load more",
+    "submitted": "Submitted {{date}} · {{language}}",
+    "submittedNoLanguage": "Submitted {{date}}",
+    "subtitle": "Reviews you completed.",
+    "title": "History",
+    "yourOutcome": "You said: {{outcome}}"
+  },
+  "home": {
+    "openCase": {
+      "action": "Continue the case",
+      "body": "It is held for this session only. Closing the app or reloading the page ends the sitting.",
+      "title": "You have a case open"
+    },
+    "request": {
+      "action": "Review next case",
+      "help": "This asks the server for a case. It may answer that there is none for you right now.",
+      "noCase": "No case matches you right now. That is normal — try again later.",
+      "noCaseTitle": "Nothing for you right now",
+      "title": "Review next case"
+    },
+    "rule": "You cannot choose what you review. When you ask for a case, the server draws one that matches your categories, languages and consent — and you never see the cases you were not given.",
+    "signedInAs": "Signed in as {{name}}",
+    "state": {
+      "continueTraining": "See your calibration progress",
+      "exposure": "{{reviewed}} of {{limit}} reviews today.",
+      "startOnboarding": "Read the rules and set your preferences",
+      "title": "Where you stand"
+    },
+    "title": "Review"
   },
   "language": {
     "en-US": "English",
     "es-ES": "Spanish",
     "it-IT": "Italian"
   },
-  "onboarding": {
-    "title": "Before you review anything",
-    "subtitle": "The rules, your consent, and what you are willing to look at.",
-    "what": {
-      "title": "What this is",
-      "body": "Applications send reports here. Cases are drawn to small juries of ordinary people, reviewed blind, and decided by consensus. A report is not a verdict, and a verdict is not a punishment — the application decides what to do with the finding."
-    },
-    "rules": {
-      "title": "The rules you are agreeing to",
-      "help": "These are not house style. They are what makes the result worth anything.",
-      "accept": "I have read these and I agree to them."
-    },
-    "rule": {
-      "noChoosing": "You never choose the case you review. There is no queue to browse and no link to a case.",
-      "blind": "You will not be told who reported the material, who made it, how many reports it has, or how anyone else on the jury voted.",
-      "oneVote": "One qualified person, one vote. Your reliability affects how often you are drawn, never how much your vote weighs.",
-      "recusalFree": "You can hand a case back at any time. It is never counted against you.",
-      "confidential": "What you see in a case stays in the case. Do not save it, quote it or describe it elsewhere.",
-      "noSharing": "Do not try to identify anyone involved, and do not discuss an open case with anyone."
-    },
-    "age": {
-      "title": "Age",
-      "help": "Some categories are restricted by age. This is a declaration, and the server checks it against your Oxy account.",
-      "confirm": "I am old enough for the categories I am choosing."
-    },
-    "languages": {
-      "title": "Languages you can review in",
-      "help": "Only pick languages you read well enough to judge intent, sarcasm and idiom. Getting this wrong is the most common way a review goes bad."
-    },
-    "categories": {
-      "title": "Categories you are willing to review",
-      "help": "You are only drawn for the categories you take, and you can change this at any time.",
-      "specialistNote": "Child safety is not offered here. It is reviewed only by trained specialists."
-    },
-    "sensitive": {
-      "title": "Sensitive material",
-      "help": "Some categories routinely involve material that is distressing to look at. Nothing sensitive is ever shown without you asking for it, and only in a category you have consented to.",
-      "consentHelp": "I consent to being shown sensitive material in this category.",
-      "needsCategory": "Take this category above to consent to its sensitive material.",
-      "revocable": "You can withdraw any of this at any time, from the Wellbeing screen, without giving a reason."
-    },
-    "action": "Save and start calibrating"
-  },
-  "training": {
-    "title": "Training",
-    "subtitle": "Guides, calibration, and where you are in it.",
-    "calibration": {
-      "title": "Calibration",
-      "progress": "{{answered}} of {{required}} calibration cases answered.",
-      "currentUntil": "Calibration is current until {{date}}.",
-      "notCalibrated": "You are not calibrated yet.",
-      "goldNote": "Calibration cases arrive through the same door as real ones and look identical. That is deliberate: it is the only way the figure means anything.",
-      "action": "Ask for a case"
-    },
-    "modules": {
-      "title": "Modules",
-      "help": "Guides and examples for each category you review.",
-      "empty": "No modules yet.",
-      "completed": "Completed {{date}}.",
-      "notCompleted": "Not completed.",
-      "expires": "Needs retaking by {{date}}.",
-      "emptyHelp": "Modules are published per category. One will appear here when a category you work in has one."
-    }
-  },
-  "history": {
-    "title": "History",
-    "subtitle": "Reviews you completed.",
-    "empty": "You have not completed any reviews yet.",
-    "submitted": "Submitted {{date}} · {{language}}",
-    "yourOutcome": "You said: {{outcome}}",
-    "decision": "Decided: {{outcome}} on {{date}}",
-    "decisionPending": "The case is still open. You are not shown how it is going.",
-    "loadMore": "Load more",
-    "emptyHelp": "Reviews appear here once you complete them. Ask for a case from the Review screen."
-  },
-  "reliability": {
-    "title": "Reliability",
-    "subtitle": "Your own figures. Nobody else's, and nobody else sees yours.",
-    "state": {
-      "title": "Your reviewing state"
-    },
-    "standings": {
-      "title": "By category and language",
-      "help": "Reliability affects how often you are drawn and which cases you reach. It never makes your vote count for more than one.",
-      "empty": "No figures yet. They start once you have reviewed real cases.",
-      "row": "{{language}} · {{reliability}}% reliability · {{reviews}} reviews",
-      "calibrated": "Calibration is current.",
-      "needsCalibration": "Calibration has lapsed.",
-      "emptyHelp": "Figures start once you have reviewed real cases in a category and language."
-    },
-    "eligibility": {
-      "title": "Eligibility",
-      "help": "All of these must hold at the moment a jury is drawn.",
-      "met": "Met — {{requirement}}",
-      "unmet": "Not met — {{requirement}}"
-    },
-    "exposure": {
-      "title": "Exposure",
-      "help": "Limits exist so that reviewing stays something you can keep doing.",
-      "break": "A break is in progress until {{time}}."
-    }
-  },
-  "wellbeing": {
-    "title": "Wellbeing",
-    "subtitle": "What you see, how much of it, and how to stop.",
-    "exit": {
-      "title": "Take the case off the screen",
-      "body": "This removes the open case from this device immediately. It does not wait for the network.",
-      "action": "Stop showing this case",
-      "note": "This is not a recusal — the case stays yours until it expires. To hand it back, use \"Step back from this case\" on the review screen."
-    },
-    "availability": {
-      "title": "Assignments",
-      "help": "Turning this off takes you out of every draw. Nothing is held against you for it.",
-      "on": "You are available for assignments.",
-      "off": "You are not being drawn for any case."
-    },
-    "limit": {
-      "title": "Daily limit",
-      "help": "The most reviews you want to be asked for in a day.",
-      "option": "{{limit}} per day"
-    },
-    "categories": {
-      "title": "Categories",
-      "help": "Remove a category and you stop being drawn for it, starting with the next draw."
-    },
-    "consent": {
-      "title": "Sensitive material",
-      "help": "Consent is per category and you can withdraw it at any time, without giving a reason.",
-      "revocable": "Consented. Untick to withdraw."
-    },
-    "languages": {
-      "title": "Languages",
-      "help": "Only the languages you read well enough to judge intent and idiom."
-    },
-    "save": "Save preferences",
-    "saved": "Preferences saved.",
-    "support": {
-      "title": "Support",
-      "body": "No support resources or incident channel have been configured for this deployment yet. Until they are, report anything unexpected or distressing through your usual Oxy support route."
-    }
-  },
-  "review": {
-    "title": "Case review",
-    "subtitle": "{{category}} · {{language}}",
-    "noCase": {
-      "title": "No case is open",
-      "body": "A case is held in memory for one sitting only, so reloading the page ends it. Ask for another when you are ready.",
-      "action": "Back to review"
-    },
-    "hidden": {
-      "title": "What you are not being shown",
-      "body": "How many reports this has, who reported it, who made it, anyone's reputation, who else is on this jury, and how any of them voted. None of it reaches this screen, and none of it should change what you see in the material."
-    },
-    "material": {
-      "title": "The material",
-      "expires": "This assignment expires at {{time}}."
-    },
-    "watermark": {
-      "note": "This material carries a mark tied to your assignment. Screenshots cannot be prevented on every device and we are not claiming otherwise — the mark exists so that a leak can be traced."
-    },
-    "context": {
-      "title": "Context",
-      "help": "Only what is needed to judge the material."
-    },
-    "step1": {
-      "label": "Step 1 of 2 · Describe",
-      "contains": {
-        "title": "What does this material contain?",
-        "help": "Describe what is actually there, in your own reading. Do not decide yet whether it breaks anything."
-      },
-      "resources": {
-        "title": "Which part does that apply to?",
-        "help": "Pick the items your description is about.",
-        "item": "Item {{index}} · {{kind}}",
-        "empty": "This case has no attached material."
-      },
-      "missing": {
-        "title": "What context is missing?",
-        "help": "Say what you would need to be sure. Answering honestly here is worth more than a confident guess."
-      },
-      "certainty": {
-        "title": "How certain are you about that description?",
-        "help": "About the description only, not about any verdict."
-      }
-    },
-    "step2": {
-      "label": "Step 2 of 2 · Evaluate",
-      "allegation": {
-        "title": "The unverified allegation",
-        "help": "This is what the person who reported it claimed. It is a claim, not a finding, and it is shown only now — after you described the material — so that it did not steer the description."
-      },
-      "policy": {
-        "title": "The applicable policy",
-        "version": "{{policySet}} · version {{version}}",
-        "examples": "Examples",
-        "exampleViolating": "Breaks the policy: {{text}}",
-        "examplePermitted": "Allowed: {{text}}"
-      },
-      "outcome": {
-        "title": "Your outcome",
-        "help": "Judge the material against this policy, not against how you feel about the allegation."
-      },
-      "context": {
-        "title": "Was there enough context to decide?"
-      },
-      "findings": {
-        "title": "Findings",
-        "help": "Name the specific rules you think are broken. Leave this empty if none are.",
-        "code": "Taxonomy code: {{code}}",
-        "severity": "Severity",
-        "confidence": "Confidence",
-        "confidenceOption": "{{label}} ({{value}})"
-      },
-      "exceptions": {
-        "title": "Exceptions",
-        "help": "An exception that applies here, if any."
-      },
-      "actions": {
-        "title": "Recommended action",
-        "help": "A recommendation to the application. The application decides what it actually does."
-      },
-      "notes": {
-        "title": "Notes",
-        "help": "Optional. Anything the jury or an appeal would need to understand your reasoning.",
-        "placeholder": "Optional note"
-      }
-    },
-    "action": {
-      "continue": "Continue to the policy step",
-      "back": "Back to the description",
-      "submit": "Submit review",
-      "recuse": "Step back from this case",
-      "recuseNote": "Stepping back is never counted against you and needs no justification. The case is redrawn to someone else."
-    },
-    "sensitive": {
-      "title": "Sensitive material, hidden",
-      "body": "This is not loaded until you ask for it.",
-      "reveal": "Show this material",
-      "hide": "Hide it again",
-      "noConsent": "You have not consented to sensitive material in this category, so it will not be shown. You can consent under Wellbeing, or step back from this case."
-    },
-    "resource": {
-      "unresolved": "This item could not be loaded.",
-      "imageAlt": "Reported image",
-      "linkLabel": "Reported link",
-      "linkNotOpened": "Shown as text and not opened: following it from here would tell the site who you are and load whatever it chose to serve.",
-      "unsupported": "This build cannot display a {{kind}} item. If you cannot judge the case without it, answer that context is insufficient, or step back from the case.",
-      "kind": {
-        "text": "text",
-        "image": "image",
-        "video": "video",
-        "audio": "audio",
-        "link": "link",
-        "file": "file"
-      }
-    },
-    "submitted": {
-      "title": "Review submitted",
-      "body": "Your review is in and the case has left this device. You will not be told how the rest of the jury voted; if the decision becomes disclosable to you, it will appear in your History.",
-      "action": "Back to review"
-    }
-  },
-  "descriptor": {
-    "insults_or_slurs": "Insults or slurs",
-    "threat_of_violence": "A threat of violence",
-    "sexual_content": "Sexual content",
-    "nudity": "Nudity",
-    "graphic_injury": "Graphic injury or death",
-    "self_harm": "Self-harm",
-    "minor_appears_present": "Someone who appears to be a minor",
-    "personal_information": "Someone's personal information",
-    "impersonation_claim": "An attempt to pass as someone else",
-    "commercial_promotion": "Commercial promotion",
-    "contested_factual_claim": "A factual claim that is contested",
-    "nothing_notable": "None of the above"
-  },
   "missingContext": {
+    "author_intent": "What the person meant by it",
+    "local_cultural_context": "Local or cultural context",
     "none": "Nothing — I can see what I need",
     "preceding_conversation": "What came before this",
-    "author_intent": "What the person meant by it",
-    "translation": "A translation I can trust",
     "source_or_provenance": "Where this came from",
-    "local_cultural_context": "Local or cultural context"
+    "translation": "A translation I can trust"
   },
-  "certainty": {
-    "low": "Not very",
-    "medium": "Reasonably",
-    "high": "Very"
+  "notFound": {
+    "action": "Go home",
+    "body": "Nothing lives at that address. Cases are never reachable by URL — the server assigns one when you ask for it.",
+    "heading": "Not found",
+    "title": "This page does not exist."
+  },
+  "onboarding": {
+    "action": "Save and start calibrating",
+    "age": {
+      "confirm": "I am old enough for the categories I am choosing.",
+      "help": "Some categories are restricted by age. This is a declaration, and the server checks it against your Oxy account.",
+      "title": "Age"
+    },
+    "categories": {
+      "help": "You are only drawn for the categories you take, and you can change this at any time.",
+      "specialistNote": "Child safety is not offered here. It is reviewed only by trained specialists.",
+      "title": "Categories you are willing to review"
+    },
+    "languages": {
+      "help": "Only pick languages you read well enough to judge intent, sarcasm and idiom. Getting this wrong is the most common way a review goes bad.",
+      "title": "Languages you can review in"
+    },
+    "rule": {
+      "blind": "You will not be told who reported the material, who made it, how many reports it has, or how anyone else on the jury voted.",
+      "confidential": "What you see in a case stays in the case. Do not save it, quote it or describe it elsewhere.",
+      "noChoosing": "You never choose the case you review. There is no queue to browse and no link to a case.",
+      "noSharing": "Do not try to identify anyone involved, and do not discuss an open case with anyone.",
+      "oneVote": "One qualified person, one vote. Your reliability affects how often you are drawn, never how much your vote weighs.",
+      "recusalFree": "You can hand a case back at any time. It is never counted against you."
+    },
+    "rules": {
+      "accept": "I have read these and I agree to them.",
+      "help": "These are not house style. They are what makes the result worth anything.",
+      "title": "The rules you are agreeing to"
+    },
+    "sensitive": {
+      "consentHelp": "I consent to being shown sensitive material in this category.",
+      "help": "Some categories routinely involve material that is distressing to look at. Nothing sensitive is ever shown without you asking for it, and only in a category you have consented to.",
+      "needsCategory": "Take this category above to consent to its sensitive material.",
+      "revocable": "You can withdraw any of this at any time, from the Wellbeing screen, without giving a reason.",
+      "title": "Sensitive material"
+    },
+    "subtitle": "The rules, your consent, and what you are willing to look at.",
+    "title": "Before you review anything",
+    "what": {
+      "body": "Applications send reports here. Cases are drawn to small juries of ordinary people, reviewed blind, and decided by consensus. A report is not a verdict, and a verdict is not a punishment — the application decides what to do with the finding.",
+      "title": "What this is"
+    }
   },
   "outcome": {
-    "violation": "It breaks the policy",
-    "violation.help": "You are confident this material breaks a specific rule you can name.",
-    "no_violation": "It does not break the policy",
-    "no_violation.help": "You are confident it does not break the policy you were given.",
+    "content_unavailable": "The material is missing or broken",
+    "content_unavailable.help": "The evidence needed is not there, or did not load.",
     "insufficient_context": "I cannot tell without more",
     "insufficient_context.help": "Not a no. The case needs more material or context before anyone can decide.",
-    "content_unavailable": "The material is missing or broken",
-    "content_unavailable.help": "The evidence needed is not there, or did not load."
-  },
-  "contextSufficiency": {
-    "sufficient": "Yes, there was enough",
-    "insufficient": "No, I was working with gaps"
-  },
-  "severity": {
-    "low": "Low",
-    "medium": "Medium",
-    "high": "High",
-    "critical": "Critical"
-  },
-  "action": {
-    "no_action": "No action",
-    "add_warning_label": "Add a warning",
-    "restrict_visibility": "Restrict who can see it",
-    "remove_or_restrict": "Remove or restrict it",
-    "escalate_to_specialist": "Send to a specialist"
-  },
-  "recuse": {
-    "title": "Step back from this case",
-    "subtitle": "The case is redrawn to somebody else.",
-    "reassurance": "This is not a failure and it is not recorded as one. Handing back a case you should not judge is the right call, and it costs you nothing.",
-    "reason": {
-      "title": "Why?",
-      "help": "The reason decides how the case is redrawn — for language, for a conflict, or for exposure. It is not an assessment of you."
-    },
-    "notes": {
-      "title": "Anything to add?",
-      "help": "Optional. You do not have to explain yourself.",
-      "placeholder": "Optional note"
-    },
-    "action": "Step back",
-    "cancel": "Return to the case",
-    "done": {
-      "title": "You stepped back",
-      "body": "The case has been handed back and will be redrawn to somebody else. Nothing about this counts against you.",
-      "action": "Back to review"
-    }
+    "no_violation": "It does not break the policy",
+    "no_violation.help": "You are confident it does not break the policy you were given.",
+    "violation": "It breaks the policy",
+    "violation.help": "You are confident this material breaks a specific rule you can name."
   },
   "recusalReason": {
     "conflict_of_interest": "I know someone involved",
     "conflict_of_interest.help": "Or I have some other reason to be partial here.",
+    "insufficient_context": "I do not have the context this needs",
+    "insufficient_context.help": "Local, cultural or situational knowledge somebody else will have.",
     "language": "I do not read this language well enough",
     "language.help": "Well enough to judge intent, sarcasm and idiom.",
     "too_sensitive": "I do not want to look at this",
     "too_sensitive.help": "No explanation needed, now or later.",
-    "insufficient_context": "I do not have the context this needs",
-    "insufficient_context.help": "Local, cultural or situational knowledge somebody else will have.",
     "unavailable": "I cannot finish this now",
     "unavailable.help": "Better handed back than left to expire."
   },
+  "recuse": {
+    "action": "Step back",
+    "cancel": "Return to the case",
+    "done": {
+      "action": "Back to review",
+      "body": "The case has been handed back and will be redrawn to somebody else. Nothing about this counts against you.",
+      "title": "You stepped back"
+    },
+    "notes": {
+      "help": "Optional. You do not have to explain yourself.",
+      "placeholder": "Optional note",
+      "title": "Anything to add?"
+    },
+    "reason": {
+      "help": "The reason decides how the case is redrawn — for language, for a conflict, or for exposure. It is not an assessment of you.",
+      "title": "Why?"
+    },
+    "reassurance": "This is not a failure and it is not recorded as one. Handing back a case you should not judge is the right call, and it costs you nothing.",
+    "subtitle": "The case is redrawn to somebody else.",
+    "title": "Step back from this case"
+  },
+  "relation": {
+    "authored_by": "was written by",
+    "contains": "contains",
+    "contextualizes": "gives context to",
+    "has_attachment": "has as an attachment",
+    "previous_version": "is a previous version of",
+    "quotes": "quotes",
+    "refers_to": "refers to",
+    "replies_to": "replies to"
+  },
+  "reliability": {
+    "eligibility": {
+      "help": "All of these must hold at the moment a jury is drawn.",
+      "met": "Met — {{requirement}}",
+      "title": "Eligibility",
+      "unmet": "Not met — {{requirement}}"
+    },
+    "exposure": {
+      "break": "A break is in progress until {{time}}.",
+      "completed": "{{count}} reviews completed in total.",
+      "help": "Limits exist so that reviewing stays something you can keep doing.",
+      "open": "{{open}} of {{limit}} cases open at once.",
+      "title": "Exposure"
+    },
+    "standings": {
+      "empty": "No figures yet. They start once you have reviewed real cases.",
+      "emptyHelp": "Figures start once you have reviewed real cases in a category and language.",
+      "help": "Reliability affects how often you are drawn and which cases you reach. It never makes your vote count for more than one.",
+      "row": "{{reliability}}% reliability",
+      "specialist": "You are a recognised specialist in this category.",
+      "title": "By category"
+    },
+    "state": {
+      "title": "Your reviewing state"
+    },
+    "subtitle": "Your own figures. Nobody else's, and nobody else sees yours.",
+    "title": "Reliability"
+  },
+  "review": {
+    "action": {
+      "back": "Back to the description",
+      "continue": "Continue to the policy step",
+      "recuse": "Step back from this case",
+      "recuseNote": "Stepping back is never counted against you and needs no justification. The case is redrawn to someone else.",
+      "submit": "Submit review"
+    },
+    "context": {
+      "help": "Only what is needed to judge the material.",
+      "relation": "{{from}} {{relation}} {{to}}",
+      "title": "Context"
+    },
+    "hidden": {
+      "body": "How many reports this has, who reported it, who made it, anyone's reputation, who else is on this jury, and how any of them voted. None of it reaches this screen, and none of it should change what you see in the material.",
+      "title": "What you are not being shown"
+    },
+    "material": {
+      "expires": "This assignment expires at {{time}}.",
+      "redacted": "Parts of this material were redacted before it reached you.",
+      "title": "The material"
+    },
+    "noCase": {
+      "action": "Back to review",
+      "body": "A case is held in memory for one sitting only, so reloading the page ends it. Ask for another when you are ready.",
+      "title": "No case is open"
+    },
+    "resource": {
+      "coarseLocation": "Approximate location: {{latitude}}, {{longitude}}",
+      "conversation": "A conversation of {{count}} messages, shown as the individual messages below.",
+      "imageAlt": "Reported image",
+      "kind": {
+        "audio": "audio",
+        "conversation": "conversation",
+        "custom": "custom item",
+        "document": "document",
+        "image": "image",
+        "link": "link",
+        "listing": "listing",
+        "location": "location",
+        "metadata": "metadata",
+        "profile": "profile",
+        "text": "text",
+        "video": "video"
+      },
+      "linkLabel": "Reported link",
+      "linkNotOpened": "Shown as text and not opened: following it from here would tell the site who you are and load whatever it chose to serve.",
+      "listingPrice": "Listed at {{price}} {{currency}}",
+      "unavailable": "This item exists but cannot be shown here. \"The content is unavailable\" is a valid outcome.",
+      "unresolved": "This item could not be loaded.",
+      "unsupported": "This build cannot display a {{kind}} item. If you cannot judge the case without it, answer that context is insufficient, or step back from the case."
+    },
+    "sensitive": {
+      "body": "This is not loaded until you ask for it.",
+      "hide": "Hide it again",
+      "noConsent": "You have not consented to sensitive material in this category, so it will not be shown. You can consent under Wellbeing, or step back from this case.",
+      "reveal": "Show this material",
+      "title": "Sensitive material, hidden"
+    },
+    "step1": {
+      "certainty": {
+        "help": "About the description only, not about any verdict.",
+        "title": "How certain are you about that description?"
+      },
+      "contains": {
+        "help": "Describe what is actually there, in your own reading. Do not decide yet whether it breaks anything.",
+        "title": "What does this material contain?"
+      },
+      "label": "Step 1 of 2 · Describe",
+      "missing": {
+        "help": "Say what you would need to be sure. Answering honestly here is worth more than a confident guess.",
+        "title": "What context is missing?"
+      },
+      "resources": {
+        "empty": "This case has no attached material.",
+        "help": "Pick the items your description is about.",
+        "item": "Item {{index}} · {{kind}}",
+        "title": "Which part does that apply to?"
+      }
+    },
+    "step2": {
+      "actions": {
+        "help": "A recommendation to the application. The application decides what it actually does.",
+        "title": "Recommended action"
+      },
+      "allegation": {
+        "help": "This is what the person who reported it claimed. It is a claim, not a finding, and it is shown only now — after you described the material — so that it did not steer the description.",
+        "title": "The unverified allegation",
+        "unverified": "Unverified claim"
+      },
+      "context": {
+        "title": "Was there enough context to decide?"
+      },
+      "exceptions": {},
+      "findings": {
+        "code": "Taxonomy code: {{code}}",
+        "confidence": "Confidence",
+        "confidenceOption": "{{label}} ({{value}})",
+        "exception": "Exception",
+        "help": "Name the specific rules you think are broken. Leave this empty if none are.",
+        "noException": "No exception applies",
+        "severity": "Severity",
+        "title": "Findings"
+      },
+      "label": "Step 2 of 2 · Evaluate",
+      "notes": {
+        "help": "Optional. Anything the jury or an appeal would need to understand your reasoning.",
+        "placeholder": "Optional note",
+        "title": "Notes"
+      },
+      "outcome": {
+        "help": "Judge the material against this policy, not against how you feel about the allegation.",
+        "title": "Your outcome"
+      },
+      "policy": {
+        "title": "The applicable policy",
+        "version": "{{policySet}} · version {{version}}"
+      }
+    },
+    "submitted": {
+      "action": "Back to review",
+      "body": "Your review is in and the case has left this device. You will not be told how the rest of the jury voted; if the decision becomes disclosable to you, it will appear in your History.",
+      "title": "Review submitted"
+    },
+    "subtitle": "{{category}} · {{language}}",
+    "subtitleNoLanguage": "{{category}} · language not declared",
+    "title": "Case review",
+    "watermark": {
+      "note": "This material carries a mark tied to your assignment. Screenshots cannot be prevented on every device and we are not claiming otherwise — the mark exists so that a leak can be traced."
+    }
+  },
+  "reviewerState": {
+    "appeals": "Appeals reviewer. You can sit on appeal juries, never on one you already judged.",
+    "applicant": "Applicant. Finish the rules, consent and preferences to start calibrating.",
+    "calibrating": "Calibrating. You receive training and gold cases; your answers do not decide real cases yet.",
+    "community": "Community reviewer. You are entered into standard draws for the categories you accepted.",
+    "specialist": "Category specialist. You review specific categories, escalations and some disagreements.",
+    "suspended": "Suspended. You are not entered into draws until this is resolved or you recalibrate.",
+    "trusted": "Trusted reviewer. You reach more complex cases and are drawn more often."
+  },
+  "rightBar": {
+    "cookies": "Cookies",
+    "principles": {
+      "assigned": "You never choose a case. The server draws one that matches your categories, languages and consent.",
+      "blind": "You never see who reported the material, who wrote it, who else is reviewing it, or how anyone has voted.",
+      "recusal": "Stepping back from a case costs you nothing. It is never held against you.",
+      "title": "How review works"
+    },
+    "privacy": "Privacy",
+    "reputation": {
+      "help": "Reputation affects how often you are drawn for a case. It never makes your vote count for more than one.",
+      "none": "Nothing recorded yet. Reputation is earned by reviewing, and it is only ever yours to see.",
+      "points": "points",
+      "tier": "Trust tier: {{tier}}",
+      "title": "Your reputation"
+    },
+    "support": {
+      "action": "Go to wellbeing",
+      "body": "Change what you are shown, take a break, or stop for the day. None of it needs a reason.",
+      "title": "Looking after yourself"
+    },
+    "terms": "Terms"
+  },
+  "sensitivity": {
+    "restricted": "Restricted material. Take a break afterwards if you need one.",
+    "sensitive": "Sensitive material. You consented to this category.",
+    "standard": "Standard material."
+  },
+  "severity": {
+    "critical": "Critical",
+    "high": "High",
+    "low": "Low",
+    "medium": "Medium"
+  },
+  "shell": {
+    "closeMenu": "Close the menu",
+    "openMenu": "Open the menu"
+  },
+  "sidebar": {
+    "history": "History",
+    "home": "Review",
+    "reliability": "Reliability",
+    "training": "Training",
+    "wellbeing": "Wellbeing"
+  },
+  "signIn": {
+    "action": "Sign in with Oxy",
+    "tagline": "Community review of reported content, one case at a time.",
+    "unconfigured": "Sign-in is unavailable: no Oxy client has been registered for this app yet."
+  },
+  "state": {
+    "error": {
+      "body": "The request failed. Nothing was submitted.",
+      "title": "That did not work"
+    },
+    "loading": "Loading…",
+    "notHeld": {
+      "body": "Assignments expire, and an expired one is redrawn to somebody else so the case is not left waiting. Nothing was lost and nothing counts against you.",
+      "title": "This case is no longer assigned to you"
+    },
+    "unavailable": {
+      "body": "The screen is finished; the endpoint it reads from has not been deployed. Nothing is being hidden from you, and no sample data is being shown in its place.",
+      "endpointLabel": "Waiting on",
+      "title": "This part of the service is not running yet"
+    },
+    "unreachable": {
+      "body": "No response from {{origin}}. This is usually a connection problem rather than a fault in the review service.",
+      "title": "The service could not be reached"
+    }
+  },
+  "training": {
+    "calibration": {
+      "action": "Ask for a case",
+      "attempts": "Attempts so far: {{count}}.",
+      "currentUntil": "Calibration is current until {{date}}.",
+      "form": {
+        "failed": "Not passed: {{score}}%.",
+        "help": "Judge each one as you would a real case. Nothing here decides anything for anyone.",
+        "noViolation": "No",
+        "passed": "Passed with {{score}}%.",
+        "question": "Does this break the policy?",
+        "retryNote": "Being wrong here costs you nothing. You can try again as many times as you need.",
+        "submit": "Submit calibration",
+        "title": "Calibration questions",
+        "violation": "Yes",
+        "wasIncorrect": "This one was not the expected answer."
+      },
+      "goldNote": "Calibration cases arrive through the same door as real ones and look identical. That is deliberate: it is the only way the figure means anything.",
+      "locked": "Calibration opens once every module is completed.",
+      "notCalibrated": "You are not calibrated yet.",
+      "open": "Calibration is open. {{score}}% is a pass.",
+      "title": "Calibration"
+    },
+    "modules": {
+      "complete": "Mark as completed",
+      "completed": "Completed.",
+      "empty": "No modules yet.",
+      "emptyHelp": "Modules are published per category. One will appear here when a category you work in has one.",
+      "help": "Guides and examples for each category you review.",
+      "title": "Modules"
+    },
+    "subtitle": "Guides, calibration, and where you are in it.",
+    "title": "Training"
+  },
   "trustTier": {
-    "new": "New",
-    "trusted": "Trusted",
     "high_trust": "High trust",
-    "verified": "Verified",
-    "restricted": "Restricted"
+    "new": "New",
+    "restricted": "Restricted",
+    "trusted": "Trusted",
+    "verified": "Verified"
+  },
+  "wellbeing": {
+    "availability": {
+      "help": "Turning this off takes you out of every draw. Nothing is held against you for it.",
+      "off": "You are not being drawn for any case.",
+      "on": "You are available for assignments.",
+      "title": "Assignments"
+    },
+    "categories": {
+      "help": "Remove a category and you stop being drawn for it, starting with the next draw.",
+      "title": "Categories"
+    },
+    "consent": {
+      "help": "Consent is per category and you can withdraw it at any time, without giving a reason.",
+      "revocable": "Consented. Untick to withdraw.",
+      "title": "Sensitive material"
+    },
+    "exit": {
+      "action": "Stop showing this case",
+      "body": "This removes the open case from this device immediately. It does not wait for the network.",
+      "note": "This is not a recusal — the case stays yours until it expires. To hand it back, use \"Step back from this case\" on the review screen.",
+      "title": "Take the case off the screen"
+    },
+    "languages": {
+      "help": "Only the languages you read well enough to judge intent and idiom.",
+      "title": "Languages"
+    },
+    "limit": {
+      "help": "The most reviews you want to be asked for in a day.",
+      "option": "{{limit}} per day",
+      "title": "Daily limit"
+    },
+    "save": "Save preferences",
+    "saved": "Preferences saved.",
+    "subtitle": "What you see, how much of it, and how to stop.",
+    "support": {
+      "body": "No support resources or incident channel have been configured for this deployment yet. Until they are, report anything unexpected or distressing through your usual Oxy support route.",
+      "title": "Support"
+    },
+    "title": "Wellbeing"
   }
 }

@@ -11,7 +11,7 @@
  * server-side, which is the only place that matters.
  */
 
-import type { ReviewerProfile } from '@/lib/reviewer-api/types';
+import type { ReviewerProfileView } from '@oxyhq/crowdsource-contracts';
 
 export type AssignmentBlocker =
   | 'onboarding_incomplete'
@@ -19,13 +19,14 @@ export type AssignmentBlocker =
   | 'eligibility_unmet'
   | 'paused_by_reviewer'
   | 'daily_limit_reached'
-  | 'break_required';
+  | 'open_assignment_limit'
+  | 'sensitive_break_required';
 
 /**
  * Every reason this reviewer cannot be assigned a case right now, in the order
  * they should be addressed. Empty means they can ask for one.
  */
-export function assignmentBlockers(profile: ReviewerProfile, now: Date): AssignmentBlocker[] {
+export function assignmentBlockers(profile: ReviewerProfileView, now: Date): AssignmentBlocker[] {
   const blockers: AssignmentBlocker[] = [];
 
   if (profile.state === 'applicant' || profile.consent.rulesAcceptedAt === null) {
@@ -43,9 +44,18 @@ export function assignmentBlockers(profile: ReviewerProfile, now: Date): Assignm
   if (profile.exposure.reviewedToday >= profile.exposure.dailyLimit) {
     blockers.push('daily_limit_reached');
   }
+  if (profile.exposure.openAssignments >= profile.exposure.maxOpenAssignments) {
+    blockers.push('open_assignment_limit');
+  }
+  /**
+   * §13.7's rest applies to the SENSITIVE route only — somebody who has just
+   * worked through several distressing cases can still judge a spam report — so
+   * this is named for what it is rather than being presented as a block on
+   * everything. The server will still draw them for standard material.
+   */
   const breakUntil = profile.exposure.breakRequiredUntil;
   if (breakUntil !== null && new Date(breakUntil).getTime() > now.getTime()) {
-    blockers.push('break_required');
+    blockers.push('sensitive_break_required');
   }
 
   return blockers;

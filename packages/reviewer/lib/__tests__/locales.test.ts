@@ -7,6 +7,12 @@
  * everybody works around, so it is checked here instead.
  */
 
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { FINDING_CONTEXTS, RECOMMENDED_ACTIONS, RELATION_TYPES, RESOURCE_TYPES, REVIEWER_ELIGIBILITY_REQUIREMENTS, REVIEWER_SENSITIVITY_CLASSES, REVIEWER_STATES, TAXONOMY_FAMILIES } from '@oxyhq/crowdsource-contracts';
+
+import { REVIEWER_RECOMMENDED_ACTIONS } from '@/lib/review-form';
 import en from '@/locales/en.json';
 import esES from '@/locales/es.json';
 import itIT from '@/locales/it.json';
@@ -63,4 +69,97 @@ describe('locales', () => {
       expect(mismatches).toEqual([]);
     });
   }
+});
+
+/**
+ * Every key a screen ASKS for must exist.
+ *
+ * Parity between the three files says nothing about whether any of them answers
+ * the app: a key nobody translated and a key nobody uses look identical from
+ * inside the locale data. i18next renders the key itself when it misses, so the
+ * failure is a reviewer reading `review.step2.findings.severity` in the middle of
+ * a form about violent material — the kind nobody reports and everybody works
+ * around.
+ *
+ * This is the check whose absence let twenty-five dead keys and seventy missing
+ * ones accumulate at once while the parity tests stayed green.
+ */
+describe('every key the app uses exists in en-US', () => {
+  const PACKAGE_ROOT = join(__dirname, '..', '..');
+  const SCANNED_DIRECTORIES = ['app', 'components', 'lib'];
+
+  /** Every `.ts`/`.tsx` file under the scanned directories, tests excluded. */
+  function sources(directory: string): string[] {
+    return readdirSync(directory).flatMap((entry) => {
+      const path = join(directory, entry);
+      if (statSync(path).isDirectory()) {
+        return entry === '__tests__' ? [] : sources(path);
+      }
+      return /\.tsx?$/.test(entry) ? [path] : [];
+    });
+  }
+
+  const files = SCANNED_DIRECTORIES.flatMap((directory) => sources(join(PACKAGE_ROOT, directory)));
+
+  it('scanned a plausible number of files', () => {
+    // Vacuity floor: a traversal that returned nothing would make the assertion
+    // below pass by having no keys to check.
+    expect(files.length).toBeGreaterThan(20);
+  });
+
+  /**
+   * Literal `t('…')` keys only.
+   *
+   * A template key — `` t(`category.${family}`) `` — cannot be resolved by reading
+   * the source, so those families are covered by the exhaustive blocks below
+   * instead. Every literal is resolvable and is therefore checked.
+   */
+  const literalKeys = [
+    ...new Set(
+      files.flatMap((file) =>
+        [...readFileSync(file, 'utf8').matchAll(/\bt\(\s*'([a-zA-Z][\w.]*)'/g)].map(
+          (match) => match[1],
+        ),
+      ),
+    ),
+  ].sort();
+
+  it('found the literal keys the screens use', () => {
+    expect(literalKeys.length).toBeGreaterThan(100);
+  });
+
+  it('resolves every literal key', () => {
+    const missing = literalKeys.filter((key) => valueAt(BASE, key) === '');
+    expect(missing).toEqual([]);
+  });
+
+  /**
+   * The template keys, one exhaustive block per vocabulary.
+   *
+   * These are the ones a source scan cannot see, and they are exactly the ones a
+   * contract change breaks: a family, a state or a resource type added upstream
+   * needs a label here, and without this it would render as its own identifier.
+   */
+  it.each([
+    ['category', TAXONOMY_FAMILIES],
+    ['reviewerState', REVIEWER_STATES],
+    ['eligibility', REVIEWER_ELIGIBILITY_REQUIREMENTS],
+    ['sensitivity', REVIEWER_SENSITIVITY_CLASSES],
+    ['findingContext', FINDING_CONTEXTS],
+    ['relation', RELATION_TYPES],
+    ['review.resource.kind', RESOURCE_TYPES],
+  ])('has a %s label for every value the contract defines', (prefix, values) => {
+    expect(values.length).toBeGreaterThan(2);
+    const missing = values.filter((value) => valueAt(BASE, `${prefix}.${value}`) === '');
+    expect(missing).toEqual([]);
+  });
+
+  it('has an action label for every action a reviewer may recommend', () => {
+    // The five-token subset, not all twenty-two: the rest belong to consensus and
+    // the Trust & Safety console, and a juror never sees them.
+    const offered = REVIEWER_RECOMMENDED_ACTIONS;
+    expect(offered.length).toBeGreaterThan(2);
+    expect(offered.every((action) => RECOMMENDED_ACTIONS.includes(action))).toBe(true);
+    expect(offered.filter((action) => valueAt(BASE, `action.${action}`) === '')).toEqual([]);
+  });
 });

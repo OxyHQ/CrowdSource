@@ -16,20 +16,27 @@ import {
   type ReviewFormAction,
   type ReviewFormState,
 } from '@/lib/review-form';
-import type { PolicyRule } from '@/lib/reviewer-api/types';
+import type { PolicyRule } from '@oxyhq/crowdsource-contracts';
 
+/**
+ * The published `PolicyRule` shape: `description`, and `taxonomyCodes` PLURAL.
+ *
+ * The app used to expect `text` and a singular `taxonomyCode`, neither of which
+ * the contract has ever had — so every rule rendered blank and every finding was
+ * built from `undefined`.
+ */
 const RULES: PolicyRule[] = [
   {
-    id: 'rule_1',
+    id: 'mention.harassment.2',
     title: 'Targeted abuse',
-    text: 'Do not target a person with abuse.',
-    taxonomyCode: 'harassment.targeted_abuse',
+    description: 'Do not target a person with abuse.',
+    taxonomyCodes: ['harassment.targeted_abuse'],
   },
   {
-    id: 'rule_2',
+    id: 'mention.hate.1',
     title: 'Slurs',
-    text: 'Do not use slurs.',
-    taxonomyCode: 'hate.slur',
+    description: 'Do not use slurs.',
+    taxonomyCodes: ['hate.slur'],
   },
 ];
 
@@ -60,7 +67,6 @@ describe('createInitialReviewFormState', () => {
     expect(state.outcome).toBeNull();
     expect(state.contextSufficiency).toBeNull();
     expect(state.findings).toEqual([]);
-    expect(state.appliedExceptionIds).toEqual([]);
     expect(state.recommendedActions).toEqual([]);
     expect(state.notes).toBe('');
   });
@@ -165,33 +171,92 @@ describe('buildReviewSubmission', () => {
       { type: 'advance' },
       { type: 'setOutcome', outcome: 'violation' },
       { type: 'setContextSufficiency', sufficiency: 'sufficient' },
-      { type: 'toggleFinding', ruleId: 'rule_2' },
-      { type: 'setFindingSeverity', ruleId: 'rule_2', severity: 'high' },
-      { type: 'setFindingConfidence', ruleId: 'rule_2', confidence: 'high' },
-      { type: 'toggleException', exceptionId: 'exc_1' },
+      { type: 'toggleFinding', ruleId: 'mention.hate.1' },
+      { type: 'setFindingSeverity', ruleId: 'mention.hate.1', severity: 'high' },
+      { type: 'setFindingConfidence', ruleId: 'mention.hate.1', confidence: 'high' },
+      { type: 'setFindingException', ruleId: 'mention.hate.1', exception: 'documentary' },
       { type: 'toggleAction', action: 'remove_or_restrict' },
       { type: 'setNotes', notes: '  a note  ' },
     );
 
     const submission = buildReviewSubmission(state, RULES);
     expect(submission).not.toBeNull();
+    // §6.2 puts the exception BESIDE the code and severity as `context`, not in a
+    // form-level `appliedExceptionIds` list — which `ReviewSubmissionSchema` is
+    // strict about and has never accepted.
     expect(submission?.findings).toEqual([
       {
         code: 'hate.slur',
         resourceIds: ['res_1'],
         severity: 'high',
         confidence: FINDING_CONFIDENCE.high,
-        policyRuleIds: ['rule_2'],
+        policyRuleIds: ['mention.hate.1'],
+        context: 'documentary',
       },
     ]);
-    expect(submission?.descriptive).toEqual({
-      contentDescriptors: ['insults_or_slurs'],
-      affectedResourceIds: ['res_1'],
-      missingContext: ['none'],
-      certainty: 'high',
-    });
-    expect(submission?.appliedExceptionIds).toEqual(['exc_1']);
     expect(submission?.notes).toBe('a note');
+  });
+
+  it('sends nothing the strict submission contract would refuse', () => {
+    /**
+     * The whole submit path used to be a `400`: the body carried a `descriptive`
+     * branch and an `appliedExceptionIds` list, and `ReviewSubmissionSchema` is
+     * `.strict()`. Asserting the KEY SET rather than the absence of two names is
+     * what keeps a third invented field from slipping back in.
+     */
+    const state = apply(
+      describedState(),
+      { type: 'advance' },
+      { type: 'setOutcome', outcome: 'no_violation' },
+      { type: 'setContextSufficiency', sufficiency: 'sufficient' },
+      { type: 'toggleAction', action: 'no_action' },
+    );
+    const submission = buildReviewSubmission(state, RULES);
+    expect(submission).not.toBeNull();
+    expect(Object.keys(submission ?? {}).sort()).toEqual(
+      ['contextSufficiency', 'findings', 'outcome', 'recommendedActions'].sort(),
+    );
+  });
+
+  it('seeds a finding’s confidence from step 1’s certainty', () => {
+    // §9.2's step 1 asks how sure the reviewer is of what they are looking at.
+    // Defaulting the finding to `medium` regardless would discard that answer.
+    const state = apply(
+      apply(
+        createInitialReviewFormState(),
+        { type: 'toggleDescriptor', descriptor: 'insults_or_slurs' },
+        { type: 'toggleResource', resourceId: 'res_1' },
+        { type: 'toggleMissingContext', code: 'none' },
+        { type: 'setCertainty', certainty: 'low' },
+      ),
+      { type: 'advance' },
+      { type: 'toggleFinding', ruleId: 'mention.hate.1' },
+    );
+    expect(state.findings[0]?.confidence).toBe('low');
+  });
+
+  it('refuses a submission whose findings name no resource', () => {
+    /**
+     * `ReviewFindingSchema` requires a non-empty `resourceIds` because §9.4 makes
+     * the affected resource one of the dimensions consensus is measured on. Caught
+     * here so the reviewer meets a disabled button rather than a `400` after
+     * writing the whole thing.
+     */
+    const state = apply(
+      apply(
+        createInitialReviewFormState(),
+        { type: 'toggleDescriptor', descriptor: 'insults_or_slurs' },
+        { type: 'toggleMissingContext', code: 'none' },
+        { type: 'setCertainty', certainty: 'high' },
+      ),
+      { type: 'advance' },
+      { type: 'setOutcome', outcome: 'violation' },
+      { type: 'setContextSufficiency', sufficiency: 'sufficient' },
+      { type: 'toggleFinding', ruleId: 'mention.hate.1' },
+      { type: 'toggleAction', action: 'remove_or_restrict' },
+    );
+    expect(isPolicyComplete(state)).toBe(false);
+    expect(buildReviewSubmission(state, RULES)).toBeNull();
   });
 
   it('drops a finding whose rule is no longer in the policy rather than inventing a code', () => {
@@ -200,8 +265,8 @@ describe('buildReviewSubmission', () => {
       { type: 'advance' },
       { type: 'setOutcome', outcome: 'violation' },
       { type: 'setContextSufficiency', sufficiency: 'sufficient' },
-      { type: 'toggleFinding', ruleId: 'rule_1' },
-      { type: 'toggleFinding', ruleId: 'rule_2' },
+      { type: 'toggleFinding', ruleId: 'mention.harassment.2' },
+      { type: 'toggleFinding', ruleId: 'mention.hate.1' },
       { type: 'toggleAction', action: 'remove_or_restrict' },
     );
     const submission = buildReviewSubmission(state, [RULES[0]]);

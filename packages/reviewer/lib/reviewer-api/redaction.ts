@@ -4,51 +4,49 @@
  * §9.1 is a table of what a reviewer may see and what they must never see. A
  * layout that happens not to render the forbidden fields is not enforcement: the
  * next screen, the next debugging session or the next `JSON.stringify` puts them
- * back. So the wire payload never enters app state as-is. It is PROJECTED onto
- * the app's own types, field by field, by the functions below — an allowlist, so
- * anything the server sends that is not on it is dropped by construction, not by
- * omission.
+ * back. So the wire payload never enters app state as-is. It goes through the
+ * contract's own schemas, which are `.strict()` at every level, and anything the
+ * server sends that is not on the contract stops here.
  *
  * Two layers, and they do different jobs:
  *
- *  1. `projectAssignmentPackage` builds the object explicitly. This is the
- *     enforcement. There is no path by which `reportCount` or `authorReputation`
- *     survives it, because nothing ever copies them.
+ *  1. The PARSE is the enforcement. `AssignmentPackageSchema` and its siblings
+ *     live in `@oxyhq/crowdsource-contracts` and describe exactly what §9.1
+ *     permits; a payload carrying `reportCount` or `authorReputation` is REFUSED
+ *     rather than trimmed, so there is no path by which one reaches a screen.
+ *     Refusing rather than trimming is the deliberate choice: a blank screen is a
+ *     bug somebody fixes today, and an author's reputation on screen is a bug
+ *     nobody notices.
  *  2. `scanForForbiddenFields` walks the RAW payload and reports the PATHS of any
- *     field the reviewer must not see. This is the alarm: a backend that starts
- *     sending juror identities is a contract breach that should be visible in
- *     development rather than silently absorbed. It reports paths only — never
- *     values — because those values are exactly the material that must not reach
- *     logs (AGENTS.md, PLAN §13.5).
+ *     field the reviewer must not see. This is the alarm, and it runs BEFORE the
+ *     parse so a breach is diagnosable rather than showing up as an opaque
+ *     validation failure. It reports paths only — never values — because those
+ *     values are exactly the material that must not reach logs (AGENTS.md,
+ *     PLAN §13.5).
+ *
+ * The types these functions return come from the contract too, so the backend's
+ * builders and these projections are pinned to one declaration: a renamed field
+ * is a compile error on both sides at once, which is the check whose absence let
+ * the two drift into disagreeing about nearly every shape on this surface.
  */
 
+import {
+  AssignmentPackageSchema,
+  IssuedAssignmentPackageSchema,
+  ReviewerCalibrationResultViewSchema,
+  ReviewerProfileViewSchema,
+  ReviewerTrainingViewSchema,
+  ReviewHistoryPageSchema,
+  type AssignmentPackage,
+  type IssuedAssignmentPackage,
+  type ReviewerCalibrationResultView,
+  type ReviewerProfileView,
+  type ReviewerTrainingView,
+  type ReviewHistoryPage,
+} from '@oxyhq/crowdsource-contracts';
+import type { z } from 'zod';
+
 import { MalformedPayloadError } from './errors';
-import type {
-  Allegation,
-  AssignmentPackage,
-  CategoryStanding,
-  CertaintyLevel,
-  ContextNote,
-  EligibilityRequirement,
-  EligibilityRequirementId,
-  ExposureState,
-  PolicyBrief,
-  PolicyException,
-  PolicyExample,
-  PolicyRule,
-  ReviewHistoryEntry,
-  ReviewHistoryPage,
-  ReviewOutcome,
-  ReviewResource,
-  ReviewResourceKind,
-  ReviewerConsent,
-  ReviewerPreferences,
-  ReviewerProfile,
-  ReviewerState,
-  SensitivityLevel,
-  TrainingModuleSummary,
-  TrainingState,
-} from './types';
 
 /**
  * Field names a reviewer must never receive, one group per row of the §9.1
@@ -58,6 +56,12 @@ import type {
  * `reportedAt` is not mistaken for a report COUNT and `authorized` is not
  * mistaken for an AUTHOR. A pattern that is too eager gets disabled by whoever
  * trips over it, which would cost the alarm entirely.
+ *
+ * `authorPrincipalRef` deliberately matches none of these. It is an
+ * envelope-scoped pseudonym that resolves to nothing outside one case, and which
+ * resources share an author is the context a harassment allegation cannot be
+ * judged without — §9.1 hides the author's IDENTITY and REPUTATION, and a
+ * per-envelope ref is neither.
  */
 export const FORBIDDEN_FIELD_PATTERNS: readonly RegExp[] = [
   // §9.1 "Número total de reportes"
@@ -126,338 +130,66 @@ export function scanForForbiddenFields(payload: unknown): string[] {
   return found;
 }
 
-// --- typed readers -----------------------------------------------------------
-// Deliberately small and explicit. Their only job is to make the projections
-// below total: every field is read by name, with a type check, or the payload is
-// rejected by path.
-
-function asRecord(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new MalformedPayloadError(path || '<root>', 'an object');
+/**
+ * Parses a payload against a contract schema, or throws a `MalformedPayloadError`
+ * naming the PATH that failed.
+ *
+ * The path and the expectation, never the value. A Zod issue on a reviewer
+ * payload points into case material — a reported text, a reviewer's own note —
+ * and this error is rendered on screen and may be logged, so the value must not
+ * travel with it (§13.5).
+ */
+function parseOrThrow<T>(schema: z.ZodType<T>, payload: unknown, subject: string): T {
+  const parsed = schema.safeParse(payload);
+  if (parsed.success) {
+    return parsed.data;
   }
-  return value as Record<string, unknown>;
-}
 
-function readString(source: Record<string, unknown>, key: string, path: string): string {
-  const value = source[key];
-  if (typeof value !== 'string') {
-    throw new MalformedPayloadError(`${path}.${key}`, 'a string');
-  }
-  return value;
-}
-
-function readOptionalString(source: Record<string, unknown>, key: string): string | undefined {
-  const value = source[key];
-  return typeof value === 'string' ? value : undefined;
-}
-
-function readNullableString(source: Record<string, unknown>, key: string): string | null {
-  const value = source[key];
-  return typeof value === 'string' ? value : null;
-}
-
-function readNumber(source: Record<string, unknown>, key: string, path: string): number {
-  const value = source[key];
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new MalformedPayloadError(`${path}.${key}`, 'a finite number');
-  }
-  return value;
-}
-
-function readBoolean(source: Record<string, unknown>, key: string): boolean {
-  return source[key] === true;
-}
-
-function readStringArray(source: Record<string, unknown>, key: string): string[] {
-  const value = source[key];
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter((item): item is string => typeof item === 'string');
-}
-
-function readArray<T>(
-  source: Record<string, unknown>,
-  key: string,
-  path: string,
-  project: (item: Record<string, unknown>, itemPath: string) => T,
-): T[] {
-  const value = source[key];
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.map((item, index) =>
-    project(asRecord(item, `${path}.${key}[${index}]`), `${path}.${key}[${index}]`),
-  );
-}
-
-function readEnum<T extends string>(
-  source: Record<string, unknown>,
-  key: string,
-  path: string,
-  allowed: readonly T[],
-): T {
-  const value = source[key];
-  if (typeof value !== 'string' || !allowed.includes(value as T)) {
-    throw new MalformedPayloadError(`${path}.${key}`, `one of ${allowed.join(' | ')}`);
-  }
-  return value as T;
-}
-
-// --- projections -------------------------------------------------------------
-
-const RESOURCE_KINDS: readonly ReviewResourceKind[] = [
-  'text',
-  'image',
-  'video',
-  'audio',
-  'link',
-  'file',
-];
-
-const SENSITIVITY_LEVELS: readonly SensitivityLevel[] = ['none', 'low', 'high', 'critical'];
-
-const REVIEWER_STATES: readonly ReviewerState[] = [
-  'applicant',
-  'calibrating',
-  'community_reviewer',
-  'trusted_reviewer',
-  'category_specialist',
-  'appeals_reviewer',
-  'suspended',
-];
-
-const ELIGIBILITY_IDS: readonly EligibilityRequirementId[] = [
-  'oxy_account',
-  'personhood',
-  'age',
-  'language_region',
-  'training_current',
-  'sensitive_consent',
-  'no_conflict',
-  'no_coordination_signals',
-  'no_prior_participation',
-  'exposure_headroom',
-];
-
-const REVIEW_OUTCOMES: readonly ReviewOutcome[] = [
-  'violation',
-  'no_violation',
-  'insufficient_context',
-  'content_unavailable',
-];
-
-export const CERTAINTY_LEVELS: readonly CertaintyLevel[] = ['low', 'medium', 'high'];
-
-function projectResource(source: Record<string, unknown>, path: string): ReviewResource {
-  return {
-    id: readString(source, 'id', path),
-    kind: readEnum(source, 'kind', path, RESOURCE_KINDS),
-    text: readOptionalString(source, 'text'),
-    fileId: readOptionalString(source, 'fileId'),
-    url: readOptionalString(source, 'url'),
-    mediaType: readOptionalString(source, 'mediaType'),
-    sensitive: readBoolean(source, 'sensitive'),
-    warnings: readStringArray(source, 'warnings'),
-  };
-}
-
-function projectContextNote(source: Record<string, unknown>, path: string): ContextNote {
-  return { id: readString(source, 'id', path), text: readString(source, 'text', path) };
-}
-
-function projectPolicyRule(source: Record<string, unknown>, path: string): PolicyRule {
-  return {
-    id: readString(source, 'id', path),
-    title: readString(source, 'title', path),
-    text: readString(source, 'text', path),
-    taxonomyCode: readString(source, 'taxonomyCode', path),
-  };
-}
-
-function projectPolicyException(source: Record<string, unknown>, path: string): PolicyException {
-  return {
-    id: readString(source, 'id', path),
-    title: readString(source, 'title', path),
-    text: readString(source, 'text', path),
-  };
-}
-
-function projectPolicyExample(source: Record<string, unknown>, path: string): PolicyExample {
-  return {
-    id: readString(source, 'id', path),
-    text: readString(source, 'text', path),
-    violating: readBoolean(source, 'violating'),
-  };
-}
-
-function projectPolicyBrief(source: Record<string, unknown>, path: string): PolicyBrief {
-  return {
-    policySetId: readString(source, 'policySetId', path),
-    policyVersion: readString(source, 'policyVersion', path),
-    rules: readArray(source, 'rules', path, projectPolicyRule),
-    examples: readArray(source, 'examples', path, projectPolicyExample),
-    exceptions: readArray(source, 'exceptions', path, projectPolicyException),
-  };
-}
-
-function projectAllegation(source: Record<string, unknown>, path: string): Allegation {
-  return {
-    code: readString(source, 'code', path),
-    statement: readOptionalString(source, 'statement'),
-  };
+  const issue = parsed.error.issues[0];
+  const path =
+    issue === undefined || issue.path.length === 0
+      ? subject
+      : `${subject}.${issue.path.join('.')}`;
+  throw new MalformedPayloadError(path, issue?.message ?? 'a value the contract allows');
 }
 
 /**
  * Builds the renderable assignment package from a raw response.
  *
- * Every field is named here. That is the point: adding a field to what a
- * reviewer can see requires editing this function, which is a reviewable change
- * against §9.1 — as opposed to a field appearing on screen because the server
- * started sending it.
+ * The schema names every field a reviewer may receive. That is the point: adding
+ * a field to what a reviewer can see requires editing the published contract,
+ * which is a reviewable change against §9.1 in one place — as opposed to a field
+ * appearing on screen because a server started sending it.
  */
 export function projectAssignmentPackage(payload: unknown): AssignmentPackage {
-  const source = asRecord(payload, '');
-  const path = 'assignment';
-  return {
-    assignmentId: readString(source, 'assignmentId', path),
-    expiresAt: readString(source, 'expiresAt', path),
-    caseRevision: readNumber(source, 'caseRevision', path),
-    language: readString(source, 'language', path),
-    category: readString(source, 'category', path),
-    sensitivity: readEnum(source, 'sensitivity', path, SENSITIVITY_LEVELS),
-    warnings: readStringArray(source, 'warnings'),
-    resources: readArray(source, 'resources', path, projectResource),
-    context: readArray(source, 'context', path, projectContextNote),
-    policy: projectPolicyBrief(asRecord(source.policy, `${path}.policy`), `${path}.policy`),
-    allegation: projectAllegation(
-      asRecord(source.allegation, `${path}.allegation`),
-      `${path}.allegation`,
-    ),
-    watermark: readNullableString(source, 'watermark'),
-  };
+  return parseOrThrow(AssignmentPackageSchema, payload, 'assignment');
 }
 
-function projectEligibility(
-  source: Record<string, unknown>,
-  path: string,
-): EligibilityRequirement {
-  return {
-    id: readEnum(source, 'id', path, ELIGIBILITY_IDS),
-    met: readBoolean(source, 'met'),
-    detail: readOptionalString(source, 'detail'),
-  };
+/**
+ * The same, for the one response that also carries the assignment token (§8.7).
+ *
+ * Separate from the above rather than optional on it, because the token arriving
+ * where it is not expected is a server behaving unexpectedly, and the token
+ * MISSING from `POST /assignments/next` means every later call on this assignment
+ * will 404 — a failure worth catching at the boundary rather than three screens
+ * later.
+ */
+export function projectIssuedAssignment(payload: unknown): IssuedAssignmentPackage {
+  return parseOrThrow(IssuedAssignmentPackageSchema, payload, 'assignment');
 }
 
-function projectStanding(source: Record<string, unknown>, path: string): CategoryStanding {
-  return {
-    category: readString(source, 'category', path),
-    language: readString(source, 'language', path),
-    reliability: readNumber(source, 'reliability', path),
-    reviewsCompleted: readNumber(source, 'reviewsCompleted', path),
-    calibrationCurrent: readBoolean(source, 'calibrationCurrent'),
-  };
+export function projectReviewerProfile(payload: unknown): ReviewerProfileView {
+  return parseOrThrow(ReviewerProfileViewSchema, payload, 'profile');
 }
 
-function projectPreferences(source: Record<string, unknown>, path: string): ReviewerPreferences {
-  return {
-    languages: readStringArray(source, 'languages'),
-    categories: readStringArray(source, 'categories'),
-    sensitiveCategories: readStringArray(source, 'sensitiveCategories'),
-    dailyLimit: readNumber(source, 'dailyLimit', path),
-    availableForAssignment: readBoolean(source, 'availableForAssignment'),
-  };
+export function projectTrainingState(payload: unknown): ReviewerTrainingView {
+  return parseOrThrow(ReviewerTrainingViewSchema, payload, 'training');
 }
 
-function projectConsent(source: Record<string, unknown>): ReviewerConsent {
-  return {
-    rulesAcceptedAt: readNullableString(source, 'rulesAcceptedAt'),
-    ageConfirmed: readBoolean(source, 'ageConfirmed'),
-    sensitiveCategories: readStringArray(source, 'sensitiveCategories'),
-  };
-}
-
-function projectExposure(source: Record<string, unknown>, path: string): ExposureState {
-  return {
-    reviewedToday: readNumber(source, 'reviewedToday', path),
-    dailyLimit: readNumber(source, 'dailyLimit', path),
-    breakRequiredUntil: readNullableString(source, 'breakRequiredUntil'),
-  };
-}
-
-export function projectReviewerProfile(payload: unknown): ReviewerProfile {
-  const source = asRecord(payload, '');
-  const path = 'profile';
-  return {
-    state: readEnum(source, 'state', path, REVIEWER_STATES),
-    eligibility: readArray(source, 'eligibility', path, projectEligibility),
-    standings: readArray(source, 'standings', path, projectStanding),
-    preferences: projectPreferences(
-      asRecord(source.preferences, `${path}.preferences`),
-      `${path}.preferences`,
-    ),
-    consent: projectConsent(asRecord(source.consent, `${path}.consent`)),
-    exposure: projectExposure(asRecord(source.exposure, `${path}.exposure`), `${path}.exposure`),
-  };
-}
-
-function projectTrainingModule(
-  source: Record<string, unknown>,
-  path: string,
-): TrainingModuleSummary {
-  return {
-    id: readString(source, 'id', path),
-    title: readString(source, 'title', path),
-    category: readString(source, 'category', path),
-    completedAt: readNullableString(source, 'completedAt'),
-    expiresAt: readNullableString(source, 'expiresAt'),
-    calibrationCaseCount: readNumber(source, 'calibrationCaseCount', path),
-  };
-}
-
-export function projectTrainingState(payload: unknown): TrainingState {
-  const source = asRecord(payload, '');
-  const path = 'training';
-  return {
-    modules: readArray(source, 'modules', path, projectTrainingModule),
-    calibrationCurrentUntil: readNullableString(source, 'calibrationCurrentUntil'),
-    calibrationCasesAnswered: readNumber(source, 'calibrationCasesAnswered', path),
-    calibrationCasesRequired: readNumber(source, 'calibrationCasesRequired', path),
-  };
-}
-
-function projectHistoryEntry(source: Record<string, unknown>, path: string): ReviewHistoryEntry {
-  const decision = source.decision;
-  return {
-    reviewId: readString(source, 'reviewId', path),
-    submittedAt: readString(source, 'submittedAt', path),
-    category: readString(source, 'category', path),
-    language: readString(source, 'language', path),
-    outcome: readEnum(source, 'outcome', path, REVIEW_OUTCOMES),
-    // Null until the decision is final AND disclosable. A partial or provisional
-    // result is not a decision and has no representation here (§9.1).
-    decision:
-      typeof decision === 'object' && decision !== null && !Array.isArray(decision)
-        ? {
-            outcome: readString(
-              decision as Record<string, unknown>,
-              'outcome',
-              `${path}.decision`,
-            ),
-            publishedAt: readString(
-              decision as Record<string, unknown>,
-              'publishedAt',
-              `${path}.decision`,
-            ),
-          }
-        : null,
-  };
+export function projectCalibrationResult(payload: unknown): ReviewerCalibrationResultView {
+  return parseOrThrow(ReviewerCalibrationResultViewSchema, payload, 'calibration');
 }
 
 export function projectHistoryPage(payload: unknown): ReviewHistoryPage {
-  const source = asRecord(payload, '');
-  return {
-    entries: readArray(source, 'entries', 'history', projectHistoryEntry),
-    nextCursor: readNullableString(source, 'nextCursor'),
-  };
+  return parseOrThrow(ReviewHistoryPageSchema, payload, 'history');
 }
