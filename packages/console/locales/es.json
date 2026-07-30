@@ -1,0 +1,601 @@
+{
+  "app": {
+    "name": "Consola de CrowdSource"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "yes": "Sí",
+    "no": "No",
+    "open": "Abrir",
+    "all": "Todos",
+    "absent": "—"
+  },
+  "copy": {
+    "short": "Copiar",
+    "action": "Copiar {{label}}",
+    "copied": "{{label}} copiado.",
+    "failed": "El navegador rechazó la escritura en el portapapeles. El valor sigue siendo seleccionable arriba.",
+    "unavailable": "Este navegador no da acceso al portapapeles a la página. Selecciona el valor de arriba."
+  },
+  "secret": {
+    "shownOnce": "Este valor se muestra una sola vez. Solo se almacena su resumen, así que nada —este servicio incluido— puede volver a mostrarlo.",
+    "storeIt": "Guárdalo en tu gestor de secretos antes de salir de esta pantalla. Si lo pierdes, emite uno nuevo y revoca este.",
+    "dismiss": "Ya lo he guardado"
+  },
+  "signIn": {
+    "title": "Iniciar sesión",
+    "tagline": "Gestiona tus aplicaciones de CrowdSource: credenciales de servicio, entrega de webhooks, cuotas, y los casos y decisiones de tu propio tenant.",
+    "action": "Iniciar sesión con Oxy",
+    "unconfigured": "El inicio de sesión no está disponible: aún no hay ningún cliente de Oxy registrado para esta app.",
+    "audiences": "Las vistas de Confianza y Seguridad requieren un rol interno, que se concede fuera de este servicio. Sin él verás tus propias organizaciones y nada más."
+  },
+  "notFound": {
+    "heading": "No encontrado",
+    "title": "Esta página no existe.",
+    "body": "No hay nada en esa dirección. Una aplicación que pertenece a otra cuenta responde igual: el servicio no distingue entre ambos casos.",
+    "action": "Ir a organizaciones"
+  },
+  "error": {
+    "boundary": {
+      "title": "Algo ha ido mal",
+      "message": "No se pudo mostrar la pantalla. Nada de lo que estabas cambiando se ha guardado.",
+      "retry": "Reintentar"
+    }
+  },
+  "nav": {
+    "organizations": "Organizaciones",
+    "application": "Aplicación",
+    "overview": "Resumen",
+    "credentials": "Credenciales",
+    "webhooks": "Webhooks",
+    "cases": "Casos",
+    "audit": "Registro de auditoría",
+    "trustSafety": "Confianza y Seguridad",
+    "applicationTrust": "Confianza de aplicaciones",
+    "platformMetrics": "Métricas de plataforma",
+    "switchApplication": "Cambiar de aplicación"
+  },
+  "state": {
+    "loading": "Cargando…",
+    "endpointLabel": "Endpoint",
+    "unavailable": {
+      "title": "Esta parte del servicio todavía no está en marcha",
+      "body": "La pantalla está terminada; el endpoint que lee no está despegado. No se te oculta nada, y no se muestran datos de ejemplo en su lugar."
+    },
+    "unreachable": {
+      "title": "No se pudo contactar con el servicio",
+      "body": "Sin respuesta de {{origin}}. Suele ser un problema de conexión más que un fallo del servicio."
+    },
+    "missing": {
+      "title": "No encontrado, o no es tuyo",
+      "body": "El servicio responde deliberadamente igual para algo que no existe y para algo que pertenece a otra cuenta, así que esta página no puede decirte cuál de las dos cosas era."
+    },
+    "forbidden": {
+      "title": "Tu asiento no puede hacer eso",
+      "body": "Leer requiere cualquier asiento; cambiar algo requiere admin o propietario. Pide a un propietario de esta organización que suba tu rol."
+    },
+    "forbiddenStaff": {
+      "title": "Esto requiere un rol de Confianza y Seguridad",
+      "body": "Leer la confianza de aplicaciones requiere el rol security o policy; mover un estado y leer la cola de fallos requieren security. Ninguna ruta de este servicio concede un rol."
+    },
+    "conflict": {
+      "title": "Ese cambio entra en conflicto con el estado actual",
+      "body": "No se ha cambiado nada. Las causas más habituales son un slug ya ocupado, revocar al último propietario de una organización, y reintentar una entrega que no está en la cola de fallos."
+    },
+    "rateLimited": {
+      "title": "Demasiadas solicitudes",
+      "body": "El servicio está limitando esta sesión. Espera un momento y vuelve a intentarlo."
+    },
+    "serviceUnavailable": {
+      "title": "El servicio no puede hacer eso ahora mismo",
+      "body": "Una dependencia que necesita este endpoint no está configurada en este despliegue. No se ha cambiado nada."
+    },
+    "rejected": {
+      "title": "El servicio rechazó la solicitud",
+      "body": "Esta consola envió un valor que el endpoint no acepta. Es un defecto de aquí y no algo que puedas corregir; el endpoint se indica abajo."
+    },
+    "malformed": {
+      "title": "La respuesta no coincide con el contrato",
+      "body": "El servicio respondió con una forma para la que esta consola no fue construida, así que no se muestra nada en lugar de mostrar una suposición. El campo se indica abajo; su valor no se muestra a propósito.",
+      "fieldLabel": "Campo"
+    },
+    "error": {
+      "title": "Eso no ha funcionado",
+      "body": "La solicitud falló por un motivo que esta consola no puede describir con más precisión. Vuelve a intentarlo; si sigue fallando, el detalle está en el log del servicio."
+    }
+  },
+  "role": {
+    "owner": "Propietario",
+    "admin": "Admin",
+    "developer": "Desarrollador",
+    "viewer": "Lector"
+  },
+  "memberStatus": {
+    "active": "Activo",
+    "revoked": "Revocado"
+  },
+  "standing": {
+    "sandbox": "Sandbox",
+    "trusted": "De confianza",
+    "restricted": "Restringida"
+  },
+  "standingHint": {
+    "sandbox": "Donde empieza toda aplicación. Presupuesto diario pequeño y ningún efecto sobre ninguna cifra de Oxy Trust.",
+    "trusted": "Promovida tras revisión técnica, verificación de identidad y un periodo de calidad.",
+    "restricted": "La ingesta está limitada mientras algo se investiga o ha fallado una auditoría."
+  },
+  "standingReason": {
+    "initial": "Estado inicial",
+    "promotion_review_passed": "Revisión de promoción superada",
+    "evidence_integrity_failed": "Integridad de la evidencia fallida",
+    "high_overturn_rate": "Alta tasa de revocaciones",
+    "suspected_abuse": "Sospecha de abuso",
+    "investigation_closed": "Investigación cerrada"
+  },
+  "credentialStatus": {
+    "active": "Activa",
+    "revoked": "Revocada"
+  },
+  "endpointStatus": {
+    "active": "Activo",
+    "disabled": "Desactivado"
+  },
+  "disabledReason": {
+    "gone": "El receptor respondió 410 Gone",
+    "operator": "Desactivado por un operador"
+  },
+  "deliveryStatus": {
+    "pending": "Pendiente",
+    "delivering": "Entregando",
+    "succeeded": "Entregada",
+    "dead_letter": "En cola de fallos"
+  },
+  "caseStatus": {
+    "received": "Recibido",
+    "triaged": "Triado",
+    "awaiting_review": "Esperando revisión",
+    "under_review": "En revisión",
+    "awaiting_consensus": "Esperando consenso",
+    "decided": "Decidido",
+    "escalated": "Escalado",
+    "appealed": "Apelado",
+    "superseded": "Sustituido",
+    "closed": "Cerrado"
+  },
+  "decisionStatus": {
+    "provisional": "Provisional",
+    "final": "Final",
+    "superseded": "Sustituida",
+    "corrected": "Corregida"
+  },
+  "outcome": {
+    "violation": "Infracción",
+    "no_violation": "Sin infracción",
+    "insufficient_context": "Contexto insuficiente",
+    "inconclusive": "Sin consenso",
+    "content_unavailable": "Contenido no disponible",
+    "duplicate": "Duplicado",
+    "escalated": "Escalado"
+  },
+  "contextSufficiency": {
+    "sufficient": "Suficiente",
+    "insufficient": "Insuficiente"
+  },
+  "organizations": {
+    "title": "Organizaciones",
+    "subtitle": "Las organizaciones en las que tienes un asiento, y sus aplicaciones.",
+    "meta": "{{slug}} · {{applicationCount}} aplicaciones",
+    "suspended": "Suspendida",
+    "members": "Miembros",
+    "create": {
+      "action": "Nueva organización",
+      "title": "Crear una organización",
+      "description": "Te conviertes en su propietario en la misma solicitud. Una organización sin propietario sería inalcanzable desde cualquier otra pantalla de aquí.",
+      "nameLabel": "Nombre",
+      "slugLabel": "Slug",
+      "slugHint": "De 2 a 63 caracteres: minúsculas, dígitos y guiones, empezando por letra o dígito. No puede estar ya ocupado.",
+      "submit": "Crear organización",
+      "created": "{{name}} creada. Eres su propietario."
+    },
+    "empty": {
+      "title": "Todavía no hay organizaciones",
+      "body": "Crea una para tener una aplicación, y una aplicación para tener la credencial de servicio que usa tu integración."
+    }
+  },
+  "applications": {
+    "column": {
+      "name": "Aplicación",
+      "id": "Id de aplicación",
+      "standing": "Estado",
+      "globalEffects": "Efectos en Oxy Trust",
+      "open": "Abrir"
+    },
+    "create": {
+      "action": "Nueva aplicación",
+      "title": "Crear una aplicación",
+      "description": "Empieza en sandbox: presupuesto diario de reportes pequeño y ningún efecto sobre ninguna cifra de Oxy Trust hasta que Confianza y Seguridad la promueva.",
+      "nameLabel": "Nombre",
+      "submit": "Crear aplicación",
+      "created": "{{name}} creada, en {{standing}}."
+    },
+    "empty": {
+      "title": "No hay aplicaciones en esta organización",
+      "body": "Una aplicación es a lo que pertenece una credencial de servicio, y a lo que se atribuyen los reportes."
+    }
+  },
+  "members": {
+    "title": "Miembros",
+    "subtitle": "Quién tiene asiento, y con qué rol.",
+    "grant": {
+      "action": "Añadir miembro",
+      "title": "Conceder un asiento",
+      "description": "Enviar una cuenta que ya tiene asiento CAMBIA su rol, y revive uno revocado. No hay un control de edición aparte porque no hay un endpoint aparte.",
+      "accountLabel": "Id de usuario de Oxy",
+      "accountHint": "Se toma como cadena opaca y no se resuelve contra Oxy. Un asiento para una cuenta que no existe es inofensivo —nadie puede autenticarse como ella— y una consola capaz de resolver un id podría enumerar cuentas de Oxy.",
+      "submit": "Conceder asiento",
+      "done": "Asiento concedido."
+    },
+    "revoke": {
+      "action": "Revocar",
+      "done": "Asiento revocado.",
+      "lastOwner": "Ese es el último propietario. Una organización sin propietario sería inalcanzable, así que el servicio lo rechaza."
+    },
+    "column": {
+      "account": "Cuenta",
+      "role": "Rol",
+      "status": "Estado",
+      "invitedBy": "Concedido por",
+      "since": "Desde",
+      "revoke": "Revocar"
+    },
+    "empty": {
+      "title": "Ningún asiento coincide",
+      "body": "Todos los asientos, incluidos los revocados, están en la lista sin filtrar."
+    },
+    "roles": {
+      "title": "Qué puede hacer cada rol",
+      "body": "Propietario y admin pueden cambiar el comportamiento en producción: emitir y revocar credenciales, rotar un secreto, reintentar una entrega, añadir un miembro, crear una aplicación. Desarrollador y lector pueden leer. Desarrollador existe para las superficies que tendrán operaciones de escritura propias y hoy no tiene ninguna."
+    }
+  },
+  "overview": {
+    "title": "Resumen",
+    "identity": {
+      "title": "Identidad",
+      "body": "Los valores con los que se configura tu integración.",
+      "applicationId": "Id de aplicación",
+      "organizationId": "Id de organización",
+      "status": "Estado",
+      "createdAt": "Creada",
+      "statusHint": "Una aplicación suspendida está detenida por completo. El estado de confianza, abajo, decide qué puede hacer una que está en marcha."
+    },
+    "trust": {
+      "title": "Confianza",
+      "body": "Qué se le permite hacer a esta aplicación, y por qué.",
+      "standing": "Estado",
+      "globalEffects": "Puede afectar a Oxy Trust",
+      "globalEffectsHint": "CrowdSource nunca escribe una cifra de Oxy Trust directamente. Emite una decisión, y el propio motor de consecuencias de Oxy Trust decide el efecto.",
+      "lastReason": "Último cambio de estado",
+      "changedAt": "Cambiado el",
+      "evidenceIntegrity": "Integridad de la evidencia",
+      "identityBinding": "Fiabilidad del vínculo de identidad",
+      "policyQuality": "Calidad de la política",
+      "signalsAbsent": "Un guion significa que todavía no existe medición, no una puntuación de cero. Nada calcula estas tres señales en este despliegue."
+    },
+    "quota": {
+      "title": "Cuota",
+      "body": "Los límites que te da tu estado.",
+      "reportsPerDay": "Reportes por día",
+      "webhookEndpoints": "Endpoints de webhook",
+      "globalEffects": "Efectos en Oxy Trust"
+    },
+    "usage": {
+      "title": "Uso",
+      "body": "Los últimos {{days}} días.",
+      "reportsReceived": "Reportes recibidos",
+      "casesCreated": "Casos creados",
+      "decisionsPublished": "Decisiones publicadas",
+      "window": "Ventana",
+      "windowValue": "{{from}} → {{to}}",
+      "daily": "Reportes por día",
+      "dailyEmpty": "Ningún reporte en esta ventana.",
+      "atLimit": {
+        "title": "En el límite diario",
+        "body": "Ahora mismo se están rechazando reportes. El límite para este estado es de {{limit}} al día; una promoción lo sube."
+      }
+    }
+  },
+  "credentials": {
+    "title": "Credenciales",
+    "subtitle": "Las claves de servicio con las que se autentica tu integración.",
+    "neverExpires": "Nunca",
+    "days": "{{days}} días",
+    "issue": {
+      "action": "Emitir credencial",
+      "title": "Emitir una credencial",
+      "description": "La clave que recibes es applicationId:credentialId:secret, y por eso tu cliente nunca tiene que saber a qué aplicación pertenece. La mitad secreta se muestra una sola vez.",
+      "scopesLabel": "Scopes",
+      "scopesHint": "Al menos uno. Concede solo lo que llame la integración; una clave que puede hacer menos es una clave que puede filtrar menos.",
+      "lifetimeLabel": "Caduca",
+      "submit": "Emitir"
+    },
+    "issued": {
+      "title": "Credencial emitida",
+      "tokenLabel": "clave de servicio"
+    },
+    "revoke": {
+      "action": "Revocar",
+      "done": "Credencial revocada."
+    },
+    "column": {
+      "id": "Id de credencial",
+      "scopes": "Scopes",
+      "status": "Estado",
+      "expires": "Caduca",
+      "created": "Creada",
+      "revoke": "Revocar"
+    },
+    "empty": {
+      "title": "Todavía no hay credenciales",
+      "body": "Emite una para que tu servicio pueda enviar reportes y recibir decisiones."
+    },
+    "privileged": {
+      "title": "Scopes que no puedes conceder aquí",
+      "body": "Emitir decisiones, aplicar reputación de moderación y operar Confianza y Seguridad son scopes privilegiados. No son autoconcedibles con ningún rol —el esquema de la solicitud los rechaza antes que el dominio— y las superficies que los necesitan no forman parte de esta consola."
+    }
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "subtitle": "Dónde se entregan las decisiones, y cómo van esas entregas.",
+    "disabledHint": "Un endpoint desactivado no recibe nada. Reactivarlo se hace por la API de aplicación, no desde aquí.",
+    "empty": {
+      "title": "No hay endpoints de webhook",
+      "body": "Los endpoints se crean por la API de aplicación con una credencial que tenga crowdsource:webhooks:manage. Esta consola rota sus secretos y muestra la salud de sus entregas."
+    },
+    "column": {
+      "endpointId": "Id de endpoint",
+      "eventTypes": "Tipos de evento",
+      "disabledReason": "Desactivado porque",
+      "updatedAt": "Actualizado"
+    },
+    "health": {
+      "title": "Entregas",
+      "summary": "{{pending}} pendientes · {{delivering}} entregando · {{succeeded}} entregadas · {{deadLetter}} en cola de fallos",
+      "deadLetterFlag": "{{deadLetter}} en cola de fallos"
+    },
+    "rotate": {
+      "action": "Rotar secreto",
+      "hint": "La rotación mantiene válido el secreto anterior durante una ventana de solapamiento, para que puedas despegar el nuevo antes de que se firme ninguna entrega con él. Verifica ambas versiones durante el solapamiento.",
+      "failed": "La rotación no se completó. No se ha cambiado nada."
+    },
+    "rotated": {
+      "title": "Secreto rotado",
+      "secretLabel": "secreto de firma",
+      "version": "Versión",
+      "signingStartsAt": "La firma empieza el",
+      "signingStartsAtHint": "Las entregas empiezan a llevar esta firma en ese instante. Despliega el nuevo secreto antes y ninguna entrega se firmará con una clave que tu receptor no tenga.",
+      "previous": "Secreto anterior",
+      "previousValue": "Versión {{version}}, válido hasta {{expiresAt}}",
+      "noPreviousHint": "No había secreto anterior, así que no hay solapamiento que planificar."
+    },
+    "deliveries": {
+      "title": "Registro de entregas",
+      "description": "El cuerpo del evento está ausente a propósito: contiene los bytes firmados exactos del evento, y lo que necesita un diagnóstico es el estado, el número de intentos y el motivo de parada.",
+      "statusFilter": "Estado",
+      "endpointFilter": "Endpoint",
+      "replayAction": "Reintentar",
+      "replayed": "Reintentada. La entrega ahora está {{status}}.",
+      "replayFailed": "Esa entrega no se puede reintentar. Solo se puede una que esté en la cola de fallos.",
+      "column": {
+        "eventType": "Evento",
+        "status": "Estado",
+        "attempts": "Intentos",
+        "lastResponse": "Último código",
+        "reason": "Motivo de parada",
+        "next": "Siguiente / entregada",
+        "replays": "Reintentos",
+        "replay": "Reintentar"
+      },
+      "empty": {
+        "title": "Ninguna entrega coincide",
+        "body": "O aún no se ha entregado nada, o ninguna entrega coincide con este filtro."
+      }
+    }
+  },
+  "cases": {
+    "title": "Casos",
+    "subtitle": "Los casos de esta aplicación, los más recientes primero.",
+    "notDecided": "Sin decidir",
+    "column": {
+      "caseId": "Id de caso",
+      "status": "Estado",
+      "outcome": "Resultado vigente",
+      "subject": "Sujeto",
+      "allegations": "Alegaciones",
+      "reports": "Reportes",
+      "revision": "Decidida / actual",
+      "sensitivity": "Sensibilidad",
+      "updated": "Actualizado",
+      "open": "Abrir"
+    },
+    "empty": {
+      "title": "Todavía no hay casos",
+      "body": "Un caso aparece cuando se recibe y se tría un reporte. Un caso cubre todos los reportes sobre el mismo material bajo la misma política."
+    },
+    "filtered": "Ningún caso de esta aplicación tiene ese estado.",
+    "paging": {
+      "page": "Página {{page}}",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    }
+  },
+  "caseDetail": {
+    "title": "Caso",
+    "backToCases": "Todos los casos",
+    "summary": {
+      "title": "Resumen",
+      "subject": "Sujeto",
+      "subjectHint": "Tu propio id externo, de tipo {{type}}.",
+      "primaryResource": "Recurso principal",
+      "policy": "Política",
+      "policyHint": "La versión con la que se abrió el caso. Una decisión lleva las versiones con las que se decidió y nunca pasa a una más nueva.",
+      "taxonomy": "Versión de taxonomía",
+      "allegations": "Alegaciones",
+      "allegationsHint": "Lo que se alegó. Una alegación, no un hallazgo.",
+      "reportCount": "Reportes",
+      "reportCountHint": "Un recuento. Las huellas de los denunciantes existen para ser contadas y nunca se sirven: una aplicación que las recibiera podría recalcularlas contra su propia tabla de usuarios.",
+      "sensitivity": "Clase de sensibilidad",
+      "currentRevision": "Revisión actual",
+      "createdAt": "Creado",
+      "updatedAt": "Actualizado"
+    },
+    "resources": {
+      "title": "Recursos",
+      "description": "Metadatos y resúmenes. El contenido nunca sale del servicio: ya tienes tu propio material, y el resumen es lo que reconcilia un caso con él.",
+      "empty": "No hay recursos registrados en este caso.",
+      "column": {
+        "id": "Id de recurso",
+        "type": "Tipo",
+        "role": "Rol",
+        "language": "Idioma",
+        "digest": "SHA-256"
+      }
+    },
+    "reports": {
+      "title": "Reportes",
+      "description": "Los reportes fusionados en este caso, por los ids externos que aportaste.",
+      "empty": "No hay reportes vinculados a este caso.",
+      "column": {
+        "externalId": "Tu id de reporte",
+        "reportId": "Id de reporte",
+        "allegations": "Alegaciones",
+        "merged": "Fusionado",
+        "linkedAt": "Vinculado"
+      }
+    },
+    "decisions": {
+      "title": "Decisiones",
+      "description": "Todas las revisiones, la más antigua primero. Una decisión publicada nunca se edita: una apelación crea una revisión nueva que sustituye a la anterior, y la anterior conserva su resultado y sus versiones de política para siempre.",
+      "empty": "Todavía no se ha publicado ninguna decisión para este caso.",
+      "revision": "Revisión {{revision}}",
+      "publishedAt": "Publicada",
+      "contextSufficiency": "Contexto",
+      "confidence": "Confianza",
+      "jury": "Jurado",
+      "juryValue": "{{size}} en el panel · {{decisive}} decisivos · {{winning}} a favor del resultado · {{agreement}} de acuerdo",
+      "specialistPresent": "En este panel participó un especialista de categoría.",
+      "policyVersions": "Versiones de política",
+      "policyVersionsValue": "taxonomía {{taxonomy}} · aplicación {{application}} · conducta de Oxy {{oxyConduct}}",
+      "policyVersionsHint": "Congeladas al publicar. Es lo que hace que una decisión sea explicable después.",
+      "supersedes": "Sustituye a",
+      "supersedesNothing": "La primera revisión de un caso no sustituye a nada.",
+      "findings": "Hallazgos",
+      "findingMeta": "severidad {{severity}} · alcance {{scope}} · {{resources}} recurso(s)",
+      "findingContext": "contexto: {{context}}",
+      "findingAttribution": "atribución: {{attribution}}",
+      "recommendedActions": "Acciones recomendadas"
+    }
+  },
+  "audit": {
+    "title": "Registro de auditoría",
+    "subtitle": "Qué ha pasado en esta aplicación, y cuál de tus credenciales lo hizo.",
+    "noCredential": "Sin credencial",
+    "filter": {
+      "title": "Filtro",
+      "description": "El filtrado por id de caso lo aplica el servicio, no el navegador, y solo lo aplica cuando el valor es un id que él emitió. Un id que no reconoce devuelve el registro COMPLETO en lugar de un error, así que un resultado inesperadamente largo significa que el id es incorrecto.",
+      "caseLabel": "Id de caso"
+    },
+    "column": {
+      "occurredAt": "Cuándo",
+      "action": "Acción",
+      "actor": "Credencial actora",
+      "caseId": "Caso",
+      "externalReportId": "Tu id de reporte",
+      "reason": "Motivo"
+    },
+    "empty": {
+      "title": "Todavía no hay nada registrado",
+      "body": "Los eventos de auditoría se escriben a medida que se ingestan reportes y se publican decisiones."
+    },
+    "filtered": "Ningún evento de auditoría de esta aplicación menciona ese caso."
+  },
+  "trustSafety": {
+    "title": "Confianza de aplicaciones",
+    "subtitle": "Estado de todas las aplicaciones, en todos los tenants. Una superficie interna, con su propia autorización.",
+    "column": {
+      "application": "Aplicación",
+      "organization": "Organización",
+      "standing": "Estado",
+      "globalEffects": "Efectos en Oxy Trust",
+      "evidenceIntegrity": "Integridad de evidencia",
+      "identityBinding": "Vínculo de identidad",
+      "policyQuality": "Calidad de política",
+      "lastReason": "Último cambio",
+      "changedAt": "Cambiado el",
+      "change": "Estado"
+    },
+    "empty": {
+      "title": "Ninguna aplicación coincide",
+      "body": "O todavía no existe ninguna aplicación, o ninguna tiene este estado."
+    },
+    "signals": {
+      "title": "Sobre las tres señales de calidad",
+      "body": "Un guion significa que no existe medición, no una puntuación de cero. Nada en este despliegue calcula todavía la integridad de la evidencia, la fiabilidad del vínculo de identidad ni la calidad de la política, así que una decisión de promoción se apoya en la revisión y no en estas columnas."
+    },
+    "standing": {
+      "action": "Cambiar",
+      "title": "Cambiar el estado de {{name}}",
+      "description": "Esto decide si la aplicación puede ingestar y si sus decisiones podrán mover alguna cifra de Oxy Trust. El motivo es un código de un vocabulario cerrado porque esta fila se conserva indefinidamente.",
+      "current": "Estado actual",
+      "newStanding": "Nuevo estado",
+      "reason": "Motivo",
+      "effects": "Solicitar efectos en Oxy Trust",
+      "effectsHint": "Una solicitud, no una concesión. En un estado que prohíbe los efectos el servicio acepta la solicitud y no la atiende; lo que vuelve es la respuesta.",
+      "submit": "Cambiar estado",
+      "done": "El estado ahora es {{standing}}. Efectos en Oxy Trust: {{effects}}."
+    }
+  },
+  "metrics": {
+    "title": "Métricas de plataforma",
+    "subtitle": "Lo que este despliegue puede medir, y lo que no.",
+    "standing": {
+      "title": "Aplicaciones por estado",
+      "body": "Todas las aplicaciones del despliegue, contadas por el estado que tienen."
+    },
+    "deliveries": {
+      "title": "Entregas de webhook",
+      "body": "En todos los tenants.",
+      "successRate": "Tasa de éxito",
+      "successRateAbsent": "No se ha intentado ninguna entrega, así que no hay tasa. Un 0 % de éxito en un despliegue vacío sería la manera más alarmante posible de decirlo."
+    },
+    "unavailable": {
+      "title": "Métricas que este despliegue no puede calcular",
+      "body": "El servicio las nombra en lugar de omitirlas, porque un panel que muestra una métrica ausente como cero es peor que uno que dice que falta.",
+      "none": "Todas las métricas que define esta superficie están disponibles.",
+      "marker": "no disponible",
+      "why": "Cada una necesita una lectura entre tenants de casos o decisiones. Esas son colecciones con ámbito de tenant sin lectura global, y la correlación entre tenants pertenece a un módulo de incidentes privilegiado que no está construido."
+    },
+    "queue": {
+      "title": "Cola de fallos",
+      "body": "Entregas que se han detenido, en todos los tenants: la vista que muestra un fallo de nuestro lado y no del de un integrador. El cuerpo del evento no se sirve: un lector entre tenants no tiene relación con el caso que menciona.",
+      "replayElsewhere": "El reintento es una acción por tenant y vive en la pantalla de webhooks de esa aplicación, que es donde se aplica el filtro de tenant.",
+      "column": {
+        "at": "En cola de fallos",
+        "eventType": "Evento",
+        "application": "Aplicación",
+        "endpoint": "Endpoint",
+        "attempts": "Intentos",
+        "lastResponse": "Último código",
+        "reason": "Motivo de parada",
+        "replays": "Reintentos"
+      },
+      "empty": {
+        "title": "La cola está vacía",
+        "body": "Ninguna entrega ha agotado sus reintentos."
+      }
+    }
+  },
+  "applicationStatus": {
+    "active": "Activa",
+    "suspended": "Suspendida"
+  }
+}

@@ -369,3 +369,102 @@ export async function findTenantDelivery(
     applicationId: context.applicationId,
   });
 }
+
+/**
+ * One page of a tenant's deliveries, newest first (§4.2: "webhooks, secretos,
+ * intentos, replay y dead letter queue").
+ *
+ * Lives here rather than in the console module for the same reason
+ * `findTenantDelivery` does: this collection is exempt from the tenant filter, so
+ * every read that serves a caller states the filter explicitly and they are all in
+ * one file to audit. A console reaching into the collection itself would be a second
+ * place where forgetting two clauses leaks another tenant's delivery log.
+ */
+export async function listTenantDeliveries(
+  context: TenantContext,
+  filter: {
+    readonly status?: WebhookDeliveryDocument['status'];
+    readonly webhookEndpointId?: string;
+    readonly limit?: number;
+  } = {},
+): Promise<readonly WebhookDeliveryDocument[]> {
+  return webhookDeliveries.find(
+    {
+      organizationId: context.organizationId,
+      applicationId: context.applicationId,
+      ...(filter.status === undefined ? {} : { status: filter.status }),
+      ...(filter.webhookEndpointId === undefined
+        ? {}
+        : { webhookEndpointId: filter.webhookEndpointId }),
+    },
+    { sort: { createdAt: -1 }, limit: filter.limit ?? 50 },
+  );
+}
+
+/** How many of one endpoint's deliveries sit in each state. */
+export interface DeliveryHealth {
+  readonly pending: number;
+  readonly delivering: number;
+  readonly succeeded: number;
+  readonly deadLetter: number;
+}
+
+/**
+ * Delivery health for one endpoint (§16.4's `webhook_success_rate`, per endpoint).
+ *
+ * Four counts rather than a ratio: a ratio hides the case an operator actually
+ * needs to see, which is a healthy-looking success rate next to a growing dead
+ * letter queue. The console can divide.
+ */
+export async function deliveryHealthFor(
+  context: TenantContext,
+  webhookEndpointId: string,
+): Promise<DeliveryHealth> {
+  const base = {
+    organizationId: context.organizationId,
+    applicationId: context.applicationId,
+    webhookEndpointId,
+  };
+
+  const [pending, delivering, succeeded, deadLetter] = await Promise.all([
+    webhookDeliveries.countDocuments({ ...base, status: 'pending' }),
+    webhookDeliveries.countDocuments({ ...base, status: 'delivering' }),
+    webhookDeliveries.countDocuments({ ...base, status: 'succeeded' }),
+    webhookDeliveries.countDocuments({ ...base, status: 'dead_letter' }),
+  ]);
+
+  return { pending, delivering, succeeded, deadLetter };
+}
+
+/**
+ * Dead-lettered deliveries across every tenant, for Trust & Safety (§4.3).
+ *
+ * The ONE cross-tenant read in this module, and it is confined to what a delivery
+ * row says about ITSELF: ids, status, attempt counts, the reason it stopped. The
+ * `body` field is never projected by any caller of this function — see the Trust &
+ * Safety routes — because a webhook body carries case ids and outcomes for a tenant
+ * the reader has no relationship with.
+ *
+ * Permitted at all only because this collection is already unscoped by design: the
+ * delivery worker's claim spans every tenant, so there is no tenant filter here to
+ * subvert.
+ */
+export async function listDeadLetteredDeliveriesAcrossTenants(
+  limit = 100,
+): Promise<readonly WebhookDeliveryDocument[]> {
+  return webhookDeliveries.find(
+    { status: 'dead_letter' },
+    { sort: { deadLetteredAt: -1 }, limit },
+  );
+}
+
+/** How many deliveries sit in each state across every tenant (§16.4). */
+export async function deliveryCountsAcrossTenants(): Promise<DeliveryHealth> {
+  const [pending, delivering, succeeded, deadLetter] = await Promise.all([
+    webhookDeliveries.countDocuments({ status: 'pending' }),
+    webhookDeliveries.countDocuments({ status: 'delivering' }),
+    webhookDeliveries.countDocuments({ status: 'succeeded' }),
+    webhookDeliveries.countDocuments({ status: 'dead_letter' }),
+  ]);
+  return { pending, delivering, succeeded, deadLetter };
+}

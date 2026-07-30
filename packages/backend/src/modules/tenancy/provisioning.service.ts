@@ -3,9 +3,15 @@ import { randomBytes } from 'node:crypto';
 import { duplicateKeyViolation } from '../../db/transaction';
 import { ApiError } from '../../http/apiError';
 import { newPublicId } from '../../utils/identifiers';
+import { createApplicationTrust } from '../trust/applicationTrust.service';
 import { hashCredentialSecret } from './credential.service';
 import { type ApplicationScope, isPrivilegedScope, isApplicationScope } from './scopes';
-import { applicationCredentials, applications, organizations } from './tenancy.collections';
+import {
+  applicationCredentials,
+  applications,
+  organizations,
+  type ApplicationCredentialDocument,
+} from './tenancy.collections';
 
 /**
  * Creating organizations, applications and credentials.
@@ -100,6 +106,18 @@ export async function createApplication(input: {
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+
+  /**
+   * Standing comes into existence with the application (§11.13).
+   *
+   * Not in a transaction with the insert above, deliberately. `applicationTrustFor`
+   * treats a missing row as `sandbox` — the most restricted state that still works —
+   * so a crash between these two lines leaves an application that behaves correctly
+   * rather than one that cannot ingest, and the next call to this function is
+   * idempotent. Wrapping both in a transaction would buy tidiness at the cost of a
+   * write path that fails where it currently degrades.
+   */
+  await createApplicationTrust(organization.organizationId, applicationId);
 
   return { organizationId: organization.organizationId, applicationId, name };
 }
@@ -208,13 +226,68 @@ export async function setApplicationStatus(
   }
 }
 
-/** Revokes a credential. A revoked credential never authenticates again. */
-export async function revokeCredential(credentialId: string): Promise<void> {
+/**
+ * Revokes a credential. A revoked credential never authenticates again.
+ *
+ * The owning tenant is part of the filter, not checked beforehand by the caller.
+ * `application_credentials` is exempt from the tenant filter — resolving a presented
+ * credential is what YIELDS a tenant — so a revoke that matched on `credentialId`
+ * alone would revoke any credential in the deployment for anyone who could reach it.
+ * That is survivable while the only caller is a domain service, and it is an IDOR the
+ * moment a console route calls it. Requiring the triple here means the check cannot
+ * be the thing a route forgot.
+ */
+export async function revokeCredential(input: {
+  readonly organizationId: string;
+  readonly applicationId: string;
+  readonly credentialId: string;
+}): Promise<void> {
   const modified = await applicationCredentials.updateOne(
-    { credentialId, status: 'active' },
+    {
+      credentialId: input.credentialId,
+      organizationId: input.organizationId,
+      applicationId: input.applicationId,
+      status: 'active',
+    },
     { status: 'revoked', revokedAt: new Date() },
   );
   if (modified === 0) {
     throw new ApiError('not_found', 'No active credential with that id.');
   }
+}
+
+/**
+ * Credential METADATA for one application — never a secret.
+ *
+ * `secretHash` is not in the projection, and its absence is the point: §13.4 makes a
+ * service secret visible exactly once, and a console that could re-serve even the
+ * digest would hand every `admin` seat an offline target. The console shows what an
+ * operator needs to decide which key to rotate — its id, scopes, status and dates.
+ */
+export interface CredentialSummary {
+  readonly credentialId: string;
+  readonly scopes: readonly string[];
+  readonly status: ApplicationCredentialDocument['status'];
+  readonly expiresAt: Date | null;
+  readonly revokedAt: Date | null;
+  readonly createdAt: Date;
+}
+
+export async function listApplicationCredentials(
+  organizationId: string,
+  applicationId: string,
+): Promise<readonly CredentialSummary[]> {
+  const stored = await applicationCredentials.find(
+    { organizationId, applicationId },
+    { sort: { createdAt: -1 }, limit: 100 },
+  );
+
+  return stored.map((credential) => ({
+    credentialId: credential.credentialId,
+    scopes: credential.scopes,
+    status: credential.status,
+    expiresAt: credential.expiresAt,
+    revokedAt: credential.revokedAt,
+    createdAt: credential.createdAt,
+  }));
 }

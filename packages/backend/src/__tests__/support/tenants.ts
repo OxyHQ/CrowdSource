@@ -26,7 +26,11 @@ import { connectToDatabase, disconnectFromDatabase } from '../../utils/database'
 import '../../modules/appeals/appeal.collection';
 import '../../modules/audit/audit.collection';
 import '../../modules/cases/case.collection';
+import '../../modules/console/console.collections';
+import '../../modules/console/staffAudit.collection';
 import '../../modules/ingestion/report.collection';
+import '../../modules/trust/applicationTrust.collection';
+import '../../modules/trust/usageCounter.collection';
 import '../../modules/outbox/outbox.collection';
 import '../../modules/policy/policySet.collection';
 import '../../modules/webhooks/webhook.collections';

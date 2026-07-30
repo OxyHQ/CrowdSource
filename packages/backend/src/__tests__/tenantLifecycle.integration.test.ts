@@ -107,13 +107,46 @@ describe('credential revocation', () => {
     const tenant = await provisionTenant();
     const credentialId = tenant.token.split('.')[0];
 
-    await revokeCredential(credentialId);
+    const owning = {
+      organizationId: tenant.organizationId,
+      applicationId: tenant.applicationId,
+    };
+
+    await revokeCredential({ ...owning, credentialId });
     // Revoking twice is not a silent success: an operator who believes they
     // revoked something must be told when they did not.
-    await expect(revokeCredential(credentialId)).rejects.toThrow(/No active credential/);
-    await expect(revokeCredential('csk_00000000000000000000000000000000')).rejects.toThrow(
+    await expect(revokeCredential({ ...owning, credentialId })).rejects.toThrow(
       /No active credential/,
     );
+    await expect(
+      revokeCredential({ ...owning, credentialId: 'csk_00000000000000000000000000000000' }),
+    ).rejects.toThrow(/No active credential/);
+  });
+
+  /**
+   * The tenant is part of the revoke's own filter, and this is what says so.
+   *
+   * `application_credentials` is exempt from the tenant filter, so a revoke matching
+   * on `credentialId` alone would let anyone who could reach the function revoke any
+   * credential in the deployment. That is survivable while the only caller is a
+   * domain service and an IDOR the moment a console route calls one — which it now
+   * does.
+   */
+  it('refuses to revoke a credential belonging to another application', async () => {
+    const mine = await provisionTenant();
+    const theirs = await provisionTenant();
+
+    await expect(
+      revokeCredential({
+        organizationId: mine.organizationId,
+        applicationId: mine.applicationId,
+        credentialId: theirs.token.split('.')[0],
+      }),
+    ).rejects.toThrow(/No active credential/);
+
+    // And the credential they own still authenticates, so the refusal above was the
+    // filter refusing and not a revocation that happened anyway.
+    await expect(authenticateServiceCredential(theirs.token)).resolves.toBeDefined();
   });
 });
 

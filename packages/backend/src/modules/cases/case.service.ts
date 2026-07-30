@@ -38,10 +38,22 @@ export interface AttachedCase {
  * §7.4 needs to count DISTINCT reporters — one person filing forty reports is
  * one opinion, and treating it as forty is precisely the manipulation §11.11
  * describes. §9.1 forbids a reviewer seeing anything about the reporters. Both
- * hold if the case stores a fingerprint instead of an id: it counts, it does not
- * reverse, and salting with the application id means the same person under two
- * tenants produces two unrelated values, so the case collection cannot become a
- * cross-tenant correlation table.
+ * hold if the case stores a fingerprint instead of an id: it counts, and prefixing
+ * the application id means the same person under two tenants produces two unrelated
+ * values, so the case collection cannot become a cross-tenant correlation table.
+ *
+ * **This is DOMAIN SEPARATION, not a keyed MAC — the distinction matters and the word
+ * "salt" was doing damage here.** There is no secret in the digest: the inputs are the
+ * application id and the application's own external principal id, both of which the
+ * application knows, so an application holding these values can recompute them across
+ * its whole user table and recover which of its users reported what. It is non-reversible
+ * to a party that does NOT know the inputs — a reviewer, another tenant — and that is the
+ * property §9.1 needs. It is not non-reversible to the tenant itself.
+ *
+ * The consequence is a rule rather than a nuance: **no surface returns these values to an
+ * application, at any role, not even as a distinct count.** Making the digest keyed would
+ * close the gap properly and is a migration rather than an edit — every stored fingerprint
+ * would have to be recomputed — so until then the containment is that nothing serves them.
  */
 export function reporterFingerprint(applicationId: string, reporterKey: string): string {
   return createHash('sha256').update(`${applicationId}:${reporterKey}`, 'utf8').digest('hex');

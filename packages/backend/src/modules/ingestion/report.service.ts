@@ -14,6 +14,8 @@ import { appendAuditEvent, type AuditReason } from '../audit/audit.collection';
 import { attachReportToCase } from '../cases/case.service';
 import { appendOutboxEvent, OUTBOX_EVENT_TYPES } from '../outbox/outbox.collection';
 import { resolvePolicy, type ResolvedPolicy } from '../policy/policy.registry';
+import { assertApplicationMayIngest } from '../trust/applicationTrust.service';
+import { recordReportUsage } from '../trust/usageCounter.collection';
 import { reports } from './report.collection';
 
 /**
@@ -79,6 +81,31 @@ type ReportStatus = 'received' | 'merged' | 'invalid' | 'withdrawn' | 'closed';
 const CASE_CONTENTION_ATTEMPTS = 3;
 
 /**
+ * Whether a collision is two writes RACING TO CREATE the same row, rather than a
+ * second delivery of a report already stored.
+ *
+ * The distinction decides the answer, and getting it wrong loses moderation work in
+ * one direction or duplicates it in the other. Two indexes reach this path:
+ *
+ *  - the case dedup index (`externalSubjectId`) — two people reporting the same post
+ *    in the same instant, both upserts trying to insert;
+ *  - the usage counter's `applicationId + day` index — the same shape on the FIRST
+ *    report of a UTC day, when the counter document does not exist yet. MongoDB
+ *    permits a racing upsert to fail with a duplicate key rather than finding the
+ *    winner's row, so this is not hypothetical; without it, two reports arriving
+ *    together at midnight would answer 500 and the second one's retry would be a
+ *    question nobody could explain.
+ *
+ * Everything else — `externalReportId`, `idempotencyKey` — means the delivery itself
+ * is already stored, which `resolveDuplicateDelivery` answers idempotently.
+ */
+export function isCreationContention(violation: DuplicateKeyViolation): boolean {
+  return (
+    violation.indexFields.includes('externalSubjectId') || violation.indexFields.includes('day')
+  );
+}
+
+/**
  * Stores a report and attaches it to its case, or recognises a delivery already
  * stored.
  *
@@ -91,6 +118,21 @@ export async function deliverReport(
   context: TenantContext,
   delivery: ReportDelivery,
 ): Promise<DeliveredReport> {
+  /**
+   * Standing and quota first (§11.13, §15.10).
+   *
+   * Before the policy lookup and before the transaction: a restricted application
+   * and one over its daily allowance are both refusals, and neither should cost a
+   * policy resolution or run a transaction's abort path. It also means the counter
+   * this check reads is never the one the same transaction is about to increment.
+   *
+   * A replayed delivery pays this check too, which is the conservative direction: it
+   * costs one indexed read to a caller retrying correctly, and the alternative —
+   * checking after the collision is interpreted — would let an application over its
+   * quota keep re-sending stored reports for free.
+   */
+  await assertApplicationMayIngest(context);
+
   /**
    * Resolved BEFORE the transaction, deliberately. An unknown or unpublished
    * policy version is an ordinary refusal (§10.5, 422) and no write should be
@@ -122,16 +164,16 @@ export async function deliverReport(
       if (!violation) throw error;
 
       /**
-       * A collision on the case dedup index means another delivery created this
-       * case between the upsert reading and writing. The transaction is already
-       * doomed, so nothing was stored; retrying finds the case they created.
+       * A collision on a CREATION index means another delivery created the row
+       * between this upsert reading and writing. The transaction is already
+       * doomed, so nothing was stored; retrying finds what they created.
        *
        * Exhausting the attempts is contention, not a caller error and not a
        * defect, so it answers 503 — which §10.5 defines as "retry from your own
        * outbox". A 500 would tell an integrator to stop retrying a delivery that
        * would succeed on the next attempt.
        */
-      if (violation.indexFields.includes('externalSubjectId')) {
+      if (isCreationContention(violation)) {
         if (attempt < CASE_CONTENTION_ATTEMPTS) continue;
         throw new ApiError(
           'service_unavailable',
@@ -205,6 +247,15 @@ async function storeDelivery(
       type: OUTBOX_EVENT_TYPES.caseReadyForTriage,
       payload: { caseId: attached.caseId },
     });
+
+    /**
+     * The usage meter, in the same transaction (§15.10, §16.4).
+     *
+     * Inside it and not after, for the tenant's sake rather than the counter's: a
+     * report that rolls back must not consume the quota of one that was stored, or an
+     * application under contention is throttled for deliveries it never made.
+     */
+    await recordReportUsage(context, session, receivedAt);
 
     await appendAuditEvent(
       context,

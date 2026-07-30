@@ -48,39 +48,55 @@ if (Object.keys(rootManifest.dependencies || {}).length > 0) {
   failures.push("Runtime dependencies must live in their owning workspace, not the repository root.");
 }
 
-const reviewerManifest = await readJson("packages/reviewer/package.json");
 const installedExpo = await readJson("node_modules/expo/package.json");
 const installedBloom = await readJson("node_modules/@oxyhq/bloom/package.json");
 
-if (!String(reviewerManifest.dependencies?.expo || "").startsWith("~56.")) {
-  failures.push(`The reviewer app must target Expo 56 (found ${String(reviewerManifest.dependencies?.expo)}).`);
-}
 if (!String(installedExpo.version || "").startsWith("56.")) {
   failures.push(`Installed Expo must be version 56.x (found ${String(installedExpo.version)}).`);
 }
-if (reviewerManifest.dependencies?.react !== "19.2.3") {
-  failures.push(`The reviewer app must target React 19.2.3 (found ${String(reviewerManifest.dependencies?.react)}).`);
-}
-if (reviewerManifest.dependencies?.["react-native"] !== "0.85.3") {
-  failures.push(
-    `The reviewer app must target React Native 0.85.3 (found ${String(reviewerManifest.dependencies?.["react-native"])}).`,
-  );
-}
 if (
-  reviewerManifest.dependencies?.["@oxyhq/bloom"] !== `^${expectedBloomVersion}` ||
   rootManifest.overrides?.["@oxyhq/bloom"] !== `^${expectedBloomVersion}` ||
   installedBloom.version !== expectedBloomVersion
 ) {
   failures.push(
-    `Bloom must stay aligned at manifest/override ^${expectedBloomVersion} and installed ${expectedBloomVersion} ` +
-      `(found ${String(reviewerManifest.dependencies?.["@oxyhq/bloom"])}, ` +
-      `${String(rootManifest.overrides?.["@oxyhq/bloom"])}, ${String(installedBloom.version)}).`,
+    `Bloom must stay aligned at override ^${expectedBloomVersion} and installed ${expectedBloomVersion} ` +
+      `(found ${String(rootManifest.overrides?.["@oxyhq/bloom"])}, ${String(installedBloom.version)}).`,
   );
+}
+
+/**
+ * BOTH Expo apps, checked identically.
+ *
+ * The reviewer app and the console are separate exports of the same platform, and a
+ * drift between them is worse than a drift from the pin: two apps on different React
+ * Native versions inside one `node_modules` means whichever resolves first decides,
+ * and the symptom is a runtime failure in one app after a change to the other.
+ */
+for (const appName of ["reviewer", "console"]) {
+  const manifest = await readJson(`packages/${appName}/package.json`);
+
+  if (!String(manifest.dependencies?.expo || "").startsWith("~56.")) {
+    failures.push(`The ${appName} app must target Expo 56 (found ${String(manifest.dependencies?.expo)}).`);
+  }
+  if (manifest.dependencies?.react !== "19.2.3") {
+    failures.push(`The ${appName} app must target React 19.2.3 (found ${String(manifest.dependencies?.react)}).`);
+  }
+  if (manifest.dependencies?.["react-native"] !== "0.85.3") {
+    failures.push(
+      `The ${appName} app must target React Native 0.85.3 (found ${String(manifest.dependencies?.["react-native"])}).`,
+    );
+  }
+  if (manifest.dependencies?.["@oxyhq/bloom"] !== `^${expectedBloomVersion}`) {
+    failures.push(
+      `The ${appName} app must declare Bloom ^${expectedBloomVersion} ` +
+        `(found ${String(manifest.dependencies?.["@oxyhq/bloom"])}).`,
+    );
+  }
 }
 
 // Every workspace that consumes the shared contracts must resolve them from
 // this repository, never from a published version that can drift behind it.
-for (const packageName of ["backend", "reviewer", "sdk", "sdk-express", "testing"]) {
+for (const packageName of ["backend", "reviewer", "console", "sdk", "sdk-express", "testing"]) {
   const manifest = await readJson(`packages/${packageName}/package.json`);
   const range =
     manifest.dependencies?.["@oxyhq/crowdsource-contracts"] ??

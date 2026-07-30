@@ -1,0 +1,84 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+
+/* Bloom canonical design tokens (RADIUS scale, spacing, typography, color
+   aliases). Single source of truth = @oxyhq/bloom/design-tokens theme.css,
+   generated from bloomThemeCss(). Bloom components (e.g. ContentPanel from
+   @oxyhq/bloom/content-panel) emit `rounded-radius-28` literal utilities that
+   resolve from these `--radius-*` namespace tokens. Imported instead of
+   hand-copied so it stays in sync with the published package. The app's own
+   `@theme` block below runs AFTER this import, so app-local aliases win on any
+   overlap. */
+@import "@oxyhq/bloom/design-tokens/theme.css";
+
+/* react-native-css emits real CSS classes on web, so layout utilities are inert
+   unless every source that ships classNames is scanned — including the Oxy SDK
+   and Bloom, whose screens render inside this app. Without both `@source` lines
+   below, `flex-row`/`gap-*`/`items-center` silently do nothing while colours
+   still look right (Bloom applies those inline), which is the hardest version
+   of this bug to spot. */
+@source "./app/**/*.{js,jsx,ts,tsx}";
+@source "./components/**/*.{js,jsx,ts,tsx}";
+@source "./lib/**/*.{js,jsx,ts,tsx}";
+@source "../../node_modules/@oxyhq/services/lib/**/*.{js,jsx}";
+@source "../../node_modules/@oxyhq/bloom/lib/**/*.{js,jsx}";
+
+/* Colour utilities (`bg-card`, `bg-primary`, `text-muted-foreground`, …) come
+   from Bloom's imported theme.css — the single source of truth — so they are
+   NOT re-declared here. Per-app duplication is exactly what lets `--color-card`
+   drift from Bloom's definition. */
+@theme {
+  --font-sans: Inter, sans-serif;
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@layer base {
+  :root {
+    /* Smaller than the reviewer app's 1rem. This surface is tables, filter
+       chips and status pills rather than a feed of cards, and a 16px corner on
+       a table row reads as a card that failed to fill. */
+    --radius: 0.75rem;
+  }
+}
+
+html, body, #root {
+  font-family: 'Inter', 'Inter-Regular', sans-serif;
+  /* Pre-hydration dark canvas. Bloom applies the real theme (the `.dark` class +
+     `--background` var) at RUNTIME from BloomThemeProvider, so before the JS
+     bundle runs there is no themed background and the first paint would be white.
+     This render-blocking rule (global.css ships as a <link rel=stylesheet> in the
+     head, before the deferred bundle) paints the boot canvas dark, killing the
+     white flash with no worker/JS. The app's own `bg-background` covers it once
+     mounted. */
+  background-color: #0B0B0F;
+}
+
+/* Document-level scrolling. Expo / react-native-web automatically inject a
+   "recommended style reset" into the served HTML that locks
+   `html, body { height: 100%; overflow: hidden }` and `#root { height: 100% }`
+   for a native-like fixed viewport. These plain, UNLAYERED rules override it so
+   the DOCUMENT scrolls: the body grows with its content and scrolling works from
+   anywhere, which is what makes `position: sticky` work for the panel header and
+   for a table's header row. No runtime JS. */
+/* NOTE: `overflow` MUST be `visible` on BOTH axes here. Setting one axis to
+   `hidden`/`clip`/`auto`/`scroll` triggers CSS "overflow promotion" — the other
+   `visible` axis computes to `auto`, turning body into a scroll container (so the
+   inner body scrolls and the DOCUMENT does not). A wide table's horizontal
+   clipping goes on the table's OWN container, never here. */
+html,
+body {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+
+#root {
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
+}

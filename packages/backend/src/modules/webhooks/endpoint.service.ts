@@ -8,6 +8,7 @@ import type { TenantContext } from '../../db/tenantScope';
 import { duplicateKeyViolation, withTransaction } from '../../db/transaction';
 import { ApiError } from '../../http/apiError';
 import { newPublicId } from '../../utils/identifiers';
+import { quotaForApplication } from '../trust/applicationTrust.service';
 import {
   decryptWebhookSecret,
   encryptWebhookSecret,
@@ -198,6 +199,29 @@ export async function registerWebhookEndpoint(
     );
     const refreshed = await requireEndpoint(context, existing.webhookEndpointId);
     return { endpoint: refreshed, secret: null, created: false };
+  }
+
+  /**
+   * The endpoint quota (§15.10), checked only on the path that CREATES one.
+   *
+   * Re-registering an existing URL is exempt on purpose: an application already at
+   * its limit must still be able to change the event types of an endpoint it has, or
+   * revive one a 410 disabled, and refusing that would leave a tenant unable to fix
+   * the very configuration that filled its quota.
+   *
+   * 429 rather than 403 because §10.5 gives that code to "rate limit o cuota", and
+   * the fix is the same as any other quota: a promotion to a standing that allows
+   * more. Counting active endpoints rather than all of them means a disabled one does
+   * not permanently consume a slot.
+   */
+  const quota = await quotaForApplication(context);
+  const active = await webhookEndpoints.countDocuments(context, { status: 'active' });
+  if (active >= quota.webhookEndpoints) {
+    throw new ApiError(
+      'rate_limited',
+      `This application may register ${quota.webhookEndpoints} webhook endpoints at its current standing.`,
+      { activeEndpoints: active, limit: quota.webhookEndpoints },
+    );
   }
 
   const webhookEndpointId = newPublicId('webhookEndpoint');

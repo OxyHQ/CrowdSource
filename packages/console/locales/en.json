@@ -1,0 +1,601 @@
+{
+  "app": {
+    "name": "CrowdSource Console"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "yes": "Yes",
+    "no": "No",
+    "open": "Open",
+    "all": "All",
+    "absent": "—"
+  },
+  "copy": {
+    "short": "Copy",
+    "action": "Copy the {{label}}",
+    "copied": "{{label}} copied.",
+    "failed": "The browser refused to write to the clipboard. The value is still selectable above.",
+    "unavailable": "This browser will not give the page clipboard access. Select the value above instead."
+  },
+  "secret": {
+    "shownOnce": "This value is shown once. Only its digest is stored, so nothing — including this service — can show it to you again.",
+    "storeIt": "Put it in your secret store before you leave this screen. If you lose it, issue a new one and revoke this one.",
+    "dismiss": "I have stored it"
+  },
+  "signIn": {
+    "title": "Sign in",
+    "tagline": "Manage your CrowdSource applications: service credentials, webhook delivery, quotas, and the cases and decisions for your own tenant.",
+    "action": "Sign in with Oxy",
+    "unconfigured": "Sign-in is unavailable: no Oxy client has been registered for this app yet.",
+    "audiences": "Trust & Safety views need a staff role, which is granted outside this service. Without one you will see your own organizations and nothing else."
+  },
+  "notFound": {
+    "heading": "Not found",
+    "title": "This page does not exist.",
+    "body": "Nothing lives at that address. An application that belongs to another account answers the same way — the service does not distinguish the two.",
+    "action": "Go to organizations"
+  },
+  "error": {
+    "boundary": {
+      "title": "Something went wrong",
+      "message": "The screen could not be displayed. Nothing you were changing was saved.",
+      "retry": "Try again"
+    }
+  },
+  "nav": {
+    "organizations": "Organizations",
+    "application": "Application",
+    "overview": "Overview",
+    "credentials": "Credentials",
+    "webhooks": "Webhooks",
+    "cases": "Cases",
+    "audit": "Audit trail",
+    "trustSafety": "Trust & Safety",
+    "applicationTrust": "Application trust",
+    "platformMetrics": "Platform metrics",
+    "switchApplication": "Switch application"
+  },
+  "state": {
+    "loading": "Loading…",
+    "endpointLabel": "Endpoint",
+    "unavailable": {
+      "title": "This part of the service is not running yet",
+      "body": "The screen is finished; the endpoint it reads from has not been deployed. Nothing is being hidden from you, and no sample data is being shown in its place."
+    },
+    "unreachable": {
+      "title": "The service could not be reached",
+      "body": "No response from {{origin}}. This is usually a connection problem rather than a fault in the service."
+    },
+    "missing": {
+      "title": "Not found, or not yours",
+      "body": "The service deliberately answers the same way for something that does not exist and something that belongs to another account, so this page cannot tell you which it was."
+    },
+    "forbidden": {
+      "title": "Your seat cannot do that",
+      "body": "Reading needs any seat; changing anything needs admin or owner. Ask an owner of this organization to raise your role."
+    },
+    "forbiddenStaff": {
+      "title": "This needs a Trust & Safety role",
+      "body": "Reading application trust needs the security or policy role; moving a standing and reading the dead-letter queue need security. No route in this service grants a role."
+    },
+    "conflict": {
+      "title": "That change conflicts with the current state",
+      "body": "Nothing was changed. The most common causes are a slug that is already taken, revoking the last owner of an organization, and replaying a delivery that has not dead-lettered."
+    },
+    "rateLimited": {
+      "title": "Too many requests",
+      "body": "The service is limiting this session. Wait a moment and try again."
+    },
+    "serviceUnavailable": {
+      "title": "The service cannot do that right now",
+      "body": "A dependency this endpoint needs is not configured in this deployment. Nothing was changed."
+    },
+    "rejected": {
+      "title": "The service rejected the request",
+      "body": "This console sent a value the endpoint does not accept. That is a defect here rather than something you can correct — the endpoint is named below."
+    },
+    "malformed": {
+      "title": "The response did not match the contract",
+      "body": "The service answered with a shape this console was not built against, so nothing is being rendered rather than rendering a guess. The field is named below; its value is deliberately not shown.",
+      "fieldLabel": "Field"
+    },
+    "error": {
+      "title": "That did not work",
+      "body": "The request failed for a reason this console cannot describe more precisely. Try again; if it keeps failing, the service log has the detail."
+    }
+  },
+  "role": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "developer": "Developer",
+    "viewer": "Viewer"
+  },
+  "memberStatus": {
+    "active": "Active",
+    "revoked": "Revoked"
+  },
+  "standing": {
+    "sandbox": "Sandbox",
+    "trusted": "Trusted",
+    "restricted": "Restricted"
+  },
+  "standingHint": {
+    "sandbox": "Where every application starts. A small daily budget, and no effect on any Oxy Trust figure.",
+    "trusted": "Promoted after technical review, identity verification and a quality period.",
+    "restricted": "Ingestion is limited while something is being investigated or has failed an audit."
+  },
+  "standingReason": {
+    "initial": "Initial state",
+    "promotion_review_passed": "Promotion review passed",
+    "evidence_integrity_failed": "Evidence integrity failed",
+    "high_overturn_rate": "High overturn rate",
+    "suspected_abuse": "Suspected abuse",
+    "investigation_closed": "Investigation closed"
+  },
+  "credentialStatus": {
+    "active": "Active",
+    "revoked": "Revoked"
+  },
+  "endpointStatus": {
+    "active": "Active",
+    "disabled": "Disabled"
+  },
+  "disabledReason": {
+    "gone": "The receiver answered 410 Gone",
+    "operator": "Disabled by an operator"
+  },
+  "deliveryStatus": {
+    "pending": "Pending",
+    "delivering": "Delivering",
+    "succeeded": "Succeeded",
+    "dead_letter": "Dead-lettered"
+  },
+  "caseStatus": {
+    "received": "Received",
+    "triaged": "Triaged",
+    "awaiting_review": "Awaiting review",
+    "under_review": "Under review",
+    "awaiting_consensus": "Awaiting consensus",
+    "decided": "Decided",
+    "escalated": "Escalated",
+    "appealed": "Appealed",
+    "superseded": "Superseded",
+    "closed": "Closed"
+  },
+  "decisionStatus": {
+    "provisional": "Provisional",
+    "final": "Final",
+    "superseded": "Superseded",
+    "corrected": "Corrected"
+  },
+  "outcome": {
+    "violation": "Violation",
+    "no_violation": "No violation",
+    "insufficient_context": "Insufficient context",
+    "inconclusive": "Inconclusive",
+    "content_unavailable": "Content unavailable",
+    "duplicate": "Duplicate",
+    "escalated": "Escalated"
+  },
+  "contextSufficiency": {
+    "sufficient": "Sufficient",
+    "insufficient": "Insufficient"
+  },
+  "organizations": {
+    "title": "Organizations",
+    "subtitle": "The organizations you hold a seat in, and their applications.",
+    "meta": "{{slug}} · {{applicationCount}} applications",
+    "suspended": "Suspended",
+    "members": "Members",
+    "create": {
+      "action": "New organization",
+      "title": "Create an organization",
+      "description": "You become its owner in the same request. An organization with no owner would be unreachable through every other screen here.",
+      "nameLabel": "Name",
+      "slugLabel": "Slug",
+      "slugHint": "2 to 63 characters: lowercase letters, digits and hyphens, starting with a letter or digit. It must not already be taken.",
+      "submit": "Create organization",
+      "created": "{{name}} created. You are its owner."
+    },
+    "empty": {
+      "title": "No organizations yet",
+      "body": "Create one to get an application, and an application to get the service credential your integration uses."
+    }
+  },
+  "applications": {
+    "column": {
+      "name": "Application",
+      "id": "Application id",
+      "standing": "Standing",
+      "globalEffects": "Oxy Trust effects",
+      "open": "Open"
+    },
+    "create": {
+      "action": "New application",
+      "title": "Create an application",
+      "description": "It starts in sandbox: a small daily report budget, and no effect on any Oxy Trust figure until Trust & Safety promotes it.",
+      "nameLabel": "Name",
+      "submit": "Create application",
+      "created": "{{name}} created, in {{standing}}."
+    },
+    "empty": {
+      "title": "No applications in this organization",
+      "body": "An application is what a service credential belongs to, and what reports are attributed to."
+    }
+  },
+  "members": {
+    "title": "Members",
+    "subtitle": "Who holds a seat, and at what role.",
+    "grant": {
+      "action": "Add member",
+      "title": "Grant a seat",
+      "description": "Posting an account that already has a seat CHANGES its role, and revives a revoked one. There is no separate edit control because there is no separate endpoint.",
+      "accountLabel": "Oxy user id",
+      "accountHint": "Taken as an opaque string and not resolved against Oxy. A seat for an account that does not exist is harmless — nobody can authenticate as it — and a console that could resolve an id could enumerate Oxy accounts.",
+      "submit": "Grant seat",
+      "done": "Seat granted."
+    },
+    "revoke": {
+      "action": "Revoke",
+      "done": "Seat revoked.",
+      "lastOwner": "That is the last owner. An organization with no owner would be unreachable, so the service refuses."
+    },
+    "column": {
+      "account": "Account",
+      "role": "Role",
+      "status": "Status",
+      "invitedBy": "Granted by",
+      "since": "Since",
+      "revoke": "Revoke"
+    },
+    "empty": {
+      "title": "No seats match",
+      "body": "Every seat, including revoked ones, is in the unfiltered list."
+    },
+    "roles": {
+      "title": "What each role can do",
+      "body": "Owner and admin can change production behaviour: issue and revoke credentials, rotate a secret, replay a delivery, add a member, create an application. Developer and viewer can read. Developer exists for the surfaces that will grow write operations of their own and holds none today."
+    }
+  },
+  "overview": {
+    "title": "Overview",
+    "identity": {
+      "title": "Identity",
+      "body": "The values your integration is configured with.",
+      "applicationId": "Application id",
+      "organizationId": "Organization id",
+      "status": "Status",
+      "createdAt": "Created",
+      "statusHint": "A suspended application is stopped entirely. Standing, below, decides what a running one may do."
+    },
+    "trust": {
+      "title": "Trust",
+      "body": "What this application is allowed to do, and why.",
+      "standing": "Standing",
+      "globalEffects": "May affect Oxy Trust",
+      "globalEffectsHint": "CrowdSource never writes an Oxy Trust figure directly. It emits a decision, and Oxy Trust's own consequence engine decides the effect.",
+      "lastReason": "Last standing change",
+      "changedAt": "Changed at",
+      "evidenceIntegrity": "Evidence integrity",
+      "identityBinding": "Identity binding reliability",
+      "policyQuality": "Policy quality",
+      "signalsAbsent": "A dash means no measurement exists yet, not a score of zero. Nothing computes these three signals in this deployment."
+    },
+    "quota": {
+      "title": "Quota",
+      "body": "The limits your standing gives you.",
+      "reportsPerDay": "Reports per day",
+      "webhookEndpoints": "Webhook endpoints",
+      "globalEffects": "Oxy Trust effects"
+    },
+    "usage": {
+      "title": "Usage",
+      "body": "The last {{days}} days.",
+      "reportsReceived": "Reports received",
+      "casesCreated": "Cases created",
+      "decisionsPublished": "Decisions published",
+      "window": "Window",
+      "windowValue": "{{from}} → {{to}}",
+      "daily": "Reports per day",
+      "dailyEmpty": "No reports in this window.",
+      "atLimit": {
+        "title": "At the daily limit",
+        "body": "Reports are being refused right now. The limit for this standing is {{limit}} per day; a promotion raises it."
+      }
+    }
+  },
+  "credentials": {
+    "title": "Credentials",
+    "subtitle": "The service keys your integration authenticates with.",
+    "neverExpires": "Never",
+    "days": "{{days}} days",
+    "issue": {
+      "action": "Issue credential",
+      "title": "Issue a credential",
+      "description": "The key you receive is applicationId:credentialId:secret — which is why your client never has to be told which application it is. The secret half is shown once.",
+      "scopesLabel": "Scopes",
+      "scopesHint": "At least one. Grant only what the integration calls; a key that can do less is a key that can leak less.",
+      "lifetimeLabel": "Expires",
+      "submit": "Issue"
+    },
+    "issued": {
+      "title": "Credential issued",
+      "tokenLabel": "service key"
+    },
+    "revoke": {
+      "action": "Revoke",
+      "done": "Credential revoked."
+    },
+    "column": {
+      "id": "Credential id",
+      "scopes": "Scopes",
+      "status": "Status",
+      "expires": "Expires",
+      "created": "Created",
+      "revoke": "Revoke"
+    },
+    "empty": {
+      "title": "No credentials yet",
+      "body": "Issue one to let your service send reports and receive decisions."
+    },
+    "privileged": {
+      "title": "Scopes you cannot grant here",
+      "body": "Emitting decisions, applying moderation reputation and operating Trust & Safety are privileged scopes. They are not self-grantable at any role — the request schema rejects them before the domain does — and the surfaces that need them are not part of this console."
+    }
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "subtitle": "Where decisions are delivered, and how those deliveries are going.",
+    "disabledHint": "A disabled endpoint receives nothing. Re-enabling one is done through the application API, not here.",
+    "empty": {
+      "title": "No webhook endpoints",
+      "body": "Endpoints are created through the application API with a credential holding crowdsource:webhooks:manage. This console rotates their secrets and shows their delivery health."
+    },
+    "column": {
+      "endpointId": "Endpoint id",
+      "eventTypes": "Event types",
+      "disabledReason": "Disabled because",
+      "updatedAt": "Updated"
+    },
+    "health": {
+      "title": "Deliveries",
+      "summary": "{{pending}} pending · {{delivering}} delivering · {{succeeded}} succeeded · {{deadLetter}} dead-lettered",
+      "deadLetterFlag": "{{deadLetter}} dead-lettered"
+    },
+    "rotate": {
+      "action": "Rotate secret",
+      "hint": "Rotation keeps the previous secret valid for an overlap window, so you can deploy the new one before any delivery is signed with it. Verify both versions during the overlap.",
+      "failed": "The rotation did not complete. Nothing was changed."
+    },
+    "rotated": {
+      "title": "Secret rotated",
+      "secretLabel": "signing secret",
+      "version": "Version",
+      "signingStartsAt": "Signing starts at",
+      "signingStartsAtHint": "Deliveries begin carrying this signature at that instant. Deploy the new secret before then and no delivery is ever signed with a key your receiver does not have.",
+      "previous": "Previous secret",
+      "previousValue": "Version {{version}}, valid until {{expiresAt}}",
+      "noPreviousHint": "There was no previous secret, so there is no overlap to plan around."
+    },
+    "deliveries": {
+      "title": "Delivery log",
+      "description": "The event body is deliberately absent: it holds the exact signed bytes of the event, and the status, attempt count and stop reason are what a diagnosis needs.",
+      "statusFilter": "Status",
+      "endpointFilter": "Endpoint",
+      "replayAction": "Replay",
+      "replayed": "Replayed. The delivery is now {{status}}.",
+      "replayFailed": "That delivery cannot be replayed. Only a dead-lettered delivery can be.",
+      "column": {
+        "eventType": "Event",
+        "status": "Status",
+        "attempts": "Attempts",
+        "lastResponse": "Last code",
+        "reason": "Stop reason",
+        "next": "Next / succeeded",
+        "replays": "Replays",
+        "replay": "Replay"
+      },
+      "empty": {
+        "title": "No deliveries match",
+        "body": "Either nothing has been delivered yet, or no delivery matches this filter."
+      }
+    }
+  },
+  "cases": {
+    "title": "Cases",
+    "subtitle": "This application's cases, newest first.",
+    "notDecided": "Not decided",
+    "column": {
+      "caseId": "Case id",
+      "status": "Status",
+      "outcome": "Outcome in force",
+      "subject": "Subject",
+      "allegations": "Allegations",
+      "reports": "Reports",
+      "revision": "Decided / current",
+      "sensitivity": "Sensitivity",
+      "updated": "Updated",
+      "open": "Open"
+    },
+    "empty": {
+      "title": "No cases yet",
+      "body": "A case appears when a report is received and triaged. One case covers every report about the same material under the same policy."
+    },
+    "filtered": "No case in this application has that status.",
+    "paging": {
+      "page": "Page {{page}}",
+      "previous": "Previous",
+      "next": "Next"
+    }
+  },
+  "caseDetail": {
+    "title": "Case",
+    "backToCases": "All cases",
+    "summary": {
+      "title": "Summary",
+      "subject": "Subject",
+      "subjectHint": "Your own external id, of type {{type}}.",
+      "primaryResource": "Primary resource",
+      "policy": "Policy",
+      "policyHint": "The version the case was opened under. A decision carries the versions it was decided under and never moves to a newer one.",
+      "taxonomy": "Taxonomy version",
+      "allegations": "Allegations",
+      "allegationsHint": "What was claimed. A claim, not a finding.",
+      "reportCount": "Reports",
+      "reportCountHint": "A count. Reporter fingerprints exist to be counted and are never served — an application handed them could recompute them against its own user table.",
+      "sensitivity": "Sensitivity class",
+      "currentRevision": "Current revision",
+      "createdAt": "Created",
+      "updatedAt": "Updated"
+    },
+    "resources": {
+      "title": "Resources",
+      "description": "Metadata and digests. The payload never leaves the service: you already hold your own material, and the digest is what reconciles a case against it.",
+      "empty": "No resources recorded on this case.",
+      "column": {
+        "id": "Resource id",
+        "type": "Type",
+        "role": "Role",
+        "language": "Language",
+        "digest": "SHA-256"
+      }
+    },
+    "reports": {
+      "title": "Reports",
+      "description": "The reports merged into this case, by the external ids you supplied.",
+      "empty": "No reports linked to this case.",
+      "column": {
+        "externalId": "Your report id",
+        "reportId": "Report id",
+        "allegations": "Allegations",
+        "merged": "Merged",
+        "linkedAt": "Linked"
+      }
+    },
+    "decisions": {
+      "title": "Decisions",
+      "description": "Every revision, oldest first. A published decision is never edited — an appeal creates a new revision that supersedes it, and the earlier one keeps its outcome and its policy versions forever.",
+      "empty": "No decision has been published for this case yet.",
+      "revision": "Revision {{revision}}",
+      "publishedAt": "Published",
+      "contextSufficiency": "Context",
+      "confidence": "Confidence",
+      "jury": "Jury",
+      "juryValue": "{{size}} on the panel · {{decisive}} decisive · {{winning}} for the outcome · {{agreement}} agreement",
+      "specialistPresent": "A category specialist sat on this panel.",
+      "policyVersions": "Policy versions",
+      "policyVersionsValue": "taxonomy {{taxonomy}} · application {{application}} · Oxy conduct {{oxyConduct}}",
+      "policyVersionsHint": "Frozen at publication. This is what makes a decision explainable later.",
+      "supersedes": "Supersedes",
+      "supersedesNothing": "The first revision of a case supersedes nothing.",
+      "findings": "Findings",
+      "findingMeta": "severity {{severity}} · scope {{scope}} · {{resources}} resource(s)",
+      "findingContext": "context: {{context}}",
+      "findingAttribution": "attribution: {{attribution}}",
+      "recommendedActions": "Recommended actions"
+    }
+  },
+  "audit": {
+    "title": "Audit trail",
+    "subtitle": "What happened in this application, and which of your credentials did it.",
+    "noCredential": "No credential",
+    "filter": {
+      "title": "Filter",
+      "description": "Filtering by case id is applied by the service, not in the browser — and the service applies it only when the value is an id it issued. An id it does not recognise comes back as the WHOLE trail rather than as an error, so an unexpectedly long result means the id is wrong.",
+      "caseLabel": "Case id"
+    },
+    "column": {
+      "occurredAt": "When",
+      "action": "Action",
+      "actor": "Actor credential",
+      "caseId": "Case",
+      "externalReportId": "Your report id",
+      "reason": "Reason"
+    },
+    "empty": {
+      "title": "Nothing recorded yet",
+      "body": "Audit events are written as reports are ingested and decisions are published."
+    },
+    "filtered": "No audit event in this application names that case."
+  },
+  "trustSafety": {
+    "title": "Application trust",
+    "subtitle": "Standing across every tenant. A staff surface, with its own authorization.",
+    "column": {
+      "application": "Application",
+      "organization": "Organization",
+      "standing": "Standing",
+      "globalEffects": "Oxy Trust effects",
+      "evidenceIntegrity": "Evidence integrity",
+      "identityBinding": "Identity binding",
+      "policyQuality": "Policy quality",
+      "lastReason": "Last change",
+      "changedAt": "Changed at",
+      "change": "Standing"
+    },
+    "empty": {
+      "title": "No applications match",
+      "body": "Either no application exists yet, or none has this standing."
+    },
+    "signals": {
+      "title": "About the three quality signals",
+      "body": "A dash means no measurement exists, not a score of zero. Nothing in this deployment computes evidence integrity, identity binding reliability or policy quality yet, so a promotion decision rests on review rather than on these columns."
+    },
+    "standing": {
+      "action": "Change",
+      "title": "Change the standing of {{name}}",
+      "description": "This decides whether the application may ingest at all and whether its decisions may ever move an Oxy Trust figure. The reason is a code from a closed vocabulary because this row is kept indefinitely.",
+      "current": "Current standing",
+      "newStanding": "New standing",
+      "reason": "Reason",
+      "effects": "Request Oxy Trust effects",
+      "effectsHint": "A request, not a grant. At a standing that forbids effects the service accepts the request and does not honour it; what comes back is the answer.",
+      "submit": "Change standing",
+      "done": "Standing is now {{standing}}. Oxy Trust effects: {{effects}}."
+    }
+  },
+  "metrics": {
+    "title": "Platform metrics",
+    "subtitle": "What this deployment can measure, and what it cannot.",
+    "standing": {
+      "title": "Applications by standing",
+      "body": "Every application in the deployment, counted by the standing it holds."
+    },
+    "deliveries": {
+      "title": "Webhook deliveries",
+      "body": "Across every tenant.",
+      "successRate": "Success rate",
+      "successRateAbsent": "No delivery has been attempted, so there is no rate. A 0% success rate on an empty deployment would be the most alarming possible way to say that."
+    },
+    "unavailable": {
+      "title": "Metrics this deployment cannot compute",
+      "body": "The service names these rather than omitting them, because a dashboard that renders a missing metric as zero is worse than one that says the metric is missing.",
+      "none": "Every metric this surface defines is available.",
+      "marker": "unavailable",
+      "why": "Each needs a cross-tenant read of cases or decisions. Those are tenant-scoped collections with no unscoped read, and cross-tenant correlation belongs to a privileged incident module that is not built."
+    },
+    "queue": {
+      "title": "Dead-letter queue",
+      "body": "Deliveries that stopped, across every tenant — the view that shows a fault on our side rather than on one integrator's. The event body is not served: a cross-tenant reader has no relationship with the case it names.",
+      "replayElsewhere": "Replay is a per-tenant action and lives on that application's own webhooks screen, which is where the tenant filter is applied.",
+      "column": {
+        "at": "Dead-lettered",
+        "eventType": "Event",
+        "application": "Application",
+        "endpoint": "Endpoint",
+        "attempts": "Attempts",
+        "lastResponse": "Last code",
+        "reason": "Stop reason",
+        "replays": "Replays"
+      },
+      "empty": {
+        "title": "The queue is empty",
+        "body": "No delivery has exhausted its retries."
+      }
+    }
+  },
+  "applicationStatus": {
+    "active": "Active",
+    "suspended": "Suspended"
+  }
+}
