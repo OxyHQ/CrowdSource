@@ -2,7 +2,7 @@
 
 | Directory | Holds |
 | --- | --- |
-| `architecture/` | Architecture decision records and the module boundaries of the modular monolith. |
+| `architecture/` | Architecture decision records, the threat model, and the module boundaries of the modular monolith. |
 | `api/` | The application, reviewer and internal HTTP contracts, webhook events and error conventions. |
 | `policies/` | The universal taxonomy, policy-set versioning rules and the Oxy conduct policy. |
 | `runbooks/` | Operational procedures: rollouts, incident response, retention, legal holds, secret rotation. |
