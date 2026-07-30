@@ -32,26 +32,26 @@ export {
   caseDecidedEventFixture,
   caseEnvelopeFixture,
   decisionFixture,
-} from './fixtures';
+} from './fixtures.js';
 export type {
   CaseEnvelopeFixtureOptions,
   DecisionFixtureOptions,
   WebhookEventFixtureOptions,
-} from './fixtures';
+} from './fixtures.js';
 
-export { CrowdSourceSandbox, createCrowdSourceSandbox } from './sandbox';
+export { CrowdSourceSandbox, createCrowdSourceSandbox } from './sandbox.js';
 export type {
   CrowdSourceSandboxOptions,
   SandboxCase,
   SandboxDecisionInput,
   SandboxReport,
-} from './sandbox';
+} from './sandbox.js';
 
-export { WebhookSimulator, signWebhookDelivery } from './webhook-simulator';
+export { WebhookSimulator, signWebhookDelivery } from './webhook-simulator.js';
 export type {
   SignWebhookInput,
   SignedWebhookDelivery,
   WebhookDeliveryOverrides,
   WebhookDeliveryResult,
   WebhookSimulatorOptions,
-} from './webhook-simulator';
+} from './webhook-simulator.js';

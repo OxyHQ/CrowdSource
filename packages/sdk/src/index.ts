@@ -34,21 +34,21 @@
  * `Decision` or a `TaxonomyCode` has exactly one definition.
  */
 
-export { CrowdSource, SERVICE_KEY_ENV_VAR, BASE_URL_ENV_VAR } from './client';
-export type { CrowdSourceOptions } from './client';
+export { CrowdSource, SERVICE_KEY_ENV_VAR, BASE_URL_ENV_VAR } from './client.js';
+export type { CrowdSourceOptions } from './client.js';
 
-export { formatServiceKey, parseServiceKey } from './credential';
-export type { ServiceCredential } from './credential';
+export { formatServiceKey, parseServiceKey } from './credential.js';
+export type { ServiceCredential } from './credential.js';
 
 export {
   COMMUNITY_REVIEW_FORBIDDEN_ALLEGATIONS,
   DEFAULT_BASE_URL,
   DEFAULT_POLICY,
   DEFAULT_RETENTION_DAYS,
-} from './defaults';
+} from './defaults.js';
 
-export { canonicalJson, resourceDigest, sha256Digest } from './digest';
-export type { CanonicalValue } from './digest';
+export { canonicalJson, resourceDigest, sha256Digest } from './digest.js';
+export type { CanonicalValue } from './digest.js';
 
 /**
  * `composeCaseEnvelope` is deliberately NOT exported.
@@ -60,7 +60,7 @@ export type { CanonicalValue } from './digest';
  * were worded. The envelope a report produces is reachable by reading what
  * `reports.create` sends, not by building one yourself.
  */
-export { CrowdSourceReportInputError, defaultIdempotencyKey } from './envelope';
+export { CrowdSourceReportInputError, defaultIdempotencyKey } from './envelope.js';
 export type {
   AllegationInput,
   ContextInput,
@@ -69,7 +69,7 @@ export type {
   ReportInput,
   ReportSubjectInput,
   ResourceInput,
-} from './envelope';
+} from './envelope.js';
 
 export {
   CROWDSOURCE_API_ERROR_CODES,
@@ -80,17 +80,17 @@ export {
   isCrowdSourceApiError,
   isCrowdSourceApiErrorCode,
   isCrowdSourceError,
-} from './errors';
-export type { CrowdSourceApiErrorCode } from './errors';
+} from './errors.js';
+export type { CrowdSourceApiErrorCode } from './errors.js';
 
-export { Reports } from './reports';
-export type { ReportReceipt, ReportRequestOptions } from './reports';
+export { Reports } from './reports.js';
+export type { ReportReceipt, ReportRequestOptions } from './reports.js';
 
-export { Cases, Decisions } from './cases';
-export type { CaseView, ReadOptions } from './cases';
+export { Cases, Decisions } from './cases.js';
+export type { CaseView, ReadOptions } from './cases.js';
 
 
-export { WebhookEndpoints } from './webhookEndpoints';
+export { WebhookEndpoints } from './webhookEndpoints.js';
 export type {
   RegisterWebhookEndpointInput,
   RotateSecretOptions,
@@ -98,7 +98,7 @@ export type {
   WebhookEndpoint,
   WebhookEndpointRequestOptions,
   WebhookSecret,
-} from './webhookEndpoints';
+} from './webhookEndpoints.js';
 
-export { DEFAULT_MAX_ATTEMPTS, DEFAULT_TIMEOUT_MS } from './transport';
-export type { FetchLike } from './transport';
+export { DEFAULT_MAX_ATTEMPTS, DEFAULT_TIMEOUT_MS } from './transport.js';
+export type { FetchLike } from './transport.js';

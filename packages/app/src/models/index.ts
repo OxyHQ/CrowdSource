@@ -4,7 +4,7 @@ import type {
   ModerationOutboxKind,
   ModerationOutboxPayload,
   ModerationOutboxStatus,
-} from '../types';
+} from '../types.js';
 
 /**
  * The three collections this package owns, built on the application's own

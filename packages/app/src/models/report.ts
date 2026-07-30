@@ -1,5 +1,5 @@
 import { Schema, type SchemaDefinition } from 'mongoose';
-import type { ModerationReportFields } from '../types';
+import type { ModerationReportFields } from '../types.js';
 
 /**
  * The moderation half of an application's report schema.

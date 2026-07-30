@@ -1,40 +1,45 @@
 #!/usr/bin/env bun
 
 /**
- * Every published package is CommonJS-only, deliberately, and every export
- * condition resolves to the same file.
+ * Every published package ships BOTH formats, and each condition resolves to the
+ * format it names.
  *
- * ## The decision this encodes
+ * ## Why this exists
  *
  * On 2026-07-30 `@oxyhq/crowdsource-express@0.3.0` took a consumer's backend
- * down. It ships CommonJS and points `exports["."].import` at that CJS file; a
- * bundler targeting ESM inlines it and rewrites each `require()` of an external
- * into a shim that throws on first call:
+ * down. Every package shipped CommonJS only, with `exports["."].import` pointing
+ * at the CommonJS file. Plain Node survives that — its ESM loader handles a CJS
+ * package — so a `node -e "import(...)"` smoke test goes green. A bundler
+ * targeting ESM does not: it inlines the CJS and rewrites each `require()` of an
+ * external into a shim that throws on first call.
  *
  *     Error: Dynamic require of "zod" is not supported
  *
- * The obvious fix — ship a real ESM build behind `import` — was considered and
- * REJECTED, and this check exists so nobody quietly does it later. A dual
- * package makes two copies of a module reachable through condition resolution,
- * and the failure that produces is one this repo already pays to detect: two
- * copies of `contracts` yield no type error and no diagnostic, only every
- * webhook answering `400 malformed_event`. `check-peer-contracts.mjs` counts
- * INSTALLED copies; it cannot see a second copy created by resolution. Adding a
- * dual build would introduce that hazard and blind the detector in one change.
- *
- * The packages are not broken for Node — its ESM loader imports a CJS package
- * correctly, measured. The break is specific to a bundler INLINING them, and
- * `--external:@oxyhq/*` is the ordinary configuration for a Node server bundle
- * rather than a workaround. That is documented in `packages/app/README.md`, and
- * asserted below, because a mitigation nobody can find is not a mitigation.
+ * The first response was to document a consumer-side workaround
+ * (`--external:@oxyhq/*`). That was reversed, and rightly: it pushed a permanent
+ * special case onto seven consumer builds whose failure mode is a container that
+ * starts and dies, to avoid fixing a misconfiguration that was ours. A
+ * TypeScript library publishing real ESM is the ordinary thing.
  *
  * ## What this asserts
  *
- * 1. Each published package declares `"type": "commonjs"`.
- * 2. Every condition in each export entry resolves to the SAME file — so a
- *    partial ESM build cannot appear without this failing.
- * 3. The adopter guide carries the externalise flag AND the verbatim error
- *    text, because the next person finds this by pasting a stack trace.
+ * 1. `import` resolves to a file under the ESM output, `require` to the
+ *    CommonJS one, and they are DIFFERENT files. A single file behind both is
+ *    the defect above.
+ * 2. The ESM output carries its `{"type":"module"}` marker. The root manifest
+ *    says `"type": "commonjs"`, which Node applies to every `.js` beneath it, so
+ *    without that one file the entire ESM half is parsed as CommonJS and fails
+ *    on its first `import`.
+ * 3. The ESM entry really is ESM, and the CommonJS entry really is CommonJS —
+ *    checked by content, because a condition can point anywhere.
+ *
+ * ## What it deliberately does not assert
+ *
+ * The dual-package hazard is real: a consumer resolving both conditions gets two
+ * copies of a module, which produces no type error and no diagnostic. That is
+ * bounded elsewhere — `check-peer-contracts.mjs` keeps contracts a peer so an
+ * adopter installs exactly one — and it is a cost every dual-published library
+ * carries. It is not a reason to ship a broken `import` condition.
  *
  * Run against a different tree with `bun scripts/check-module-format.mjs <root>`,
  * which is how `test-check-module-format.mjs` mutation-tests it.
@@ -46,16 +51,7 @@ import { fileURLToPath } from "node:url";
 
 const PUBLISHED = ["contracts", "sdk", "sdk-express", "testing", "app"];
 /** Conditions that select code. `types` selects declarations and is exempt. */
-const CODE_CONDITIONS = ["import", "require", "default", "node", "browser"];
 
-const GUIDE = "packages/app/README.md";
-const GUIDE_REQUIREMENTS = [
-  { text: "--external:@oxyhq/*", why: "the flag a consumer has to set" },
-  {
-    text: 'Dynamic require of "zod" is not supported',
-    why: "the verbatim error, which is how it gets found by search",
-  },
-];
 
 const repositoryRoot =
   process.argv[2] === undefined
@@ -65,67 +61,96 @@ const repositoryRoot =
 const failures = [];
 let entriesChecked = 0;
 
+/** Syntactic markers. A real ES module contains none of them. */
+const COMMONJS_MARKERS = [
+  { pattern: /(^|[^.\w])require\s*\(/m, name: "a require() call" },
+  { pattern: /(^|\s)exports\s*\./m, name: "an exports.* assignment" },
+  { pattern: /module\s*\.\s*exports/m, name: "a module.exports assignment" },
+];
+
+async function readIfPresent(path) {
+  try {
+    return await readFile(path, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
 for (const name of PUBLISHED) {
+  const packageDir = resolve(repositoryRoot, "packages", name);
   let manifest;
   try {
-    manifest = JSON.parse(
-      await readFile(resolve(repositoryRoot, "packages", name, "package.json"), "utf8"),
-    );
+    manifest = JSON.parse(await readFile(resolve(packageDir, "package.json"), "utf8"));
   } catch {
     failures.push(`packages/${name}/package.json is missing or unreadable.`);
     continue;
   }
-
   const label = manifest.name ?? `packages/${name}`;
-
-  if (manifest.type !== "commonjs") {
-    failures.push(
-      `${label} declares "type": ${JSON.stringify(manifest.type)}. Every published package here ` +
-        'is CommonJS-only by decision — see the comment at the top of this script for why a dual ' +
-        "build was rejected rather than overlooked.",
-    );
-  }
 
   for (const [subpath, conditions] of Object.entries(manifest.exports ?? {})) {
     if (typeof conditions !== "object" || conditions === null) continue;
-    const targets = new Map();
-    for (const condition of CODE_CONDITIONS) {
-      const target = conditions[condition];
-      if (typeof target === "string") targets.set(condition, target);
-    }
-    if (targets.size === 0) continue;
+    const esm = conditions.import;
+    const cjs = conditions.require;
+    if (typeof esm !== "string" && typeof cjs !== "string") continue;
     entriesChecked += 1;
 
-    const distinct = new Set(targets.values());
-    if (distinct.size > 1) {
-      const detail = [...targets]
-        .map(([condition, target]) => `${condition} -> ${target}`)
-        .join(", ");
+    if (typeof esm !== "string" || typeof cjs !== "string") {
       failures.push(
-        `${label} resolves "${subpath}" to more than one file (${detail}). That is a dual package: ` +
-          "a consumer resolving two conditions gets two copies of the module, which produces no " +
-          "type error and no diagnostic — the same failure `check-peer-contracts.mjs` guards " +
-          "against, but reachable through resolution, where a copy count cannot see it. If a " +
-          "consumer genuinely cannot externalise, change this deliberately and answer the " +
-          "Zod-identity question first.",
+        `${label} "${subpath}" declares only one of import/require. Both must be present so a ` +
+          "consumer of either module system resolves the format it can actually load.",
+      );
+      continue;
+    }
+
+    if (esm === cjs) {
+      failures.push(
+        `${label} resolves "${subpath}" to the same file for import and require (${esm}). That is ` +
+          "the defect that took a backend down on 2026-07-30: a bundler targeting ESM inlines the " +
+          'CommonJS and throws `Dynamic require of "..." is not supported` at container start, ' +
+          "with green CI. Point import at the ESM build.",
+      );
+      continue;
+    }
+
+    const esmSource = await readIfPresent(resolve(packageDir, esm));
+    if (esmSource !== undefined) {
+      const found = COMMONJS_MARKERS.filter(({ pattern }) => pattern.test(esmSource));
+      if (found.length > 0) {
+        failures.push(
+          `${label} maps the import condition of "${subpath}" to ${esm}, which is CommonJS ` +
+            `(${found.map((marker) => marker.name).join(", ")}).`,
+        );
+      }
+    }
+
+    const cjsSource = await readIfPresent(resolve(packageDir, cjs));
+    if (cjsSource !== undefined && !COMMONJS_MARKERS.some(({ pattern }) => pattern.test(cjsSource))) {
+      failures.push(
+        `${label} maps the require condition of "${subpath}" to ${cjs}, which does not look like ` +
+          "CommonJS. A CommonJS consumer would fail to load it.",
       );
     }
-  }
-}
 
-let guide = "";
-try {
-  guide = await readFile(resolve(repositoryRoot, GUIDE), "utf8");
-} catch {
-  failures.push(`${GUIDE} is missing; the bundler mitigation has nowhere to live.`);
-}
-for (const { text, why } of GUIDE_REQUIREMENTS) {
-  if (guide !== "" && !guide.includes(text)) {
-    failures.push(
-      `${GUIDE} no longer contains ${JSON.stringify(text)} — ${why}. The packages are CJS-only ` +
-        "on purpose, so this note is the only thing standing between a bundling consumer and a " +
-        "container that dies at startup with green CI.",
-    );
+    /**
+     * The marker beside the ESM entry. Without it Node reads the root manifest's
+     * `"type": "commonjs"` and parses the ESM emit as CommonJS — one absent file
+     * makes the whole half inert, and nothing else in the tree would show it.
+     */
+    const markerPath = resolve(packageDir, dirname(esm), "package.json");
+    const marker = await readIfPresent(markerPath);
+    if (esmSource !== undefined) {
+      if (marker === undefined) {
+        failures.push(
+          `${label} has no ${dirname(esm)}/package.json beside its ESM entry. The root manifest is ` +
+            '"type": "commonjs", so Node parses that output as CommonJS and fails on its first ' +
+            "import statement.",
+        );
+      } else if (JSON.parse(marker).type !== "module") {
+        failures.push(
+          `${label}'s ${dirname(esm)}/package.json does not declare "type": "module".`,
+        );
+      }
+    }
   }
 }
 
@@ -144,6 +169,6 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `All ${PUBLISHED.length} published package(s) are CommonJS-only across ${entriesChecked} export ` +
-    "entr(ies), and the adopter guide carries the bundler mitigation.",
+  `All ${PUBLISHED.length} published package(s) ship both formats correctly across ` +
+    `${entriesChecked} export entr(ies).`,
 );

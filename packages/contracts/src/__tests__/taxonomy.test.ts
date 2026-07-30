@@ -13,8 +13,8 @@ import {
   TaxonomyFamilySchema,
   UNIVERSAL_TAXONOMY_CODES,
   taxonomyFamilyOf,
-} from '../taxonomy';
-import { accepted, rejectionIssues } from './support/assertions';
+} from '../taxonomy.js';
+import { accepted, rejectionIssues } from './support/assertions.js';
 
 describe('the universal taxonomy', () => {
   it('publishes every family §6.3 lists, and nothing else', () => {

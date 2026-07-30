@@ -1,8 +1,8 @@
 import type { Model } from 'mongoose';
 import { DecisionSchema, type Decision } from '@oxyhq/crowdsource-contracts';
-import type { EnforcementExecutor } from './enforcement/executor';
-import { primaryAction } from './enforcement/planner';
-import { localStatusForDecision } from './reportStatus';
+import type { EnforcementExecutor } from './enforcement/executor.js';
+import { primaryAction } from './enforcement/planner.js';
+import { localStatusForDecision } from './reportStatus.js';
 import type {
   EnforcementOutcome,
   ModerationEnforcementConfig,
@@ -10,7 +10,7 @@ import type {
   ModerationOutboxEvent,
   ModerationReportFields,
   ReportDecisionExtraFields,
-} from './types';
+} from './types.js';
 
 /**
  * Applying a decision that has already been received and recorded.

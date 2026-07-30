@@ -27,8 +27,8 @@
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { createHarness, type Harness } from './support/harness';
-import { decision } from './support/decisions';
+import { createHarness, type Harness } from './support/harness.js';
+import { decision } from './support/decisions.js';
 
 let harness: Harness | null = null;
 

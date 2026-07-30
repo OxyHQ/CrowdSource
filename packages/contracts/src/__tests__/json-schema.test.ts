@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { CaseEnvelopeSchema } from '../case-envelope';
+import { CaseEnvelopeSchema } from '../case-envelope.js';
 import {
   CONTRACT_JSON_SCHEMA_NAMES,
   CONTRACT_SCHEMAS,
   crowdSourceJsonSchema,
-} from '../json-schema';
-import { rejectionPaths } from './support/assertions';
-import { caseEnvelopeExample } from './support/examples';
+} from '../json-schema.js';
+import { rejectionPaths } from './support/assertions.js';
+import { caseEnvelopeExample } from './support/examples.js';
 
 /**
  * Walk a JSON Schema document by key, narrowing at every step.

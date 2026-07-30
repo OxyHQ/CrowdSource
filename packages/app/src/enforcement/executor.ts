@@ -1,7 +1,7 @@
 import type { Model } from 'mongoose';
 import type { Decision } from '@oxyhq/crowdsource-contracts';
-import type { ModerationEnforcementDocument } from '../models';
-import { planEnforcement } from './planner';
+import type { ModerationEnforcementDocument } from '../models/index.js';
+import { planEnforcement } from './planner.js';
 import type {
   EnforcementEffect,
   EnforcementOutcome,
@@ -12,7 +12,7 @@ import type {
   ModerationLogger,
   ModerationMetrics,
   PlannedEnforcementAction,
-} from '../types';
+} from '../types.js';
 
 /**
  * Carrying out a decision, exactly once.

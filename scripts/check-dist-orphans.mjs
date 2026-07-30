@@ -41,6 +41,20 @@ const PUBLISHED = ["contracts", "sdk", "sdk-express", "testing", "app"];
 /** Output suffixes, longest first so `.d.ts.map` is stripped before `.map`. */
 const OUTPUT_SUFFIXES = [".d.ts.map", ".d.ts", ".js.map", ".js"];
 
+/**
+ * `dist/esm/` is a SECOND emit of the same sources, not a second source tree.
+ *
+ * The published packages ship both formats: `dist/` is CommonJS for the
+ * `require` condition and `dist/esm/` is real ESM for `import`. So
+ * `dist/esm/foo.js` is accounted for by `src/foo.ts`, and mapping it to a
+ * `src/esm/` that has never existed would report every ESM output as an orphan.
+ *
+ * `dist/esm/package.json` is the `{"type":"module"}` marker — build state rather
+ * than an emitted module, and the ESM half is inert without it.
+ */
+const SECOND_EMIT_PREFIX = "esm/";
+const BUILD_STATE_FILES = new Set(["esm/package.json"]);
+
 const repositoryRoot =
   process.argv[2] === undefined
     ? resolve(dirname(fileURLToPath(import.meta.url)), "..")
@@ -68,7 +82,11 @@ for (const name of PUBLISHED) {
     // `tsconfig.tsbuildinfo` inside dist is build state, not output.
     if (fromDist.endsWith(".tsbuildinfo")) continue;
 
-    const suffix = OUTPUT_SUFFIXES.find((candidate) => fromDist.endsWith(candidate));
+    if (BUILD_STATE_FILES.has(fromDist)) continue;
+    const fromSources = fromDist.startsWith(SECOND_EMIT_PREFIX)
+      ? fromDist.slice(SECOND_EMIT_PREFIX.length)
+      : fromDist;
+    const suffix = OUTPUT_SUFFIXES.find((candidate) => fromSources.endsWith(candidate));
     if (suffix === undefined) {
       failures.push(
         `packages/${name}/dist/${fromDist} is not a recognised build output. ` +
@@ -78,7 +96,7 @@ for (const name of PUBLISHED) {
     }
 
     distFilesChecked += 1;
-    const stem = fromDist.slice(0, -suffix.length);
+    const stem = fromSources.slice(0, -suffix.length);
     if (!(await exists(join(srcRoot, `${stem}.ts`))) && !(await exists(join(srcRoot, `${stem}.tsx`)))) {
       failures.push(
         `packages/${name}/dist/${fromDist} has no source: packages/${name}/src/${stem}.ts is gone. ` +

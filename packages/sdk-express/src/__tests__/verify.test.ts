@@ -37,7 +37,7 @@ import {
   signedPayloadBytes,
   verifyWebhookDelivery,
   type WebhookVerificationInput,
-} from '../verify';
+} from '../verify.js';
 
 const ACTIVE_SECRET = 'active-secret-value';
 const PREVIOUS_SECRET = 'previous-secret-value';

@@ -4,9 +4,9 @@ import {
   RelationSchema,
   ResourceSchema,
   ResourceSchemaRegistrationSchema,
-} from '../resources';
-import { accepted, rejectionIssues, rejectionPaths } from './support/assertions';
-import { DIGEST, imageResourceExample, textResourceExample } from './support/examples';
+} from '../resources.js';
+import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
+import { DIGEST, imageResourceExample, textResourceExample } from './support/examples.js';
 
 describe('text resources', () => {
   it('accepts the reference shape', () => {

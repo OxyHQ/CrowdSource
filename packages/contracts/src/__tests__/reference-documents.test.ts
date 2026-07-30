@@ -28,10 +28,10 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { CaseEnvelopeSchema } from '../case-envelope';
-import { DecisionSchema } from '../decisions';
-import { KnownWebhookEventSchema, WebhookEventEnvelopeSchema } from '../webhooks';
-import { accepted, expandPlaceholders, readFixture, rejectionPaths } from './support/assertions';
+import { CaseEnvelopeSchema } from '../case-envelope.js';
+import { DecisionSchema } from '../decisions.js';
+import { KnownWebhookEventSchema, WebhookEventEnvelopeSchema } from '../webhooks.js';
+import { accepted, expandPlaceholders, readFixture, rejectionPaths } from './support/assertions.js';
 
 /**
  * The elisions the appendices write where a real value belongs.

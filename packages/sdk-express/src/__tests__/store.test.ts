@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { memoryProcessedEventStore } from '../store';
+import { memoryProcessedEventStore } from '../store.js';
 
 afterEach(() => {
   vi.useRealTimers();

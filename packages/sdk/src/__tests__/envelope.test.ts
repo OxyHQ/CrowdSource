@@ -12,13 +12,13 @@
 import { CaseEnvelopeSchema } from '@oxyhq/crowdsource-contracts';
 import { describe, expect, it } from 'vitest';
 
-import { canonicalJson, sha256Digest } from '../digest';
+import { canonicalJson, sha256Digest } from '../digest.js';
 import {
   composeCaseEnvelope,
   CrowdSourceReportInputError,
   defaultIdempotencyKey,
   type ReportInput,
-} from '../envelope';
+} from '../envelope.js';
 
 const COMPOSITION = { applicationId: 'app_test', environment: 'production' } as const;
 

@@ -22,7 +22,7 @@ import { createCrowdSourceSandbox } from '@oxyhq/crowdsource-testing';
 import express from 'express';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { crowdsourceWebhooks } from '../middleware';
+import { crowdsourceWebhooks } from '../middleware.js';
 
 const closers: (() => Promise<void>)[] = [];
 

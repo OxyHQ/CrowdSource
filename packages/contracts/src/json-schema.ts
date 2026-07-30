@@ -28,14 +28,14 @@
 
 import { z } from 'zod';
 
-import { AppealSchema, AppealSubmissionSchema } from './appeals';
-import { CaseEnvelopeSchema, CreateReportRequestSchema, CreateReportResponseSchema } from './case-envelope';
-import { DecisionSchema } from './decisions';
-import { PolicySetVersionSchema } from './policies';
-import { ReputationEventSchema } from './reputation-events';
-import { RelationSchema, ResourceSchema, ResourceSchemaRegistrationSchema } from './resources';
-import { RecusalSubmissionSchema, ReviewSubmissionSchema } from './reviews';
-import { KnownWebhookEventSchema, WebhookEventEnvelopeSchema } from './webhooks';
+import { AppealSchema, AppealSubmissionSchema } from './appeals.js';
+import { CaseEnvelopeSchema, CreateReportRequestSchema, CreateReportResponseSchema } from './case-envelope.js';
+import { DecisionSchema } from './decisions.js';
+import { PolicySetVersionSchema } from './policies.js';
+import { ReputationEventSchema } from './reputation-events.js';
+import { RelationSchema, ResourceSchema, ResourceSchemaRegistrationSchema } from './resources.js';
+import { RecusalSubmissionSchema, ReviewSubmissionSchema } from './reviews.js';
+import { KnownWebhookEventSchema, WebhookEventEnvelopeSchema } from './webhooks.js';
 
 /** A JSON Schema document, as produced by the conversion. */
 export type JsonSchemaDocument = z.core.JSONSchema.BaseSchema;

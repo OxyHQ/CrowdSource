@@ -30,9 +30,9 @@
 
 import { z } from 'zod';
 
-import { sha256Digest } from './digest';
-import { CrowdSourceTransportError } from './errors';
-import type { Transport } from './transport';
+import { sha256Digest } from './digest.js';
+import { CrowdSourceTransportError } from './errors.js';
+import type { Transport } from './transport.js';
 
 /**
  * A signing secret, at the one moment it is visible.

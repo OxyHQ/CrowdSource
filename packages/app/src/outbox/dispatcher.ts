@@ -1,5 +1,5 @@
-import type { ModerationLogger, ModerationOutboxEvent } from '../types';
-import type { ModerationOutboxHandler, OutboxService } from './service';
+import type { ModerationLogger, ModerationOutboxEvent } from '../types.js';
+import type { ModerationOutboxHandler, OutboxService } from './service.js';
 
 /**
  * The loop that drains the moderation outbox.

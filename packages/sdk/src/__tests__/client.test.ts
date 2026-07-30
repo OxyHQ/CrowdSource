@@ -10,10 +10,10 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { CrowdSource } from '../client';
-import { formatServiceKey } from '../credential';
-import { CrowdSourceApiError, CrowdSourceTransportError } from '../errors';
-import type { ReportInput } from '../envelope';
+import { CrowdSource } from '../client.js';
+import { formatServiceKey } from '../credential.js';
+import { CrowdSourceApiError, CrowdSourceTransportError } from '../errors.js';
+import type { ReportInput } from '../envelope.js';
 
 const SERVICE_KEY = formatServiceKey({
   applicationId: 'app_0123456789abcdef0123456789abcdef',

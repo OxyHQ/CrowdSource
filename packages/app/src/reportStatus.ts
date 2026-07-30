@@ -1,4 +1,4 @@
-import type { ModerationLocalStatus } from './types';
+import type { ModerationLocalStatus } from './types.js';
 
 /**
  * Decision statuses that end the application's side of the case.

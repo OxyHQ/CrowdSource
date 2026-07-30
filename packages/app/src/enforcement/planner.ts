@@ -1,5 +1,5 @@
 import type { Decision, RecommendedAction, Severity } from '@oxyhq/crowdsource-contracts';
-import type { ModerationEnforcementConfig, PlannedEnforcementAction } from '../types';
+import type { ModerationEnforcementConfig, PlannedEnforcementAction } from '../types.js';
 
 /**
  * Deciding what an application will do about a decision — and nothing else.

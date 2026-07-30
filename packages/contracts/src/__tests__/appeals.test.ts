@@ -5,10 +5,10 @@ import {
   APPEAL_STATUSES,
   AppealSchema,
   AppealSubmissionSchema,
-} from '../appeals';
-import { CONTRACT_LIMITS } from '../primitives';
-import { accepted, rejectionIssues, rejectionPaths } from './support/assertions';
-import { appealExample, appealSubmissionExample, decisionExample } from './support/examples';
+} from '../appeals.js';
+import { CONTRACT_LIMITS } from '../primitives.js';
+import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
+import { appealExample, appealSubmissionExample, decisionExample } from './support/examples.js';
 
 /**
  * §9.8's appeal, as a contract.

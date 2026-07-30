@@ -22,10 +22,10 @@
 
 import { z } from 'zod';
 
-import { CreateReportResponseSchema } from './case-envelope';
-import { DecisionSchema } from './decisions';
-import { IdentifierSchema, TimestampSchema } from './primitives';
-import type { Closed } from './closed';
+import { CreateReportResponseSchema } from './case-envelope.js';
+import { DecisionSchema } from './decisions.js';
+import { IdentifierSchema, TimestampSchema } from './primitives.js';
+import type { Closed } from './closed.js';
 
 /** §10.6. */
 export const WEBHOOK_EVENT_TYPES = [

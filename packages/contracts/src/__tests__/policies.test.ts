@@ -7,9 +7,9 @@ import {
   PolicySetIdSchema,
   PolicySetVersionSchema,
   ReputationPolicyVersionsSchema,
-} from '../policies';
-import { accepted, rejectionIssues, rejectionPaths } from './support/assertions';
-import { policySetVersionExample } from './support/examples';
+} from '../policies.js';
+import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
+import { policySetVersionExample } from './support/examples.js';
 
 describe('policy identifiers', () => {
   it('requires a policy set id to be namespaced by its tenant', () => {

@@ -16,90 +16,93 @@ import { fileURLToPath } from "node:url";
 const checker = resolve(dirname(fileURLToPath(import.meta.url)), "check-module-format.mjs");
 const PACKAGES = ["contracts", "sdk", "sdk-express", "testing", "app"];
 
-const GUIDE = [
-  "Externalise them: --external:@oxyhq/*",
-  'Otherwise: Dynamic require of "zod" is not supported',
-].join("\n");
+const ESM = "import { z } from 'zod';\nexport const schema = z.string();\n";
+const CJS = '"use strict";\nconst zod = require("zod");\nexports.schema = zod.z.string();\n';
 
-/** A tree that must pass: CJS-only, one file per entry, guide intact. */
+/** A tree that must pass: both formats, each condition on the right one. */
 function healthyTree() {
-  return {
-    packages: Object.fromEntries(
-      PACKAGES.map((name) => [
-        name,
-        {
+  return Object.fromEntries(
+    PACKAGES.map((name) => [
+      name,
+      {
+        manifest: {
           name: `@oxyhq/${name}`,
           type: "commonjs",
           exports: {
             ".": {
               types: "./dist/index.d.ts",
-              import: "./dist/index.js",
+              import: "./dist/esm/index.js",
               require: "./dist/index.js",
               default: "./dist/index.js",
             },
           },
         },
-      ]),
-    ),
-    guide: GUIDE,
-  };
+        files: {
+          "dist/index.js": CJS,
+          "dist/esm/index.js": ESM,
+          "dist/esm/package.json": '{"type":"module"}\n',
+        },
+      },
+    ]),
+  );
 }
 
 const cases = [
-  { name: "a CJS-only tree with the guide intact passes", expectFailure: false, mutate: (t) => t },
+  { name: "a correctly dual-published tree passes", expectFailure: false, mutate: (t) => t },
   {
-    name: "a dual package is caught",
+    name: "import and require resolving to the SAME file is caught",
     expectFailure: true,
     mustMention: "@oxyhq/sdk-express",
-    // The fix that was rejected: import -> a separate ESM build.
+    // The exact 0.3.0 defect that took a backend down.
     mutate: (tree) => {
-      tree.packages["sdk-express"].exports["."].import = "./dist/index.mjs";
+      tree["sdk-express"].manifest.exports["."].import = "./dist/index.js";
       return tree;
     },
   },
   {
-    name: "a dual package on a SUBPATH is caught, not only the root",
+    name: "an import condition pointing at CommonJS content is caught",
     expectFailure: true,
-    mustMention: "./server",
+    mustMention: "which is CommonJS",
+    // The condition looks dual but the file behind it is not.
     mutate: (tree) => {
-      tree.packages.app.exports["./server"] = {
-        import: "./dist/server.mjs",
-        require: "./dist/server.js",
-      };
+      tree.sdk.files["dist/esm/index.js"] = CJS;
       return tree;
     },
   },
   {
-    name: 'a package flipping to "type": "module" is caught',
+    name: "a missing {\"type\":\"module\"} marker is caught",
     expectFailure: true,
-    mustMention: "@oxyhq/sdk",
+    mustMention: "package.json beside its ESM entry",
+    // One absent file makes the whole ESM half parse as CommonJS.
     mutate: (tree) => {
-      tree.packages.sdk.type = "module";
+      delete tree.testing.files["dist/esm/package.json"];
       return tree;
     },
   },
   {
-    name: "losing the externalise flag from the guide is caught",
+    name: "a marker that does not say type module is caught",
     expectFailure: true,
-    mustMention: "--external:@oxyhq/*",
-    // The mitigation is the only thing protecting a bundling consumer, so the
-    // guide losing it is a regression even though no manifest changed.
+    mustMention: '"type": "module"',
     mutate: (tree) => {
-      tree.guide = tree.guide.replace("--external:@oxyhq/*", "keep them external");
+      tree.app.files["dist/esm/package.json"] = '{"type":"commonjs"}\n';
       return tree;
     },
   },
   {
-    name: "losing the verbatim error text from the guide is caught",
+    name: "declaring only one of import/require is caught",
     expectFailure: true,
-    mustMention: "verbatim error",
-    // Paraphrasing it breaks the only way most people find it: pasting a stack
-    // trace into a search box.
+    mustMention: "only one of import/require",
     mutate: (tree) => {
-      tree.guide = tree.guide.replace(
-        'Dynamic require of "zod" is not supported',
-        "a dynamic require error",
-      );
+      delete tree.contracts.manifest.exports["."].require;
+      return tree;
+    },
+  },
+  {
+    name: "a require condition pointing at ESM content is caught",
+    expectFailure: true,
+    mustMention: "does not look like",
+    mutate: (tree) => {
+      tree.contracts.files["dist/index.js"] = ESM;
       return tree;
     },
   },
@@ -108,17 +111,20 @@ const cases = [
     expectFailure: true,
     mustMention: "export entr",
     mutate: (tree) => {
-      for (const name of PACKAGES) delete tree.packages[name].exports;
+      for (const name of PACKAGES) delete tree[name].manifest.exports;
       return tree;
     },
   },
   {
-    name: "a types condition differing from the code conditions is not a dual package",
-    expectFailure: false,
-    // `types` selects declarations, never code. Flagging it would make the
-    // check cry wolf on every correctly-configured package.
+    name: "a subpath export is checked too, not only the root",
+    expectFailure: true,
+    mustMention: "./server",
     mutate: (tree) => {
-      tree.packages.testing.exports["."].types = "./dist/types/index.d.ts";
+      tree.app.manifest.exports["./server"] = {
+        import: "./dist/server.js",
+        require: "./dist/server.js",
+      };
+      tree.app.files["dist/server.js"] = CJS;
       return tree;
     },
   },
@@ -129,13 +135,15 @@ for (const testCase of cases) {
   const root = await mkdtemp(resolve(tmpdir(), "cs-modfmt-"));
   try {
     const tree = testCase.mutate(healthyTree());
-    for (const [directory, manifest] of Object.entries(tree.packages)) {
+    for (const [directory, { manifest, files }] of Object.entries(tree)) {
       const base = resolve(root, "packages", directory);
       await mkdir(base, { recursive: true });
       await writeFile(resolve(base, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+      for (const [relative, contents] of Object.entries(files)) {
+        await mkdir(dirname(resolve(base, relative)), { recursive: true });
+        await writeFile(resolve(base, relative), contents);
+      }
     }
-    await mkdir(resolve(root, "packages", "app"), { recursive: true });
-    await writeFile(resolve(root, "packages", "app", "README.md"), tree.guide);
 
     const run = Bun.spawnSync({ cmd: ["bun", checker, root] });
     const output = `${new TextDecoder().decode(run.stdout)}${new TextDecoder().decode(run.stderr)}`;

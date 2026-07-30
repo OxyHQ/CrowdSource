@@ -15,9 +15,9 @@
 
 import mongoose from 'mongoose';
 import { afterEach, describe, expect, it } from 'vitest';
-import { ModerationOutboxTransactionError, reportSubmitEventId } from '../outbox/service';
-import type { CreateReportInput } from '../types';
-import { createHarness, type Harness } from './support/harness';
+import { ModerationOutboxTransactionError, reportSubmitEventId } from '../outbox/service.js';
+import type { CreateReportInput } from '../types.js';
+import { createHarness, type Harness } from './support/harness.js';
 
 let harness: Harness | null = null;
 

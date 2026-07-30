@@ -20,9 +20,9 @@
 
 import { z } from 'zod';
 
-import { CONTRACT_LIMITS, LanguageTagSchema, TimestampSchema } from './primitives';
-import { RecommendedActionSchema, SeveritySchema, TaxonomyCodeSchema } from './taxonomy';
-import type { Closed } from './closed';
+import { CONTRACT_LIMITS, LanguageTagSchema, TimestampSchema } from './primitives.js';
+import { RecommendedActionSchema, SeveritySchema, TaxonomyCodeSchema } from './taxonomy.js';
+import type { Closed } from './closed.js';
 
 /** A namespaced policy set id, e.g. `mention.community`. */
 export const PolicySetIdSchema = z

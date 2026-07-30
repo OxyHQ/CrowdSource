@@ -9,9 +9,9 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { CrowdSource } from '../client';
-import { formatServiceKey, parseServiceKey } from '../credential';
-import { CrowdSourceConfigurationError } from '../errors';
+import { CrowdSource } from '../client.js';
+import { formatServiceKey, parseServiceKey } from '../credential.js';
+import { CrowdSourceConfigurationError } from '../errors.js';
 
 const ISSUED = {
   applicationId: 'app_0123456789abcdef0123456789abcdef',

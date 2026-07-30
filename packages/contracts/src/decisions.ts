@@ -21,10 +21,10 @@
 
 import { z } from 'zod';
 
-import { CONTRACT_LIMITS, IdentifierSchema, TimestampSchema, UnitIntervalSchema } from './primitives';
-import { DecisionPolicyVersionsSchema, PolicyRuleIdSchema } from './policies';
-import { ResourceIdSchema } from './resources';
-import { ContextSufficiencySchema } from './reviews';
+import { CONTRACT_LIMITS, IdentifierSchema, TimestampSchema, UnitIntervalSchema } from './primitives.js';
+import { DecisionPolicyVersionsSchema, PolicyRuleIdSchema } from './policies.js';
+import { ResourceIdSchema } from './resources.js';
+import { ContextSufficiencySchema } from './reviews.js';
 import {
   FindingAttributionSchema,
   FindingContextSchema,
@@ -32,8 +32,8 @@ import {
   RecommendedActionSchema,
   SeveritySchema,
   TaxonomyCodeSchema,
-} from './taxonomy';
-import type { Closed } from './closed';
+} from './taxonomy.js';
+import type { Closed } from './closed.js';
 
 /** §3.2 decision states. */
 export const DECISION_STATUSES = ['provisional', 'final', 'superseded', 'corrected'] as const;

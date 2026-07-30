@@ -4,15 +4,15 @@ import {
   CASE_ENVELOPE_SCHEMA_VERSION,
   CaseEnvelopeSchema,
   CreateReportRequestSchema,
-} from '../case-envelope';
-import { accepted, rejectionIssues, rejectionPaths } from './support/assertions';
+} from '../case-envelope.js';
+import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
 import {
   DIGEST,
   caseEnvelopeExample,
   imageResourceExample,
   principalBindingExample,
   textResourceExample,
-} from './support/examples';
+} from './support/examples.js';
 
 describe('the envelope root', () => {
   it('accepts a minimal envelope with none of the optional blocks', () => {

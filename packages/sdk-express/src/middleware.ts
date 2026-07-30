@@ -48,8 +48,8 @@ import {
   type WebhookEventType,
 } from '@oxyhq/crowdsource-contracts';
 
-import { memoryProcessedEventStore, type ProcessedEventStore } from './store';
-import { verifyWebhookDelivery, type WebhookRejection } from './verify';
+import { memoryProcessedEventStore, type ProcessedEventStore } from './store.js';
+import { verifyWebhookDelivery, type WebhookRejection } from './verify.js';
 
 /** The active signing secret. */
 export const WEBHOOK_SECRET_ENV_VAR = 'CROWDSOURCE_WEBHOOK_SECRET';
