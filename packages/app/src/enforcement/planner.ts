@@ -183,6 +183,67 @@ function collapse<TAction extends string>(
  * `noneAction`, because a row saying "we decided to do nothing, and why" is
  * evidence and an absent row is a question.
  */
+/**
+ * Raised when `restoreAction` names actions that are being UNDONE rather than
+ * actions that DO the undoing.
+ *
+ * A doc line is not enough for this one. An inverted `restoreAction` type-checks
+ * — both directions are `TAction[]` — and it does not fail at runtime either: it
+ * plans, it claims, and it applies a restriction and a label on an accepted
+ * appeal. It succeeds at the opposite thing, on the one path whose whole purpose
+ * is to give something back.
+ *
+ * The signal is unambiguous when it exists. `reverses` maps each undoing action
+ * to what it undoes, so its VALUES are targets and its KEYS are actors. An
+ * action that appears only as a target has been declared as a restore by
+ * someone reading the targets, which is exactly the mistake this catches.
+ *
+ * Deliberately narrow: an action absent from `reverses` entirely is fine (it may
+ * undo something needing no previous state), and one that is both a key and a
+ * value is fine (it undoes and is undone). Only "a target, and never an actor"
+ * is reported, so a correct configuration cannot trip it.
+ */
+export class ModerationRestoreDirectionError extends Error {
+  constructor(inverted: readonly string[]) {
+    super(
+      `restoreAction names [${inverted.join(', ')}], which 'reverses' lists as actions ` +
+        'being UNDONE rather than actions that do the undoing. restoreAction holds what ' +
+        "the planner emits on 'no_violation' — the restoring actions, e.g. " +
+        "['restore', 'unlabel_sensitive'] — not the restrictions being lifted. As written, " +
+        'an accepted appeal would apply the punishment it was correcting.',
+    );
+    this.name = 'ModerationRestoreDirectionError';
+  }
+}
+
+/**
+ * Refuse an inverted `restoreAction` at construction rather than at the first
+ * correction, which may be weeks later and reads as a moderation decision
+ * rather than a configuration error.
+ */
+export function assertRestoreDirection<TAction extends string>(
+  config: ModerationEnforcementConfig<TAction>,
+): void {
+  const reverses: Partial<Record<TAction, TAction | readonly TAction[]>> =
+    config.reverses ?? {};
+  const entries = Object.entries(reverses) as [
+    TAction,
+    TAction | readonly TAction[] | undefined,
+  ][];
+  const actors = new Set<string>(entries.map(([actor]) => actor));
+  const targets = new Set<string>();
+  for (const [, undone] of entries) {
+    if (undone === undefined) continue;
+    for (const action of typeof undone === 'string' ? [undone] : undone) {
+      targets.add(action);
+    }
+  }
+  const inverted = restoreActions(config.restoreAction).filter(
+    (action) => targets.has(action) && !actors.has(action),
+  );
+  if (inverted.length > 0) throw new ModerationRestoreDirectionError(inverted);
+}
+
 export function planEnforcement<TAction extends string>(
   decision: Decision,
   config: ModerationEnforcementConfig<TAction>,

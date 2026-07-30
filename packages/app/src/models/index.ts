@@ -238,7 +238,7 @@ export interface ModerationEnforcementDocument {
   skippedReason?: string;
 
   /** What to put back on a reversal. Only set for an action that changed state. */
-  previousState?: Record<string, string | number | boolean | null>;
+  previousState?: Record<string, string | number | boolean | null | undefined>;
 
   createdAt: Date;
   updatedAt: Date;

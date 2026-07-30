@@ -131,7 +131,7 @@ const enforcement: ModerationEnforcementConfig<CommerceAction> = {
   actions: ['delist', 'relist', 'flag', 'unflag', 'review', 'none'],
   noneAction: 'none',
   reviewAction: 'review',
-  restoreAction: ['relist', 'unflag'],  // EVERY reversible action, not just one
+  restoreAction: ['relist', 'unflag'],  // the actions that UNDO — never ['delist','flag']
   recommendationToAction: { remove: 'delist', hide: 'delist', label: 'flag', restore: 'relist', /* … */ },
   severityFallback: { critical: 'review', high: 'delist', medium: 'flag', low: 'review' },
   absorb: { delist: ['flag', 'none', 'relist'] },
@@ -145,6 +145,13 @@ const enforcement: ModerationEnforcementConfig<CommerceAction> = {
   },
 };
 ```
+
+**`restoreAction` holds the actions that DO the undoing, not the ones being
+undone.** `['relist', 'unflag']`, never `['delist', 'flag']` — the planner emits
+these on `no_violation`, and `reverses` is the separate map saying what each one
+undoes. Getting it backwards does not fail; it type-checks, plans, and applies a
+**punishment on an accepted appeal**. Two people inverted it in one hour,
+including the person who wrote the field.
 
 **Declare every reversible action in `restoreAction`, not just one.** If your
 levers are "hide it" and "label it", a correction has two things to undo, and

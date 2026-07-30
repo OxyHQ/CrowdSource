@@ -191,7 +191,7 @@ export interface PlannedEnforcementAction<TAction extends string> {
  * must never contain reported material.
  */
 export type EnforcementPreviousState = Readonly<
-  Record<string, string | number | boolean | null>
+  Record<string, string | number | boolean | null | undefined>
 >;
 
 /** The object an enforcement action is about, in the application's own terms. */
@@ -273,8 +273,21 @@ export interface ModerationEnforcementConfig<TAction extends string> {
   readonly reviewAction: TAction;
 
   /**
-   * The action that undoes an earlier restriction, or `null` when the
-   * application has nothing to undo.
+   * The actions that DO the undoing — `['restore', 'unlabel_sensitive']`, NEVER
+   * `['restrict', 'label_sensitive']` — or `null` when there is nothing to undo.
+   *
+   * **Direction first, because everything below describes the opposite one.**
+   * This field holds what the planner EMITS on `no_violation`; `reverses` is the
+   * separate map saying what each of those undoes. The rest of this comment
+   * necessarily talks about the levers a correction must REVERSE, and a reader
+   * arriving from that prose fills in the targets instead of the actors — a
+   * mistake two people made within an hour, including the author of the field.
+   *
+   * It matters more than a naming slip because an inverted value **does not
+   * fail**. It type-checks, it plans, and it applies a restriction and a label
+   * on an accepted appeal: the correction carrying out the punishment it was
+   * correcting, on the one path in the system whose whole purpose is to give
+   * something back.
    *
    * **Required, and `null` is a real answer.** Naming an action makes
    * `no_violation` ALWAYS plan it, and that is load-bearing: a correction is a
