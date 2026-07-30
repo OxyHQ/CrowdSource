@@ -376,13 +376,31 @@ export interface ModerationEnforcementConfig<TAction extends string> {
   }): Promise<EnforcementEffect<TAction>>;
 
   /**
-   * The action whose earlier `previousState` `apply` should be given, per action.
+   * The action — or actions — whose earlier `previousState` `apply` should be
+   * given, per action.
    *
    * `{ restore: 'restrict', unlabel_sensitive: 'label_sensitive' }` — a restore
    * needs to know what the restriction replaced. Omit for an action that undoes
    * nothing.
+   *
+   * A LIST when one action reverses several, which is the ordinary shape once an
+   * application has more than one lever:
+   * `{ restore: ['restrict', 'request_changes', 'freeze_transaction'] }`. The
+   * lookup takes the most recent APPLIED row across the whole set, so `apply` is
+   * handed whatever actually happened last rather than whatever single action
+   * was declared — and `previousAction` names the row that was found, not the
+   * list it came from.
+   *
+   * A single value is not merely awkward for such an application: it pushes it
+   * into re-querying the ledger itself, which is exactly where the
+   * `applied: true` filter lives. Re-implementing that per application is
+   * per-application chances to omit it, and omitting it means a reversal reads a
+   * row whose effect never happened.
+   *
+   * Credit: `mercaria`, whose `restore` reverses any of three depending on which
+   * one the decision actually applied.
    */
-  readonly reverses?: Partial<Record<TAction, TAction>>;
+  readonly reverses?: Partial<Record<TAction, TAction | readonly TAction[]>>;
 }
 
 /* ------------------------------------------------------------------------- */

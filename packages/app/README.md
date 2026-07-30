@@ -137,7 +137,7 @@ const enforcement: ModerationEnforcementConfig<CommerceAction> = {
   absorb: { delist: ['flag', 'none', 'relist'] },
   precedence: ['delist', 'relist', 'flag', 'unflag', 'review', 'none'],
   reversibleActions: ['relist', 'unflag'],
-  reverses: { relist: 'delist', unflag: 'flag' },
+  reverses: { relist: ['delist', 'freeze'], unflag: 'flag' },  // a list when one action reverses several
 
   async apply({ action, subject, previousState }) {
     // …change your own state, or say why there was nothing to change
@@ -180,7 +180,9 @@ can try again.
 
 `previousState` is yours and opaque to this package: it is written on the
 enforcement row when an action is applied, and handed back to `apply` when a later
-revision reverses it (per `reverses`). Keep it small, flat and JSON-serialisable,
+revision reverses it (per `reverses` — which takes an action or a LIST, when one
+action reverses several; the lookup returns the most recent applied row across
+the whole set). Keep it small, flat and JSON-serialisable,
 and never put reported material in it. The lookup reads the most recent
 **applied** row, so an action that was claimed but never carried out — observe
 mode, a mode that declined it, an effect that found nothing to do — can never be

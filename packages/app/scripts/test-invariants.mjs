@@ -134,14 +134,14 @@ const MUTATIONS = [
     file: 'src/enforcement/executor.ts',
     edits: [
       {
-        find: `        action: reversed,
+        find: `        action: { $in: [...candidates] },
         applied: true,
       })`,
-        replace: `        action: reversed,
+        replace: `        action: { $in: [...candidates] },
       })`,
       },
     ],
-    absent: `        action: reversed,\n        applied: true,`,
+    absent: `        action: { $in: [...candidates] },\n        applied: true,`,
     test: 'src/__tests__/enforcementReversal.test.ts',
     expects: 'reads the applied row, not the newer recorded-only one',
   },
@@ -163,6 +163,21 @@ const MUTATIONS = [
     absent: 'outcomes.map(effectiveAction)',
     test: 'src/__tests__/fullLoop.test.ts',
     expects: 'uses the effective action for a subject no lever can act on',
+  },
+  {
+    /**
+     * A reversal that declares several actions but queries only one. Silent for
+     * any application whose levers are exercised one at a time, and wrong
+     * exactly when two of them applied — which is when a reversal matters most.
+     */
+    name: 'a multi-action reversal reads only the first declared action',
+    file: 'src/enforcement/executor.ts',
+    edits: [
+      { find: '        action: { $in: [...candidates] },', replace: '        action: candidates[0],' },
+    ],
+    absent: '$in: [...candidates]',
+    test: 'src/__tests__/enforcementReversal.test.ts',
+    expects: 'reads the most recent applied row across the whole declared set',
   },
 ];
 

@@ -162,7 +162,7 @@ export function testEnforcement(
     absorb: { restrict: ['flag', 'none', 'restore'] },
     precedence: ['restrict', 'restore', 'flag', 'unflag', 'review', 'none'],
     reversibleActions: ['restore', 'unflag'],
-    reverses: { restore: 'restrict', unflag: 'flag' },
+    reverses: { restore: ['restrict', 'flag'], unflag: 'flag' },
 
     async apply({ action, subject, previousState }): Promise<EnforcementEffect<TestAction>> {
       if (action === 'none' || action === 'review') {
