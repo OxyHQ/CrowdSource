@@ -345,17 +345,35 @@ export function createOutboxService(input: {
 
       const now = new Date();
       /**
-       * `createdAt`/`updatedAt` are deliberately ABSENT from `$setOnInsert`.
+       * `timestamps: false` on the operation, with both timestamps written
+       * explicitly. Two distinct reasons, and the second is why this is not
+       * interchangeable with dropping the explicit fields.
        *
-       * The schema declares `timestamps: true`, so Mongoose already adds
-       * `createdAt` to `$setOnInsert` and `updatedAt` to `$set` on an upsert.
-       * Naming either here puts the same path under two different operators and
-       * Mongo rejects the whole write with "Updating the path 'updatedAt' would
-       * create a conflict at 'updatedAt'" — which, inside intake's transaction,
-       * aborts the report as well. The failure is total rather than subtle, but
-       * it only appears against a real server: it is a server-side update
-       * validation, so nothing in the schema, the types or a mocked driver
-       * reveals it.
+       * **It has to be one or the other.** The schema declares
+       * `timestamps: true`, so Mongoose adds `createdAt` to `$setOnInsert` and
+       * `updatedAt` to `$set` on an upsert. Naming either field here as well
+       * puts one path under two operators and the server rejects the whole
+       * write — "Updating the path 'updatedAt' would create a conflict at
+       * 'updatedAt'" — which, inside intake's transaction, aborts the report
+       * too. Every report submission fails, from the first one. It is a
+       * server-side update validation, so nothing in the schema, the types or a
+       * mocked driver reveals it.
+       *
+       * **And it has to be THIS one.** Letting Mongoose own the timestamps
+       * instead would leave its `$set: { updatedAt }` on the update, which turns
+       * a repeated enqueue for an event that already exists into a real WRITE
+       * rather than a no-op (measured: `modifiedCount` 1 vs 0). A repeated
+       * enqueue is ordinary — a transaction retry, two concurrent duplicate
+       * submissions, a reconciliation sweep re-deriving an event — and the
+       * dispatcher is concurrently taking, renewing and completing leases on
+       * these same rows. A write there conflicts with a live lease update and
+       * aborts the enclosing transaction (measured: the reconciliation-shaped
+       * transaction aborts under Mongoose-owned timestamps and commits under
+       * this). Writing both fields explicitly keeps the upsert a genuine no-op
+       * for a row that already exists, which is the property the deterministic
+       * event id exists to give.
+       *
+       * Credit: this refinement is `homiio`'s, from the Homiio integration.
        */
       await model.updateOne(
         { _id: enqueueInput.eventId },
@@ -370,9 +388,11 @@ export function createOutboxService(input: {
             expiresAt: new Date(
               now.getTime() + MODERATION_OUTBOX_RETENTION_SECONDS * 1_000,
             ),
+            createdAt: now,
+            updatedAt: now,
           },
         },
-        { upsert: true, session },
+        { upsert: true, session, timestamps: false },
       );
       return enqueueInput.eventId;
     },

@@ -31,16 +31,20 @@ import { fileURLToPath } from 'node:url';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** @type {{name: string, file: string, find: string, replace: string, absent: string, test: string, expects: string}[]} */
+/** @type {{name: string, file: string, edits: {find: string, replace: string}[], absent: string, test: string, expects: string}[]} */
 const MUTATIONS = [
   {
     name: 'the outbox may be written outside a transaction',
     file: 'src/outbox/service.ts',
-    find: `      if (!session.inTransaction()) {
+    edits: [
+      {
+        find: `      if (!session.inTransaction()) {
         throw new ModerationOutboxTransactionError(enqueueInput.eventId);
       }
 `,
-    replace: '',
+        replace: '',
+      },
+    ],
     absent: 'session.inTransaction()',
     test: 'src/__tests__/outboxTransactionCoupling.test.ts',
     expects: 'throws ModerationOutboxTransactionError for a session with no transaction open',
@@ -48,11 +52,52 @@ const MUTATIONS = [
   {
     name: 'the webhook router is mounted behind express.json()',
     file: 'src/__tests__/support/webhookApp.ts',
-    find: `  if (options.jsonParser === 'before') app.use(express.json());`,
-    replace: `  if (options.jsonParser !== 'after') app.use(express.json());`,
+    edits: [
+      {
+        find: `  if (options.jsonParser === 'before') app.use(express.json());`,
+        replace: `  if (options.jsonParser !== 'after') app.use(express.json());`,
+      },
+    ],
     absent: `options.jsonParser === 'before'`,
     test: 'src/__tests__/webhookRawBody.test.ts',
     expects: 'reaches the moderation router with req.body still undefined',
+  },
+  {
+    /**
+     * The bug that actually shipped in the reference implementation: explicit
+     * timestamps AND Mongoose's own, so one path arrives under two operators and
+     * the server refuses the write. Intake's transaction aborts with it, so this
+     * is not a degradation — no report can be filed at all.
+     */
+    name: 'the enqueue lets Mongoose add its timestamps on top of the explicit ones',
+    file: 'src/outbox/service.ts',
+    edits: [{ find: `{ upsert: true, session, timestamps: false }`, replace: `{ upsert: true, session }` }],
+    // The full options literal, not the bare flag: the flag also appears in the
+    // doc comment above, so a substring marker would report "still present" for
+    // a mutation that applied perfectly.
+    absent: '{ upsert: true, session, timestamps: false }',
+    test: 'src/__tests__/outboxTransactionCoupling.test.ts',
+    expects: 'stores both when the reported type has a subject provider',
+  },
+  {
+    /**
+     * The subtler half, and the reason the fix is `timestamps: false` rather
+     * than dropping the explicit fields. Letting Mongoose own the timestamps
+     * type-checks, passes every happy path, and quietly turns a repeated enqueue
+     * into a real write that conflicts with a live lease.
+     */
+    name: 'the enqueue writes on a repeated event instead of being a no-op',
+    file: 'src/outbox/service.ts',
+    edits: [
+      { find: `            createdAt: now,\n            updatedAt: now,\n`, replace: '' },
+      { find: `{ upsert: true, session, timestamps: false }`, replace: `{ upsert: true, session }` },
+    ],
+    // The full options literal, not the bare flag: the flag also appears in the
+    // doc comment above, so a substring marker would report "still present" for
+    // a mutation that applied perfectly.
+    absent: '{ upsert: true, session, timestamps: false }',
+    test: 'src/__tests__/outboxTransactionCoupling.test.ts',
+    expects: 'leaves an existing row completely untouched on a repeated enqueue',
   },
 ];
 
@@ -96,23 +141,43 @@ for (const mutation of MUTATIONS) {
 
   console.log(`\n── mutation: ${mutation.name}`);
 
-  // --- 1. the edit landed.
-  if (!original.includes(mutation.find)) {
-    failures.push(
-      `${mutation.file}: the text this mutation replaces is no longer present. ` +
-        'The guard may have been refactored — update this script rather than deleting it.',
-    );
+  // --- 1. every edit landed.
+  let mutated = original;
+  let editFailure;
+  for (const edit of mutation.edits) {
+    if (!mutated.includes(edit.find)) {
+      editFailure =
+        `${mutation.file}: the text this mutation replaces is no longer present ` +
+        `(${JSON.stringify(edit.find.slice(0, 60))}). The guard may have been ` +
+        'refactored — update this script rather than deleting it.';
+      break;
+    }
+    const next = mutated.replace(edit.find, edit.replace);
+    if (next === mutated) {
+      editFailure = `${mutation.file}: one replacement changed nothing.`;
+      break;
+    }
+    mutated = next;
+  }
+  if (editFailure !== undefined) {
+    failures.push(editFailure);
+    writeFileSync(path, original, 'utf8');
+    originals.delete(path);
     continue;
   }
-  const mutated = original.replace(mutation.find, mutation.replace);
-  if (mutated === original) {
-    failures.push(`${mutation.file}: the replacement changed nothing.`);
-    continue;
-  }
+  /**
+   * Every early exit below RESTORES before moving on. Leaving a half-applied
+   * mutation on disk makes the next case run against a tree it did not choose,
+   * and its "the text is no longer present" complaint then blames the wrong
+   * mutation — which is how a script that exists to prevent false results starts
+   * producing them.
+   */
   writeFileSync(path, mutated, 'utf8');
   const onDisk = readFileSync(path, 'utf8');
   if (digest(onDisk) === digest(original)) {
     failures.push(`${mutation.file}: the write did not take effect on disk.`);
+    writeFileSync(path, original, 'utf8');
+    originals.delete(path);
     continue;
   }
   if (onDisk.includes(mutation.absent)) {
@@ -120,6 +185,8 @@ for (const mutation of MUTATIONS) {
       `${mutation.file}: '${mutation.absent}' is still present after the mutation, ` +
         'so whatever failed next did not fail because the guard was gone.',
     );
+    writeFileSync(path, original, 'utf8');
+    originals.delete(path);
     continue;
   }
   console.log(`   applied (${original.length} → ${onDisk.length} bytes)`);
@@ -181,5 +248,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `\nBoth invariants are guarded: ${checked} mutations applied, type-checked, and caught.`,
+  `\nThe guards hold: ${checked} mutations applied, type-checked, and caught.`,
 );
