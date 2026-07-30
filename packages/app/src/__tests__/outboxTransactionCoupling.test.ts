@@ -253,7 +253,9 @@ describe('intake commits the report and its delivery event together, or neither'
      *
      * Three of us measured the same defect on the same topology — a single-node
      * `MongoMemoryReplSet` — with three different results. `allo`'s unbounded
-     * probe ABORTED with `NoSuchTransaction`. This one HUNG for 88 seconds until
+     * probe ABORTED (the write fails code 112 `WriteConflict`, and the commit
+     * that follows fails code 251 `NoSuchTransaction`; both carry
+     * `TransientTransactionError`). This one HUNG for 88 seconds until
      * the runner's timeout. `mercaria` ran this test's earlier, unbounded shape
      * and saw NO conflict at all, so it passed with and without the defect for
      * them.

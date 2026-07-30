@@ -383,6 +383,12 @@ built. They are about verification, not about this package, and they transfer.
   `countDocuments === 1` stays green through a defect where the retry WRITES —
   "same row" and "no write happened" are different claims, and only the second
   is the property. Name the property, then ask what would still pass without it.
+- **The goal is not "write a test that can fail" — it is to KNOW which of the
+  two you wrote, and only a mutation tells you.** A test that happens to be
+  sound and a test that cannot fail look identical in a green run, and authors
+  are equally confident about both. (`mention-finish`, after a replay test that
+  passed under the wrong fix because it short-circuited before reaching the code
+  it claimed to exercise.)
 - **A guard that reads as the proof is how the proof stops being looked for.**
   Say in the file which assertion is load-bearing and which is corroboration.
 - **An unbounded observation of a race has no verdict.** Three of us measured one
