@@ -23,7 +23,46 @@ missing peer silently with no warning at all — so install it explicitly. Two
 copies of contracts produce no type error and no diagnostic; the symptom is every
 webhook answering `400 malformed_event`, which reads as a delivery problem.
 
-`mongoose` (8 or 9) and `express` (4.18+ or 5) are peers too. The same silence
+`mongoose` (8 or 9) and `express` (4.18+ or 5) are peers too.
+
+### If you bundle your backend, externalise `@oxyhq/*`
+
+**Read this before your first deploy.** If your build bundles to ESM — esbuild
+with `format: 'esm'`, or anything similar — you must keep the Oxy packages
+external:
+
+```ts
+// esbuild
+external: ['@oxyhq/*']          // or --external:@oxyhq/*
+```
+
+Without it the container **dies at startup**, with green CI, a clean image
+build, and a successful `npm install`:
+
+```
+Error: Dynamic require of "zod" is not supported
+    at node_modules/@oxyhq/crowdsource-contracts/dist/primitives.js
+```
+
+Every package in this family is published as CommonJS, deliberately. Node's own
+ESM loader imports them correctly, so `import` from a plain Node process works
+and always has. A bundler targeting ESM does something different: it **inlines**
+the CommonJS and rewrites each internal `require()` of an external dependency
+into a shim that throws the first time it runs. Externalising leaves resolution
+to Node, which handles it.
+
+Two things measured, so you don't repeat them:
+
+- **Bundling `zod` instead of externalising it does not help.** The shim is
+  created for the inlined CJS module regardless.
+- **Removing the `import` condition from our `exports` would not help either.**
+  Resolution falls through to `default` and lands on the same CommonJS file.
+
+The alternative — shipping a real ESM build alongside — was considered and
+rejected: it would let a consumer resolve two copies of the contracts package,
+which produces no type error and no diagnostic, and whose only symptom is every
+webhook answering `400 malformed_event`.
+ The same silence
 applies in the other direction: bun will install a mongoose that does **not**
 satisfy the range without saying so, so a peer mismatch here is something you
 check rather than something you get told.
@@ -420,6 +459,32 @@ Credit, in order: `mercaria`, `noted-moovo` and `mercaria` again, `allo` and
 asserts the named test goes red — verifying first that the edit landed and that
 the mutated tree still type-checks, because a mutation that did not apply produces
 a false green indistinguishable from a real pass.
+
+## Before publishing this package (maintainers)
+
+`bun run check` includes `check:module-format`, which asserts the CommonJS-only
+shape statically and that this guide still carries the mitigation above. That
+runs on every pull request. **Two things it cannot do**, because they need a
+network install, so they belong here:
+
+```bash
+# 1. Plain Node ESM must be able to import the PACKED artifact.
+bun pm pack
+mkdir -p /tmp/esm-check && cd /tmp/esm-check
+bun add <path-to>/oxyhq-crowdsource-app-*.tgz @oxyhq/crowdsource-contracts mongoose express
+node --input-type=module -e "import('@oxyhq/crowdsource-app').then(m => console.log(Object.keys(m).length))"
+
+# 2. An esbuild ESM consumer must work WITH the documented mitigation,
+#    and is expected to fail without it.
+npx esbuild entry.mjs --bundle --platform=node --format=esm --outfile=out.mjs --external:'@oxyhq/*'
+node out.mjs
+```
+
+**Run both.** They fail differently and only the second catches the defect that
+took a backend down on 2026-07-30: plain Node imports a CommonJS package quite
+happily, so a checklist with only the first would have shipped it. The
+distinction is the durable lesson — **exports being declared is not exports
+being loadable**, and the two forms of "loadable" are not the same question.
 
 ## Requirements
 
