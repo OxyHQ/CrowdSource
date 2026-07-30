@@ -105,7 +105,12 @@ export {
 } from './evidence';
 export type { ModerationReportInput, SubjectRegistry } from './evidence';
 
-export { planEnforcement, primaryAction } from './enforcement/planner';
+export {
+  ModerationRestoreDirectionError,
+  assertRestoreDirection,
+  planEnforcement,
+  primaryAction,
+} from './enforcement/planner';
 export type { EnforcementExecutor } from './enforcement/executor';
 
 export { localStatusForDecision } from './reportStatus';

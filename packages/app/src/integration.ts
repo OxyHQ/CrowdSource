@@ -3,6 +3,7 @@ import { createClientProvider, type CrowdSourceClientProvider } from './client';
 import { createDecisionWorker } from './decision';
 import { createDeliveryWorker } from './delivery';
 import { createEnforcementExecutor, type EnforcementExecutor } from './enforcement/executor';
+import { assertRestoreDirection } from './enforcement/planner';
 import { createSubjectRegistry, type SubjectRegistry } from './evidence';
 import { createInboundService, createProcessedEventStore } from './inbound';
 import { registerModerationModels, type ModerationModels } from './models';
@@ -87,6 +88,13 @@ export function createModerationIntegration<
 >(
   config: ModerationIntegrationConfig<TReport, TAction>,
 ): ModerationIntegration<TReport, TAction> {
+  /**
+   * Refuse an inverted `restoreAction` before anything is wired. It cannot be
+   * caught by the type — both directions are `TAction[]` — and it does not fail
+   * at runtime; it applies a punishment on an accepted appeal.
+   */
+  assertRestoreDirection(config.enforcement);
+
   const models = registerModerationModels({
     connection: config.connection,
     enforcementActions: config.enforcement.actions,

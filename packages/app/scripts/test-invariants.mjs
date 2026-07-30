@@ -227,6 +227,24 @@ const MUTATIONS = [
     test: 'src/__tests__/enforcementReversal.test.ts',
     expects: 'still adds the other reversal when one is already recommended',
   },
+  {
+    /**
+     * The inversion guard removed. It is the one configuration error here that
+     * no type can catch and that does not fail at runtime — it applies a
+     * punishment on an accepted appeal, which succeeds.
+     */
+    name: 'an inverted restoreAction is accepted at construction',
+    file: 'src/enforcement/planner.ts',
+    edits: [
+      {
+        find: '  if (inverted.length > 0) throw new ModerationRestoreDirectionError(inverted);',
+        replace: '  void inverted;',
+      },
+    ],
+    absent: 'throw new ModerationRestoreDirectionError(inverted)',
+    test: 'src/__tests__/configTypeErgonomics.test.ts',
+    expects: 'throws when restoreAction names the actions being undone',
+  },
 ];
 
 const digest = (value) => createHash('sha256').update(value, 'utf8').digest('hex');
