@@ -248,11 +248,22 @@ describe('intake commits the report and its delivery event together, or neither'
      *
      * Stated plainly because it would otherwise read as the proof, and it is
      * not: the load-bearing assertion is the `updatedAt`-unchanged test above,
-     * which is deterministic everywhere. This one observes a LOCK, and lock
-     * contention is environment-sensitive — `mercaria` measured the same defect
-     * and saw no conflict at all on their single-node set, so a version of this
-     * test that only checked "did it throw" would pass with and without the
-     * defect for them, which is the false green this project keeps finding.
+     * which is deterministic everywhere. This one observes a LOCK, and an
+     * UNBOUNDED lock observation has no stable verdict.
+     *
+     * Three of us measured the same defect on the same topology — a single-node
+     * `MongoMemoryReplSet` — with three different results. `allo`'s unbounded
+     * probe ABORTED with `NoSuchTransaction`. This one HUNG for 88 seconds until
+     * the runner's timeout. `mercaria` ran this test's earlier, unbounded shape
+     * and saw NO conflict at all, so it passed with and without the defect for
+     * them.
+     *
+     * Same defect, same topology, three verdicts — which is the whole argument.
+     * It is not that some environments are unlucky; it is that "did the
+     * contending write throw" is not a question with one answer, so a test
+     * asking it can go green, red, or nowhere, and none of the three means
+     * anything. (`allo` established this by checking their own topology after I
+     * had loosely blamed environment differences; the variable was the bound.)
      *
      * ## Why it is bounded
      *
