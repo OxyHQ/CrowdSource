@@ -152,6 +152,22 @@ ever puts it back. No error, no log line, no failing test. Declaring
 "there was nothing to undo" when that is the case, which is evidence rather than a
 silent no-op.
 
+If a planned action cannot apply to *this* object — your restore lever exists
+for sellers but not for buyers, say — return `recordedAs` alongside the reason:
+
+```ts
+return { changed: false, reason: 'a buyer has no suspendable state', recordedAs: 'none' };
+```
+
+The plan is computed before `apply` runs and is deliberately subject-blind, so it
+must name `restore`; `apply` is the only place that knows this object has no such
+lever. The enforcement row keeps the **planned** action (it is half the
+idempotency key, and it is what was decided) and carries the effective label
+alongside; the report's `enforcedAction` uses the effective one. Without it a
+report reads "decided: restore" about an object nothing ever restricted — which
+for an application whose levers are subject-specific can be the majority of its
+`no_violation` outcomes.
+
 `{ changed: false, reason }` is **not** a failure — the object is already gone, or
 there was no restriction to undo. It is recorded with its reason, which is how "we
 checked and there was nothing to do" stays distinguishable from "we never looked".

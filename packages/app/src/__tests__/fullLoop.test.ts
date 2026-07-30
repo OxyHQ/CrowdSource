@@ -244,3 +244,49 @@ describe('report in, decision out', () => {
     expect(corrected?.legacyStatus).toBe('dismissed');
   });
 });
+
+describe('the report records what was effectively done', () => {
+  it('uses the effective action for a subject no lever can act on', async () => {
+    /**
+     * End to end, because the claim being tested is about the REPORT: a `doodad`
+     * is deliverable — a jury reviews it — but no action in the table can act on
+     * it. The plan is subject-blind and names `restrict`; `apply` says it
+     * amounted to nothing; the report must read the latter.
+     *
+     * Without this the report would say "decided: restrict" about an object
+     * nothing restricted, which is the imprecision `noted-moovo` measured across
+     * the majority of Moovo's `no_violation` outcomes.
+     */
+    const wired = await wire();
+    const { report } = await wired.harness.moderation.createReport({
+      reporter: 'oxy-reporter',
+      reportedType: 'doodad',
+      reportedId: 'doodad-1',
+      categories: ['spam'],
+    });
+
+    wired.harness.moderation.dispatcher.start();
+    await eventually(async () => {
+      const row = await wired.harness.reports.findById(report._id).lean();
+      expect(row?.localStatus).toBe('submitted');
+    });
+    const caseId = (await wired.harness.reports.findById(report._id).lean())
+      ?.crowdSourceCaseId;
+    if (caseId === undefined) throw new Error('the report was never given a case id');
+
+    const simulator = new WebhookSimulator({ secret: WEBHOOK_SECRET, url: wired.app.url });
+    await simulator.deliver(
+      wired.sandbox.eventFor(wired.sandbox.decide(caseId, { outcome: 'violation' })),
+    );
+
+    await eventually(async () => {
+      const row = await wired.harness.reports.findById(report._id).lean();
+      expect(row?.decisionOutcome).toBe('violation');
+    });
+    await wired.harness.moderation.dispatcher.stop();
+
+    const decided = await wired.harness.reports.findById(report._id).lean();
+    expect(decided?.enforcedAction).toBe('none');
+    expect(decided?.enforcedAt).toBeUndefined();
+  });
+});

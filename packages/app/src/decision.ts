@@ -4,6 +4,7 @@ import type { EnforcementExecutor } from './enforcement/executor';
 import { primaryAction } from './enforcement/planner';
 import { localStatusForDecision } from './reportStatus';
 import type {
+  EnforcementOutcome,
   ModerationEnforcementConfig,
   ModerationLogger,
   ModerationOutboxEvent,
@@ -167,8 +168,16 @@ export function createDecisionWorker<
       subject: { type: first.reportedType, id: first.reportedId },
     });
 
+    /**
+     * The EFFECTIVE action, not the planned one. `apply` is the only place that
+     * knows a planned action could not apply to this particular object, and
+     * `recordedAs` is how it says so — see `EnforcementEffect`.
+     */
+    const effectiveAction = (outcome: EnforcementOutcome<TAction>): TAction =>
+      outcome.recordedAs ?? outcome.action;
+
     const enforcedAction = primaryAction(
-      outcomes.map((outcome) => outcome.action),
+      outcomes.map(effectiveAction),
       input.enforcement.precedence ?? input.enforcement.actions,
     );
     /**
@@ -183,7 +192,9 @@ export function createDecisionWorker<
         : {
             action: enforcedAction,
             at: outcomes.some(
-              (outcome) => outcome.action === enforcedAction && outcome.result === 'applied',
+              (outcome) =>
+                effectiveAction(outcome) === enforcedAction &&
+                outcome.result === 'applied',
             )
               ? new Date()
               : null,

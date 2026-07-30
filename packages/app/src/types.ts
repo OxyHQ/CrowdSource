@@ -210,9 +210,37 @@ export interface EnforcementSubject {
  * looked". Throw only for a real failure; the claim is then released so a retry
  * can try again.
  */
-export type EnforcementEffect =
+export type EnforcementEffect<TAction extends string = string> =
   | { readonly changed: true; readonly previousState?: EnforcementPreviousState }
-  | { readonly changed: false; readonly reason: string };
+  | {
+      readonly changed: false;
+      readonly reason: string;
+      /**
+       * What this action actually amounted to, when that is not the action that
+       * was planned.
+       *
+       * The plan is computed before `apply` runs and is deliberately
+       * subject-blind, so it can name an action that cannot apply to THIS
+       * object. An application whose restore only exists for some of its subject
+       * types is the clearest case: a decision clearing a customer plans
+       * `reinstate_courier`, because the tables cannot know the subject — and a
+       * report then reads "decided: reinstate_courier" about somebody who was
+       * never suspended.
+       *
+       * Setting `recordedAs` corrects the label at the only point that knows:
+       * `apply` is the sole place aware that this object has no such lever. The
+       * enforcement row keeps the PLANNED action, because that is the
+       * idempotency key and what was actually decided, and additionally records
+       * this; the report's `enforcedAction` uses this.
+       *
+       * Only meaningful when nothing changed — an effect that happened is the
+       * action that was planned. Must be one of `actions`.
+       *
+       * Credit: `noted-moovo`, from Moovo's courier/customer asymmetry, where
+       * two of three subject types have no suspendable state.
+       */
+      readonly recordedAs?: TAction;
+    };
 
 /**
  * The application's half of enforcement: its actions, its mapping, its effects.
@@ -345,7 +373,7 @@ export interface ModerationEnforcementConfig<TAction extends string> {
     /** The action whose `previousState` was found, when one was. */
     readonly previousAction?: TAction;
     readonly decision: Decision;
-  }): Promise<EnforcementEffect>;
+  }): Promise<EnforcementEffect<TAction>>;
 
   /**
    * The action whose earlier `previousState` `apply` should be given, per action.
@@ -628,7 +656,10 @@ export interface ModerationReconciliationResult {
 }
 
 export interface EnforcementOutcome<TAction extends string> {
+  /** The action that was PLANNED and claimed. Never rewritten. */
   action: TAction;
+  /** What it amounted to, when `apply` said so. See {@link EnforcementEffect}. */
+  recordedAs?: TAction;
   /**
    * `applied` — the effect happened. `recorded` — claimed and deliberately not
    * carried out (observe/manual mode, or nothing to do). `duplicate` — another

@@ -114,3 +114,51 @@ describe('a reversal restores what was actually displaced', () => {
   });
 
 });
+
+describe('an action that could not apply to THIS object is labelled honestly', () => {
+  it('records the effective action on the report, not the planned one', async () => {
+    /**
+     * `noted-moovo`'s asymmetry, measured in Moovo: the restore lever exists for
+     * a courier and not for a customer or a delivery, and two of their three
+     * delivered subject types are the latter — so this is the majority of
+     * `no_violation` outcomes, not a corner.
+     *
+     * The plan is computed before `apply` runs and is deliberately
+     * subject-blind, so it must name `restore`. Only `apply` knows this
+     * particular object has no such lever, and `recordedAs` is how it says so.
+     */
+    harness = await createHarness();
+    const widget = await harness.widgets.create({
+      body: 'never restricted',
+      ownerId: 'oxy-owner',
+      status: 'published',
+    });
+    const subject = { type: 'gizmo', id: String(widget._id) };
+
+    const outcomes = await harness.moderation.enforcement.apply({
+      decision: decision({
+        revision: 1,
+        outcome: 'no_violation',
+        findings: [],
+        recommendedActions: [],
+      }),
+      caseId: 'case_effective_label',
+      subject,
+    });
+
+    // The PLAN named `restore`; the effect said it amounted to nothing.
+    expect(outcomes).toEqual([
+      { action: 'restore', result: 'recorded', recordedAs: 'none' },
+    ]);
+
+    /**
+     * The claim row keeps the planned action — it is half the idempotency key
+     * and it is what was decided — and carries the effective label alongside.
+     * Rewriting `action` would make a redelivery claim a different row.
+     */
+    const row = await harness.moderation.models.enforcement.findOne({}).lean();
+    expect(row?.action).toBe('restore');
+    expect(row?.recordedAs).toBe('none');
+    expect(row?.applied).toBe(false);
+  });
+});
