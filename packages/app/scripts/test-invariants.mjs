@@ -203,6 +203,30 @@ const MUTATIONS = [
     test: 'src/__tests__/enforcementReversal.test.ts',
     expects: 'lifts a label as well as a restriction',
   },
+  {
+    /**
+     * The dedup asking "is ANY restore already planned?" instead of asking per
+     * action. Reached only by a `no_violation` whose recommendation is itself a
+     * restore — so it is invisible on every other decision, and on those it
+     * suppresses the whole set.
+     */
+    name: 'the restore dedup suppresses the whole set instead of one action',
+    file: 'src/enforcement/planner.ts',
+    edits: [
+      {
+        find: `  const missing = restoreActions(declared).filter(
+    (action) => !planned.some((entry) => entry.action === action),
+  );`,
+        replace: `  const declaredRestores = restoreActions(declared);
+  const missing = planned.some((entry) => declaredRestores.includes(entry.action))
+    ? []
+    : declaredRestores;`,
+      },
+    ],
+    absent: '(action) => !planned.some((entry) => entry.action === action),',
+    test: 'src/__tests__/enforcementReversal.test.ts',
+    expects: 'still adds the other reversal when one is already recommended',
+  },
 ];
 
 const digest = (value) => createHash('sha256').update(value, 'utf8').digest('hex');
