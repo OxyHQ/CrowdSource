@@ -23,6 +23,7 @@ import { connectToDatabase, disconnectFromDatabase } from '../../utils/database'
  * a collection no test file happened to import first — and every idempotency
  * assertion in the suite would then pass by accepting duplicates.
  */
+import '../../modules/appeals/appeal.collection';
 import '../../modules/audit/audit.collection';
 import '../../modules/cases/case.collection';
 import '../../modules/ingestion/report.collection';

@@ -57,6 +57,14 @@ export const ID_PREFIX = {
    * hat.
    */
   decision: 'dec',
+  /**
+   * One appeal (§9.8): the filing that superseded one revision and opened the
+   * next. Never the revision itself, and never the decision that answers it —
+   * both of those have their own ids, and an appeal that shared one would make
+   * "which decision did this appeal produce" ambiguous the second time a case is
+   * appealed.
+   */
+  appeal: 'apl',
 } as const;
 
 export type PublicIdKind = keyof typeof ID_PREFIX;

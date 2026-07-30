@@ -1,3 +1,5 @@
+import type { ClientSession } from 'mongoose';
+
 import { withTransaction } from '../../db/transaction';
 import type { TenantContext } from '../../db/tenantScope';
 import { logger } from '../../utils/logger';
@@ -63,11 +65,20 @@ export type RevisionOutcome =
  * that lived only in this request would be lost the moment the request failed
  * after the revision committed, leaving a case stuck at `appealed` with a
  * superseded decision, no jury, and nothing recording that a jury was owed.
+ *
+ * `session` is how the APPEAL that causes a revision commits with it. §9.8's
+ * appeal and the revision it opens are one act: an appeal row without a revision
+ * is an author told their case is being re-reviewed when no jury was ever asked
+ * for, and a revision without an appeal row is a case in `appealed` status that
+ * nothing explains. Passing the caller's session is what makes them atomic; when
+ * no session is given this opens its own transaction, which is what the audit and
+ * operational paths that supersede without an appeal need.
  */
 export async function openCaseRevision(
   context: TenantContext,
   caseId: string,
   now: Date = new Date(),
+  session?: ClientSession,
 ): Promise<RevisionOutcome> {
   const stored = await cases.findOne(context, { caseId });
   if (!stored) {
@@ -77,12 +88,12 @@ export async function openCaseRevision(
   const superseded = stored.currentRevision;
   const next = superseded + 1;
 
-  return withTransaction<RevisionOutcome>(async (session) => {
+  const open = async (inSession: ClientSession): Promise<RevisionOutcome> => {
     const swapped = await cases.updateOne(
       context,
       { caseId, currentRevision: superseded, decidedRevision: superseded },
       { set: { currentRevision: next, status: 'appealed', updatedAt: now } },
-      session,
+      inSession,
     );
 
     if (swapped === 0) {
@@ -94,14 +105,16 @@ export async function openCaseRevision(
      * about it. `markSuperseded` is the only write in this module against an
      * already-published decision and it sets that one field.
      */
-    await markSuperseded(context, caseId, superseded, now, session);
+    await markSuperseded(context, caseId, superseded, now, inSession);
 
-    await appendOutboxEvent(context, session, {
+    await appendOutboxEvent(context, inSession, {
       type: OUTBOX_EVENT_TYPES.caseReadyForReview,
       payload: { caseId },
     });
 
     logger.info({ caseId, superseded, revision: next }, 'A new case revision was opened');
     return { opened: true, revision: next };
-  });
+  };
+
+  return session === undefined ? withTransaction<RevisionOutcome>(open) : open(session);
 }

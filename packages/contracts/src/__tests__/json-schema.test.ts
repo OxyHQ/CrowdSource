@@ -38,7 +38,7 @@ describe('the exported JSON Schema', () => {
   it('publishes one schema per contract, with nothing missing on either side', () => {
     // Vacuity floor: a traversal that silently produced nothing would still
     // "pass" a loop-based test, so the count is asserted directly.
-    expect(CONTRACT_JSON_SCHEMA_NAMES.length).toBe(13);
+    expect(CONTRACT_JSON_SCHEMA_NAMES.length).toBe(15);
     expect(Object.keys(CONTRACT_SCHEMAS).sort()).toEqual([...CONTRACT_JSON_SCHEMA_NAMES].sort());
   });
 

@@ -29,12 +29,13 @@ import { REVIEWER_STATE_RANK, type ReviewerState } from '../reviewer/reviewerSta
  * reliability minimum §8.3 states.
  */
 
-/** §8.3's slot kinds. */
+/** §8.3's slot kinds, plus §8.1's appeals reviewer. */
 export const SLOT_TYPES = [
   'reliable_general',
   'category_specialist',
   'intermediate',
   'calibrated_newcomer',
+  'appeals_reviewer',
 ] as const;
 export type SlotType = (typeof SLOT_TYPES)[number];
 
@@ -92,6 +93,22 @@ const SLOT_REQUIREMENTS: Readonly<Record<SlotType, SlotRequirement>> = Object.fr
     maxCompletedReviews: NEWCOMER_MAX_REVIEWS,
     requiresSpecialism: false,
   },
+  /**
+   * §8.1's Appeals Reviewer: "puede participar en jurados de apelación, siempre
+   * distinto del jurado original."
+   *
+   * The state is the requirement and the family is not: an appeal panel is drawn
+   * for a case that has already been classified once, and what the seat needs is
+   * somebody who has reviewed enough to weigh a decision another panel reached.
+   * The family competence is still enforced — every candidate has to accept every
+   * family the case alleges to be eligible at all (§8.2) — so this slot narrows
+   * on experience without narrowing twice on the same axis.
+   */
+  appeals_reviewer: {
+    minState: 'appeals',
+    minReliability: RELIABLE_MIN_RELIABILITY,
+    requiresSpecialism: false,
+  },
 });
 
 /**
@@ -108,6 +125,23 @@ export const SLOT_FALLBACKS: Readonly<Record<SlotType, readonly SlotType[]>> = O
   category_specialist: ['category_specialist', 'reliable_general'],
   intermediate: ['intermediate', 'reliable_general'],
   calibrated_newcomer: ['calibrated_newcomer', 'intermediate', 'reliable_general'],
+  /**
+   * The appeals seat falls back to a reliable general reviewer, and the trade-off
+   * is worth stating because it is the only fallback here that lands on a LOWER
+   * state rather than a higher one.
+   *
+   * §8.1 says an appeals reviewer MAY sit on an appeal jury; it does not say
+   * nobody else may, and §9.4's appeal row asks only for a new jury of at least
+   * five with a higher threshold. Reading the state as a hard requirement would
+   * mean no appeal could be empanelled until the population contains appeals
+   * reviewers — which is precisely the closed door that left twenty of
+   * twenty-one civic validation requests expired with zero votes, and an appeal
+   * that never empanels is worse than one that errors, because the author has
+   * been told their case is under review. The reliability floor does NOT drop:
+   * both classes clear `RELIABLE_MIN_RELIABILITY`, so the fallback trades
+   * appeal-specific experience for measured reliability, never for less of it.
+   */
+  appeals_reviewer: ['appeals_reviewer', 'reliable_general'],
 });
 
 /** The hard constraints on a finished panel (§8.3). */
@@ -219,6 +253,89 @@ const SPECIALIST_ROUNDS: readonly PanelSpec[] = Object.freeze([
   }),
 ]);
 
+/**
+ * The lowest rung an APPEAL panel may sit on (§9.4's appeal row).
+ *
+ * §9.4: "Apelación — Jurado nuevo, mínimo 5, umbral superior al de la primera
+ * decisión cuando la acción sea grave." The minimum of five is a panel SIZE, so
+ * it is expressed here as the round an appeal enters the ladder at rather than as
+ * a check somewhere else: round 2 is five seats in every ladder, so an appeal
+ * cannot be drawn as a panel of three by any path, including a replacement draw
+ * or a replayed event.
+ */
+export const APPEAL_MIN_ROUND = 2;
+
+/**
+ * The appeal ladders (§9.4's appeal row, §8.1's Appeals Reviewer).
+ *
+ * Two differences from the first-instance ladders, and both come from what an
+ * appeal is.
+ *
+ *  - **It starts at five seats** and has no round-1 rung at all. Asking for one
+ *    throws, which is what makes §9.4's minimum unreachable to bypass.
+ *  - **There is no `calibrated_newcomer` slot.** §8.3's renewal argument is about
+ *    building the next generation of reviewers on ordinary cases; a panel whose
+ *    job is to weigh a decision another panel already reached is not where that
+ *    belongs, and §9.4 raises the bar for appeals rather than lowering it.
+ *
+ * The seat that replaces it is `appeals_reviewer`, which is where §8.1's state
+ * becomes something other than a label. It falls back to a reliable general
+ * reviewer — see `SLOT_FALLBACKS` for why that fallback has to exist.
+ *
+ * The specialist appeal ladder has NO appeals seat, and that is deliberate:
+ * §7.5 routed the case there because of what the material is alleged to be, and
+ * an appeals reviewer who is not a specialist in that family would be exactly the
+ * general reviewer §7.5 says must never see it. Experience does not substitute
+ * for consent and competence in a restricted category.
+ */
+const COMMUNITY_APPEAL_ROUNDS: readonly PanelSpec[] = Object.freeze([
+  Object.freeze({
+    panelSpecId: 'community.appeal.round2',
+    pool: 'community',
+    round: 2,
+    slots: Object.freeze<SlotType[]>([
+      'appeals_reviewer',
+      'reliable_general',
+      'reliable_general',
+      'category_specialist',
+      'intermediate',
+    ]),
+    constraints: Object.freeze({ minReliableCount: 3, maxPerRiskCluster: 1 }),
+  }),
+  Object.freeze({
+    panelSpecId: 'community.appeal.round3',
+    pool: 'community',
+    round: 3,
+    slots: Object.freeze<SlotType[]>([
+      'appeals_reviewer',
+      'reliable_general',
+      'reliable_general',
+      'category_specialist',
+      'intermediate',
+      'appeals_reviewer',
+      'reliable_general',
+    ]),
+    constraints: Object.freeze({ minReliableCount: 4, maxPerRiskCluster: 1 }),
+  }),
+]);
+
+const SPECIALIST_APPEAL_ROUNDS: readonly PanelSpec[] = Object.freeze([
+  Object.freeze({
+    panelSpecId: 'specialist.appeal.round2',
+    pool: 'specialist',
+    round: 2,
+    slots: Object.freeze<SlotType[]>(new Array<SlotType>(5).fill('category_specialist')),
+    constraints: Object.freeze({ minReliableCount: 4, maxPerRiskCluster: 1 }),
+  }),
+  Object.freeze({
+    panelSpecId: 'specialist.appeal.round3',
+    pool: 'specialist',
+    round: 3,
+    slots: Object.freeze<SlotType[]>(new Array<SlotType>(7).fill('category_specialist')),
+    constraints: Object.freeze({ minReliableCount: 5, maxPerRiskCluster: 1 }),
+  }),
+]);
+
 /** True when a slot type may be filled without its own class being available. */
 export function slotAllowsFallback(spec: PanelSpec, slot: SlotType): boolean {
   return spec.pool === 'community' && SLOT_FALLBACKS[slot].length > 1;
@@ -234,19 +351,28 @@ export function slotAllowsFallback(spec: PanelSpec, slot: SlotType): boolean {
  * could do. `sortition.service.ts` refuses before reaching here; the throw is
  * the second lock.
  */
-export function panelSpecFor(pool: ReviewPool, round: number): PanelSpec {
+export function panelSpecFor(pool: ReviewPool, round: number, appeal = false): PanelSpec {
   if (pool === 'legal') {
     throw new Error(
       'Material routed to the legal pool is never drawn a jury; it has no panel specification.',
     );
   }
 
-  const ladder = pool === 'specialist' ? SPECIALIST_ROUNDS : COMMUNITY_ROUNDS;
+  const ladder = ladderFor(pool, appeal);
   const spec = ladder.find((candidate) => candidate.round === round);
   if (!spec) {
-    throw new Error(`No panel specification for the '${pool}' pool at round ${round}.`);
+    throw new Error(
+      `No ${appeal ? 'appeal ' : ''}panel specification for the '${pool}' pool at round ${round}.`,
+    );
   }
   return spec;
+}
+
+function ladderFor(pool: Exclude<ReviewPool, 'legal'>, appeal: boolean): readonly PanelSpec[] {
+  if (pool === 'specialist') {
+    return appeal ? SPECIALIST_APPEAL_ROUNDS : SPECIALIST_ROUNDS;
+  }
+  return appeal ? COMMUNITY_APPEAL_ROUNDS : COMMUNITY_ROUNDS;
 }
 
 /** The highest round the escalation ladder defines (§8.6). */
@@ -263,10 +389,13 @@ export const MAX_PANEL_ROUND = 3;
  * disagreed by one would either expand a panel that is already full or hold a
  * full panel to the previous round's threshold.
  */
-export function panelRoundFor(pool: ReviewPool, seats: number): number {
-  return [1, 2, 3].reduce(
-    (highest, round) => (panelSpecFor(pool, round).slots.length <= seats ? round : highest),
-    1,
+export function panelRoundFor(pool: ReviewPool, seats: number, appeal = false): number {
+  const lowest = appeal ? APPEAL_MIN_ROUND : 1;
+  const rounds = [1, 2, 3].filter((round) => round >= lowest);
+
+  return rounds.reduce(
+    (highest, round) => (panelSpecFor(pool, round, appeal).slots.length <= seats ? round : highest),
+    lowest,
   );
 }
 

@@ -136,6 +136,32 @@ export function caseDecidedEventExample(): Record<string, unknown> {
   };
 }
 
+export function appealSubmissionExample(): Record<string, unknown> {
+  return {
+    appellantExternalPrincipalId: 'mention_user_55',
+    reason: 'context_missing',
+    authorContext: {
+      statement: 'La cita era de un artículo de prensa y el hilo lo dejaba claro.',
+      resourceIds: ['res_post'],
+      fields: { publishedBy: 'El País', publishedOn: '2026-07-01' },
+    },
+  };
+}
+
+export function appealExample(): Record<string, unknown> {
+  return {
+    id: 'apl_01HZ',
+    caseId: 'case_01HZ',
+    status: 'open',
+    reason: 'context_missing',
+    supersededRevision: 1,
+    supersededDecisionId: 'dec_01HZ',
+    openedRevision: 2,
+    requiredAgreeingVotes: 4,
+    filedAt: '2026-07-29T09:00:00.000Z',
+  };
+}
+
 export function reputationEventExample(): Record<string, unknown> {
   return {
     eventId: 'evt_01HZ',

@@ -69,6 +69,19 @@ export const PROMOTION = Object.freeze({
   trustedMinReliability: 0.8,
   specialistMinReviews: 150,
   specialistMinFamilyReliability: 0.9,
+  /**
+   * §8.1's Appeals Reviewer: "puede participar en jurados de apelación".
+   *
+   * Reachable from `specialist` and from `trusted`, and the volume is the highest
+   * in the table because of what the seat does: an appeal panel weighs a decision
+   * another panel already reached, under §9.4's raised threshold. The state has to
+   * be REACHABLE, though — a tier nobody attains is the closed door that left the
+   * civic validator with a pool of five people and twenty expired requests, and
+   * `SLOT_FALLBACKS` exists precisely so an appeal is not blocked while the
+   * population grows into this state.
+   */
+  appealsMinReviews: 300,
+  appealsMinReliability: 0.85,
 });
 
 /** What the Oxy session told us about the person behind the request. */
@@ -543,12 +556,37 @@ export async function recordSubmittedReview(
 export function promotionFor(
   profile: ReviewerProfileDocument,
 ): { state: ReviewerState; specialistCategories: TaxonomyFamily[] } | null {
-  if (profile.state !== 'community' && profile.state !== 'trusted') return null;
+  if (
+    profile.state !== 'community' &&
+    profile.state !== 'trusted' &&
+    profile.state !== 'specialist'
+  ) {
+    return null;
+  }
 
   const specialisms = TAXONOMY_FAMILIES.filter(
     (family) =>
       (profile.reliabilityByCategory[family] ?? 0) >= PROMOTION.specialistMinFamilyReliability,
   );
+
+  /**
+   * §8.1's Appeals Reviewer, checked before the states below it so a profile that
+   * has earned the top of the ladder does not stall one rung short.
+   *
+   * Reached from `specialist` and from `trusted`, which is what `canTransition`
+   * already allows — a reviewer who never specialised in one family but has judged
+   * broadly and reliably is exactly the general appeals juror §8.1 describes. The
+   * specialisms travel unchanged: an appeals reviewer does not stop being a
+   * specialist in the families they were one in, and §7.5's restricted material
+   * still needs that specialism, not this state.
+   */
+  if (
+    (profile.state === 'specialist' || profile.state === 'trusted') &&
+    profile.completedReviewCount >= PROMOTION.appealsMinReviews &&
+    meanReliability(profile.reliabilityByCategory) >= PROMOTION.appealsMinReliability
+  ) {
+    return { state: 'appeals', specialistCategories: profile.specialistCategories };
+  }
 
   if (
     profile.state === 'trusted' &&

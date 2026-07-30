@@ -12,6 +12,8 @@ import {
 
 import type { TenantContext } from '../../db/tenantScope';
 import { logger } from '../../utils/logger';
+import type { AppealDocument } from '../appeals/appeal.collection';
+import { appealForRevision } from '../appeals/appeal.service';
 import { cases, type CaseDocument } from '../cases/case.collection';
 import { decisions } from '../decision/decision.collection';
 import { publishDecision, type PublishOutcome } from '../decision/decision.service';
@@ -310,7 +312,16 @@ export async function evaluateCase(
   const pending = panel.filter((seat) => seat.status !== 'submitted');
   if (pending.length > 0) return { status: 'waiting', pendingSeats: pending.length };
 
-  const round = panelRoundFor(reviewPool, panel.length);
+  /**
+   * §9.9: a revision past the first exists because an appeal opened it, so the
+   * ladder the panel sits on is the appeal ladder — five seats at its lowest rung
+   * (§9.4's "mínimo 5"). Reading the round off the first-instance ladder would
+   * call a five-seat appeal panel round 2 correctly by accident today and wrongly
+   * the moment either ladder changes.
+   */
+  const appealRevision = stored.currentRevision > 1;
+  const round = panelRoundFor(reviewPool, panel.length, appealRevision);
+  const appeal = appealRevision ? await appealForRevision(context, caseId, revision) : null;
   const submitted = await reviews.find({ caseId, caseRevision: revision });
 
   const families = allegedFamilies(stored);
@@ -325,13 +336,19 @@ export async function evaluateCase(
     round,
     risk: riskOf(stored.sensitivityClass),
     finalRound: MAX_PANEL_ROUND,
+    /**
+     * §9.4's appeal row: the bar recorded on the appeal when it was filed. Absent
+     * — for a first-instance revision, or for a revision opened by an audit rather
+     * than an appeal — the ordinary threshold applies unchanged.
+     */
+    appeal: appeal === null ? null : { requiredAgreeingVotes: appeal.requiredAgreeingVotes },
   });
 
   if (verdict.status === 'expand') {
     return expandPanel(context, stored, round, verdict);
   }
 
-  return publish(context, stored, panel, ballots, byReviewer, families, verdict, now);
+  return publish(context, stored, panel, ballots, byReviewer, families, verdict, appeal, now);
 }
 
 /** §8.6: a disagreement expands the panel to the next rung of the ladder. */
@@ -390,6 +407,7 @@ async function publish(
   profiles: ReadonlyMap<string, ReviewerProfileDocument>,
   families: readonly TaxonomyFamily[],
   verdict: Exclude<ConsensusVerdict, { status: 'expand' }>,
+  appeal: AppealDocument | null,
   now: Date,
 ): Promise<CaseEvaluation> {
   const agreed = verdict.status === 'consensus' ? verdict.position : null;
@@ -457,7 +475,7 @@ async function publish(
     },
     policyVersions: policyVersionsOf(stored),
     agreeingReviewerIds,
-    supersedes: await supersededDecision(context, stored),
+    supersedes: await supersededDecision(context, stored, appeal),
     now,
   });
 
@@ -495,7 +513,10 @@ async function publish(
 async function supersededDecision(
   context: TenantContext,
   stored: CaseDocument,
-): Promise<{ decisionId: string; outcome: DecisionOutcome } | null> {
+  appeal: AppealDocument | null,
+): Promise<
+  { decisionId: string; outcome: DecisionOutcome; appealId: string | null } | null
+> {
   if (stored.currentRevision <= 1) return null;
 
   const [previous] = await decisions.find(
@@ -505,5 +526,15 @@ async function supersededDecision(
   );
   if (!previous) return null;
 
-  return { decisionId: previous.decisionId, outcome: previous.outcome };
+  /**
+   * The appeal id travels with the supersession so the decision module can emit
+   * §10.6's `appeal.decided` in the same transaction as `case.decided`, without
+   * reading the appeals collection itself. It is null for a revision that no
+   * appeal opened — there is no event to emit and nobody waiting for one.
+   */
+  return {
+    decisionId: previous.decisionId,
+    outcome: previous.outcome,
+    appealId: appeal?.appealId ?? null,
+  };
 }

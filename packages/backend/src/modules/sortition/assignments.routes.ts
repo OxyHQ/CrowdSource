@@ -8,6 +8,7 @@ import {
 import { createTenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';
 import { isPublicId } from '../../utils/identifiers';
+import { appealForRevision } from '../appeals/appeal.service';
 import { cases } from '../cases/case.collection';
 import { policyVersionOfToken } from '../cases/caseDedupKey';
 import { resolvePolicy } from '../policy/policy.registry';
@@ -127,6 +128,47 @@ async function reviewPackage(assignment: AssignmentDocument): Promise<Record<str
 
     resources: snapshot,
     relations: stored.contentSnapshot.relations,
+
+    ...(await appealAddition(assignment)),
+  };
+}
+
+/**
+ * §9.8's "contexto adicional", for a panel reviewing an appeal.
+ *
+ * The author's own explanation is the one thing an appeal adds to what a first
+ * panel saw, and it is the whole reason §9.8 lets them file one. It arrives here
+ * already redacted — that happens once, at ingress, so the raw bytes are never
+ * stored — and it is labelled `unverified` exactly as an allegation is: a claim by
+ * an interested party, not a finding.
+ *
+ * What is deliberately withheld is everything ELSE about the appeal. Not the
+ * reason code, which is an argument about the verdict and would anchor the reviewer
+ * against §9.1's list. Not the superseded decision, its outcome, its findings or
+ * its jury — §9.8's blindness rule. Not the threshold this panel is held to, which
+ * is a property of the count and not of the material. A reviewer can tell they are
+ * looking at a contested case, because somebody is contesting it in their own
+ * words; they cannot tell what anybody concluded.
+ */
+async function appealAddition(
+  assignment: AssignmentDocument,
+): Promise<Record<string, unknown>> {
+  if (assignment.caseRevision <= 1) return {};
+
+  const appeal = await appealForRevision(
+    createTenantContext(assignment.organizationId, assignment.applicationId),
+    assignment.caseId,
+    assignment.caseRevision,
+  );
+  if (!appeal || appeal.authorContext === null) return {};
+
+  return {
+    authorContext: {
+      unverified: true,
+      statement: appeal.authorContext.statement,
+      resourceIds: appeal.authorContext.resourceIds,
+      fields: appeal.authorContext.fields,
+    },
   };
 }
 

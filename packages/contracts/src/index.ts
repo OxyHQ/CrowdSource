@@ -41,6 +41,7 @@ export * from './resources';
 export * from './case-envelope';
 export * from './reviews';
 export * from './decisions';
+export * from './appeals';
 export * from './webhooks';
 export * from './reputation-events';
 export * from './json-schema';

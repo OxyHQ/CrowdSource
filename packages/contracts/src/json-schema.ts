@@ -28,6 +28,7 @@
 
 import { z } from 'zod';
 
+import { AppealSchema, AppealSubmissionSchema } from './appeals';
 import { CaseEnvelopeSchema, CreateReportRequestSchema, CreateReportResponseSchema } from './case-envelope';
 import { DecisionSchema } from './decisions';
 import { PolicySetVersionSchema } from './policies';
@@ -50,6 +51,8 @@ export const CONTRACT_JSON_SCHEMA_NAMES = [
   'review-submission',
   'recusal-submission',
   'decision',
+  'appeal-submission',
+  'appeal',
   'webhook-event-envelope',
   'known-webhook-event',
   'reputation-event',
@@ -75,6 +78,8 @@ export const CONTRACT_SCHEMAS: Record<ContractJsonSchemaName, z.ZodType> = {
   'review-submission': ReviewSubmissionSchema,
   'recusal-submission': RecusalSubmissionSchema,
   decision: DecisionSchema,
+  'appeal-submission': AppealSubmissionSchema,
+  appeal: AppealSchema,
   'webhook-event-envelope': WebhookEventEnvelopeSchema,
   'known-webhook-event': KnownWebhookEventSchema,
   'reputation-event': ReputationEventSchema,

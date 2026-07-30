@@ -39,12 +39,37 @@ import type { TenantContext } from '../../db/tenantScope';
  * ## Why it is tenant-scoped when reviews and assignments are not
  *
  * A decision is read back by the APPLICATION that owns the case, through a
- * service credential, and delivered to that application's webhook endpoints. Its
- * reader carries a tenant; the reviewer surfaces that could not be scoped never
- * see a decision at all (§9.1 — a juror is not shown the result). So the tenant
- * filter applies here in full, and the one query that is not tenant-scoped —
- * "which decisions are pending delivery" — does not exist, because delivery goes
- * through the outbox.
+ * service credential, and delivered to that application's webhook endpoints —
+ * every reader of a decision carries a tenant. So the filter applies here in
+ * full, and the one query that would NOT be tenant-scoped — "which decisions are
+ * pending delivery" — does not exist, because delivery goes through the outbox.
+ *
+ * ## What a reviewer may be told, which is not nothing
+ *
+ * §9.1's hidden row is "votos anteriores o **resultado parcial**" — previous
+ * votes, or a PARTIAL result. A published decision is neither, and §4.1's
+ * Historial row requires the opposite: "resultados que ya puedan revelarse". So a
+ * reviewer history surface may disclose the outcome of a revision that has been
+ * decided, narrowly, and two constraints bind whoever builds one.
+ *
+ *  - **Key it on the revision the reviewer JUDGED** — `caseRevision` on their own
+ *    review row — and never on `currentDecision`. After an appeal those are
+ *    different rows, and a revision-1 juror shown the CURRENT decision would be
+ *    shown an outcome they never voted on and told, by implication, that an appeal
+ *    overturned them. Supersession leaves both rows intact and unedited, so
+ *    `{ caseId, revision: review.caseRevision }` is unambiguous forever — but only
+ *    if that is the query actually made. `currentDecision` is the trap here, not
+ *    a convenience.
+ *  - **Give the tally no field to travel in.** `DecisionJurySummary` — the counts
+ *    and the agreement ratio — belongs to the application-facing DTO and must have
+ *    no counterpart in a reviewer projection, because an agreement ratio IS a
+ *    partial result seen from the far end. Absence is the enforcement: a field
+ *    that exists gets filled eventually by somebody who does not know why it was
+ *    empty, while a field that does not exist has to be added deliberately.
+ *
+ * `status` is not disclosable to a reviewer either, for a quieter reason:
+ * `superseded` says a later revision exists, which tells a juror their case was
+ * appealed and that somebody has already ruled on it.
  */
 
 export interface DecisionJurySummary {

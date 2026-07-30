@@ -17,15 +17,17 @@ import { stubOxySession } from './support/reviewers';
  *
  * ## What is under test and what is not
  *
- * The supersession MECHANISM, which §15.5 puts in this phase. Not the appeal
- * SURFACE: §9.8's appeal is an object with a requester, a reason, structured
- * additional context from the author and an appeals-reviewer pool, and that
- * belongs to §15.9. `openCaseRevision` is what such a surface would call.
+ * The supersession MECHANISM, driven directly through `openCaseRevision` with NO
+ * appeal object behind it. §9.8's appeal — a requester, a reason, the author's
+ * structured context, the raised threshold — has its own suite in
+ * `appeals.integration.test.ts`; this file is what proves the mechanism holds on
+ * its own, which is the path an audit or a Trust & Safety correction takes.
  *
- * Two of §9.8's rules are asserted here even so, because they hold already —
- * the draw was written correctly in phase 3 and the revision inherits it:
- * the second jury contains nobody from the first, and no reviewer surface can
- * reach the superseded decision.
+ * Three properties of that path are asserted here because they are easy to break
+ * from the appeals side and would be invisible if only the appeal suite existed:
+ * the second jury contains nobody from the first, the panel is still five seats
+ * (§9.4's minimum follows the REVISION, not the presence of an appeal row), and
+ * nothing emits `appeal.decided` for a revision no appeal opened.
  */
 vi.mock('@oxyhq/core/server', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@oxyhq/core/server')>();
@@ -71,6 +73,7 @@ let tenant: ProvisionedTenant;
 let caseId: string;
 let firstDecisionId: string;
 let firstJury: string[];
+let webhookEndpointId: string;
 
 function asReviewer(oxyUserId: string) {
   return { 'x-test-oxy-user': oxyUserId };
@@ -126,10 +129,18 @@ beforeAll(async () => {
     });
   }
 
-  await registerWebhookEndpoint(tenant.tenant, {
+  /**
+   * The endpoint id is kept so the delivery assertions can be SCOPED to it.
+   * Deliveries are not tenant-filtered by the worker — it delivers across every
+   * tenant, deliberately — so a query by `eventType` alone finds whichever suite's
+   * row happened to be written first, and the failure reads as a wrong payload
+   * rather than as a query that was never specific enough.
+   */
+  const registered = await registerWebhookEndpoint(tenant.tenant, {
     url: 'https://receiver.invalid/corrections',
     eventTypes: ['case.decided', 'decision.corrected'],
   });
+  webhookEndpointId = registered.endpoint.webhookEndpointId;
 
   const externalReportId = `revision-${Date.now()}`;
   const created = await request(app)
@@ -194,7 +205,15 @@ describe('§9.9: a revision supersedes; it never edits', () => {
     const opened = await openCaseRevision(tenant.tenant, caseId);
     expect(opened).toEqual({ opened: true, revision: 2 });
 
-    await drainUntil(async () => (await seatsOf(2)).length === 3, 'the second panel');
+    /**
+     * FIVE, not three. §9.4's appeal row — "jurado nuevo, mínimo 5" — is enforced
+     * by every revision past the first opening on the appeal ladder, whose lowest
+     * rung is five seats (`APPEAL_MIN_ROUND`). That holds for a revision opened
+     * through this mechanism directly, with no appeal object behind it, which is
+     * the point of asserting it here: the panel size follows the REVISION, so no
+     * path can produce a three-person appeal panel.
+     */
+    await drainUntil(async () => (await seatsOf(2)).length === 5, 'the second panel');
   }, 180_000);
 
   it('leaves revision 1 byte-identical except for its status', async () => {
@@ -212,10 +231,32 @@ describe('§9.9: a revision supersedes; it never edits', () => {
   it('§9.8: the second jury contains nobody from the first', async () => {
     const second = await seatsOf(2);
 
-    expect(second).toHaveLength(3);
     for (const reviewerId of second) {
       expect(firstJury, 'a juror sat on both panels').not.toContain(reviewerId);
     }
+  });
+
+  it('§9.4: the second panel is wider than the one it reviews, and at least five', async () => {
+    const second = await seatsOf(2);
+
+    /**
+     * Three assertions, and they are not the same assertion three times.
+     *
+     * The first two are §9.4's appeal row as a PROPERTY: at least five, and never
+     * narrower than the panel whose decision is being reviewed. Both survive any
+     * future edit to either ladder, and both would fail if a revision were ever
+     * drawn on the first-instance rungs.
+     *
+     * The third is the rung the ladder defines TODAY, as a literal. It is here so
+     * that moving the rung is a decision somebody makes on purpose and not a number
+     * that drifts under a property nobody notices holding vacuously.
+     */
+    expect(second.length, '§9.4: an appeal panel is at least five').toBeGreaterThanOrEqual(5);
+    expect(
+      second.length,
+      'the appeal panel is no narrower than the panel it reviews',
+    ).toBeGreaterThan(firstJury.length);
+    expect(second).toHaveLength(5);
   });
 
   it('the second panel is its own draw at revision 2, with its own seed', async () => {
@@ -223,7 +264,9 @@ describe('§9.9: a revision supersedes; it never edits', () => {
     const second = draws.filter((draw) => draw.caseRevision === 2);
 
     expect(second).toHaveLength(1);
-    expect(second[0].round).toBe(1);
+    /** Round 2 of the APPEAL ladder: five seats, §9.4's minimum. */
+    expect(second[0].round).toBe(2);
+    expect(second[0].panelSpecId).toBe('community.appeal.round2');
     expect(second[0].seed).not.toBe(draws[0].seed);
   });
 
@@ -280,7 +323,7 @@ describe('§9.8: an overturned decision is a correction; an upheld one is not', 
     expect(second.outcome).toBe('no_violation');
     expect(second.supersedesDecisionId).toBe(firstDecisionId);
     expect(second.decisionId).not.toBe(firstDecisionId);
-    expect(second.jury).toMatchObject({ size: 3, decisiveVotes: 3, winningVotes: 3 });
+    expect(second.jury).toMatchObject({ size: 5, decisiveVotes: 5, winningVotes: 5 });
   });
 
   it('keeps the whole history, and shows the one in force', async () => {
@@ -324,13 +367,34 @@ describe('§9.8: an overturned decision is a correction; an upheld one is not', 
     expect(decided).toHaveLength(2);
   });
 
+  it('emits no `appeal.decided`, because no appeal opened this revision', async () => {
+    /**
+     * §10.6's `appeal.decided` answers an appeal. A revision opened by this
+     * mechanism directly has no appellant and nobody waiting for a result, so
+     * emitting one would tell an application an appeal it never received had been
+     * resolved — and phase 7 consumes that event to reverse a conduct effect.
+     */
+    const appealDecided = await outboxEvents.find({
+      type: OUTBOX_EVENT_TYPES.appealDecided,
+      'payload.caseId': caseId,
+    });
+    expect(appealDecided).toHaveLength(0);
+
+    const appealCreated = await outboxEvents.find({
+      type: OUTBOX_EVENT_TYPES.appealCreated,
+      'payload.caseId': caseId,
+    });
+    expect(appealCreated).toHaveLength(0);
+  });
+
   it('delivers the correction, carrying the decision that replaced the old one', async () => {
+    const mine = { webhookEndpointId, eventType: 'decision.corrected' };
     await drainUntil(
-      async () => (await webhookDeliveries.find({ eventType: 'decision.corrected' })).length > 0,
+      async () => (await webhookDeliveries.find(mine)).length > 0,
       'a decision.corrected delivery',
     );
 
-    const [delivered] = await webhookDeliveries.find({ eventType: 'decision.corrected' });
+    const [delivered] = await webhookDeliveries.find(mine);
     const payload = JSON.parse(delivered.body);
 
     expect(payload.type).toBe('decision.corrected');
@@ -359,11 +423,11 @@ describe('§9.8: an overturned decision is a correction; an upheld one is not', 
 
   it('the ballots of revision 1 never counted toward revision 2', async () => {
     const all = await reviews.find({ caseId });
-    expect(all).toHaveLength(6);
+    expect(all).toHaveLength(8);
     expect(all.filter((review) => review.caseRevision === 1)).toHaveLength(3);
-    expect(all.filter((review) => review.caseRevision === 2)).toHaveLength(3);
+    expect(all.filter((review) => review.caseRevision === 2)).toHaveLength(5);
 
     const [second] = await decisions.find(tenant.tenant, { caseId, revision: 2 });
-    expect(second.jury.decisiveVotes).toBe(3);
+    expect(second.jury.decisiveVotes).toBe(5);
   });
 });
