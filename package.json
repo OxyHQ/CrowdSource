@@ -19,6 +19,7 @@
     "build:console": "bun run --cwd packages/console build",
     "build:backend": "bun run build:contracts && bun run --cwd packages/backend build",
     "audit:security": "bun ./scripts/audit-security.mjs",
+    "check:tests-typechecked": "bun ./.github/scripts/assert-tests-typechecked.mjs",
     "check:lockfile": "bun ./scripts/check-lockfile-sync.mjs",
     "doctor": "bun ./scripts/doctor.mjs",
     "check": "bun run doctor && bun run validate:workflows && bun run audit:security && bun run check:peers && bun run build && bun run check:dist && bun run check:schemas && bun run --cwd packages/reviewer typecheck && bun run --cwd packages/console typecheck && bun run lint",

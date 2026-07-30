@@ -115,7 +115,7 @@ async function decidedCase(): Promise<Fixture> {
         code: 'harassment.targeted_abuse',
         resourceIds: ['res_post'],
         severity: 'medium',
-        scope: 'application',
+        scope: 'application_local',
       },
     ],
     recommendedActions: [{ action: 'remove_or_restrict' }],
@@ -144,7 +144,7 @@ async function decidedCase(): Promise<Fixture> {
     agreeingReviewerIds: [reviewerId],
     supersedes:
       first.published === true
-        ? { decisionId: first.decisionId, outcome: 'violation' }
+        ? { decisionId: first.decisionId, outcome: 'violation', appealId: null }
         : null,
     now: new Date(),
   });

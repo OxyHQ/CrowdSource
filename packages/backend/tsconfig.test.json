@@ -1,0 +1,47 @@
+{
+  // ---------------------------------------------------------------------------
+  // Type-check-only project covering what the emitting project leaves out: the
+  // tests.
+  //
+  // Same split, and the same reason, as the four published packages'
+  // `tsconfig.test.json`: tests must not reach `dist/` (the ECS image executes
+  // that tree), but they must still be type-checked, because a test that does not
+  // compile is a test nobody is running.
+  //
+  // Without this project `bun run lint` here was `tsc --noEmit` over an emitting
+  // config that EXCLUDES `src/__tests__` and `**/*.test.ts`, so a change breaking
+  // only test files passed lint and surfaced only if the suite happened to run.
+  // `.github/scripts/assert-tests-typechecked.mjs` now fails if any package's test
+  // files fall outside every type-checked project, so the hole cannot reopen
+  // silently.
+  // ---------------------------------------------------------------------------
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "types": ["node", "vitest/globals"],
+    // The emitting project sets `rootDir: "./"`, which this project must widen
+    // rather than inherit: its `paths` resolves @oxyhq/crowdsource-contracts to
+    // ../contracts/src, and every file there is then TS6059 "not under rootDir".
+    // Harmless to widen, because nothing is emitted here. Omitting the key does
+    // NOT work — the extended value is inherited.
+    "rootDir": "../..",
+
+    // The emitting project above is a CommonJS/ES2020 RUNTIME contract for the
+    // ECS image. Vitest does not run the tests that way — it runs them as ESM
+    // through its own transform — so type-checking them under the emit contract
+    // reports failures the runtime does not have (top-level `await` rejected as
+    // TS1378, `String.replaceAll` missing as TS2550). These options describe how
+    // the tests are actually executed, which is what makes the errors that remain
+    // real ones.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "verbatimModuleSyntax": false
+  },
+  "include": ["server.ts", "src/**/*.ts", "vitest.config.ts", "vitest.setup.ts", "vitest.globalSetup.ts"],
+  "exclude": ["node_modules", "dist"]
+}

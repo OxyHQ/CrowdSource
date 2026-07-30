@@ -42,7 +42,10 @@ describe('collection registration', () => {
     );
     expect(unscopedCollectionReasons().get('SampleUnscoped')).toContain('fixture');
     // The map is a copy: a caller cannot edit the exemption list it is shown.
-    unscopedCollectionReasons().delete('SampleUnscoped');
+    // The return type is a ReadonlyMap, so the compiler already refuses `.delete`
+    // — this cast is what lets the test still prove the RUNTIME copy holds, for a
+    // caller who reached this line from untyped JavaScript.
+    (unscopedCollectionReasons() as Map<string, string>).delete('SampleUnscoped');
     expect(unscopedCollectionReasons().has('SampleUnscoped')).toBe(true);
   });
 

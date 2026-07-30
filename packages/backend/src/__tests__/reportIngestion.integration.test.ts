@@ -46,7 +46,7 @@ afterAll(async () => {
   await stopDatabase();
 });
 
-function deliver(token: string, idempotencyKey: string, body: unknown) {
+function deliver(token: string, idempotencyKey: string, body: object) {
   return request(app)
     .post('/v1/reports')
     .set('Authorization', `Bearer ${token}`)

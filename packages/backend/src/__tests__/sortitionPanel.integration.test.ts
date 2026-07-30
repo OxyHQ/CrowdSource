@@ -35,7 +35,6 @@ const { assignments } = await import('../modules/sortition/assignment.collection
 const { sortitionDraws } = await import('../modules/sortition/draw.collection');
 const { openPanel, replayDraw } = await import('../modules/sortition/sortition.service');
 const { MAX_PANEL_ROUND } = await import('../modules/sortition/panelSpec');
-const { MAX_CO_SERVICE } = await import('../modules/sortition/exclusions');
 const { MAX_OPEN_ASSIGNMENTS } = await import('../modules/reviewer/eligibility');
 const { expireDueAssignments } = await import('../modules/sortition/assignment.service');
 const { reviews } = await import('../modules/review/review.collection');
