@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
 
 /**
@@ -66,13 +67,22 @@ const app = createApp();
  * The isolation axis for this suite, which needs TWO dimensions rather than one.
  *
  * Reviewer profiles are global, and every taxonomy family is already spoken for
- * by another suite — `sortitionPanel` alone uses five. So this file separates on
- * CONSENT instead: `privacy.personal_information` is `sensitive` (§7.5 row 4),
- * and §8.2 requires per-family consent for sensitive material. The reviewers
- * here carry that consent and the `privacy` reviewers created by the onboarding
- * suite do not, so neither pool can be drawn for the other's cases.
+ * by another suite — `sortitionPanel` alone uses six. So this file shares
+ * `privacy` with `reviewerOnboarding.integration.test.ts` and separates on the
+ * language, which is the axis that works in both directions.
+ *
+ * It used to separate on CONSENT instead: `privacy.personal_information` is
+ * `sensitive` (§7.5 row 4), §8.2 requires per-family consent for sensitive
+ * material, and the onboarding suite's reviewers carry none. That is a real wall
+ * but only a one-way one — consent is a floor rather than a ceiling, so the
+ * reviewers created HERE are eligible for a `standard` `privacy` case — and it
+ * held the rest of the way only because the onboarding suite happens never to
+ * open a case. The consent below still matters for what this file tests; it is
+ * no longer what keeps the two suites apart.
  */
-const FAMILY = 'privacy' as const;
+const axes = reviewerAxesFor(import.meta.url);
+const FAMILY = axes('failureModes').family;
+const LANGUAGE = axes('failureModes').language;
 const CODE = 'privacy.personal_information';
 
 /** Everything a reviewer needs to be eligible for this suite's sensitive route. */
@@ -286,7 +296,7 @@ describe('the candidate window', () => {
     await createReviewer({ ...CONSENT, samplingKey: 0.995 });
 
     const sample = await sampleCandidates(
-      { families: [FAMILY], language: 'es', sensitivity: 'sensitive', requiresAdult: false },
+      { families: [FAMILY], language: LANGUAGE, sensitivity: 'sensitive', requiresAdult: false },
       new Date(),
       1,
     );
@@ -301,7 +311,7 @@ describe('the candidate window', () => {
      * a bias invisible in any single draw and only apparent over months.
      */
     const sample = await sampleCandidates(
-      { families: [FAMILY], language: 'es', sensitivity: 'sensitive', requiresAdult: false },
+      { families: [FAMILY], language: LANGUAGE, sensitivity: 'sensitive', requiresAdult: false },
       new Date(),
       500,
     );

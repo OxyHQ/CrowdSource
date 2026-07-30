@@ -22,19 +22,29 @@ import {
  * panel that quietly drew somebody else's reviewers would make two suites fail
  * each other in ways that look like a broken selector.
  *
- * The isolation is therefore the TAXONOMY FAMILY. Every helper takes the family
- * its reviewers accept, and each test file picks one no other file's cases
- * allege — a reviewer is only eligible for a case whose every alleged family
- * they accept (§8.2), so a `commerce` reviewer is never drawn for a `harassment`
- * case. That is the same mechanism the product uses, which is the point: the
- * test isolation is the feature, not a fixture trick.
+ * The isolation is the pair §8.2 checks: a reviewer is eligible only for a case
+ * whose every alleged FAMILY they accept and whose LANGUAGE they hold. A file
+ * whose reviewers sit in a `(family, language)` cell no other file uses can
+ * therefore neither draw somebody else's jury nor be drawn into one. That is the
+ * same mechanism the product uses, which is the point: the test isolation is the
+ * feature, not a fixture trick. Both axes are needed — there are eleven families
+ * and more blocks wanting an exclusive pool than that.
  *
- * There are eleven families and more blocks wanting an exclusive pool than that
- * — one of them, `hate`, is reserved by `sortitionPanel.integration.test.ts` as
- * a family NOBODY serves, so its undersized-pool refusal has something to refuse
- * — so `languages` is the second axis. §8.2 requires a reviewer to have the
- * case's language too, so a pool created with one and a case created with
- * another cannot see each other. Same mechanism, same reason it is trustworthy.
+ * ## Where the cells are assigned — NOT here, and no longer by convention
+ *
+ * `reviewerAxes.ts` in this directory owns the whole assignment, and
+ * `reviewerAxes.test.ts` fails the build if two files claim one cell or if a file
+ * that seeds reviewers claims none. Read the cell for a suite through
+ * `reviewerAxesFor(import.meta.url)`; never write a family or a language literal
+ * into a test file.
+ *
+ * This used to be a rule stated here and restated, per file, in each suite's own
+ * header — and it did not hold. `reviewerAppContract.integration.test.ts` and
+ * `appeals.integration.test.ts` both took `(harassment, ast)`, each with a
+ * comment asserting the pair was unique, and the suite stayed green only for as
+ * long as the execution order made it not matter. Nobody was careless: the
+ * information needed to notice was spread across eleven files, so no reader had
+ * it. That is what the registry changes.
  */
 
 /**
@@ -67,7 +77,7 @@ export interface ReviewerFixture {
 }
 
 export interface CreateReviewerOptions {
-  /** The family this reviewer accepts. The isolation axis — see above. */
+  /** Half of the isolation cell. Comes from `reviewerAxes.ts` — see above. */
   readonly family: TaxonomyFamily;
   readonly state?: ReviewerState;
   readonly reliability?: number;

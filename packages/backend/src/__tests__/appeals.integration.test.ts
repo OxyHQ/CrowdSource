@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 
+import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
 
 /**
@@ -66,18 +67,22 @@ const app = createApp();
  * case in the database, and §8.2 requires a reviewer to have the case's language.
  * `harassment.targeted_abuse` is `sampleEnvelope`'s default allegation, so a
  * harassment pool speaking `es` would draw panels for half the suite; these speak
- * tags nothing else uses. A pool per block is needed for a second reason as well:
- * `POST /assignments/next` returns the assignment a reviewer was given LONGEST AGO
- * (§8.7), so a juror holding two of this file's cases would vote on the wrong one.
+ * tags nothing else uses — a claim `support/reviewerAxes.ts` now owns and
+ * `reviewerAxes.test.ts` enforces, rather than one this comment asserts. A pool
+ * per block is needed for a second reason as well: `POST /assignments/next`
+ * returns the assignment a reviewer was given LONGEST AGO (§8.7), so a juror
+ * holding two of this file's cases would vote on the wrong one.
  */
-const FAMILY = 'harassment' as const;
+const axes = reviewerAxesFor(import.meta.url);
+/** Every block here alleges the same family; the language is what separates them. */
+const FAMILY = axes('appealed').family;
 const CODE: TaxonomyCode = 'harassment.targeted_abuse';
-const APPEALED_LANGUAGE = 'ast';
-const CLEARED_LANGUAGE = 'sc';
+const APPEALED_LANGUAGE = axes('appealed').language;
+const CLEARED_LANGUAGE = axes('cleared').language;
 /** A case decided `violation` and never appealed: the fixture for WHO may file. */
-const REFUSED_LANGUAGE = 'vec';
+const REFUSED_LANGUAGE = axes('refused').language;
 /** Nobody serves this one, so the case stays undecided with no panel. */
-const UNSERVED_LANGUAGE = 'lij';
+const UNSERVED_LANGUAGE = axes('unserved').language;
 
 const SCOPES = [
   'crowdsource:reports:write',
@@ -871,7 +876,7 @@ describe('phase 4’s bug, under the new ladder: the replay guard is scoped by R
    * pass would close that window. Nothing else in this process drains — the polling
    * loop belongs to `server.ts` and no test starts it.
    */
-  const REPLAY_LANGUAGE = 'lmo';
+  const REPLAY_LANGUAGE = axes('replay').language;
   let replayCaseId: string;
 
   function readyEvent(caseId: string) {
@@ -968,8 +973,8 @@ describe('two appeals of one decision, filed at the same instant', () => {
    * mean two panels drawn for the same case revision and the second one's ballots
    * counting toward a revision already being decided.
    */
-  const RACE_LANGUAGE = 'fur';
-  const KEY_RACE_LANGUAGE = 'rm';
+  const RACE_LANGUAGE = axes('race').language;
+  const KEY_RACE_LANGUAGE = axes('keyRace').language;
   let raceCaseId: string;
   let keyRaceCases: readonly string[];
 

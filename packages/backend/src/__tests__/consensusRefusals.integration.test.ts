@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 
+import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
 
 /**
@@ -62,10 +63,17 @@ const app = createApp();
  * here is one no jury should ever be drawn for, and creating reviewers would
  * make that harder to assert rather than easier.
  */
+const axes = reviewerAxesFor(import.meta.url);
 const LEGAL_CODE: TaxonomyCode = 'child_safety.grooming';
+/**
+ * `sampleEnvelope`'s default, passed explicitly so the cell this file relies on
+ * being empty is the cell the registry reserves for it. An implicit default is
+ * a claim nothing can check.
+ */
+const LEGAL_LANGUAGE = axes('legal').language;
 /** An ordinary case with no pool to draw from, so it never gets a panel. */
 const UNSERVED_CODE: TaxonomyCode = 'commerce.unsafe_product';
-const UNSERVED_LANGUAGE = 'oc';
+const UNSERVED_LANGUAGE = axes('unserved').language;
 
 let tenant: ProvisionedTenant;
 let other: ProvisionedTenant;
@@ -106,7 +114,7 @@ afterAll(async () => {
 
 describe('cases no jury decides', () => {
   it('§7.5 row 1: a legal-pool case is never counted, however it is poked', async () => {
-    const caseId = await ingest(LEGAL_CODE, `post_legal_${Date.now()}`);
+    const caseId = await ingest(LEGAL_CODE, `post_legal_${Date.now()}`, LEGAL_LANGUAGE);
 
     const draw = await sortitionDraws.findOne({ caseId });
     expect(draw?.status).toBe('refused');
@@ -188,7 +196,7 @@ describe('a tenant reaches only its own decisions', () => {
   let decisionId: string;
 
   beforeAll(async () => {
-    caseId = await ingest(LEGAL_CODE, `post_isolation_${Date.now()}`);
+    caseId = await ingest(LEGAL_CODE, `post_isolation_${Date.now()}`, LEGAL_LANGUAGE);
 
     /**
      * Published directly rather than through a jury: this block is about the

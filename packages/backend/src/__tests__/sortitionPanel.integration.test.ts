@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
 
 /**
@@ -55,12 +56,20 @@ const app = createApp();
  *
  * Reviewer profiles are global — a reviewer belongs to no tenant — so reviewers
  * created here would be candidates for every other suite's cases running against
- * the same replica set. `commerce` is a family no other test file alleges, and
- * §8.2 requires a reviewer to accept EVERY family a case alleges, so this file's
- * reviewers and everybody else's cases cannot see each other. The isolation is
- * the product's own rule rather than a fixture trick.
+ * the same replica set. §8.2 requires a reviewer to accept EVERY family a case
+ * alleges, so a family no other test file alleges keeps this file's reviewers and
+ * everybody else's cases from seeing each other. The isolation is the product's
+ * own rule rather than a fixture trick.
+ *
+ * This is the one file that separates on the FAMILY and keeps the default `es`
+ * throughout: it needs six exclusive pools, and spending a language tag on each
+ * would exhaust the axis that the files with only one block depend on.
+ * `support/reviewerAxes.ts` holds all seven cells, and holds every other file's
+ * too, which is what makes "no other test file alleges it" a checked fact rather
+ * than a claim in a comment.
  */
-const FAMILY = 'commerce' as const;
+const axes = reviewerAxesFor(import.meta.url);
+const FAMILY = axes('panel').family;
 const CODE = 'commerce.counterfeit';
 
 /**
@@ -73,12 +82,19 @@ const CODE = 'commerce.counterfeit';
  * one. Separate families mean every reviewer in a block holds exactly the
  * assignment that block gave them.
  */
-const VOTING_FAMILY = 'platform_abuse' as const;
+const VOTING_FAMILY = axes('voting').family;
 const VOTING_CODE = 'platform_abuse.ban_evasion';
-const RECUSAL_FAMILY = 'other' as const;
+const RECUSAL_FAMILY = axes('recusal').family;
 const RECUSAL_CODE = 'other.policy_specific';
 
-/** A family nobody in this file accepts, for the refusal case. */
+/**
+ * A family nobody accepts UNTIL the mutation control at the end of this file
+ * creates a pool for it, which is the whole point: the refusal has to be caused
+ * by the missing pool and nothing else. The cell is reserved in
+ * `support/reviewerAxes.ts` so no other suite can quietly serve it and turn the
+ * refusal assertion into a coin flip.
+ */
+const UNSERVED_FAMILY = axes('starved').family;
 const UNSERVED_CODE = 'hate.slur';
 
 let tenant: ProvisionedTenant;
@@ -606,7 +622,7 @@ describe('§8.7: a recusal is not a vote, and it creates a replacement', () => {
  * flip dressed up as a test.
  */
 describe('§8.5: the exclusions bite in a real draw', () => {
-  const PARTY_FAMILY = 'violence' as const;
+  const PARTY_FAMILY = axes('parties').family;
   const PARTY_CODE = 'violence.instruction';
 
   let partyCaseId: string;
@@ -673,7 +689,7 @@ describe('§8.5: the exclusions bite in a real draw', () => {
  * somebody who stepped away.
  */
 describe('§8.5 + §8.7: a recused juror is never re-drawn to fill their own seat', () => {
-  const TIGHT_FAMILY = 'self_harm' as const;
+  const TIGHT_FAMILY = axes('tight').family;
   const TIGHT_CODE = 'self_harm.promotion';
 
   let tightCaseId: string;
@@ -776,7 +792,7 @@ describe('§8.5 + §8.7: a recused juror is never re-drawn to fill their own sea
  * the assignment backdated rather than by waiting a day.
  */
 describe('§8.7: an expired assignment is replaced', () => {
-  const EXPIRY_FAMILY = 'sexual_content' as const;
+  const EXPIRY_FAMILY = axes('expiry').family;
   const EXPIRY_CODE = 'sexual_content.explicit_activity';
 
   let expiryCaseId: string;
@@ -1087,7 +1103,7 @@ describe('§8.8: an undersized pool refuses rather than opening', () => {
    * this block. Give the same family a pool and the panel opens.
    */
   it('mutation control: with reviewers for that family, the same case opens a panel', async () => {
-    await createReviewerPool('hate', 9);
+    await createReviewerPool(UNSERVED_FAMILY, 9);
 
     const openable = await openCaseFor(UNSERVED_CODE, `post_unstarved_${Date.now()}`);
     const seats = await assignments.find({ caseId: openable });

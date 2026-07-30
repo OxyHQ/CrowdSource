@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 
+import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
 
 /**
@@ -49,11 +50,14 @@ const app = createApp();
  * `violence.graphic` is §7.5 row 3: `sensitive`, specialist pool, voluntary
  * exposure. The language is this file's isolation axis — `violence` is alleged by
  * one block of `sortitionPanel.integration.test.ts`, and a reviewer must have the
- * case's language to be drawn at all (§8.2).
+ * case's language to be drawn at all (§8.2). The pair is assigned in
+ * `support/reviewerAxes.ts`, which is the only place both claims on `violence`
+ * are visible at once, and `reviewerAxes.test.ts` fails if they ever converge.
  */
-const FAMILY = 'violence' as const;
+const axes = reviewerAxesFor(import.meta.url);
+const FAMILY = axes('specialist').family;
 const CODE: TaxonomyCode = 'violence.graphic';
-const LANGUAGE = 'fy';
+const LANGUAGE = axes('specialist').language;
 
 /** `sensitive` is rank 1 in `sensitivityRank`; a `standard`-only reviewer is 0. */
 const SENSITIVE_RANK = 1;

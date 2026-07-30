@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 
+import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
 
 /**
@@ -61,13 +62,17 @@ const app = createApp();
  * language. There are eleven families and more blocks wanting an exclusive pool
  * than that, so this file takes `integrity` — shared with
  * `consensusDecision.integration.test.ts` — and separates itself by language
- * instead. Its reviewers speak `eu` and that file's speak `es`, so neither pool
- * is eligible for the other's cases. The isolation is the product's own rule
- * rather than a fixture trick, which is the same property the family axis has.
+ * instead, so neither pool is eligible for the other's cases. The isolation is
+ * the product's own rule rather than a fixture trick, which is the same property
+ * the family axis has. Which pair this file gets is decided in
+ * `support/reviewerAxes.ts` rather than here, because a suite that picks its own
+ * cannot see what the other ten picked — the one time two files chose
+ * independently they chose the same cell and nothing noticed for a month.
  */
-const FAMILY = 'integrity' as const;
+const axes = reviewerAxesFor(import.meta.url);
+const FAMILY = axes('revision').family;
 const CODE: TaxonomyCode = 'integrity.impersonation';
-const LANGUAGE = 'eu';
+const LANGUAGE = axes('revision').language;
 
 let tenant: ProvisionedTenant;
 let caseId: string;
