@@ -21,7 +21,7 @@
     "test:coverage": "node ../../node_modules/jest/bin/jest.js --watchAll=false --runInBand --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "clean": "rm -rf dist .expo",
+    "clean": "rm -rf dist .expo *.tsbuildinfo",
     "analyze-bundle": "bun ./scripts/analyze-bundle.js"
   },
   "jest": {

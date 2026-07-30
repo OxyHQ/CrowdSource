@@ -13,7 +13,7 @@
     "test": "node ../../node_modules/vitest/vitest.mjs run",
     "test:watch": "node ../../node_modules/vitest/vitest.mjs",
     "test:coverage": "node ../../node_modules/vitest/vitest.mjs run --coverage",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
     "@oxyhq/core": "^12.11.0",
