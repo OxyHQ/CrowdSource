@@ -8,10 +8,11 @@
  * cleared it succeeded.
  */
 
-import { DecisionSchema, type Decision } from '@oxyhq/crowdsource-contracts';
+
 import { describe, expect, it } from 'vitest';
 import { planEnforcement, primaryAction } from '../enforcement/planner';
 import type { ModerationEnforcementConfig } from '../types';
+import { decision } from './support/decisions';
 
 type TestAction = 'restrict' | 'restore' | 'flag' | 'unflag' | 'review' | 'none';
 
@@ -42,60 +43,6 @@ const CONFIG: ModerationEnforcementConfig<TestAction> = {
   reverses: { restore: 'restrict', unflag: 'flag' },
   apply: async () => ({ changed: false, reason: 'not exercised in a planner test' }),
 };
-
-/**
- * Built through the real `DecisionSchema` rather than cast into shape.
- *
- * A decision the contract would refuse can never reach a planner in production,
- * so a planner test that used one would be answering a question nobody asks.
- * Parsing here also means the jury arithmetic and the revision/supersedes rules
- * are enforced on every fixture in this file.
- */
-function decision(
-  overrides: {
-    outcome?: Decision['outcome'];
-    status?: Decision['status'];
-    revision?: number;
-    findings?: readonly { code: string; severity: string }[];
-    recommendedActions?: readonly { action: string }[];
-  } = {},
-): Decision {
-  const revision = overrides.revision ?? 1;
-  const outcome = overrides.outcome ?? 'violation';
-  return DecisionSchema.parse({
-    id: 'dec_test_1',
-    caseId: 'case_test_1',
-    revision,
-    status: overrides.status ?? 'final',
-    outcome,
-    contextSufficiency: 'sufficient',
-    confidence: 1,
-    findings: (
-      overrides.findings ?? [{ code: 'integrity.spam', severity: 'medium' }]
-    ).map((finding) => ({
-      code: finding.code,
-      resourceIds: ['res_subject'],
-      severity: finding.severity,
-      scope: 'application_local',
-      attribution: 'author',
-    })),
-    recommendedActions: overrides.recommendedActions ?? [],
-    jury: {
-      size: 3,
-      decisiveVotes: 3,
-      winningVotes: 3,
-      agreement: 1,
-      specialistPresent: false,
-    },
-    policyVersions: {
-      taxonomy: '2026.07',
-      application: '2026.07',
-      oxyConduct: '2026.07',
-    },
-    ...(revision > 1 ? { supersedesDecisionId: 'dec_test_0' } : {}),
-    publishedAt: '2026-07-29T12:00:00.000Z',
-  });
-}
 
 describe('recommendations decide the plan', () => {
   it('maps each recommendation through the application table', () => {
@@ -194,10 +141,12 @@ describe('a correction always plans the restore', () => {
     expect(plan.filter((entry) => entry.action === 'restore')).toHaveLength(1);
   });
 
-  it('leaves an application with no restore action alone', () => {
+  it('plans an explicit nothing for an application that declares no restore', () => {
     const withoutRestore: ModerationEnforcementConfig<TestAction> = {
       ...CONFIG,
-      restoreAction: undefined,
+      // `null`, not absent: the type refuses an omission, so this is a
+      // recorded decision rather than a field somebody forgot.
+      restoreAction: null,
     };
     const plan = planEnforcement(
       decision({
@@ -311,14 +260,16 @@ describe('the plan is never empty', () => {
   });
 });
 
+const PRECEDENCE = CONFIG.precedence ?? CONFIG.actions;
+
 describe('one action reaches the report', () => {
   it('picks the strongest by the application precedence', () => {
-    expect(primaryAction(['review', 'restrict'], CONFIG.precedence)).toBe('restrict');
-    expect(primaryAction(['none', 'review'], CONFIG.precedence)).toBe('review');
+    expect(primaryAction(['review', 'restrict'], PRECEDENCE)).toBe('restrict');
+    expect(primaryAction(['none', 'review'], PRECEDENCE)).toBe('review');
   });
 
   it('returns undefined for an empty plan', () => {
-    expect(primaryAction([], CONFIG.precedence)).toBeUndefined();
+    expect(primaryAction([], PRECEDENCE)).toBeUndefined();
   });
 
   it('falls back to the first action when precedence names none of them', () => {

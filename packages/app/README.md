@@ -70,6 +70,25 @@ what the allegation is, or what happens to the report.
 registry is not an admission gate, and making it one breaks your existing report
 surfaces on the day you adopt CrowdSource. Adopt one subject type at a time.
 
+#### Reporting an account has a tenancy consequence — read this before registering one
+
+`applicationId` is read off your service credential, so a report you submit opens
+a case in **your** tenant. For an object you own that is exactly right. For an Oxy
+identity it is not: the case names a principal only Oxy can act on, and when a
+second Oxy application reports the same person under its own credential the dedup
+key (`applicationId + subject external id + content hash + policy version`)
+differs by tenant — so one person yields two cases, two juries and two
+consequences, breaking "one penalty per incident" at a layer neither application
+can repair.
+
+That is an argument for care, not a prohibition. `identity.profile` is a real
+subject type and an application whose own profile surfaces are what a jury would
+judge may well register one. What it is not is a route to having somebody's Oxy
+account sanctioned: an application can never move a reputation figure directly,
+and cross-application hand-off is a question the contract does not answer yet.
+Registering **no** provider for a reported account is a supported answer — the
+report is still stored, still counted, and simply never leaves.
+
 ### 2. A taxonomy — your categories, as allegations
 
 ```ts
@@ -149,6 +168,45 @@ the effect, so it is a real rehearsal rather than a log line. `manual` additiona
 applies `reversibleActions` — the actions that give something back, because
 holding those behind a human means a wrongly-removed listing stays removed while
 somebody reads a queue. `automatic` applies everything.
+
+`enforcedAction` on the report says what you **decided**; `enforcedAt` says an
+effect **landed**. They are written separately and `enforcedAt` stays unset for an
+action that was only recorded — in `observe` mode that is every action, so
+conflating them would stamp a timestamp on something that never happened for every
+decided report.
+
+#### If your application has nothing to enforce with
+
+Some applications have no platform-level sanction primitive at all. An
+end-to-end-encrypted messenger is the clearest case: the server cannot read the
+material, so it cannot label it, and its block/restrict relations are written by
+one user about their own inbox rather than by the platform about an account.
+Writing those on a user's behalf because a field said `violation` would be a
+product decision made by a queue.
+
+That is a supported shape, not an unfinished one, and it needs three fields:
+
+```ts
+const enforcement: ModerationEnforcementConfig<'none' | 'review'> = {
+  actions: ['review', 'none'],
+  noneAction: 'none',
+  reviewAction: 'review',
+  restoreAction: null,
+};
+```
+
+No `apply`, no tables. Every planned action is recorded as `recorded` with a
+reason, so "CrowdSource decided this and we have no way to carry it out" is
+written down instead of lost — which is the record that would justify building
+the primitive later. The idempotency claim still applies, so a redelivered
+decision is still recorded exactly once.
+
+`restoreAction` is **required** and `null` is the answer here. An absent key
+cannot be told apart from a forgotten one, and forgetting is the silent bug two
+paragraphs up; `null` is a decision the compiler makes you write down.
+
+Omitting `apply` is not the same as `observe` mode. The mode is a deployment
+choice you can switch off; this is a property of the application.
 
 ### 4. Your report model
 

@@ -1,4 +1,4 @@
-import type { Decision, Severity } from '@oxyhq/crowdsource-contracts';
+import type { Decision, RecommendedAction, Severity } from '@oxyhq/crowdsource-contracts';
 import type { ModerationEnforcementConfig, PlannedEnforcementAction } from '../types';
 
 /**
@@ -33,6 +33,36 @@ import type { ModerationEnforcementConfig, PlannedEnforcementAction } from '../t
  */
 
 const SEVERITY_ORDER: readonly Severity[] = ['low', 'medium', 'high', 'critical'];
+
+/**
+ * Recommendations that ask for NO effect.
+ *
+ * An unmapped recommendation goes to `reviewAction`, because a recommendation
+ * this application has no action for is a decision a human should see. These
+ * three are the exception, and the distinction is not cosmetic: they are
+ * CrowdSource saying "take no action", so routing them to review would put a
+ * human in front of every cleared case and bury the ones that need looking at.
+ *
+ * An application's own table still wins — it may genuinely want `allow` to mean
+ * something — but the default for an application that maps nothing has to be
+ * "do nothing" rather than "wake somebody".
+ */
+const NO_EFFECT_RECOMMENDATIONS: ReadonlySet<string> = new Set([
+  'allow',
+  'no_action',
+  'no_global_effect',
+]);
+
+function actionForRecommendation<TAction extends string>(
+  recommended: RecommendedAction,
+  config: ModerationEnforcementConfig<TAction>,
+): TAction {
+  const mapped = config.recommendationToAction?.[recommended];
+  if (mapped !== undefined) return mapped;
+  return NO_EFFECT_RECOMMENDATIONS.has(recommended)
+    ? config.noneAction
+    : config.reviewAction;
+}
 
 function highestSeverity(decision: Decision): Severity | undefined {
   let highest: Severity | undefined;
@@ -69,9 +99,15 @@ function highestSeverity(decision: Decision): Severity | undefined {
 function withRestoreForNoViolation<TAction extends string>(
   decision: Decision,
   planned: readonly PlannedEnforcementAction<TAction>[],
-  restoreAction: TAction | undefined,
+  restoreAction: TAction | null,
 ): readonly PlannedEnforcementAction<TAction>[] {
-  if (restoreAction === undefined) return planned;
+  /**
+   * `null` is a decision the application made, not an omission — the type
+   * requires it to be written down. An application with no sanction primitive
+   * has nothing an earlier revision could have removed, so there is nothing for
+   * a correction to put back.
+   */
+  if (restoreAction === null) return planned;
   if (decision.outcome !== 'no_violation') return planned;
   if (planned.some((entry) => entry.action === restoreAction)) return planned;
   return [
@@ -130,7 +166,7 @@ export function planEnforcement<TAction extends string>(
 ): PlannedEnforcementAction<TAction>[] {
   const fromRecommendations = decision.recommendedActions.map(
     (recommended): PlannedEnforcementAction<TAction> => ({
-      action: config.recommendationToAction[recommended.action] ?? config.reviewAction,
+      action: actionForRecommendation(recommended.action, config),
       reason: `CrowdSource recommended ${recommended.action}`,
       recommendedAction: recommended.action,
     }),
@@ -170,7 +206,7 @@ export function planEnforcement<TAction extends string>(
       }
       return [
         {
-          action: config.severityFallback[severity] ?? config.reviewAction,
+          action: config.severityFallback?.[severity] ?? config.reviewAction,
           reason: `Violation with no recommended action, highest severity ${severity}`,
         },
       ];
@@ -183,12 +219,19 @@ export function planEnforcement<TAction extends string>(
        * checked and there was nothing to undo" is distinguishable from "we never
        * looked".
        */
-      return [
-        {
-          action: config.restoreAction ?? config.noneAction,
-          reason: 'No violation: undo any earlier restriction',
-        },
-      ];
+      return config.restoreAction === null
+        ? [
+            {
+              action: config.noneAction,
+              reason: 'No violation, and this application has nothing to restore',
+            },
+          ]
+        : [
+            {
+              action: config.restoreAction,
+              reason: 'No violation: undo any earlier restriction',
+            },
+          ];
 
     case 'insufficient_context':
     case 'inconclusive':

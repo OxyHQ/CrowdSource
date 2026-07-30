@@ -202,12 +202,23 @@ export function createEnforcementExecutor<TAction extends string>(input: {
 
     try {
       const reversal = await previousStateFor(planned.action, subject);
-      const effect = await config.apply({
+      /**
+       * An application with no sanction primitive supplies no `apply`, and every
+       * planned action is recorded with the reason rather than silently
+       * dropped. The plan, the claim and the audit row stay real, so "CrowdSource
+       * decided this and this application has no way to carry it out" is written
+       * down — which is the record that would justify building the primitive.
+       */
+      const effect = await (config.apply?.({
         action: planned.action,
         subject,
         ...(reversal ?? {}),
         decision,
-      });
+      }) ??
+        Promise.resolve({
+          changed: false as const,
+          reason: 'This application has no enforcement primitive for any action',
+        }));
 
       if (!effect.changed) {
         await model.updateOne(

@@ -99,6 +99,29 @@ const MUTATIONS = [
     test: 'src/__tests__/outboxTransactionCoupling.test.ts',
     expects: 'leaves an existing row completely untouched on a repeated enqueue',
   },
+  {
+    /**
+     * `enforcedAt` claiming an effect that never landed. The normal case in
+     * `observe` mode and the permanent case for an application with no sanction
+     * primitive, so a regression here writes a false audit trail on every
+     * decided report rather than on an edge case.
+     */
+    name: 'enforcedAt is stamped for an action that was only recorded',
+    file: 'src/decision.ts',
+    edits: [
+      {
+        find: `            at: outcomes.some(
+              (outcome) => outcome.action === enforcedAction && outcome.result === 'applied',
+            )
+              ? new Date()
+              : null,`,
+        replace: `            at: new Date(),`,
+      },
+    ],
+    absent: `outcome.result === 'applied'`,
+    test: 'src/__tests__/reviewOnlyApplication.test.ts',
+    expects: 'records the decision, and never claims an effect it did not have',
+  },
 ];
 
 const digest = (value) => createHash('sha256').update(value, 'utf8').digest('hex');

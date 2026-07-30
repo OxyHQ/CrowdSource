@@ -69,7 +69,7 @@ export function createDecisionWorker<
   const applyToReport = async (
     reportId: unknown,
     decision: Decision,
-    enforcedAction: TAction | undefined,
+    enforced: { action: TAction; at: Date | null } | undefined,
   ): Promise<boolean> => {
     const result = await input.reportModel.updateOne(
       {
@@ -88,9 +88,22 @@ export function createDecisionWorker<
           decisionOutcome: decision.outcome,
           decisionStatus: decision.status,
           decidedAt: new Date(decision.publishedAt),
-          ...(enforcedAction === undefined
+          /**
+           * `enforcedAction` is what the application DECIDED to do; `enforcedAt`
+           * is when an effect actually landed. They are written separately
+           * because they are different claims, and conflating them puts a
+           * timestamp on something that never happened — which is the normal
+           * case in `observe` mode, and the permanent case for an application
+           * with no sanction primitive. An audit row that says "enforced at
+           * 14:02" for an effect nobody carried out is not explainable, and
+           * every effect being explainable is the invariant.
+           */
+          ...(enforced === undefined
             ? {}
-            : { enforcedAction, enforcedAt: new Date() }),
+            : {
+                enforcedAction: enforced.action,
+                ...(enforced.at === null ? {} : { enforcedAt: enforced.at }),
+              }),
         },
       },
     );
@@ -156,12 +169,29 @@ export function createDecisionWorker<
 
     const enforcedAction = primaryAction(
       outcomes.map((outcome) => outcome.action),
-      input.enforcement.precedence,
+      input.enforcement.precedence ?? input.enforcement.actions,
     );
+    /**
+     * The timestamp belongs to the outcome of THIS action, not to the plan. An
+     * action that was claimed and recorded — observe mode, a mode that does not
+     * apply it, or an application with nothing to apply — leaves `enforcedAt`
+     * unset while `enforcedAction` still says what was decided.
+     */
+    const enforced =
+      enforcedAction === undefined
+        ? undefined
+        : {
+            action: enforcedAction,
+            at: outcomes.some(
+              (outcome) => outcome.action === enforcedAction && outcome.result === 'applied',
+            )
+              ? new Date()
+              : null,
+          };
 
     let updated = 0;
     for (const report of reports) {
-      if (await applyToReport(report._id, decision, enforcedAction)) updated += 1;
+      if (await applyToReport(report._id, decision, enforced)) updated += 1;
     }
 
     input.logger.info('[CrowdSource] decision applied', {
