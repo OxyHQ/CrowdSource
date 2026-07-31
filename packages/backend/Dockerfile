@@ -26,6 +26,13 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
   bun install --frozen-lockfile --ignore-scripts --omit=peer --omit=optional \
     --filter @oxyhq/crowdsource-contracts --filter @crowdsource/backend
 
+# The repo-root `scripts/` are build inputs, not just developer tooling:
+# `packages/contracts`'s build script runs `../../scripts/write-esm-marker.mjs`
+# to write the `{"type":"module"}` marker beside its ESM emit. Without the
+# directory here the build fails inside Docker with
+# `Module not found "../../scripts/write-esm-marker.mjs"` while every in-repo
+# command still passes, because only the build CONTEXT is missing it.
+COPY scripts/ scripts/
 COPY packages/contracts/ packages/contracts/
 COPY packages/backend/ packages/backend/
 
