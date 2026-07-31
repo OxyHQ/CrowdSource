@@ -21,6 +21,11 @@ COPY packages/sdk-express/package.json packages/sdk-express/
 COPY packages/testing/package.json packages/testing/
 RUN bun install --frozen-lockfile --ignore-scripts --lockfile-only
 
+FROM manifests AS prod-deps
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile --omit=dev --omit=peer --omit=optional --ignore-scripts \
+    --filter @oxyhq/crowdsource-contracts --filter @crowdsource/backend
+
 FROM manifests AS builder
 RUN --mount=type=cache,target=/root/.bun/install/cache \
   bun install --frozen-lockfile --ignore-scripts --omit=peer --omit=optional \
@@ -46,34 +51,18 @@ RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
 
 ENV NODE_ENV=production
 
-COPY --from=manifests /app/package.json /app/bun.lock /app/bunfig.toml ./
-COPY --from=manifests /app/packages/app/package.json packages/app/
-COPY --from=manifests /app/packages/contracts/package.json packages/contracts/
-COPY --from=manifests /app/packages/backend/package.json packages/backend/
-COPY --from=manifests /app/packages/reviewer/package.json packages/reviewer/
-COPY --from=manifests /app/packages/console/package.json packages/console/
-COPY --from=manifests /app/packages/sdk/package.json packages/sdk/
-COPY --from=manifests /app/packages/sdk-express/package.json packages/sdk-express/
-COPY --from=manifests /app/packages/testing/package.json packages/testing/
-
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-  bun install --frozen-lockfile --omit=dev --omit=peer --omit=optional --ignore-scripts \
-    --filter @oxyhq/crowdsource-contracts --filter @crowdsource/backend
-# Only the two runtime workspaces may exist in the final image; every other
-# manifest above exists solely so the workspace lockfile resolves.
-#
-# Expressed as "keep these two" rather than "delete those five" on purpose. The
-# delete-list is the complement of `EXPECTED_WORKSPACE_PACKAGES` in
-# `audit-runtime-image.mjs`, so an enumeration has to be updated in two files
-# whenever a package is added — and the failure is a broken deploy discovered
-# after merge. `packages/app` was added to the COPY lines and not here, and the
-# audit caught it exactly that way.
-RUN for dir in packages/*/; do \
-      case "$dir" in \
-        packages/backend/|packages/contracts/) ;; \
-        *) rm -rf "$dir" ;; \
-      esac; \
-    done
+# The production dependencies are INSTALLED in `prod-deps` and COPIED here, so
+# the runtime stage needs no lockfile, no install and no workspace manifests
+# beyond the two it actually runs. It used to copy all eight manifests — because
+# a frozen install needs the whole workspace set — and then delete the six it
+# did not want. Copying files in order to delete them meant two enumerations
+# that had to agree with each other and with `EXPECTED_WORKSPACE_PACKAGES` in
+# `audit-runtime-image.mjs`, and each one broke a deploy when a package was
+# added. There is nothing to keep in step now.
+COPY --from=prod-deps /app/node_modules/ node_modules/
+COPY --from=prod-deps /app/package.json ./
+COPY --from=prod-deps /app/packages/contracts/package.json packages/contracts/
+COPY --from=prod-deps /app/packages/backend/package.json packages/backend/
 
 COPY --from=builder /app/packages/contracts/dist/ packages/contracts/dist/
 COPY --from=builder /app/packages/backend/dist/ packages/backend/dist/
