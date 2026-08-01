@@ -82,7 +82,7 @@ jobs:
           # identifier, not a credential — it is baked into a static bundle and
           # is meaningless without the account holder completing sign-in — so it
           # belongs here rather than in a secret.
-          EXPO_PUBLIC_OXY_CLIENT_ID: oxy_dk_2a44549e571029e1c1de32a2e9b6e08cf45393fce5e96133
+          EXPO_PUBLIC_OXY_CLIENT_ID: ${{ vars.EXPO_PUBLIC_OXY_CLIENT_ID }}
 
       - name: Validate static hosting contract
         run: bun .github/scripts/validate-frontend-static-output.mjs packages/reviewer/dist
@@ -262,7 +262,7 @@ jobs:
           # client id. The redirect surface differs per origin, so this host has to be
           # registered as an additional redirect URI on that application before
           # interactive sign-in works here.
-          EXPO_PUBLIC_OXY_CLIENT_ID: oxy_dk_2a44549e571029e1c1de32a2e9b6e08cf45393fce5e96133
+          EXPO_PUBLIC_OXY_CLIENT_ID: ${{ vars.EXPO_PUBLIC_OXY_CLIENT_ID }}
           EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://console.crowdsource.oxy.so
           EXPO_PUBLIC_WEB_BASE_URL: https://console.crowdsource.oxy.so
 
