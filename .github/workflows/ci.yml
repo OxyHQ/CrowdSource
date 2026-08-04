@@ -52,6 +52,7 @@ jobs:
           bun .github/scripts/test-runtime-image-audit.mjs
           bun .github/scripts/test-assert-test-floor.mjs
           bun scripts/test-check-lockfile-sync.mjs
+          bun scripts/test-check-injection-sinks.mjs
 
   lockfile:
     name: Lockfile sync

@@ -817,21 +817,26 @@ watermark value, so nothing populates it today.
 
 ## Checks worth adding
 
-The last two below were named here first and are now **written in the uncommitted
-`phase9/console` worktree** (along with a cross-tenant-read scan,
-`crossTenantReads.test.ts`), so they are struck through. The first two are the ones
-nobody has taken.
+Struck-through entries below are written. Only the contract test between the
+assignment package and the reviewer projection is still unclaimed.
 
-- **A no-injection-sink scan.** A test that fails when any package introduces
-  `dangerouslySetInnerHTML`, `innerHTML`/`outerHTML`, a `WebView` component,
-  `eval(` or `new Function(` — mutation-tested, with a vacuity floor on scanned
-  file count. This is the only thing that would notice §3's fourth control being
-  lost, and the pattern already exists in-repo (`collectionBoundary.test.ts`,
-  `decisionImmutability.test.ts`, `weightSeparation.test.ts`). Two false positives
-  are known in advance and must be handled before it becomes a gate, or whoever
-  trips over them will disable it: `WebViewStyle` in
-  `packages/reviewer/types/webStyles.ts` (a word-boundary on `WebView` is enough)
-  and `evaluateConsensus`/`evaluate…` identifiers in the consensus module.
+- ~~**A no-injection-sink scan.**~~ **Written**, as `scripts/check-injection-sinks.mjs`
+  — the `check:injection-sinks` script, inside `bun run check`, with
+  `scripts/test-check-injection-sinks.mjs` mutation-testing it in CI's "Verify
+  release and CI safeguards" step. It fails when any package introduces
+  `dangerouslySetInnerHTML`, `innerHTML`/`outerHTML`/`insertAdjacentHTML`,
+  `document.write`, a `WebView` component, `eval(`, `new Function(` or a
+  string-bodied `setTimeout`. This is the only thing that would notice §3's fourth
+  control being lost. Two vacuity floors, not one: a scanned-file count
+  (`--min-files=200`) and a per-package floor, because a walk that reached only
+  `packages/contracts` would clear a file count set low enough to survive ordinary
+  churn. The two known false positives are excluded BY CONSTRUCTION rather than by
+  an allowlist entry, and both are pinned as mutation cases — `WebViewStyle` in
+  `packages/reviewer/types/webStyles.ts` (the word boundary in `\bWebView\b`
+  separates them) and `evaluateConsensus` in the consensus module (`\beval\s*\(`
+  requires the call). The allowlist is empty on purpose: the first entry is a
+  visible edit, and it is for real sinks that are genuinely safe, which neither of
+  those is.
 - **A contract test between the backend's assignment package and the reviewer
   app's projection.** One fixture produced by `reviewPackage` fed to
   `projectAssignmentPackage`. It would have caught gap 13 the day it appeared, and
