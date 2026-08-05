@@ -1,6 +1,6 @@
 # CrowdSource
 
-> Parent files (`~/AGENTS.md`, `~/Oxy/AGENTS.md`) hold universal standards, the agent team, shared-SDK rules, SDK version targets, Bloom/Expo/expo-router gotchas, and the infra pointer. This file holds ONLY CrowdSource-specific content.
+> Org-wide engineering standards (TypeScript, React, naming, error handling, security, testing, git, bun) live at <https://github.com/OxyHQ/engineering/blob/main/AGENTS.md> and are not repeated here. Parent files (`~/AGENTS.md`, `~/Oxy/AGENTS.md`) hold the agent team, shared-SDK rules, the Bloom/Expo/expo-router gotchas, and the infra pointer. This file holds ONLY CrowdSource-specific content.
 
 CrowdSource is multi-tenant **participatory moderation infrastructure**: applications send universal reports, randomly drawn juries review them blind, a consensus engine publishes versioned decisions, and webhooks return those decisions to the application. It is a product of its own, not a feature of any app that uses it.
 
@@ -38,7 +38,7 @@ packages/
 docs/{architecture,api,policies,runbooks}
 ```
 
-Current state: contracts, sdk, sdk-express, testing and app are written; the reviewer app is the foundation without review surfaces; the console covers the developer surface and the Trust & Safety trust/delivery surfaces. Each package README says what it holds.
+Each package README says what it holds. **Do NOT record per-package build status in this file.** The sentence that used to sit here said the reviewer app was "the foundation without review surfaces" long after `packages/reviewer/app/(app)/review.tsx`, `recuse.tsx`, `history.tsx`, `training.tsx`, `reliability.tsx` and `wellbeing.tsx` had all shipped, so it read as an instruction not to go looking. Read the tree.
 
 **Rebuild `contracts` before believing a red typecheck.** `@oxyhq/crowdsource-contracts` is consumed through its BUILT `dist` — backend, sdk, sdk-express, testing and app all import the published shape, never `src`. After any rebase or checkout that pulls in a contracts change, every other package still compiles against the previous build and reports the newly-landed symbols as missing (`TS2305`) in files nobody touched. It reads exactly like someone else's broken commit. `cd packages/contracts && bun run build` first; only an error that survives that is real.
 
