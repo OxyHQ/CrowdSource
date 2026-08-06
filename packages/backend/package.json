@@ -16,7 +16,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@oxyhq/core": "^12.11.0",
+    "@oxyhq/core": "^20.0.0",
     "@oxyhq/crowdsource-contracts": "workspace:*",
     "compression": "^1.8.1",
     "express": "^5.2.1",
