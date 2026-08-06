@@ -107,7 +107,7 @@ function RightBarFooter() {
             <Text className="text-muted-foreground text-[12.5px] pt-0.5">Made with ❤️ in the 🌎 by Oxy&trade;.</Text>
             {/* (TM) and never (R): neither mark is registered yet, and using (R)
                 before a registration issues is unlawful in several jurisdictions. */}
-            <Text className="text-muted-foreground text-[12.5px] pt-0.5">CrowdSource&trade; is a trademark of The Oxy Collective Inc.</Text>
+            <Text className="text-muted-foreground text-[12.5px] pt-0.5">CrowdSource&trade; is a trademark of The Oxy Collective, Inc.</Text>
         </View>
     );
 }
