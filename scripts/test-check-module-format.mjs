@@ -19,9 +19,18 @@ const PACKAGES = ["contracts", "sdk", "sdk-express", "testing", "app"];
 const ESM = "import { z } from 'zod';\nexport const schema = z.string();\n";
 const CJS = '"use strict";\nconst zod = require("zod");\nexports.schema = zod.z.string();\n';
 
-/** A tree that must pass: both formats, each condition on the right one. */
+/**
+ * A tree that must pass: both formats, each condition on the right one.
+ *
+ * `app` publishes two SUBPATHS as well, because the real one does — one per
+ * storage backend. Their ESM entries sit a directory deeper than the
+ * `{"type":"module"}` marker, which is correct and is what Node resolves by
+ * walking upward, so a healthy tree with only root entries would leave that path
+ * unexercised. The count also has to match the per-package floor: a fixture with
+ * fewer entries than the real manifest fails the tree it exists to accept.
+ */
 function healthyTree() {
-  return Object.fromEntries(
+  const tree = Object.fromEntries(
     PACKAGES.map((name) => [
       name,
       {
@@ -45,6 +54,17 @@ function healthyTree() {
       },
     ]),
   );
+  for (const backend of ["mongoose", "postgres"]) {
+    tree.app.manifest.exports[`./${backend}`] = {
+      types: `./dist/${backend}/index.d.ts`,
+      import: `./dist/esm/${backend}/index.js`,
+      require: `./dist/${backend}/index.js`,
+      default: `./dist/${backend}/index.js`,
+    };
+    tree.app.files[`dist/${backend}/index.js`] = CJS;
+    tree.app.files[`dist/esm/${backend}/index.js`] = ESM;
+  }
+  return tree;
 }
 
 const cases = [
@@ -112,6 +132,55 @@ const cases = [
     mustMention: "export entr",
     mutate: (tree) => {
       for (const name of PACKAGES) delete tree[name].manifest.exports;
+      return tree;
+    },
+  },
+  {
+    /**
+     * The marker is written ONCE, at the ESM root, and governs everything
+     * beneath it — so a subpath entry needs none of its own. Looking only beside
+     * the entry reported a false failure claiming the whole ESM half was inert,
+     * for a package that was perfectly fine. Two levels deep, because a walk
+     * that stopped after one would pass the shallower case by accident.
+     */
+    name: "an ESM entry nested below the marker is governed by it",
+    expectFailure: false,
+    mutate: (tree) => {
+      tree.app.manifest.exports["./mongoose/store"] = {
+        import: "./dist/esm/mongoose/store/index.js",
+        require: "./dist/mongoose/store/index.js",
+      };
+      tree.app.files["dist/esm/mongoose/store/index.js"] = ESM;
+      tree.app.files["dist/mongoose/store/index.js"] = CJS;
+      return tree;
+    },
+  },
+  {
+    /**
+     * The other direction, and the reason the walk stops BELOW the package root:
+     * the root manifest is the `"type": "commonjs"` that makes the ESM half
+     * inert, so finding it must read as "no marker" rather than as an answer.
+     */
+    name: "an ESM entry with no marker anywhere is still caught",
+    expectFailure: true,
+    mustMention: "package.json beside its ESM entry",
+    mutate: (tree) => {
+      delete tree.app.files["dist/esm/package.json"];
+      return tree;
+    },
+  },
+  {
+    /**
+     * The floor that used to be a scalar. `entriesChecked < PUBLISHED.length`
+     * counted in aggregate, so a package that LOST a subpath still cleared it on
+     * a sibling's second entry — the manifest silently stops resolving that
+     * import and nothing says so.
+     */
+    name: "a package that loses a declared subpath is caught by name",
+    expectFailure: true,
+    mustMention: "packages/app",
+    mutate: (tree) => {
+      delete tree.app.manifest.exports["./mongoose"];
       return tree;
     },
   },

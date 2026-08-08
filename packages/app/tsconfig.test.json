@@ -17,6 +17,10 @@
     "types": ["node"],
     "rootDir": "."
   },
-  "include": ["src/**/*", "vitest.config.ts"],
+  // `drizzle.config.ts` is here because it was type-checked by NOTHING: a doc
+  // comment in it once closed itself early (a recursive glob's separator is the
+  // comment terminator) and the only thing that noticed was drizzle-kit, at the
+  // point of use, with an error naming a path rather than a comment.
+  "include": ["src/**/*", "vitest.config.ts", "drizzle.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

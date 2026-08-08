@@ -117,9 +117,31 @@ jobs:
           # mutation script is what proves the two invariant tests can fail at all,
           # so a job that skipped it would gate nothing that matters.
           - package: app
-            command: bun run --cwd packages/app test:unit -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/app-tests.json" && bun run --cwd packages/app test:invariants
+            # `test:table-type` is listed explicitly rather than reached through the
+            # package's own `test` script, because this command replaces it: a gate
+            # chained into a script CI does not call is a gate that never runs, and
+            # an absent check is indistinguishable from a passing one.
+            command: bun run --cwd packages/app test:unit -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/app-tests.json" && bun run --cwd packages/app test:invariants && bun run --cwd packages/app test:table-type
             build: bun run build:contracts && bun run --cwd packages/sdk build && bun run --cwd packages/sdk-express build && bun run --cwd packages/testing build
-            minimum_tests: 48
+            # 140, and the number is doing two jobs. Sized to catch a COLLAPSE
+            # rather than a deletion, like its siblings — but the suite now runs
+            # 161 tests as `describe.each` over two backends, 122 of them per
+            # backend, so a floor above 122 ALSO catches the failure that is
+            # invisible from the outside: one backend silently dropping out and
+            # the run still reporting green. A floor of 85 would not.
+            minimum_tests: 140
+            # The schema and store tests run against a REAL Postgres: a fake
+            # cannot answer a `pg_index` query, and the questions that matter here
+            # (is the swept column indexed, does the composite primary key exist,
+            # does SKIP LOCKED skip) are catalogue and concurrency questions.
+            #
+            # Started from the SAME compose file a developer uses, deliberately,
+            # rather than from a `services:` block. A `services:` block is
+            # job-level and cannot be conditional on a matrix value, so it would
+            # start a container for all nine entries including the two frontends —
+            # and it would restate the image pin, giving CI and a developer two
+            # places to disagree about the version under test.
+            postgres: true
           # The console has no coverage threshold of its own yet, so it runs the plain
           # suite: a `coverage: true` entry whose package publishes no summary would fail
           # the upload step below with `if-no-files-found: error`, which is a CI failure
@@ -145,7 +167,18 @@ jobs:
       # import; only a clean checkout shows it.
       - name: Build the workspace dependencies this suite resolves
         run: ${{ matrix.build || 'bun run build:contracts' }}
+      # `--wait` rather than a sleep: the compose file carries a `pg_isready`
+      # healthcheck, and a suite that starts before the server is accepting
+      # connections fails as a connection error rather than as a schema problem.
+      - name: Start PostgreSQL
+        if: matrix.postgres
+        run: docker compose -f docker-compose.postgres.yml up -d --wait postgres
       - name: Run complete package test suite
+        # The suite REFUSES to run without this (vitest.globalSetup.ts throws), so
+        # a job that forgot it fails loudly instead of silently skipping the
+        # schema tests — which is the whole reason the setup throws.
+        env:
+          CROWDSOURCE_APP_TEST_POSTGRES_URL: ${{ matrix.postgres && 'postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres' || '' }}
         run: ${{ matrix.command }}
       # A suite that runs nothing exits 0. This states the count the runner
       # actually reached and refuses one below the floor, so a job cannot report

@@ -1,7 +1,9 @@
-import type { Model } from 'mongoose';
 import type { Decision } from '@oxyhq/crowdsource-contracts';
-import type { ModerationEnforcementDocument } from '../models/index.js';
 import { planEnforcement } from './planner.js';
+import type {
+  ModerationEnforcementKey,
+  ModerationEnforcementStore,
+} from '../store/types.js';
 import type {
   EnforcementEffect,
   EnforcementOutcome,
@@ -40,15 +42,6 @@ import type {
  * package's and is not configurable, because it is the invariant rather than the
  * policy.
  */
-
-function isDuplicateKeyError(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    Number((error as { code?: unknown }).code) === 11000
-  );
-}
 
 /**
  * Whether the current mode allows this action to actually happen.
@@ -91,13 +84,13 @@ export interface EnforcementExecutor<TAction extends string> {
 }
 
 export function createEnforcementExecutor<TAction extends string>(input: {
-  model: Model<ModerationEnforcementDocument>;
+  enforcement: ModerationEnforcementStore;
   config: ModerationEnforcementConfig<TAction>;
   defaultMode: ModerationEnforcementMode;
   logger: ModerationLogger;
   metrics?: ModerationMetrics;
 }): EnforcementExecutor<TAction> {
-  const { model, config, logger } = input;
+  const { enforcement, config, logger } = input;
 
   const count = (
     action: TAction,
@@ -136,16 +129,11 @@ export function createEnforcementExecutor<TAction extends string>(input: {
     const candidates: readonly TAction[] =
       typeof reversed === 'string' ? [reversed] : reversed;
     if (candidates.length === 0) return undefined;
-    const row = await model
-      .findOne({
-        subjectType: subject.type,
-        subjectId: subject.id,
-        action: { $in: [...candidates] },
-        applied: true,
-      })
-      .sort({ createdAt: -1 })
-      .select('previousState action')
-      .lean<Pick<ModerationEnforcementDocument, 'previousState' | 'action'> | null>();
+    const row = await enforcement.latestApplied({
+      subjectType: subject.type,
+      subjectId: subject.id,
+      actions: candidates,
+    });
     if (row === null) return undefined;
     /**
      * The row's own action, narrowed THROUGH the declared set rather than cast.
@@ -168,50 +156,43 @@ export function createEnforcementExecutor<TAction extends string>(input: {
     const { decision, caseId, subject } = context;
 
     /**
-     * The claim. The unique index refuses a second row for this
-     * `decisionId + revision + action`, so losing this insert is the answer
-     * "another delivery already handled it" and not an error.
+     * The claim, and the ONLY way this row is ever addressed afterwards: the
+     * idempotency key itself, never a record id the insert happened to return.
+     * `false` means another delivery of this same decision revision already
+     * holds it, which is an answer rather than an error — a read of "have I done
+     * this?" before writing would leave the gap a redelivery arrives in.
      */
-    let recordId: unknown;
-    try {
-      const [record] = await model.create([
-        {
-          decisionId: decision.id,
-          decisionRevision: decision.revision,
-          action: planned.action,
-          caseId,
-          subjectType: subject.type,
-          subjectId: subject.id,
-          outcome: decision.outcome,
-          ...(planned.recommendedAction === undefined
-            ? {}
-            : { recommendedAction: planned.recommendedAction }),
-          reason: planned.reason.slice(0, 500),
-          mode,
-          applied: false,
-        },
-      ]);
-      recordId = record._id;
-    } catch (error: unknown) {
-      if (isDuplicateKeyError(error)) {
-        count(planned.action, mode, 'duplicate');
-        return { action: planned.action, result: 'duplicate' };
-      }
-      throw error;
+    const key: ModerationEnforcementKey = {
+      decisionId: decision.id,
+      decisionRevision: decision.revision,
+      action: planned.action,
+    };
+    const claimed = await enforcement.claim({
+      ...key,
+      caseId,
+      subjectType: subject.type,
+      subjectId: subject.id,
+      outcome: decision.outcome,
+      ...(planned.recommendedAction === undefined
+        ? {}
+        : { recommendedAction: planned.recommendedAction }),
+      reason: planned.reason.slice(0, 500),
+      mode,
+      now: new Date(),
+    });
+    if (!claimed) {
+      count(planned.action, mode, 'duplicate');
+      return { action: planned.action, result: 'duplicate' };
     }
 
     if (!modeAllows(mode, planned.action, config)) {
-      await model.updateOne(
-        { _id: recordId },
-        {
-          $set: {
-            skippedReason:
-              mode === 'observe'
-                ? 'observe mode: recorded, not applied'
-                : `${mode} mode does not apply '${planned.action}' automatically`,
-          },
-        },
-      );
+      await enforcement.markSkipped(key, {
+        skippedReason:
+          mode === 'observe'
+            ? 'observe mode: recorded, not applied'
+            : `${mode} mode does not apply '${planned.action}' automatically`,
+        now: new Date(),
+      });
       count(planned.action, mode, 'recorded');
       return { action: planned.action, result: 'recorded' };
     }
@@ -243,17 +224,11 @@ export function createEnforcementExecutor<TAction extends string>(input: {
          * was decided; the effective label rides alongside it and is what
          * reaches the report.
          */
-        await model.updateOne(
-          { _id: recordId },
-          {
-            $set: {
-              skippedReason: effect.reason.slice(0, 300),
-              ...(effect.recordedAs === undefined
-                ? {}
-                : { recordedAs: effect.recordedAs }),
-            },
-          },
-        );
+        await enforcement.markSkipped(key, {
+          skippedReason: effect.reason.slice(0, 300),
+          ...(effect.recordedAs === undefined ? {} : { recordedAs: effect.recordedAs }),
+          now: new Date(),
+        });
         count(planned.action, mode, 'recorded');
         return {
           action: planned.action,
@@ -262,18 +237,14 @@ export function createEnforcementExecutor<TAction extends string>(input: {
         };
       }
 
-      await model.updateOne(
-        { _id: recordId },
-        {
-          $set: {
-            applied: true,
-            appliedAt: new Date(),
-            ...(effect.previousState === undefined
-              ? {}
-              : { previousState: effect.previousState }),
-          },
-        },
-      );
+      const appliedAt = new Date();
+      await enforcement.markApplied(key, {
+        appliedAt,
+        ...(effect.previousState === undefined
+          ? {}
+          : { previousState: effect.previousState }),
+        now: appliedAt,
+      });
       count(planned.action, mode, 'applied');
       return { action: planned.action, result: 'applied' };
     } catch (error: unknown) {
@@ -282,7 +253,7 @@ export function createEnforcementExecutor<TAction extends string>(input: {
        * transient failure permanent: the action would be deduplicated away
        * forever and the decision would silently never be carried out.
        */
-      await model.deleteOne({ _id: recordId });
+      await enforcement.releaseClaim(key);
       logger.error('[CrowdSource] enforcement effect failed, claim released', {
         decisionId: decision.id,
         revision: decision.revision,

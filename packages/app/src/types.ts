@@ -11,8 +11,8 @@
  *    allegation codes".
  * 3. {@link ModerationEnforcementConfig} — "what I can do about a decision, and
  *    how to do and undo it".
- * 4. The application's own report model, its Mongoose connection, and its
- *    configuration.
+ * 4. {@link ModerationStore} — where its reports and this package's own rows are
+ *    kept, built by the backend factory it chose and passed in whole.
  *
  * Everything else — the outbox, the transaction coupling, delivery, the webhook
  * receiver, deduplication, decision application, enforcement idempotency and
@@ -20,7 +20,6 @@
  * imported, not written.
  */
 
-import type { Connection, Model } from 'mongoose';
 import type { ContextInput, ReportSubjectInput, ResourceInput } from '@oxyhq/crowdsource';
 import type {
   Decision,
@@ -28,6 +27,7 @@ import type {
   Severity,
   TaxonomyCode,
 } from '@oxyhq/crowdsource-contracts';
+import type { ModerationStore } from './store/types.js';
 
 /* ------------------------------------------------------------------------- */
 /* Subjects — the application's nouns, as universal material                  */
@@ -466,6 +466,18 @@ export type ModerationLocalStatus =
  * re-derived seven times.
  */
 export interface ModerationReportFields {
+  /**
+   * The report's own id, as a string.
+   *
+   * Declared here rather than left to whatever the backend calls its primary
+   * key, because the core needs it in exactly one shape and in several places:
+   * the delivery event's payload carries it, the deterministic event id is
+   * derived from it, and reconciliation re-derives that id from the report. A
+   * `String(document._id)` at each of those call sites is how two backends end
+   * up disagreeing about what a report id looks like.
+   */
+  id: string;
+
   reportedType: string;
   reportedId: string;
   /** The reporting Oxy user id. The Oxy subject IS the binding proof. */
@@ -562,26 +574,29 @@ export interface CrowdSourceConnectionConfig {
  *
  * `TReport` is the application's own report document type and must structurally
  * satisfy {@link ModerationReportFields}; `TAction` is the union of its
- * enforcement actions.
+ * enforcement actions; `TTx` is whatever its backend calls a transaction, and is
+ * inferred from `store` rather than written by anyone.
  */
 export interface ModerationIntegrationConfig<
   TReport extends ModerationReportFields,
   TAction extends string,
+  TTx,
 > {
   /**
-   * The application's Mongoose connection.
+   * Where everything this package writes goes.
    *
-   * Passed rather than taken from `mongoose.connection` so the models this
-   * package registers cannot land on a different connection than the
-   * application's own, and so two integrations can exist in one test process.
-   * Transactions require a replica set; a standalone will fail on the first
-   * intake rather than at boot, so assert the topology yourself.
+   * Built by the factory of the backend this application chose —
+   * `mongooseModerationStore` from `@oxyhq/crowdsource-app/mongoose` — and
+   * passed in whole rather than assembled here, which is what makes storage one
+   * decision instead of one per collection. A store built over two connections
+   * would type-check and quietly put a report and its outbox row in different
+   * transactions.
+   *
+   * On Mongo, transactions require a replica set: a standalone fails on the
+   * first intake rather than at boot, so assert the topology yourself.
    */
-  readonly connection: Connection;
+  readonly store: ModerationStore<TReport, TTx>;
   readonly crowdSource: CrowdSourceConnectionConfig;
-
-  /** The application's report model, built from `moderationReportSchemaFields`. */
-  readonly reportModel: Model<TReport>;
 
   /**
    * Every noun this application can send for review.
@@ -601,14 +616,6 @@ export interface ModerationIntegrationConfig<
 
   /** See {@link ReportDecisionExtraFields}. Omit unless you have a legacy field. */
   readonly reportDecisionExtraFields?: (decision: Decision) => ReportDecisionExtraFields;
-
-  /**
-   * Prefix for the model names registered on the connection.
-   *
-   * Only needed if the application already has a model called
-   * `ModerationOutbox`, `ModerationEvent` or `ModerationEnforcement`.
-   */
-  readonly modelPrefix?: string;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -642,7 +649,15 @@ export interface ModerationOutboxPayload {
 }
 
 export interface ModerationOutboxEvent {
-  _id: string;
+  /**
+   * The deterministic event id — `moderation:report.submit:<reportId>` or
+   * `moderation:decision.apply:<eventId>`.
+   *
+   * It IS the primary key on both backends, which is what makes a repeated
+   * enqueue a no-op rather than a second delivery. Handlers key their downstream
+   * effects on it, because the contract is at-least-once.
+   */
+  id: string;
   kind: ModerationOutboxKind;
   payload: ModerationOutboxPayload;
   attempts: number;

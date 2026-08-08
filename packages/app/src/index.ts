@@ -10,18 +10,32 @@
  * reversibly. None of that has anything to do with what the application's
  * objects are.
  *
- * So all of it is here, and an application supplies four things:
+ * So all of it is here, and an application supplies four things: its subjects,
+ * its category mapping, its enforcement tables, and a STORE built by the
+ * factory of whichever backend it keeps its reports in.
  *
  * ```ts
- * const moderation = createModerationIntegration({
+ * import { createModerationIntegration } from '@oxyhq/crowdsource-app';
+ * import { mongooseModerationStore } from '@oxyhq/crowdsource-app/mongoose';
+ *
+ * const store = mongooseModerationStore({
  *   connection,
- *   crowdSource: { enabled: true, serviceKey, webhookSecret, enforcementMode: 'observe' },
  *   reportModel,
+ *   enforcementActions: commerceEnforcement.actions,
+ * });
+ *
+ * const moderation = createModerationIntegration({
+ *   store,
+ *   crowdSource: { enabled: true, serviceKey, webhookSecret, enforcementMode: 'observe' },
  *   subjects: [listingSubjectProvider(), reviewSubjectProvider()],
  *   taxonomy: { version: '2026.07', allegationsFor },
  *   enforcement: commerceEnforcement,
  *   logger,
  * });
+ *
+ * // Indexes before the first write: the unique ones ARE the exactly-once
+ * // mechanism, and an index that does not exist yet refuses nothing.
+ * await store.ensureSchema();
  *
  * // BEFORE express.json() — the signature covers the bytes that arrived.
  * app.use('/webhooks', moderation.webhookRouter());
@@ -35,7 +49,8 @@
  *
  * 1. Nothing can be enqueued that is not already recorded in the outbox, in the
  *    same transaction. {@link ModerationOutboxTransactionError} is thrown by the
- *    only writer of that collection when its session is not in a transaction.
+ *    only writer of that collection when the transaction it was handed is not
+ *    open.
  * 2. The webhook receiver reads raw bytes. Mounted after a JSON parser it
  *    refuses rather than verifying a signature over a re-serialisation.
  *
@@ -47,27 +62,14 @@
 export { createModerationIntegration } from './integration.js';
 export type { ModerationIntegration } from './integration.js';
 
+/**
+ * The retention windows are policy both backends share, so they stay here while
+ * everything Mongoose-shaped lives behind `@oxyhq/crowdsource-app/mongoose`.
+ */
 export {
-  moderationReportSchemaFields,
-  applyModerationReportIndexes,
-  MODERATION_LOCAL_STATUSES,
-} from './models/report.js';
-export type { ModerationReportSchemaOptions } from './models/report.js';
-
-export {
-  MODERATION_ENFORCEMENT_COLLECTION,
-  MODERATION_EVENT_COLLECTION,
   MODERATION_EVENT_RETENTION_SECONDS,
-  MODERATION_OUTBOX_COLLECTION,
   MODERATION_OUTBOX_RETENTION_SECONDS,
-} from './models/index.js';
-export type {
-  ModerationEnforcementDocument,
-  ModerationEventDocument,
-  ModerationEventState,
-  ModerationModels,
-  ModerationOutboxDocument,
-} from './models/index.js';
+} from './retention.js';
 
 export {
   ModerationOutboxTransactionError,
@@ -78,8 +80,23 @@ export {
 export type {
   ModerationOutboxFailure,
   ModerationOutboxHandler,
+  OutboxDrain,
   OutboxService,
 } from './outbox/service.js';
+
+export type {
+  ModerationEnforcementInsert,
+  ModerationEnforcementKey,
+  ModerationEnforcementStore,
+  ModerationEventStore,
+  ModerationOutboxStore,
+  ModerationReportDecisionUpdate,
+  ModerationReportInsert,
+  ModerationReportRef,
+  ModerationReportStore,
+  ModerationStore,
+  ModerationTransactionRunner,
+} from './store/types.js';
 
 export { ModerationOutboxDispatcher } from './outbox/dispatcher.js';
 export { ModerationReconciliationJob } from './reconciliation.js';

@@ -18,14 +18,31 @@
  * as the consumer's mistake.
  */
 
+import mongoose, { Schema } from 'mongoose';
+import postgres from 'postgres';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+import { DATABASE_CASING } from '@oxyhq/db';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import { describe, expect, it } from 'vitest';
 import {
   ModerationRestoreDirectionError,
   assertRestoreDirection,
   planEnforcement,
 } from '../enforcement/planner.js';
+import { createModerationIntegration } from '../integration.js';
+import { moderationReportSchemaFields } from '../mongoose/report.js';
+import { mongooseModerationStore } from '../mongoose/store/index.js';
+import {
+  moderationReportColumns,
+  moderationReportTableExtras,
+} from '../postgres/reportColumns.js';
+import { postgresModerationStore } from '../postgres/store/index.js';
+import { moderationTables } from '../postgres/tables.js';
 import { decision } from './support/decisions.js';
-import type { ModerationEnforcementConfig } from '../types.js';
+import type {
+  ModerationEnforcementConfig,
+  ModerationReportFields,
+} from '../types.js';
 
 type CommerceAction = 'delist' | 'relist' | 'flag' | 'unflag' | 'review' | 'none';
 
@@ -154,5 +171,124 @@ describe('an inverted restoreAction is refused at construction', () => {
     expect(() =>
       assertRestoreDirection({ ...commerce, reverses: {}, restoreAction: ['relist'] }),
     ).not.toThrow();
+  });
+});
+
+/**
+ * The wiring example in `src/index.ts` and `README.md`, as code the compiler
+ * reads.
+ *
+ * A documented example is the one piece of a package nothing executes, so it
+ * survives a signature change indefinitely — and this one changed twice in a
+ * week. Written here, the example is compiled by `bun run lint` and constructed
+ * by the run below, so a config field that moves breaks a build rather than an
+ * adopter's afternoon.
+ *
+ * The three type parameters are the point of the assertion: `createModerationIntegration`
+ * is called with NONE of them written down. `TReport` and `TTx` come from the
+ * store, `TAction` from the enforcement table, and TypeScript has no partial
+ * explicit type arguments — so a caller who has to name one has to name all
+ * three, including a transaction type they should never have to think about.
+ */
+type CommerceReport = ModerationReportFields;
+
+describe('the documented wiring', () => {
+  it('compiles and constructs with no type arguments and no annotations', async () => {
+    // Never connected: this constructs the integration and does no I/O, which is
+    // the whole surface being asserted.
+    const connection = mongoose.createConnection();
+    const reportModel = connection.model<CommerceReport>(
+      'DocumentedReport',
+      new Schema<CommerceReport>({ ...moderationReportSchemaFields() }, { timestamps: true }),
+    );
+
+    const store = mongooseModerationStore({
+      connection,
+      reportModel,
+      enforcementActions: commerce.actions,
+    });
+
+    const moderation = createModerationIntegration({
+      store,
+      crowdSource: { enabled: true, enforcementMode: 'observe' },
+      subjects: [],
+      taxonomy: { version: '2026.07', allegationsFor: () => ['other.unclassifiable'] },
+      enforcement: commerce,
+      logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
+    });
+
+    expect(typeof moderation.createReport).toBe('function');
+    expect(moderation.deliverableTypes()).toEqual([]);
+    // `ensureSchema()` is the one call in the example that needs a server, so it
+    // is documented rather than run here.
+    expect(typeof store.ensureSchema).toBe('function');
+
+    await connection.close();
+  });
+});
+
+describe('the documented Postgres wiring', () => {
+  it('compiles and constructs with no type arguments and no annotations', async () => {
+    /**
+     * The README's PostgreSQL example, as code the compiler reads — the same
+     * argument as the Mongo case above, and the reason it exists is a defect that
+     * example already produced once: it called `moderation.store.ensureSchema()`
+     * against an integration that deliberately exposes no store, and only being
+     * executable caught it.
+     *
+     * What this gates is SIGNATURE drift, which is how a documented example
+     * actually decays: a renamed option, a moved argument, a factory that grew a
+     * parameter. It does not diff the README's characters.
+     *
+     * No connection is opened. postgres.js connects lazily, `pgTable` and the
+     * store factories do no I/O, and `ensureSchema()` — the one call that needs a
+     * server — is documented rather than run here.
+     */
+    const REPORT_MODERATION = {
+      reportedTypes: ['listing', 'review'],
+      categories: ['spam', 'harassment'],
+    };
+
+    const reports = pgTable(
+      'reports',
+      {
+        ...moderationReportColumns(REPORT_MODERATION),
+        legacyStatus: text('legacy_status'),
+      },
+      moderationReportTableExtras(REPORT_MODERATION),
+    );
+
+    const moderationTablesForAdopter = moderationTables({
+      enforcementActions: commerce.actions,
+    });
+
+    const client = postgres('postgres://unused:unused@127.0.0.1:1/unused', { max: 1 });
+    try {
+      const db = drizzle(client, {
+        casing: DATABASE_CASING,
+        schema: { reports, ...moderationTablesForAdopter },
+      });
+
+      const store = postgresModerationStore({
+        db,
+        reportTable: reports,
+        tables: moderationTablesForAdopter,
+      });
+
+      const moderation = createModerationIntegration({
+        store,
+        crowdSource: { enabled: true, enforcementMode: 'observe' },
+        subjects: [],
+        taxonomy: { version: '2026.07', allegationsFor: () => ['other.unclassifiable'] },
+        enforcement: commerce,
+        logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
+      });
+
+      expect(typeof moderation.createReport).toBe('function');
+      expect(typeof store.ensureSchema).toBe('function');
+      expect(typeof store.transaction.run).toBe('function');
+    } finally {
+      await client.end();
+    }
   });
 });

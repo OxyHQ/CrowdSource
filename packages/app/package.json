@@ -1,6 +1,6 @@
 {
   "name": "@oxyhq/crowdsource-app",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "The application half of a CrowdSource integration: a transactional outbox, delivery, a webhook receiver, decision application and idempotent enforcement, wired to your own subjects",
   "type": "commonjs",
   "main": "dist/index.js",
@@ -12,18 +12,32 @@
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./mongoose": {
+      "types": "./dist/mongoose/index.d.ts",
+      "import": "./dist/esm/mongoose/index.js",
+      "require": "./dist/mongoose/index.js",
+      "default": "./dist/mongoose/index.js"
+    },
+    "./postgres": {
+      "types": "./dist/postgres/index.d.ts",
+      "import": "./dist/esm/postgres/index.js",
+      "require": "./dist/postgres/index.js",
+      "default": "./dist/postgres/index.js"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs",
-    "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
+    "db:generate": "drizzle-kit generate",
+    "dev": "tsc --watch",
     "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",
-    "test": "bun run test:unit && bun run test:invariants",
-    "test:unit": "node ../../node_modules/vitest/vitest.mjs run",
+    "prepublishOnly": "bun run build",
+    "test": "bun run test:unit && bun run test:invariants && bun run test:table-type",
     "test:invariants": "bun ./scripts/test-invariants.mjs",
-    "test:watch": "node ../../node_modules/vitest/vitest.mjs",
-    "prepublishOnly": "bun run build"
+    "test:table-type": "bun ./scripts/test-report-table-type.mjs",
+    "test:unit": "node ../../node_modules/vitest/vitest.mjs run",
+    "test:watch": "node ../../node_modules/vitest/vitest.mjs"
   },
   "keywords": [
     "crowdsource",
@@ -52,11 +66,15 @@
   "devDependencies": {
     "@oxyhq/crowdsource-contracts": "workspace:*",
     "@oxyhq/crowdsource-testing": "workspace:*",
+    "@oxyhq/db": "^0.1.2",
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.5",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "mongodb-memory-server": "^11.2.0",
     "mongoose": "^8.24.1",
+    "postgres": "^3.4.9",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },
@@ -67,7 +85,24 @@
   ],
   "peerDependencies": {
     "@oxyhq/crowdsource-contracts": "^0.4.0",
+    "@oxyhq/db": "^0.1.2",
+    "drizzle-orm": "^0.45.2",
     "express": ">=4.18.0 <6",
-    "mongoose": "^8.0.0 || ^9.0.0"
+    "mongoose": "^8.0.0 || ^9.0.0",
+    "postgres": "^3.4.9"
+  },
+  "peerDependenciesMeta": {
+    "@oxyhq/db": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    },
+    "mongoose": {
+      "optional": true
+    },
+    "postgres": {
+      "optional": true
+    }
   }
 }

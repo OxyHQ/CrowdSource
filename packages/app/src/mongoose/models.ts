@@ -57,13 +57,6 @@ export interface ModerationOutboxDocument {
   updatedAt: Date;
 }
 
-/**
- * Retention ceiling, so a stalled dispatcher cannot turn the outbox into an
- * unbounded collection. Long, because a moderation case can legitimately sit
- * open for weeks and a `dead_letter` event is evidence somebody still has to
- * look at. Operational alerts must fire long before this deadline.
- */
-export const MODERATION_OUTBOX_RETENTION_SECONDS = 90 * 24 * 60 * 60;
 export const MODERATION_OUTBOX_COLLECTION = 'moderation_outbox';
 
 function outboxSchema(): Schema<ModerationOutboxDocument> {
@@ -97,6 +90,8 @@ function outboxSchema(): Schema<ModerationOutboxDocument> {
   // Due work and expired claims are separate bounded scans.
   schema.index({ status: 1, availableAt: 1, createdAt: 1 });
   schema.index({ status: 1, leaseUntil: 1, createdAt: 1 });
+  // How this backend enforces MODERATION_OUTBOX_RETENTION_SECONDS: the writer
+  // computes `expiresAt`, and the TTL index is what finally removes the row.
   schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
   return schema;
 }
@@ -142,15 +137,6 @@ export interface ModerationEventDocument {
   updatedAt: Date;
 }
 
-/**
- * Retention.
- *
- * CrowdSource's retry schedule ends at 24 hours, so a dedupe row only has to
- * outlive that. It is kept far longer because the row is also the audit trail of
- * what a third party told this deployment to do, and an enforcement question
- * asked weeks later is answered from here.
- */
-export const MODERATION_EVENT_RETENTION_SECONDS = 90 * 24 * 60 * 60;
 export const MODERATION_EVENT_COLLECTION = 'moderation_events';
 
 function eventSchema(): Schema<ModerationEventDocument> {
@@ -173,6 +159,7 @@ function eventSchema(): Schema<ModerationEventDocument> {
     { timestamps: true, collection: MODERATION_EVENT_COLLECTION },
   );
 
+  // As above: MODERATION_EVENT_RETENTION_SECONDS, enforced by a TTL index.
   schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
   // Operational: what arrived recently, and what never got past `claimed`.
   schema.index({ state: 1, receivedAt: 1 });

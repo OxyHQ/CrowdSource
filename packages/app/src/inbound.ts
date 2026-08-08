@@ -1,10 +1,7 @@
-import type { ClientSession, Connection, Model } from 'mongoose';
 import type { ProcessedEventStore } from '@oxyhq/crowdsource-express';
-import {
-  MODERATION_EVENT_RETENTION_SECONDS,
-  type ModerationEventDocument,
-} from './models/index.js';
 import { decisionApplyEventId, type OutboxService } from './outbox/service.js';
+import { MODERATION_EVENT_RETENTION_SECONDS } from './retention.js';
+import type { ModerationEventStore, ModerationTransactionRunner } from './store/types.js';
 
 /**
  * What happens between "a signed decision arrived" and "2xx".
@@ -24,71 +21,40 @@ import { decisionApplyEventId, type OutboxService } from './outbox/service.js';
  * redelivered.
  */
 
-const TRANSACTION_OPTIONS = {
-  readPreference: 'primary' as const,
-  readConcern: { level: 'snapshot' as const },
-  writeConcern: { w: 'majority' as const },
-};
-
-function isDuplicateKeyError(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    Number((error as { code?: unknown }).code) === 11000
-  );
-}
-
 /**
- * The webhook dedupe store, in Mongo.
+ * The webhook dedupe store, backed by the moderation event log.
  *
  * `@oxyhq/crowdsource-express` defaults to an in-process store and says exactly
  * when that is not enough: two instances behind a load balancer each keep their
  * own, so a redelivery landing on the other instance is not deduplicated. Every
  * Oxy backend runs several tasks behind one load balancer, so this is that case.
  *
- * The claim/release contract is the store's, and it is the right one. A row
+ * The claim/release contract is the SDK's, and it is the right one. A row
  * inserted BEFORE the handler runs means a concurrent redelivery cannot also run
  * it; deleting that row when the handler THROWS means the sender's retry
  * schedule can still deliver the event later. Recording the id only after
  * success would let two copies run at once; recording it before and never
  * releasing would make a transient failure permanent and lose a decision
  * silently.
+ *
+ * The retention window is computed HERE rather than in a store, so both backends
+ * keep an audit row for the same length of time.
  */
-export function createProcessedEventStore(
-  model: Model<ModerationEventDocument>,
+export function createProcessedEventStore<TTx>(
+  events: ModerationEventStore<TTx>,
 ): ProcessedEventStore {
   return {
-    /**
-     * True when this call took the claim.
-     *
-     * The insert IS the claim: `_id` is the event id and the index on it is
-     * unique, so the duplicate-key error is not an error condition to work
-     * around — it is the answer "somebody else has this event".
-     */
     async claim(eventId: string): Promise<boolean> {
       const now = new Date();
-      try {
-        await model.create({
-          _id: eventId,
-          state: 'claimed',
-          receivedAt: now,
-          expiresAt: new Date(now.getTime() + MODERATION_EVENT_RETENTION_SECONDS * 1_000),
-        });
-        return true;
-      } catch (error: unknown) {
-        if (isDuplicateKeyError(error)) return false;
-        // Anything else — a lost connection, a failover — is NOT "already
-        // processed". Rethrowing makes the middleware answer non-2xx so the
-        // event stays on the sender's retry schedule; swallowing it here would
-        // answer 200 and retire a decision nobody ever handled.
-        throw error;
-      }
+      return await events.claim({
+        eventId,
+        receivedAt: now,
+        expiresAt: new Date(now.getTime() + MODERATION_EVENT_RETENTION_SECONDS * 1_000),
+      });
     },
 
-    /** Give the claim back so a redelivery can be processed. */
     async release(eventId: string): Promise<void> {
-      await model.deleteOne({ _id: eventId });
+      await events.release(eventId);
     },
   };
 }
@@ -127,41 +93,24 @@ export interface InboundService {
   }): Promise<void>;
 }
 
-export function createInboundService(input: {
-  connection: Connection;
-  model: Model<ModerationEventDocument>;
-  outbox: OutboxService;
+export function createInboundService<TTx>(input: {
+  transaction: ModerationTransactionRunner<TTx>;
+  events: ModerationEventStore<TTx>;
+  outbox: OutboxService<TTx>;
 }): InboundService {
-  const inTransaction = async (
-    operation: (session: ClientSession) => Promise<void>,
-  ): Promise<void> => {
-    const session = await input.connection.startSession();
-    try {
-      await session.withTransaction(async () => {
-        await operation(session);
-      }, TRANSACTION_OPTIONS);
-    } finally {
-      await session.endSession();
-    }
-  };
-
   return {
     async recordDecisionEvent(event) {
-      await inTransaction(async (session) => {
+      await input.transaction.run(async (tx) => {
         const now = new Date();
-        await input.model.updateOne(
-          { _id: event.eventId },
+        await input.events.markQueued(
           {
-            $set: {
-              type: event.type,
-              caseId: event.caseId,
-              payload: { caseId: event.caseId, decision: event.decision },
-              state: 'queued',
-              queuedAt: now,
-              updatedAt: now,
-            },
+            eventId: event.eventId,
+            type: event.type,
+            caseId: event.caseId,
+            payload: { caseId: event.caseId, decision: event.decision },
+            now,
           },
-          { session },
+          tx,
         );
 
         await input.outbox.enqueue(
@@ -174,24 +123,18 @@ export function createInboundService(input: {
               decision: event.decision,
             },
           },
-          session,
+          tx,
         );
       });
     },
 
     async recordIgnoredEvent(event) {
-      const now = new Date();
-      await input.model.updateOne(
-        { _id: event.eventId },
-        {
-          $set: {
-            type: event.type,
-            ...(event.caseId === undefined ? {} : { caseId: event.caseId }),
-            state: 'ignored',
-            updatedAt: now,
-          },
-        },
-      );
+      await input.events.markIgnored({
+        eventId: event.eventId,
+        type: event.type,
+        ...(event.caseId === undefined ? {} : { caseId: event.caseId }),
+        now: new Date(),
+      });
     },
   };
 }

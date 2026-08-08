@@ -1,5 +1,8 @@
-import type { Connection, Model } from 'mongoose';
 import { reportSubmitEventId, type OutboxService } from './outbox/service.js';
+import type {
+  ModerationReportStore,
+  ModerationTransactionRunner,
+} from './store/types.js';
 import type {
   ModerationLogger,
   ModerationReconciliationResult,
@@ -43,12 +46,6 @@ const MAX_BATCH_SIZE = 1_000;
 const DEFAULT_STALE_SUBMITTED_HOURS = 72;
 const DEFAULT_INTERVAL_MS = 15 * 60 * 1_000;
 
-const TRANSACTION_OPTIONS = {
-  readPreference: 'primary' as const,
-  readConcern: { level: 'snapshot' as const },
-  writeConcern: { w: 'majority' as const },
-};
-
 export type ReconcileModerationReports = (options?: {
   batchSize?: number;
   now?: Date;
@@ -61,10 +58,10 @@ export type ReconcileModerationReports = (options?: {
  * `{ localStatus, createdAt }` exists for this query — and re-enqueues only
  * those with no outbox event at all.
  */
-export function createReconciliation<TReport extends ModerationReportFields>(input: {
-  connection: Connection;
-  reportModel: Model<TReport>;
-  outbox: OutboxService;
+export function createReconciliation<TReport extends ModerationReportFields, TTx>(input: {
+  transaction: ModerationTransactionRunner<TTx>;
+  reports: ModerationReportStore<TReport, TTx>;
+  outbox: OutboxService<TTx>;
   logger: ModerationLogger;
   staleSubmittedHours?: number;
 }): ReconcileModerationReports {
@@ -84,21 +81,15 @@ export function createReconciliation<TReport extends ModerationReportFields>(inp
     };
 
     /**
-     * `queued` and `delivery_failed` only. `received` is excluded deliberately
-     * and the omission is the safety property, not an oversight: those reports
-     * have no subject provider, so an event re-derived for one would fail as
-     * `ModerationSubjectUnsupportedError` on its first attempt and dead-letter.
-     * They are counted below instead.
+     * `queued` and `delivery_failed` only — the store's own query says so, and
+     * the omission of `received` is the safety property rather than an
+     * oversight: those reports have no subject provider, so an event re-derived
+     * for one would fail as `ModerationSubjectUnsupportedError` on its first
+     * attempt and dead-letter. They are counted below instead.
      */
-    const pending = await input.reportModel
-      .find({ localStatus: { $in: ['queued', 'delivery_failed'] } })
-      .select('_id')
-      .sort({ createdAt: 1 })
-      .limit(batchSize)
-      .lean<{ _id: unknown }[]>();
+    const pending = await input.reports.findPendingOldestFirst(batchSize);
 
-    for (const report of pending) {
-      const reportId = String(report._id);
+    for (const reportId of pending) {
       const eventId = reportSubmitEventId(reportId);
       const status = await input.outbox.statusOf(eventId);
 
@@ -110,32 +101,24 @@ export function createReconciliation<TReport extends ModerationReportFields>(inp
 
       /**
        * A transaction for a single upsert, for consistency with intake rather
-       * than for atomicity: the enqueue requires a session precisely so that no
-       * path in this package can write an outbox event outside one. A signature
-       * that made the session optional would be the crack the next caller slips
-       * through.
+       * than for atomicity: the enqueue requires a transaction precisely so that
+       * no path in this package can write an outbox event outside one. A
+       * signature that made it optional would be the crack the next caller slips
+       * through, and the runner is what makes taking one here cost a line.
        */
-      const session = await input.connection.startSession();
-      try {
-        await session.withTransaction(async () => {
-          await input.outbox.enqueue(
-            { eventId, kind: 'report.submit', payload: { reportId } },
-            session,
-          );
-        }, TRANSACTION_OPTIONS);
-        result.requeued += 1;
-      } finally {
-        await session.endSession();
-      }
+      await input.transaction.run(async (tx) => {
+        await input.outbox.enqueue(
+          { eventId, kind: 'report.submit', payload: { reportId } },
+          tx,
+        );
+      });
+      result.requeued += 1;
     }
 
-    result.awaitingDecision = await input.reportModel.countDocuments({
-      localStatus: 'submitted',
-      submittedAt: { $lt: new Date(now.getTime() - staleHours * 60 * 60 * 1_000) },
-    });
-    result.localOnly = await input.reportModel.countDocuments({
-      localStatus: 'received',
-    });
+    result.awaitingDecision = await input.reports.countAwaitingDecision(
+      new Date(now.getTime() - staleHours * 60 * 60 * 1_000),
+    );
+    result.localOnly = await input.reports.countLocalOnly();
 
     if (result.requeued > 0 || result.deadLettered > 0) {
       input.logger.warn('[CrowdSource] reconciliation found divergence', { ...result });

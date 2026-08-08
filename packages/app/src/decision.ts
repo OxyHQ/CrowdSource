@@ -1,8 +1,8 @@
-import type { Model } from 'mongoose';
 import { DecisionSchema, type Decision } from '@oxyhq/crowdsource-contracts';
 import type { EnforcementExecutor } from './enforcement/executor.js';
 import { primaryAction } from './enforcement/planner.js';
 import { localStatusForDecision } from './reportStatus.js';
+import type { ModerationReportStore } from './store/types.js';
 import type {
   EnforcementOutcome,
   ModerationEnforcementConfig,
@@ -50,8 +50,9 @@ export class ModerationDecisionDeferredError extends Error {
 export function createDecisionWorker<
   TReport extends ModerationReportFields,
   TAction extends string,
+  TTx,
 >(input: {
-  reportModel: Model<TReport>;
+  reports: ModerationReportStore<TReport, TTx>;
   executor: EnforcementExecutor<TAction>;
   enforcement: ModerationEnforcementConfig<TAction>;
   logger: ModerationLogger;
@@ -60,56 +61,49 @@ export function createDecisionWorker<
   /**
    * Write the decision onto one report.
    *
-   * The filter carries the revision guard, so it is the DATABASE that refuses a
-   * stale write rather than a read-then-write in this process. Deliveries can
-   * overlap — CrowdSource retries for 24 hours, and a correction can arrive
-   * while the decision it supersedes is still being applied — and an older
-   * revision landing last would otherwise overwrite the current answer with a
-   * stale one.
+   * `decision.revision` is passed as the ceiling the store guards on, so it is
+   * the DATABASE that refuses a stale write rather than a read-then-write in
+   * this process. Deliveries can overlap — CrowdSource retries for 24 hours, and
+   * a correction can arrive while the decision it supersedes is still being
+   * applied — and an older revision landing last would otherwise overwrite the
+   * current answer with a stale one.
    */
   const applyToReport = async (
-    reportId: unknown,
+    reportId: string,
     decision: Decision,
     enforced: { action: TAction; at: Date | null } | undefined,
-  ): Promise<boolean> => {
-    const result = await input.reportModel.updateOne(
+  ): Promise<boolean> =>
+    await input.reports.applyDecision(
+      reportId,
       {
-        _id: reportId,
-        $or: [
-          { decisionRevision: { $exists: false } },
-          { decisionRevision: { $lte: decision.revision } },
-        ],
+        localStatus: localStatusForDecision(decision.status),
+        decisionId: decision.id,
+        decisionRevision: decision.revision,
+        decisionOutcome: decision.outcome,
+        decisionStatus: decision.status,
+        decidedAt: new Date(decision.publishedAt),
+        /**
+         * `enforcedAction` is what the application DECIDED to do; `enforcedAt`
+         * is when an effect actually landed. They are written separately because
+         * they are different claims, and conflating them puts a timestamp on
+         * something that never happened — which is the normal case in `observe`
+         * mode, and the permanent case for an application with no sanction
+         * primitive. An audit row that says "enforced at 14:02" for an effect
+         * nobody carried out is not explainable, and every effect being
+         * explainable is the invariant.
+         */
+        ...(enforced === undefined
+          ? {}
+          : {
+              enforcedAction: enforced.action,
+              ...(enforced.at === null ? {} : { enforcedAt: enforced.at }),
+            }),
+        ...(input.reportDecisionExtraFields === undefined
+          ? {}
+          : { extra: input.reportDecisionExtraFields(decision) }),
       },
-      {
-        $set: {
-          ...input.reportDecisionExtraFields?.(decision),
-          localStatus: localStatusForDecision(decision.status),
-          decisionId: decision.id,
-          decisionRevision: decision.revision,
-          decisionOutcome: decision.outcome,
-          decisionStatus: decision.status,
-          decidedAt: new Date(decision.publishedAt),
-          /**
-           * `enforcedAction` is what the application DECIDED to do; `enforcedAt`
-           * is when an effect actually landed. They are written separately
-           * because they are different claims, and conflating them puts a
-           * timestamp on something that never happened — which is the normal
-           * case in `observe` mode, and the permanent case for an application
-           * with no sanction primitive. An audit row that says "enforced at
-           * 14:02" for an effect nobody carried out is not explainable, and
-           * every effect being explainable is the invariant.
-           */
-          ...(enforced === undefined
-            ? {}
-            : {
-                enforcedAction: enforced.action,
-                ...(enforced.at === null ? {} : { enforcedAt: enforced.at }),
-              }),
-        },
-      },
+      decision.revision,
     );
-    return result.matchedCount === 1;
-  };
 
   return async (event) => {
     const caseId = event.payload.caseId;
@@ -138,10 +132,7 @@ export function createDecisionWorker<
     }
     const decision = parsed.data;
 
-    const reports = await input.reportModel
-      .find({ crowdSourceCaseId: caseId })
-      .select('_id reportedType reportedId')
-      .lean<(Pick<TReport, 'reportedType' | 'reportedId'> & { _id: unknown })[]>();
+    const reports = await input.reports.findByCaseId(caseId);
 
     if (reports.length === 0) {
       /**
@@ -202,7 +193,7 @@ export function createDecisionWorker<
 
     let updated = 0;
     for (const report of reports) {
-      if (await applyToReport(report._id, decision, enforced)) updated += 1;
+      if (await applyToReport(report.id, decision, enforced)) updated += 1;
     }
 
     input.logger.info('[CrowdSource] decision applied', {

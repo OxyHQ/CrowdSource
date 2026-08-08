@@ -18,6 +18,11 @@ import type { ModerationReportFields } from '../types.js';
  * subtly wrong, in a way no test written against the port would catch. So the
  * queries live in this package and the application supplies the model.
  *
+ * `ModerationReportStore` in `src/store/types.ts` is that port, and its
+ * existence does not reverse this: it is INTERNAL, and this package implements
+ * it once per backend. What was rejected is handing it to the adopter, which is
+ * still not something to do.
+ *
  * ```ts
  * const ReportSchema = new Schema<IReport>(
  *   {

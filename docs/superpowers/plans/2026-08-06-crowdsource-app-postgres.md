@@ -897,7 +897,7 @@ Eleven mutations become eighteen. The vacuity floor becomes per-backend, because
 
 | # | backend | mutation | caught by |
 |---|---|---|---|
-| 1 | mongoose | `session.inTransaction()` removed | `throws ModerationOutboxTransactionError for a session with no transaction open` |
+| 1 | mongoose | `session.inTransaction()` removed | `throws ModerationOutboxTransactionError for a handle with no transaction open` |
 | 2 | shared | webhook router mounted behind `express.json()` | `reaches the moderation router with req.body still undefined` |
 | 3 | mongoose | `{ upsert: true, session, timestamps: false }` → `{ upsert: true, session }` | `stores both when the reported type has a subject provider` |
 | 4 | mongoose | explicit timestamps dropped AND Mongoose's own restored | `leaves an existing row completely untouched on a repeated enqueue` |

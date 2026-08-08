@@ -1,6 +1,6 @@
-import type { Model } from 'mongoose';
 import type { CrowdSourceClientProvider } from './client.js';
 import { buildModerationReportInput, type SubjectRegistry } from './evidence.js';
+import type { ModerationReportStore } from './store/types.js';
 import type {
   ModerationLogger,
   ModerationMetrics,
@@ -57,8 +57,8 @@ export class ModerationDeliveryRejectedError extends Error {
   }
 }
 
-export function createDeliveryWorker<TReport extends ModerationReportFields>(input: {
-  reportModel: Model<TReport>;
+export function createDeliveryWorker<TReport extends ModerationReportFields, TTx>(input: {
+  reports: ModerationReportStore<TReport, TTx>;
   registry: SubjectRegistry;
   taxonomy: ModerationTaxonomy;
   client: CrowdSourceClientProvider;
@@ -69,14 +69,6 @@ export function createDeliveryWorker<TReport extends ModerationReportFields>(inp
     input.metrics?.incrementCounter('crowdsource_report_delivery_total', 1, { result });
   };
 
-  /** Close a report there is genuinely nothing left to do about. */
-  const closeUndeliverable = async (reportId: string, reason: string): Promise<void> => {
-    await input.reportModel.updateOne(
-      { _id: reportId },
-      { $set: { localStatus: 'closed', localStatusReason: reason } },
-    );
-  };
-
   return async (event) => {
     const reportId = event.payload.reportId;
     if (reportId === undefined) {
@@ -85,7 +77,7 @@ export function createDeliveryWorker<TReport extends ModerationReportFields>(inp
       );
     }
 
-    const report = await input.reportModel.findById(reportId).lean<TReport | null>();
+    const report = await input.reports.findById(reportId);
     if (!report) {
       /**
        * The report is gone but its delivery event survived. Nothing to deliver
@@ -121,7 +113,9 @@ export function createDeliveryWorker<TReport extends ModerationReportFields>(inp
     });
 
     if (described === null) {
-      await closeUndeliverable(
+      // Nothing left to review, so the report is closed with the reason rather
+      // than retried against material that is gone.
+      await input.reports.close(
         reportId,
         'The reported content no longer exists, so there is nothing to review.',
       );
@@ -141,36 +135,23 @@ export function createDeliveryWorker<TReport extends ModerationReportFields>(inp
        * Written before rethrowing so the outbox still applies its own backoff or
        * dead-letters the event.
        */
-      await input.reportModel.updateOne(
-        { _id: reportId },
-        {
-          $set: {
-            localStatus: 'delivery_failed',
-            lastDeliveryError: (error instanceof Error
-              ? error.message
-              : String(error)
-            ).slice(0, 2_000),
-          },
-        },
+      await input.reports.markDeliveryFailed(
+        reportId,
+        // Bounded here rather than by a column width, so both dialects agree: a
+        // Mongoose validator throws on overflow and Postgres errors 22001.
+        (error instanceof Error ? error.message : String(error)).slice(0, 2_000),
       );
       count('failed');
       throw error;
     }
 
-    await input.reportModel.updateOne(
-      { _id: reportId },
-      {
-        $set: {
-          localStatus: 'submitted',
-          crowdSourceReportId: receipt.reportId,
-          crowdSourceCaseId: receipt.caseId,
-          crowdSourceMerged: receipt.merged,
-          contentSnapshotHash: described.snapshotHash,
-          submittedAt: new Date(),
-        },
-        $unset: { lastDeliveryError: '', localStatusReason: '' },
-      },
-    );
+    await input.reports.markSubmitted(reportId, {
+      crowdSourceReportId: receipt.reportId,
+      crowdSourceCaseId: receipt.caseId,
+      crowdSourceMerged: receipt.merged,
+      contentSnapshotHash: described.snapshotHash,
+      submittedAt: new Date(),
+    });
 
     count(receipt.merged ? 'merged' : 'delivered');
     input.logger.info('[CrowdSource] report delivered', {
