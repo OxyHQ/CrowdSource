@@ -99,6 +99,15 @@ export interface ModerationOutboxStore<TTx> {
    *
    * `now`, `availableAt` and `expiresAt` are supplied rather than computed here
    * so that a row's timestamps come from one clock and one retention policy.
+   *
+   * **Writing a second implementation of this method:** the transaction guard is
+   * proven by `scripts/test-invariants.mjs`, which DELETES it and requires the
+   * mutated tree to still type-check — a mutation that does not compile is not
+   * evidence about a guard. Since `ModerationOutboxTransactionError` is declared
+   * in the shared half and IMPORTED by each store, deleting the throw on its own
+   * leaves an unused import and fails `noUnusedLocals`. A mutation aimed at a new
+   * store has to delete the import with it, which is also what removing the guard
+   * actually looks like; the Mongoose one is the worked example.
    */
   enqueue(
     input: {

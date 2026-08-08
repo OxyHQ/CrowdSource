@@ -3,7 +3,7 @@ import type { Decision, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 import {
   applyModerationReportIndexes,
   moderationReportSchemaFields,
-} from '../../models/report.js';
+} from '../../mongoose/report.js';
 import { createModerationIntegration } from '../../integration.js';
 import type { ModerationIntegration } from '../../integration.js';
 import type {
@@ -245,6 +245,8 @@ export async function createHarness(
     webhookSecret?: string;
     enforcementMode?: 'observe' | 'manual' | 'automatic';
     subjects?: readonly ModerationSubjectProvider[];
+    /** Replaces the application's whole enforcement half, `apply` included. */
+    enforcement?: ModerationEnforcementConfig<TestAction>;
   } = {},
 ): Promise<Harness> {
   const uri = process.env.CROWDSOURCE_APP_TEST_MONGODB_URI;
@@ -302,7 +304,7 @@ export async function createHarness(
     reportModel: reports,
     subjects: options.subjects ?? [widgetSubjectProvider(widgets), doodadSubjectProvider()],
     taxonomy: testTaxonomy(),
-    enforcement: testEnforcement(widgets),
+    enforcement: options.enforcement ?? testEnforcement(widgets),
     logger: recordingLogger(logs),
     reportDecisionExtraFields: legacyStatusFor,
   });

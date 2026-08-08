@@ -52,23 +52,28 @@ export {
   moderationReportSchemaFields,
   applyModerationReportIndexes,
   MODERATION_LOCAL_STATUSES,
-} from './models/report.js';
-export type { ModerationReportSchemaOptions } from './models/report.js';
+} from './mongoose/report.js';
+export type { ModerationReportSchemaOptions } from './mongoose/report.js';
+
+export {
+  MODERATION_EVENT_RETENTION_SECONDS,
+  MODERATION_OUTBOX_RETENTION_SECONDS,
+} from './retention.js';
+
+export { mongooseModerationStore } from './mongoose/store/index.js';
 
 export {
   MODERATION_ENFORCEMENT_COLLECTION,
   MODERATION_EVENT_COLLECTION,
-  MODERATION_EVENT_RETENTION_SECONDS,
   MODERATION_OUTBOX_COLLECTION,
-  MODERATION_OUTBOX_RETENTION_SECONDS,
-} from './models/index.js';
+} from './mongoose/models.js';
 export type {
   ModerationEnforcementDocument,
   ModerationEventDocument,
   ModerationEventState,
   ModerationModels,
   ModerationOutboxDocument,
-} from './models/index.js';
+} from './mongoose/models.js';
 
 export {
   ModerationOutboxTransactionError,

@@ -145,17 +145,17 @@ const MUTATIONS = [
      * the only thing that proves the arrangement in it is load-bearing.
      */
     name: 'a reversal reads the newest row instead of the newest APPLIED row',
-    file: 'src/enforcement/executor.ts',
+    file: 'src/mongoose/store/enforcement.ts',
     edits: [
       {
-        find: `        action: { $in: [...candidates] },
-        applied: true,
-      })`,
-        replace: `        action: { $in: [...candidates] },
-      })`,
+        find: `          action: { $in: [...actions] },
+          applied: true,
+        })`,
+        replace: `          action: { $in: [...actions] },
+        })`,
       },
     ],
-    absent: `        action: { $in: [...candidates] },\n        applied: true,`,
+    absent: `          action: { $in: [...actions] },\n          applied: true,`,
     test: 'src/__tests__/enforcementReversal.test.ts',
     expects: 'reads the applied row, not the newer recorded-only one',
   },
@@ -185,11 +185,11 @@ const MUTATIONS = [
      * exactly when two of them applied — which is when a reversal matters most.
      */
     name: 'a multi-action reversal reads only the first declared action',
-    file: 'src/enforcement/executor.ts',
+    file: 'src/mongoose/store/enforcement.ts',
     edits: [
-      { find: '        action: { $in: [...candidates] },', replace: '        action: candidates[0],' },
+      { find: '          action: { $in: [...actions] },', replace: '          action: actions[0],' },
     ],
-    absent: '$in: [...candidates]',
+    absent: '$in: [...actions]',
     test: 'src/__tests__/enforcementReversal.test.ts',
     expects: 'reads the most recent applied row across the whole declared set',
   },

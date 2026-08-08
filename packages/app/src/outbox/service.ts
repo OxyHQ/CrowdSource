@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { MODERATION_OUTBOX_RETENTION_SECONDS } from '../models/index.js';
+import { MODERATION_OUTBOX_RETENTION_SECONDS } from '../retention.js';
 import type { ModerationOutboxStore } from '../store/types.js';
 import type {
   ModerationDispatchResult,

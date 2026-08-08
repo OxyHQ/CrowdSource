@@ -1,5 +1,5 @@
 import type { ClientSession, Model } from 'mongoose';
-import type { ModerationOutboxDocument } from '../../models/index.js';
+import type { ModerationOutboxDocument } from '../models.js';
 import { ModerationOutboxTransactionError } from '../../outbox/service.js';
 import type { ModerationOutboxStore } from '../../store/types.js';
 import type { ModerationOutboxEvent } from '../../types.js';

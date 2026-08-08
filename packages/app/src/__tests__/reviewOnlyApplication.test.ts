@@ -30,7 +30,7 @@ import { createModerationIntegration, type ModerationIntegration } from '../inte
 import {
   applyModerationReportIndexes,
   moderationReportSchemaFields,
-} from '../models/report.js';
+} from '../mongoose/report.js';
 import { planEnforcement } from '../enforcement/planner.js';
 import { decision } from './support/decisions.js';
 import type { ModerationEnforcementConfig, ModerationReportFields } from '../types.js';

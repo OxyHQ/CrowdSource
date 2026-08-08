@@ -7,9 +7,8 @@ import { createEnforcementExecutor, type EnforcementExecutor } from './enforceme
 import { assertRestoreDirection } from './enforcement/planner.js';
 import { createSubjectRegistry, type SubjectRegistry } from './evidence.js';
 import { createInboundService, createProcessedEventStore } from './inbound.js';
-import { registerModerationModels, type ModerationModels } from './models/index.js';
-import { mongooseOutboxStore } from './mongoose/store/outbox.js';
-import { mongooseTransactionRunner } from './mongoose/store/transaction.js';
+import { registerModerationModels, type ModerationModels } from './mongoose/models.js';
+import { mongooseModerationStore } from './mongoose/store/index.js';
 import { ModerationOutboxDispatcher, createOutboxRouter } from './outbox/dispatcher.js';
 import { createOutboxService, type OutboxService } from './outbox/service.js';
 import { createIntake } from './intake.js';
@@ -98,23 +97,32 @@ export function createModerationIntegration<
    */
   assertRestoreDirection(config.enforcement);
 
-  const models = registerModerationModels({
-    connection: config.connection,
-    enforcementActions: config.enforcement.actions,
-    ...(config.modelPrefix === undefined ? {} : { modelPrefix: config.modelPrefix }),
-  });
-
   /**
    * The Mongoose half, built here for now. The store is what a later version of
    * this config supplies whole; until then the only backend is this one, and
    * building it inside the factory keeps the seam in one place rather than in
    * every application that wires the integration.
    */
-  const transaction = mongooseTransactionRunner(config.connection);
-  const outbox = createOutboxService({
-    store: mongooseOutboxStore({ model: models.outbox }),
-    logger: config.logger,
+  const store = mongooseModerationStore<TReport>({
+    connection: config.connection,
+    reportModel: config.reportModel,
+    enforcementActions: config.enforcement.actions,
+    ...(config.modelPrefix === undefined ? {} : { modelPrefix: config.modelPrefix }),
   });
+
+  /**
+   * The same three models the store registered — `registerModerationModels`
+   * reuses whatever is already on the connection, so this is the models it
+   * built, not a second set. Exposed only for the test surface, and it goes
+   * with `ModerationIntegration.models`.
+   */
+  const models = registerModerationModels({
+    connection: config.connection,
+    enforcementActions: config.enforcement.actions,
+    ...(config.modelPrefix === undefined ? {} : { modelPrefix: config.modelPrefix }),
+  });
+
+  const outbox = createOutboxService({ store: store.outbox, logger: config.logger });
   const registry = createSubjectRegistry(config.subjects);
   const client = createClientProvider({
     config: config.crowdSource,
@@ -122,15 +130,15 @@ export function createModerationIntegration<
   });
 
   const enforcement = createEnforcementExecutor<TAction>({
-    model: models.enforcement,
+    enforcement: store.enforcement,
     config: config.enforcement,
     defaultMode: config.crowdSource.enforcementMode,
     logger: config.logger,
     ...(config.metrics === undefined ? {} : { metrics: config.metrics }),
   });
 
-  const deliverReport = createDeliveryWorker<TReport>({
-    reportModel: config.reportModel,
+  const deliverReport = createDeliveryWorker({
+    reports: store.reports,
     registry,
     taxonomy: config.taxonomy,
     client,
@@ -138,8 +146,8 @@ export function createModerationIntegration<
     ...(config.metrics === undefined ? {} : { metrics: config.metrics }),
   });
 
-  const applyDecision = createDecisionWorker<TReport, TAction>({
-    reportModel: config.reportModel,
+  const applyDecision = createDecisionWorker({
+    reports: store.reports,
     executor: enforcement,
     enforcement: config.enforcement,
     logger: config.logger,
@@ -149,14 +157,14 @@ export function createModerationIntegration<
   });
 
   const inbound = createInboundService({
-    transaction,
-    model: models.event,
+    transaction: store.transaction,
+    events: store.events,
     outbox,
   });
 
-  const reconcile = createReconciliation<TReport>({
-    transaction,
-    reportModel: config.reportModel,
+  const reconcile = createReconciliation({
+    transaction: store.transaction,
+    reports: store.reports,
     outbox,
     logger: config.logger,
     ...(config.crowdSource.staleSubmittedHours === undefined
@@ -187,9 +195,9 @@ export function createModerationIntegration<
   });
 
   return {
-    createReport: createIntake<TReport>({
-      transaction,
-      reportModel: config.reportModel,
+    createReport: createIntake({
+      transaction: store.transaction,
+      reports: store.reports,
       registry,
       outbox,
     }),
@@ -197,7 +205,7 @@ export function createModerationIntegration<
     webhookRouter(options = {}) {
       return createWebhookRouter({
         inbound,
-        store: createProcessedEventStore(models.event),
+        store: createProcessedEventStore(store.events),
         ...(config.crowdSource.webhookSecret === undefined
           ? {}
           : { secret: config.crowdSource.webhookSecret }),

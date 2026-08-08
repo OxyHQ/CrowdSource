@@ -1,7 +1,9 @@
-import type { ClientSession, Model } from 'mongoose';
 import type { SubjectRegistry } from './evidence.js';
 import { reportSubmitEventId, type OutboxService } from './outbox/service.js';
-import type { ModerationTransactionRunner } from './store/types.js';
+import type {
+  ModerationReportStore,
+  ModerationTransactionRunner,
+} from './store/types.js';
 import type {
   CreateReportInput,
   CreateReportResult,
@@ -45,15 +47,19 @@ export class DuplicateReportError<TReport> extends Error {
 }
 
 /**
- * Refuses an identifier that is not a string, at the point the QUERY is built.
+ * Refuses an identifier that is not a string, before it reaches the store.
  *
  * The input type says these are strings, but a type is erased at runtime and a
- * truthiness check passes `{ $ne: null }`. Handed that, the duplicate lookup
- * matches an UNRELATED report and answers "you already reported this" about
- * somebody else's row — and the insert would then store an operator where an id
- * belongs.
+ * truthiness check passes anything non-empty — including an object. What that
+ * costs depends on the backend, and the difference is worth stating rather than
+ * flattening: on Mongo a `{ $ne: null }` becomes a query OPERATOR, so the
+ * duplicate lookup matches an UNRELATED report and answers "you already reported
+ * this" about somebody else's row; on Postgres a bound parameter cannot become
+ * an operator, so that particular failure class does not exist there.
  *
- * The check lives here rather than at an application's route because this
+ * The guard is not Mongo's, though. A non-string still reaches the insert and
+ * stores something that is not an id where an id belongs, on any backend — and
+ * the check lives here rather than at an application's route because this
  * function is exported: a queue worker, a reconciliation script or a future
  * admin path is under no obligation to have passed a route's validation, and a
  * guard that only exists at one caller is a guard that holds until the second
@@ -103,11 +109,11 @@ function localOnlyReason(reportedType: string): string {
  * state; only on whether this application knows how to describe the object at
  * all.
  */
-export function createIntake<TReport extends ModerationReportFields>(input: {
-  transaction: ModerationTransactionRunner<ClientSession>;
-  reportModel: Model<TReport>;
+export function createIntake<TReport extends ModerationReportFields, TTx>(input: {
+  transaction: ModerationTransactionRunner<TTx>;
+  reports: ModerationReportStore<TReport, TTx>;
   registry: SubjectRegistry;
-  outbox: OutboxService<ClientSession>;
+  outbox: OutboxService<TTx>;
 }): (report: CreateReportInput) => Promise<CreateReportResult<TReport>> {
   return async (report) => {
     const reporter = requireIdentifier(report.reporter, 'reporter');
@@ -121,38 +127,36 @@ export function createIntake<TReport extends ModerationReportFields>(input: {
     }
     const deliverable = input.registry.providerFor(reportedType) !== undefined;
 
-    return await input.transaction.run(async (session) => {
-      const existing = await input.reportModel
-        .findOne({ reporter, reportedId, reportedType })
-        .session(session)
-        .lean<TReport | null>();
+    return await input.transaction.run(async (tx) => {
+      const existing = await input.reports.findDuplicate(
+        { reporter, reportedId, reportedType },
+        tx,
+      );
       if (existing) throw new DuplicateReportError(existing);
 
-      const [created] = await input.reportModel.create(
-        [
-          {
-            ...report.extra,
-            reportedType,
-            reportedId,
-            reporter,
-            categories: [...report.categories],
-            ...(report.details === undefined ? {} : { details: report.details }),
-            localStatus: deliverable ? 'queued' : 'received',
-            ...(deliverable ? {} : { localStatusReason: localOnlyReason(reportedType) }),
-          },
-        ],
-        { session },
+      const created = await input.reports.insert(
+        {
+          reportedType,
+          reportedId,
+          reporter,
+          categories: [...report.categories],
+          ...(report.details === undefined ? {} : { details: report.details }),
+          localStatus: deliverable ? 'queued' : 'received',
+          ...(deliverable ? {} : { localStatusReason: localOnlyReason(reportedType) }),
+          ...(report.extra === undefined ? {} : { extra: report.extra }),
+        },
+        tx,
       );
 
       if (!deliverable) return { report: created };
 
       const outboxEventId = await input.outbox.enqueue(
         {
-          eventId: reportSubmitEventId(String(created._id)),
+          eventId: reportSubmitEventId(created.id),
           kind: 'report.submit',
-          payload: { reportId: String(created._id) },
+          payload: { reportId: created.id },
         },
-        session,
+        tx,
       );
 
       return { report: created, outboxEventId };
