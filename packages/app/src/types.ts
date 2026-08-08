@@ -466,6 +466,18 @@ export type ModerationLocalStatus =
  * re-derived seven times.
  */
 export interface ModerationReportFields {
+  /**
+   * The report's own id, as a string.
+   *
+   * Declared here rather than left to whatever the backend calls its primary
+   * key, because the core needs it in exactly one shape and in several places:
+   * the delivery event's payload carries it, the deterministic event id is
+   * derived from it, and reconciliation re-derives that id from the report. A
+   * `String(document._id)` at each of those call sites is how two backends end
+   * up disagreeing about what a report id looks like.
+   */
+  id: string;
+
   reportedType: string;
   reportedId: string;
   /** The reporting Oxy user id. The Oxy subject IS the binding proof. */
@@ -642,7 +654,15 @@ export interface ModerationOutboxPayload {
 }
 
 export interface ModerationOutboxEvent {
-  _id: string;
+  /**
+   * The deterministic event id — `moderation:report.submit:<reportId>` or
+   * `moderation:decision.apply:<eventId>`.
+   *
+   * It IS the primary key on both backends, which is what makes a repeated
+   * enqueue a no-op rather than a second delivery. Handlers key their downstream
+   * effects on it, because the contract is at-least-once.
+   */
+  id: string;
   kind: ModerationOutboxKind;
   payload: ModerationOutboxPayload;
   attempts: number;

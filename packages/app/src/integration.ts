@@ -1,3 +1,4 @@
+import type { ClientSession } from 'mongoose';
 import type { Router } from 'express';
 import { createClientProvider, type CrowdSourceClientProvider } from './client.js';
 import { createDecisionWorker } from './decision.js';
@@ -7,6 +8,8 @@ import { assertRestoreDirection } from './enforcement/planner.js';
 import { createSubjectRegistry, type SubjectRegistry } from './evidence.js';
 import { createInboundService, createProcessedEventStore } from './inbound.js';
 import { registerModerationModels, type ModerationModels } from './models/index.js';
+import { mongooseOutboxStore } from './mongoose/store/outbox.js';
+import { mongooseTransactionRunner } from './mongoose/store/transaction.js';
 import { ModerationOutboxDispatcher, createOutboxRouter } from './outbox/dispatcher.js';
 import { createOutboxService, type OutboxService } from './outbox/service.js';
 import { createIntake } from './intake.js';
@@ -76,7 +79,7 @@ export interface ModerationIntegration<
   deliverableTypes(): string[];
 
   readonly models: ModerationModels;
-  readonly outbox: OutboxService;
+  readonly outbox: OutboxService<ClientSession>;
   readonly registry: SubjectRegistry;
   readonly enforcement: EnforcementExecutor<TAction>;
   readonly client: CrowdSourceClientProvider;
@@ -101,7 +104,17 @@ export function createModerationIntegration<
     ...(config.modelPrefix === undefined ? {} : { modelPrefix: config.modelPrefix }),
   });
 
-  const outbox = createOutboxService({ model: models.outbox, logger: config.logger });
+  /**
+   * The Mongoose half, built here for now. The store is what a later version of
+   * this config supplies whole; until then the only backend is this one, and
+   * building it inside the factory keeps the seam in one place rather than in
+   * every application that wires the integration.
+   */
+  const transaction = mongooseTransactionRunner(config.connection);
+  const outbox = createOutboxService({
+    store: mongooseOutboxStore({ model: models.outbox }),
+    logger: config.logger,
+  });
   const registry = createSubjectRegistry(config.subjects);
   const client = createClientProvider({
     config: config.crowdSource,
@@ -136,13 +149,13 @@ export function createModerationIntegration<
   });
 
   const inbound = createInboundService({
-    connection: config.connection,
+    transaction,
     model: models.event,
     outbox,
   });
 
   const reconcile = createReconciliation<TReport>({
-    connection: config.connection,
+    transaction,
     reportModel: config.reportModel,
     outbox,
     logger: config.logger,
@@ -175,7 +188,7 @@ export function createModerationIntegration<
 
   return {
     createReport: createIntake<TReport>({
-      connection: config.connection,
+      transaction,
       reportModel: config.reportModel,
       registry,
       outbox,

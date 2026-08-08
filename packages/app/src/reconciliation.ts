@@ -1,5 +1,6 @@
-import type { Connection, Model } from 'mongoose';
+import type { ClientSession, Model } from 'mongoose';
 import { reportSubmitEventId, type OutboxService } from './outbox/service.js';
+import type { ModerationTransactionRunner } from './store/types.js';
 import type {
   ModerationLogger,
   ModerationReconciliationResult,
@@ -43,12 +44,6 @@ const MAX_BATCH_SIZE = 1_000;
 const DEFAULT_STALE_SUBMITTED_HOURS = 72;
 const DEFAULT_INTERVAL_MS = 15 * 60 * 1_000;
 
-const TRANSACTION_OPTIONS = {
-  readPreference: 'primary' as const,
-  readConcern: { level: 'snapshot' as const },
-  writeConcern: { w: 'majority' as const },
-};
-
 export type ReconcileModerationReports = (options?: {
   batchSize?: number;
   now?: Date;
@@ -62,9 +57,9 @@ export type ReconcileModerationReports = (options?: {
  * those with no outbox event at all.
  */
 export function createReconciliation<TReport extends ModerationReportFields>(input: {
-  connection: Connection;
+  transaction: ModerationTransactionRunner<ClientSession>;
   reportModel: Model<TReport>;
-  outbox: OutboxService;
+  outbox: OutboxService<ClientSession>;
   logger: ModerationLogger;
   staleSubmittedHours?: number;
 }): ReconcileModerationReports {
@@ -110,23 +105,18 @@ export function createReconciliation<TReport extends ModerationReportFields>(inp
 
       /**
        * A transaction for a single upsert, for consistency with intake rather
-       * than for atomicity: the enqueue requires a session precisely so that no
-       * path in this package can write an outbox event outside one. A signature
-       * that made the session optional would be the crack the next caller slips
-       * through.
+       * than for atomicity: the enqueue requires a transaction precisely so that
+       * no path in this package can write an outbox event outside one. A
+       * signature that made it optional would be the crack the next caller slips
+       * through, and the runner is what makes taking one here cost a line.
        */
-      const session = await input.connection.startSession();
-      try {
-        await session.withTransaction(async () => {
-          await input.outbox.enqueue(
-            { eventId, kind: 'report.submit', payload: { reportId } },
-            session,
-          );
-        }, TRANSACTION_OPTIONS);
-        result.requeued += 1;
-      } finally {
-        await session.endSession();
-      }
+      await input.transaction.run(async (tx) => {
+        await input.outbox.enqueue(
+          { eventId, kind: 'report.submit', payload: { reportId } },
+          tx,
+        );
+      });
+      result.requeued += 1;
     }
 
     result.awaitingDecision = await input.reportModel.countDocuments({

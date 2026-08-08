@@ -1,5 +1,5 @@
 import type { ModerationLogger, ModerationOutboxEvent } from '../types.js';
-import type { ModerationOutboxHandler, OutboxService } from './service.js';
+import type { ModerationOutboxHandler, OutboxDrain } from './service.js';
 
 /**
  * The loop that drains the moderation outbox.
@@ -31,7 +31,7 @@ export class ModerationOutboxDispatcher {
 
   constructor(
     private readonly options: {
-      outbox: OutboxService;
+      outbox: OutboxDrain;
       handler: ModerationOutboxHandler;
       logger: ModerationLogger;
       enabled: boolean;

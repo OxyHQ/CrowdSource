@@ -1,10 +1,11 @@
-import type { ClientSession, Connection, Model } from 'mongoose';
+import type { ClientSession, Model } from 'mongoose';
 import type { ProcessedEventStore } from '@oxyhq/crowdsource-express';
 import {
   MODERATION_EVENT_RETENTION_SECONDS,
   type ModerationEventDocument,
 } from './models/index.js';
 import { decisionApplyEventId, type OutboxService } from './outbox/service.js';
+import type { ModerationTransactionRunner } from './store/types.js';
 
 /**
  * What happens between "a signed decision arrived" and "2xx".
@@ -23,12 +24,6 @@ import { decisionApplyEventId, type OutboxService } from './outbox/service.js';
  * and queued" or "neither", and "neither" releases the claim and gets
  * redelivered.
  */
-
-const TRANSACTION_OPTIONS = {
-  readPreference: 'primary' as const,
-  readConcern: { level: 'snapshot' as const },
-  writeConcern: { w: 'majority' as const },
-};
 
 function isDuplicateKeyError(error: unknown): boolean {
   return (
@@ -128,26 +123,13 @@ export interface InboundService {
 }
 
 export function createInboundService(input: {
-  connection: Connection;
+  transaction: ModerationTransactionRunner<ClientSession>;
   model: Model<ModerationEventDocument>;
-  outbox: OutboxService;
+  outbox: OutboxService<ClientSession>;
 }): InboundService {
-  const inTransaction = async (
-    operation: (session: ClientSession) => Promise<void>,
-  ): Promise<void> => {
-    const session = await input.connection.startSession();
-    try {
-      await session.withTransaction(async () => {
-        await operation(session);
-      }, TRANSACTION_OPTIONS);
-    } finally {
-      await session.endSession();
-    }
-  };
-
   return {
     async recordDecisionEvent(event) {
-      await inTransaction(async (session) => {
+      await input.transaction.run(async (session) => {
         const now = new Date();
         await input.model.updateOne(
           { _id: event.eventId },

@@ -35,7 +35,8 @@
  *
  * 1. Nothing can be enqueued that is not already recorded in the outbox, in the
  *    same transaction. {@link ModerationOutboxTransactionError} is thrown by the
- *    only writer of that collection when its session is not in a transaction.
+ *    only writer of that collection when the transaction it was handed is not
+ *    open.
  * 2. The webhook receiver reads raw bytes. Mounted after a JSON parser it
  *    refuses rather than verifying a signature over a re-serialisation.
  *
@@ -78,8 +79,23 @@ export {
 export type {
   ModerationOutboxFailure,
   ModerationOutboxHandler,
+  OutboxDrain,
   OutboxService,
 } from './outbox/service.js';
+
+export type {
+  ModerationEnforcementInsert,
+  ModerationEnforcementKey,
+  ModerationEnforcementStore,
+  ModerationEventStore,
+  ModerationOutboxStore,
+  ModerationReportDecisionUpdate,
+  ModerationReportInsert,
+  ModerationReportRef,
+  ModerationReportStore,
+  ModerationStore,
+  ModerationTransactionRunner,
+} from './store/types.js';
 
 export { ModerationOutboxDispatcher } from './outbox/dispatcher.js';
 export { ModerationReconciliationJob } from './reconciliation.js';

@@ -1,6 +1,7 @@
-import type { ClientSession, Connection, Model } from 'mongoose';
+import type { ClientSession, Model } from 'mongoose';
 import type { SubjectRegistry } from './evidence.js';
 import { reportSubmitEventId, type OutboxService } from './outbox/service.js';
+import type { ModerationTransactionRunner } from './store/types.js';
 import type {
   CreateReportInput,
   CreateReportResult,
@@ -32,12 +33,6 @@ import type {
  * values and why the absent route is written down as a reason rather than
  * inferred from a missing row.
  */
-
-const TRANSACTION_OPTIONS = {
-  readPreference: 'primary' as const,
-  readConcern: { level: 'snapshot' as const },
-  writeConcern: { w: 'majority' as const },
-};
 
 export class DuplicateReportError<TReport> extends Error {
   readonly existing: TReport;
@@ -86,25 +81,6 @@ function localOnlyReason(reportedType: string): string {
   );
 }
 
-async function inTransaction<T>(
-  connection: Connection,
-  operation: (session: ClientSession) => Promise<T>,
-): Promise<T> {
-  const session = await connection.startSession();
-  let result: T | undefined;
-  try {
-    await session.withTransaction(async () => {
-      result = await operation(session);
-    }, TRANSACTION_OPTIONS);
-    if (result === undefined) {
-      throw new Error('Report intake transaction completed without a result');
-    }
-    return result;
-  } finally {
-    await session.endSession();
-  }
-}
-
 /**
  * Store the report, and queue its delivery in the same transaction.
  *
@@ -128,10 +104,10 @@ async function inTransaction<T>(
  * all.
  */
 export function createIntake<TReport extends ModerationReportFields>(input: {
-  connection: Connection;
+  transaction: ModerationTransactionRunner<ClientSession>;
   reportModel: Model<TReport>;
   registry: SubjectRegistry;
-  outbox: OutboxService;
+  outbox: OutboxService<ClientSession>;
 }): (report: CreateReportInput) => Promise<CreateReportResult<TReport>> {
   return async (report) => {
     const reporter = requireIdentifier(report.reporter, 'reporter');
@@ -145,7 +121,7 @@ export function createIntake<TReport extends ModerationReportFields>(input: {
     }
     const deliverable = input.registry.providerFor(reportedType) !== undefined;
 
-    return await inTransaction(input.connection, async (session) => {
+    return await input.transaction.run(async (session) => {
       const existing = await input.reportModel
         .findOne({ reporter, reportedId, reportedType })
         .session(session)

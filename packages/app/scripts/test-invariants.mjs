@@ -35,13 +35,27 @@ const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const MUTATIONS = [
   {
     name: 'the outbox may be written outside a transaction',
-    file: 'src/outbox/service.ts',
+    // The guard is the STORE's: only a backend knows what an open transaction
+    // looks like. The error it throws still belongs to the shared half, so both
+    // backends refuse the same mistake the same way.
+    file: 'src/mongoose/store/outbox.ts',
     edits: [
       {
         find: `      if (!session.inTransaction()) {
-        throw new ModerationOutboxTransactionError(enqueueInput.eventId);
+        throw new ModerationOutboxTransactionError(event.eventId);
       }
 `,
+        replace: '',
+      },
+      /**
+       * The import goes with it. Now that the error is DECLARED in the shared
+       * half and IMPORTED by each store, deleting the guard alone leaves an
+       * unused import and `noUnusedLocals` fails the mutated tree — which this
+       * script correctly refuses to read as evidence about the guard. Deleting
+       * both is also what removing the guard actually looks like.
+       */
+      {
+        find: `import { ModerationOutboxTransactionError } from '../../outbox/service.js';\n`,
         replace: '',
       },
     ],
@@ -70,7 +84,7 @@ const MUTATIONS = [
      * is not a degradation — no report can be filed at all.
      */
     name: 'the enqueue lets Mongoose add its timestamps on top of the explicit ones',
-    file: 'src/outbox/service.ts',
+    file: 'src/mongoose/store/outbox.ts',
     edits: [{ find: `{ upsert: true, session, timestamps: false }`, replace: `{ upsert: true, session }` }],
     // The full options literal, not the bare flag: the flag also appears in the
     // doc comment above, so a substring marker would report "still present" for
@@ -87,9 +101,9 @@ const MUTATIONS = [
      * into a real write that conflicts with a live lease.
      */
     name: 'the enqueue writes on a repeated event instead of being a no-op',
-    file: 'src/outbox/service.ts',
+    file: 'src/mongoose/store/outbox.ts',
     edits: [
-      { find: `            createdAt: now,\n            updatedAt: now,\n`, replace: '' },
+      { find: `            createdAt: event.now,\n            updatedAt: event.now,\n`, replace: '' },
       { find: `{ upsert: true, session, timestamps: false }`, replace: `{ upsert: true, session }` },
     ],
     // The full options literal, not the bare flag: the flag also appears in the
