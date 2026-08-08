@@ -123,13 +123,24 @@ jobs:
             # an absent check is indistinguishable from a passing one.
             command: bun run --cwd packages/app test:unit -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/app-tests.json" && bun run --cwd packages/app test:invariants && bun run --cwd packages/app test:table-type
             build: bun run build:contracts && bun run --cwd packages/sdk build && bun run --cwd packages/sdk-express build && bun run --cwd packages/testing build
-            minimum_tests: 48
-            # The package's schema tests run against a REAL Postgres: a fake
-            # cannot answer a `pg_index` query, and the checks that matter here
-            # (is the swept column indexed, does the composite primary key exist)
-            # are catalogue questions. Started from the SAME compose file a
-            # developer uses, so the version CI tests against cannot drift from
-            # the version they do.
+            # 140, and the number is doing two jobs. Sized to catch a COLLAPSE
+            # rather than a deletion, like its siblings — but the suite now runs
+            # 161 tests as `describe.each` over two backends, 122 of them per
+            # backend, so a floor above 122 ALSO catches the failure that is
+            # invisible from the outside: one backend silently dropping out and
+            # the run still reporting green. A floor of 85 would not.
+            minimum_tests: 140
+            # The schema and store tests run against a REAL Postgres: a fake
+            # cannot answer a `pg_index` query, and the questions that matter here
+            # (is the swept column indexed, does the composite primary key exist,
+            # does SKIP LOCKED skip) are catalogue and concurrency questions.
+            #
+            # Started from the SAME compose file a developer uses, deliberately,
+            # rather than from a `services:` block. A `services:` block is
+            # job-level and cannot be conditional on a matrix value, so it would
+            # start a container for all nine entries including the two frontends —
+            # and it would restate the image pin, giving CI and a developer two
+            # places to disagree about the version under test.
             postgres: true
           # The console has no coverage threshold of its own yet, so it runs the plain
           # suite: a `coverage: true` entry whose package publishes no summary would fail

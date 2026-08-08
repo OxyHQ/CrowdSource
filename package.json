@@ -23,7 +23,7 @@
     "check:lockfile": "bun ./scripts/check-lockfile-sync.mjs",
     "check:injection-sinks": "bun ./scripts/check-injection-sinks.mjs --min-files=200",
     "doctor": "bun ./scripts/doctor.mjs",
-    "check": "bun run doctor && bun run validate:workflows && bun run audit:security && bun run check:injection-sinks && bun run check:peers && bun run build && bun run check:dist && bun run check:schemas && bun run check:module-format && bun run --cwd packages/reviewer typecheck && bun run --cwd packages/console typecheck && bun run lint",
+    "check": "bun run doctor && bun run validate:workflows && bun run audit:security && bun run check:injection-sinks && bun run check:peers && bun run build && bun run check:dist && bun run check:migrations && bun run check:schemas && bun run check:module-format && bun run --cwd packages/reviewer typecheck && bun run --cwd packages/console typecheck && bun run lint",
     "test": "bun run test:contracts && bun run test:backend && bun run test:sdk && bun run test:testing && bun run test:sdk-express && bun run test:app && bun run test:reviewer && bun run test:console",
     "test:contracts": "bun run --cwd packages/contracts test",
     "test:backend": "bun run --cwd packages/backend test",
@@ -53,7 +53,8 @@
     "check:peers": "bun ./scripts/check-peer-contracts.mjs && bun ./scripts/test-check-peer-contracts.mjs",
     "check:dist": "bun ./scripts/check-dist-orphans.mjs && bun ./scripts/test-check-dist-orphans.mjs",
     "check:schemas": "bun ./scripts/test-check-published-json-schemas.mjs && bun ./scripts/check-published-json-schemas.mjs",
-    "check:module-format": "bun ./scripts/check-module-format.mjs && bun ./scripts/test-check-module-format.mjs"
+    "check:module-format": "bun ./scripts/check-module-format.mjs && bun ./scripts/test-check-module-format.mjs",
+    "check:migrations": "bun ./scripts/check-published-migrations.mjs && bun ./scripts/test-check-published-migrations.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

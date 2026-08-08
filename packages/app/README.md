@@ -29,11 +29,12 @@ webhook answering `400 malformed_event`, which reads as a delivery problem.
 
 ## Storage is a subpath
 
-The root entry is storage-free. Everything MongoDB-shaped — the schema fields
-you compose into your own report model, the indexes its queries depend on, the
-three collections this package owns, and the store the integration is wired with
-— is behind `@oxyhq/crowdsource-app/mongoose`:
+The root entry is storage-free. Everything driver-shaped lives behind a subpath —
+`@oxyhq/crowdsource-app/mongoose` or `@oxyhq/crowdsource-app/postgres` — and an
+adopting application picks its storage by which one it imports. The pipeline above
+is identical either way.
 
+### MongoDB
 ```ts
 import { createModerationIntegration } from '@oxyhq/crowdsource-app';
 import {
@@ -73,20 +74,119 @@ and your backend's transaction type from `store`, and your action union from
 `enforcement`. TypeScript has no partial explicit type arguments, so naming one
 would mean naming all three.
 
-This example is compiled and constructed by
-`src/__tests__/configTypeErgonomics.test.ts`, which is the only way a documented
-example stays true: nothing else ever executes one.
+**Both examples above are compiled and constructed by
+`src/__tests__/configTypeErgonomics.test.ts`**, which is the only way a documented
+example stays true — nothing else ever executes one, so an example is the one part
+of a package that can decay without anything failing. That file caught this
+README calling `moderation.store.ensureSchema()` against an integration that
+deliberately exposes no store, minutes after it was written.
 
-`mongoose` (8 or 9) is therefore an **optional** peer: a deployment that does not
-import that subpath never installs it, and a bundler never has to resolve it.
-Import the subpath without `mongoose` present and it fails at the import, by
-name — rather than as a driver quietly missing at the first write.
+Every driver is an **optional** peer — `mongoose` (8 or 9) for one subpath,
+`drizzle-orm`, `postgres` and `@oxyhq/db` for the other. A deployment installs
+only the ones its own subpath needs, and a bundler never has to resolve the rest.
+Import a subpath without its driver present and it fails at the import, by name,
+rather than as a driver quietly missing at the first write. (`postgres` is
+`@oxyhq/db`'s peer rather than anything this package calls; it is listed so the
+transitive requirement is visible at install time.)
 
-`@oxyhq/db`, `drizzle-orm` and `postgres` are declared as optional peers for the
-PostgreSQL half. **This version imports none of them**; they are listed so the
-requirement is visible at install time rather than at first import, and
-`postgres` in particular is `@oxyhq/db`'s own peer rather than anything this
-package calls.
+
+### PostgreSQL
+
+```ts
+import { createModerationIntegration } from '@oxyhq/crowdsource-app';
+import {
+  moderationTables,
+  moderationReportColumns,
+  moderationReportTableExtras,
+  postgresModerationStore,
+} from '@oxyhq/crowdsource-app/postgres';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+
+// Declared ONCE and passed to both halves, so the columns and their CHECK
+// constraints cannot drift apart.
+const REPORT_MODERATION = {
+  reportedTypes: ['listing', 'review'],
+  categories: ['spam', 'harassment'],
+};
+
+// Your own table: our columns spread into it, plus whatever it already had.
+export const reports = pgTable(
+  'reports',
+  {
+    ...moderationReportColumns(REPORT_MODERATION),
+    legacyStatus: text('legacy_status'),
+  },
+  moderationReportTableExtras(REPORT_MODERATION),
+);
+
+// The three tables this package owns. Re-export them from your schema so YOUR
+// drizzle-kit run generates their DDL, in YOUR journal.
+export const moderation = moderationTables({
+  enforcementActions: commerceEnforcement.actions,
+});
+
+const store = postgresModerationStore({ db, reportTable: reports, tables: moderation });
+```
+
+## The four things you supply
+
+| | MongoDB | PostgreSQL |
+|---|---|---|
+| your nouns | `subjects: [...]` — the same on both | |
+| your categories | `taxonomy` — the same on both | |
+| what you can do about a decision | `enforcement` — the same on both | |
+| **your report storage** | `moderationReportSchemaFields()` spread into your Mongoose schema, `applyModerationReportIndexes()` on it, `mongooseModerationStore({ connection, reportModel, … })` | `moderationReportColumns()` spread into your drizzle `pgTable`, `moderationReportTableExtras()` as its third argument, `postgresModerationStore({ db, reportTable, tables })` |
+| **the three tables we own** | created on first write; `store.ensureSchema()` builds their indexes | **`moderationTables()` returns drizzle tables you re-export from your schema, and YOUR `drizzle-kit generate` produces the DDL**; `store.ensureSchema()` only asserts they exist |
+
+**That last row is the only genuinely new obligation, and it is unavoidable.**
+Mongo creates a collection on first write; Postgres needs DDL, and DDL needs a
+migration. **This package ships no migrations folder** and never will: a library's
+journal and an adopter's journal interleave in one
+`drizzle.__drizzle_migrations` table, and the loser is skipped **silently, with
+exit 0**. You generate the SQL, you own the ledger.
+
+## Two registries you must merge — neither is optional
+
+Both are fragments, not registries: they name this package's tables, so you spread
+them into the ones you already keep.
+
+```ts
+import {
+  moderationExpirySweepTargets,
+  moderationIdColumnsWithoutForeignKey,
+} from '@oxyhq/crowdsource-app/postgres';
+
+export const EXPIRY_SWEEP_TARGETS = [
+  ...myOwnTargets,
+  ...moderationExpirySweepTargets(moderation),
+];
+
+export const ID_COLUMNS_WITHOUT_FOREIGN_KEY = [
+  ...myOwnUnclassified,
+  ...moderationIdColumnsWithoutForeignKey({ tables: moderation, reportTable: reports }),
+];
+```
+
+**The expiry one fails silently; the id one fails loudly.** Postgres has no TTL
+index, so a table registered nowhere simply grows forever — no error, no failing
+test, no symptom until disk. The eight id columns, by contrast, fail your own
+inherited `findIdColumnViolations` gate as `unclassified_id_column` on the day you
+adopt; shipping the fragment is what stops you writing eight reasons by guessing.
+
+### What sweeping the outbox costs you, stated because a registry entry with no such note reads as "unconditionally safe"
+
+**The outbox is a TTL'd table that holds unprocessed WORK.** A stalled dispatcher
+plus a sweep discards moderation work that was never delivered. The retention
+window is ninety days, which is what makes that a documented consequence rather
+than a hazard — but `dead_letter` rows, the ones a human still has to look at, sit
+inside the same window and are swept on the same schedule. **Alert on
+`dead_letter` and on outbox depth long before ninety days**; the sweep is the
+backstop for a table nobody drained, not a queue policy.
+
+The event log is the milder case: CrowdSource's retry schedule ends at 24 hours,
+so a row deleted after ninety days cannot resurrect a duplicate delivery. What it
+costs is the answer to "did CrowdSource tell us about this case, and when", which
+is the first question asked when a report looks stuck.
 
 ### If you saw `Dynamic require of "zod" is not supported`
 
@@ -118,7 +218,9 @@ every declared export entry resolves `import` to real ESM and `require` to real
 CommonJS, that the two are different files, that the `{"type":"module"}` marker
 governing the ESM half exists, and that no package has silently LOST a subpath.
 It reads manifests and build output only — it does not read this file, and it
-cannot install anything. **Two things it therefore cannot do**, so they belong
+cannot install anything. `check:migrations` packs each published package and
+fails on any migration file in the tarball, which is the one arrangement here
+that a helpful edit can undo without breaking anything locally. **Two things it therefore cannot do**, so they belong
 here, and they must be run per subpath:
 
 ```bash
@@ -129,12 +231,14 @@ mkdir -p /tmp/esm-check && cd /tmp/esm-check && echo '{"name":"c","private":true
 bun add <path-to>/oxyhq-crowdsource-app-*.tgz @oxyhq/crowdsource-contracts mongoose express
 node --input-type=module -e "import('@oxyhq/crowdsource-app').then(m => console.log(Object.keys(m).length))"
 node --input-type=module -e "import('@oxyhq/crowdsource-app/mongoose').then(m => console.log(Object.keys(m).length))"
+node --input-type=module -e "import('@oxyhq/crowdsource-app/postgres').then(m => console.log(Object.keys(m).length))"
 node -e "console.log(Object.keys(require('@oxyhq/crowdsource-app/mongoose')).length)"
+node -e "console.log(Object.keys(require('@oxyhq/crowdsource-app/postgres')).length)"
 
 # 2. An esbuild ESM consumer must work with THIS PACKAGE INLINED. Externalise
 #    the driver, never `@oxyhq/*` — see below.
 npx esbuild entry.mjs --bundle --platform=node --format=esm --outfile=out.mjs \
-  --external:mongoose --external:mongodb --external:express
+  --external:mongoose --external:mongodb --external:postgres --external:express
 node out.mjs
 ```
 
@@ -157,9 +261,22 @@ and only that class is ours to fix.
 
 ## Requirements
 
-**MongoDB must be a replica set or a sharded cluster.** Multi-document
-transactions do not exist on a standalone, and the first intake is where you would
-find out. Assert the topology at boot.
+**On MongoDB: a replica set or a sharded cluster.** Multi-document transactions do
+not exist on a standalone, and the first intake is where you would find out —
+because a report and its delivery event commit together or not at all. Assert the
+topology at boot rather than discovering it from a user's failed report.
+
+**On PostgreSQL: nothing.** That precondition disappears entirely — the same
+guarantee is one `BEGIN … COMMIT` on one pooled connection, which every Postgres
+has — so there is no topology to assert and no boot-time check to write. Postgres
+9.5+ for `ON CONFLICT`, which is every supported version.
+
+One consequence worth stating because it is easy to read as a difference and is
+not: neither backend serializes intake's duplicate-check-then-insert. Mongo's
+snapshot isolation does not prevent that phantom and READ COMMITTED does not
+either. **"One report per reporter per object" is your unique index to declare**,
+on either backend; the check here answers the ordinary case with a readable error
+rather than a constraint violation.
 
 ## Testing your integration
 
@@ -170,17 +287,28 @@ copy — report → intake transaction → dispatcher → real client → sandbo
 webhook over a real socket → decision worker → your `apply`, with nothing between
 those steps stubbed.
 
-Run it against a real replica set (`mongodb-memory-server`), not a mocked driver.
-A mocked driver can be made to agree with any claim about transactions and unique
-indexes, which is exactly why it must not be the thing they are tested against.
+Run it against a real database — a real replica set (`mongodb-memory-server`) or a
+real Postgres — never a mocked driver or an in-memory Postgres emulator. A fake
+can be made to agree with any claim about transactions, unique indexes,
+`SKIP LOCKED` or an index's existence, which is exactly why it must not be the
+thing they are tested against. This package's own suite runs every storage
+assertion twice, once per backend, from one set of test bodies.
 
 ## What you do not write
 
-The outbox model, service and dispatcher; the delivery worker; the decision
+The outbox table, service and dispatcher; the delivery worker; the decision
 worker; the inbound service; the webhook receiver; the cross-instance dedupe
 store; the CrowdSource client; reconciliation; the enforcement claim, mode gate,
 reversal lookup and audit row; the enforcement planning algorithm; the
 `localStatus` mapping.
+
+And, on Postgres specifically: the `SKIP LOCKED` claim, the `ON CONFLICT DO
+NOTHING` enqueue, the revision guard's `IS NULL` arm, the composite primary key
+that IS the idempotency key, and the expiry sweep targets that replace Mongo's
+TTL indexes. Every one of those is a line somebody would otherwise write once per
+adopter, and each has a failure mode that is silent: a queue draining at 1/N the
+rate, a repeated enqueue aborting its own transaction, a first decision matching
+no rows, a redelivered decision acting twice, and a table that grows forever.
 
 ## License
 
