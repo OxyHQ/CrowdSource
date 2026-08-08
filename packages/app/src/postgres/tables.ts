@@ -11,6 +11,11 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import type {
+  ModerationOutboxKind,
+  ModerationOutboxPayload,
+  ModerationOutboxStatus,
+} from '../types.js';
 
 /**
  * The three tables this package owns, in Postgres.
@@ -124,7 +129,12 @@ export function moderationTables(options: { enforcementActions: readonly string[
        * the report or the inbound event.
        */
       id: text('id').primaryKey(),
-      kind: text('kind').notNull(),
+      /**
+       * `$type` on the closed sets, so a row read back is typed as the union the
+       * CHECK already enforces rather than as a bare `string` the store would
+       * have to assert. TypeScript-only: it changes no DDL.
+       */
+      kind: text('kind').$type<ModerationOutboxKind>().notNull(),
       /**
        * The payload, stored whole and opaque.
        *
@@ -133,8 +143,8 @@ export function moderationTables(options: { enforcementActions: readonly string[
        * It is validated against the published contract when it is READ, so an
        * event is never lost to a schema this deployment has not caught up with.
        */
-      payload: jsonb('payload').notNull(),
-      status: text('status').notNull().default('pending'),
+      payload: jsonb('payload').$type<ModerationOutboxPayload>().notNull(),
+      status: text('status').$type<ModerationOutboxStatus>().notNull().default('pending'),
       /** Counted by the claim; the retry ceiling reads it. */
       attempts: integer('attempts').notNull().default(0),
       availableAt: timestamptz().notNull(),

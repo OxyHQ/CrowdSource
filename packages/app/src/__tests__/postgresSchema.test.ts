@@ -24,18 +24,18 @@
  * and something has to prove the two spellings still agree.
  */
 
-import { resolve } from 'node:path';
 import { sql } from 'drizzle-orm';
-import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDatabase, executeRows, sqlColumnName, type OxyDatabase } from '@oxyhq/db';
+import { executeRows, sqlColumnName } from '@oxyhq/db';
 import {
   findIdColumnViolations,
   findSchemaInvariantViolations,
   findUnsupportedExpiryColumns,
 } from '@oxyhq/db/assert';
-import { runMigrations } from '@oxyhq/db/migrate';
-import { createTestDatabase, dropTestDatabase } from '@oxyhq/db/testing';
+import {
+  createPostgresTestDatabase,
+  type PostgresTestDatabase,
+} from './support/postgres/database.js';
 import {
   MODERATION_ENFORCEMENT_COLLECTION,
   MODERATION_EVENT_COLLECTION,
@@ -58,8 +58,6 @@ import * as schema from './support/postgres/schema.js';
  */
 const TABLE_COUNT = 5;
 const COLUMN_COUNT = 71;
-
-const MIGRATIONS_FOLDER = resolve(__dirname, 'support/postgres/migrations');
 
 /** Every column name, per table, as the catalogue must hold it. */
 const EXPECTED_COLUMNS: Readonly<Record<string, readonly string[]>> = {
@@ -140,46 +138,20 @@ const EXPECTED_COLUMNS: Readonly<Record<string, readonly string[]>> = {
 const PACKAGE_TABLES = [schema.moderationOutbox, schema.moderationEvents, schema.moderationEnforcements];
 const ALL_TABLES = [...PACKAGE_TABLES, schema.reports, schema.widgets];
 
-type Schema = typeof schema;
-
-let databaseUrl: string | null = null;
-let client: postgres.Sql | null = null;
-let db: OxyDatabase<Schema> | null = null;
+let testDatabase: PostgresTestDatabase | null = null;
 
 beforeAll(async () => {
-  databaseUrl = await createTestDatabase({
-    adminUrl: process.env.CROWDSOURCE_APP_TEST_POSTGRES_URL,
-    migrate: async (url) =>
-      await runMigrations({
-        databaseUrl: url,
-        migrationsFolder: MIGRATIONS_FOLDER,
-        // Nothing in the moderation tables needs an extension: no PostGIS, no
-        // pg_trgm. `CREATE EXTENSION` is a privileged statement on RDS, so a
-        // package that needed one would make itself an infrastructure change.
-        extensions: [],
-        run: 'all',
-        dryRun: false,
-        logger: { info: () => undefined, debug: () => undefined },
-      }),
-  });
-  const built = createDatabase<Schema>({ databaseUrl, schema });
-  db = built.db;
-  client = built.client;
+  testDatabase = await createPostgresTestDatabase();
 });
 
 afterAll(async () => {
-  await client?.end();
-  client = null;
-  db = null;
-  if (databaseUrl !== null) {
-    await dropTestDatabase(databaseUrl);
-    databaseUrl = null;
-  }
+  await testDatabase?.close();
+  testDatabase = null;
 });
 
-function database(): OxyDatabase<Schema> {
-  if (db === null) throw new Error('the throwaway database was not created');
-  return db;
+function database(): PostgresTestDatabase['db'] {
+  if (testDatabase === null) throw new Error('the throwaway database was not created');
+  return testDatabase.db;
 }
 
 describe('the migrated schema', () => {
