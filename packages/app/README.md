@@ -145,6 +145,30 @@ journal and an adopter's journal interleave in one
 `drizzle.__drizzle_migrations` table, and the loser is skipped **silently, with
 exit 0**. You generate the SQL, you own the ledger.
 
+### Stamping your own metadata on every report
+
+`taxonomy.metadata` is optional and stamped on every report you send, under
+this package's own `taxonomyVersion` and `categories` — an entry using either
+of those names is ignored rather than shadowing them, because a case has to be
+readable back against the mapping that produced it.
+
+```ts
+taxonomy: {
+  version: '2026.07',
+  allegationsFor,
+  // A jury that can see material exists which it was not given can then answer
+  // `insufficient_context` for the right reason instead of guessing.
+  metadata: { evidenceAttachmentsSupported: false },
+},
+```
+
+**Set it once and leave it.** Metadata rides in the `ReportInput`, the SDK
+derives the case envelope from it, and ingress fingerprints that envelope to
+detect "same external id, different body" — so changing it changes the envelope,
+and a report still being retried across that change gets a permanent 409. That
+is also why the field is opt-in: an adopter who sets nothing emits exactly what
+it emitted before the field existed.
+
 ## Two registries you must merge — neither is optional
 
 Both are fragments, not registries: they name this package's tables, so you spread
