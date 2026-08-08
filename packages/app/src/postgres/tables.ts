@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
 import type {
+  EnforcementPreviousState,
   ModerationOutboxKind,
   ModerationOutboxPayload,
   ModerationOutboxStatus,
@@ -287,8 +288,13 @@ export function moderationTables(options: { enforcementActions: readonly string[
       /** Why an action was recorded but not carried out. */
       skippedReason: varchar('skipped_reason', { length: 300 }),
 
-      /** What to put back on a reversal. Only set for an action that changed state. */
-      previousState: jsonb('previous_state'),
+      /**
+       * What to put back on a reversal. Only set for an action that changed
+       * state, so NULL here means "this action displaced nothing" — which is a
+       * different claim from "we did not look", and is why the reversal lookup
+       * filters on `applied` rather than reading whichever row is newest.
+       */
+      previousState: jsonb('previous_state').$type<EnforcementPreviousState>(),
 
       createdAt: createdAt(),
       updatedAt: updatedAt(),
