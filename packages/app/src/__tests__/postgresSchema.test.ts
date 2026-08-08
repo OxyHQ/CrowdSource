@@ -53,11 +53,15 @@ import * as schema from './support/postgres/schema.js';
  *
  * A floor pulled from the air is a floor that never rises, and a traversal that
  * silently examined nothing clears it. These two numbers are the whole schema:
- * five tables (three this package owns, the application's report table, and its
- * widgets) and the 71 columns across them.
+ * six tables (three this package owns, two applications' report tables, and the
+ * first application's widgets) and the 94 columns across them.
+ *
+ * They RISE when the schema grows — the second report table arrived with Task 11
+ * and these moved with it. A minimum left behind is a check that stopped
+ * checking.
  */
-const TABLE_COUNT = 5;
-const COLUMN_COUNT = 71;
+const TABLE_COUNT = 6;
+const COLUMN_COUNT = 94;
 
 /** Every column name, per table, as the catalogue must hold it. */
 const EXPECTED_COLUMNS: Readonly<Record<string, readonly string[]>> = {
@@ -107,6 +111,31 @@ const EXPECTED_COLUMNS: Readonly<Record<string, readonly string[]>> = {
     'subject_type',
     'updated_at',
   ],
+  review_only_reports: [
+    'categories',
+    'content_snapshot_hash',
+    'created_at',
+    'crowdsource_case_id',
+    'crowdsource_merged',
+    'crowdsource_report_id',
+    'decided_at',
+    'decision_id',
+    'decision_outcome',
+    'decision_revision',
+    'decision_status',
+    'details',
+    'enforced_action',
+    'enforced_at',
+    'id',
+    'last_delivery_error',
+    'local_status',
+    'local_status_reason',
+    'reported_id',
+    'reported_type',
+    'reporter',
+    'submitted_at',
+    'updated_at',
+  ],
   moderation_reports: [
     'categories',
     'content_snapshot_hash',
@@ -136,7 +165,12 @@ const EXPECTED_COLUMNS: Readonly<Record<string, readonly string[]>> = {
 };
 
 const PACKAGE_TABLES = [schema.moderationOutbox, schema.moderationEvents, schema.moderationEnforcements];
-const ALL_TABLES = [...PACKAGE_TABLES, schema.reports, schema.widgets];
+const ALL_TABLES = [
+  ...PACKAGE_TABLES,
+  schema.reports,
+  schema.reviewOnlyReports,
+  schema.widgets,
+];
 
 let testDatabase: PostgresTestDatabase | null = null;
 
@@ -218,6 +252,19 @@ describe('the registry fragments an adopter merges', () => {
             tables: schema.moderation,
             reportTable: schema.reports,
           }),
+          /**
+           * The SECOND application's report table, asked for by name. The four
+           * report entries embed the table they belong to, so a deployment with
+           * two report tables merges the fragment twice — which is what makes it
+           * a fragment rather than a registry.
+           *
+           * Only the report half repeats: the three tables this package owns are
+           * shared, and their four entries are already above.
+           */
+          ...moderationIdColumnsWithoutForeignKey({
+            tables: schema.moderation,
+            reportTable: schema.reviewOnlyReports,
+          }).filter((entry) => entry.column.startsWith('review_only_reports.')),
           /**
            * The APPLICATION's own entry, alongside the package's eight. This is
            * how the fragment is meant to compose — and `widgets.owner_id` is the

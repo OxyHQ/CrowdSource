@@ -22,10 +22,12 @@ const CJS = '"use strict";\nconst zod = require("zod");\nexports.schema = zod.z.
 /**
  * A tree that must pass: both formats, each condition on the right one.
  *
- * `app` publishes a SUBPATH as well, because the real one does. Its ESM entry
- * sits a directory deeper than the `{"type":"module"}` marker — which is
- * correct, and is what Node resolves by walking upward — so a healthy tree that
- * had only root entries would leave that path unexercised.
+ * `app` publishes two SUBPATHS as well, because the real one does — one per
+ * storage backend. Their ESM entries sit a directory deeper than the
+ * `{"type":"module"}` marker, which is correct and is what Node resolves by
+ * walking upward, so a healthy tree with only root entries would leave that path
+ * unexercised. The count also has to match the per-package floor: a fixture with
+ * fewer entries than the real manifest fails the tree it exists to accept.
  */
 function healthyTree() {
   const tree = Object.fromEntries(
@@ -52,14 +54,16 @@ function healthyTree() {
       },
     ]),
   );
-  tree.app.manifest.exports["./mongoose"] = {
-    types: "./dist/mongoose/index.d.ts",
-    import: "./dist/esm/mongoose/index.js",
-    require: "./dist/mongoose/index.js",
-    default: "./dist/mongoose/index.js",
-  };
-  tree.app.files["dist/mongoose/index.js"] = CJS;
-  tree.app.files["dist/esm/mongoose/index.js"] = ESM;
+  for (const backend of ["mongoose", "postgres"]) {
+    tree.app.manifest.exports[`./${backend}`] = {
+      types: `./dist/${backend}/index.d.ts`,
+      import: `./dist/esm/${backend}/index.js`,
+      require: `./dist/${backend}/index.js`,
+      default: `./dist/${backend}/index.js`,
+    };
+    tree.app.files[`dist/${backend}/index.js`] = CJS;
+    tree.app.files[`dist/esm/${backend}/index.js`] = ESM;
+  }
   return tree;
 }
 

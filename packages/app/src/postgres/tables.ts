@@ -13,6 +13,7 @@ import {
 import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
 import type {
   EnforcementPreviousState,
+  ModerationEnforcementMode,
   ModerationOutboxKind,
   ModerationOutboxPayload,
   ModerationOutboxStatus,
@@ -85,7 +86,11 @@ const ENFORCEMENT_TABLE = 'moderation_enforcements';
 const OUTBOX_KINDS = ['report.submit', 'decision.apply'] as const;
 const OUTBOX_STATUSES = ['pending', 'processing', 'processed', 'dead_letter'] as const;
 const EVENT_STATES = ['claimed', 'queued', 'ignored'] as const;
-const ENFORCEMENT_MODES = ['observe', 'manual', 'automatic'] as const;
+const ENFORCEMENT_MODES = [
+  'observe',
+  'manual',
+  'automatic',
+] as const satisfies readonly ModerationEnforcementMode[];
 
 /**
  * Build the three tables.
@@ -213,7 +218,7 @@ export function moderationTables(options: { enforcementActions: readonly string[
       type: text('type'),
       caseId: text('case_id'),
       payload: jsonb('payload'),
-      state: text('state').notNull().default('claimed'),
+      state: text('state').$type<(typeof EVENT_STATES)[number]>().notNull().default('claimed'),
       receivedAt: timestamptz().notNull(),
       queuedAt: timestamptz(),
       expiresAt: timestamptz().notNull(),
@@ -276,7 +281,7 @@ export function moderationTables(options: { enforcementActions: readonly string[
       /** Why this action, in words an operator can read. Never reported material. */
       reason: varchar('reason', { length: 500 }).notNull(),
 
-      mode: text('mode').notNull(),
+      mode: text('mode').$type<(typeof ENFORCEMENT_MODES)[number]>().notNull(),
       /**
        * Whether the effect was actually carried out.
        *

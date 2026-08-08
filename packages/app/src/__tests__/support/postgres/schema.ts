@@ -76,3 +76,25 @@ export const moderation = moderationTables({ enforcementActions: TEST_ACTIONS })
 export const moderationOutbox = moderation.outbox;
 export const moderationEvents = moderation.events;
 export const moderationEnforcements = moderation.enforcements;
+
+/**
+ * The SECOND fictional application's report table: an application with nothing to
+ * enforce with.
+ *
+ * Its own table rather than a reuse of `reports`, because its reportable types
+ * and categories are different and both are CHECK constraints — an `account`
+ * report would be refused by the table above. Which is the point being
+ * demonstrated: the moderation columns compose into whatever table an adopter
+ * already has, with its own enums, and the id-column ledger fragment is asked for
+ * that table by name.
+ */
+export const REVIEW_ONLY_MODERATION = {
+  reportedTypes: ['account', 'message'],
+  categories: ['harassment'],
+} as const;
+
+export const reviewOnlyReports = pgTable(
+  'review_only_reports',
+  { ...moderationReportColumns(REVIEW_ONLY_MODERATION) },
+  moderationReportTableExtras(REVIEW_ONLY_MODERATION),
+);

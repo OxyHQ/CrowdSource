@@ -17,10 +17,12 @@
  * whichever test used it.
  */
 
+import type { Decision, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 import type {
   EnforcementPreviousState,
   ModerationEnforcementConfig,
   ModerationEnforcementMode,
+  ModerationLogger,
   ModerationOutboxEvent,
   ModerationOutboxKind,
   ModerationOutboxPayload,
@@ -29,6 +31,7 @@ import type {
   ModerationSubjectProvider,
 } from '../../types.js';
 import type { ModerationIntegration } from '../../integration.js';
+import type { ReviewOnlyHarness } from './reviewOnlyApplication.js';
 
 /* ------------------------------------------------------------------------- */
 /* The fictional application                                                  */
@@ -60,6 +63,74 @@ export const TEST_ACTIONS: readonly TestAction[] = [
 export interface TestWidgetState {
   status: string;
   flagged: boolean;
+}
+
+/* ------------------------------------------------------------------------- */
+/* The half of the fictional application that has no driver in it              */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * These four are shared by both backends verbatim.
+ *
+ * A logger, a category mapping, a deliverable noun with no enforcement lever, and
+ * the legacy-verdict derivation — none of them touches storage, so a second copy
+ * per backend would be two chances for the fictional application to stop being
+ * one application. What each backend DOES supply for itself is the pair that
+ * reads and writes rows: the widget subject provider and the enforcement `apply`.
+ */
+
+export const recordingLogger = (
+  sink: Harness['logs'],
+): ModerationLogger => ({
+  info: (message, context) => void sink.push({ level: 'info', message, ...(context ? { context } : {}) }),
+  warn: (message, context) => void sink.push({ level: 'warn', message, ...(context ? { context } : {}) }),
+  error: (message, context) => void sink.push({ level: 'error', message, ...(context ? { context } : {}) }),
+});
+
+const CATEGORY_TO_ALLEGATION: Readonly<Record<string, TaxonomyCode>> = Object.freeze({
+  spam: 'integrity.spam',
+  harassment: 'harassment.targeted_abuse',
+  other: 'other.unclassifiable',
+});
+
+export function testTaxonomy(): {
+  version: string;
+  allegationsFor(categories: readonly string[]): readonly TaxonomyCode[];
+} {
+  return {
+    version: '2026.07',
+    allegationsFor(categories) {
+      const codes = new Set<TaxonomyCode>();
+      for (const category of categories) {
+        codes.add(CATEGORY_TO_ALLEGATION[category] ?? 'other.unclassifiable');
+      }
+      return Array.from(codes).sort();
+    },
+  };
+}
+
+export function doodadSubjectProvider(): ModerationSubjectProvider {
+  return {
+    reportedType: 'doodad',
+    subjectType: 'custom.test.doodad',
+    async snapshot(reportedId) {
+      return {
+        subject: { externalId: reportedId, type: 'custom.test.doodad' },
+        content: { type: 'text', data: { text: 'a reported doodad' } },
+      };
+    },
+  };
+}
+
+export function legacyStatusFor(decision: Decision): { legacyStatus: string } {
+  switch (decision.outcome) {
+    case 'violation':
+      return { legacyStatus: 'resolved' };
+    case 'no_violation':
+      return { legacyStatus: 'dismissed' };
+    default:
+      return { legacyStatus: 'reviewed' };
+  }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -229,8 +300,16 @@ export interface HarnessOptions {
   enforcement?: ModerationEnforcementConfig<TestAction>;
 }
 
-/** One storage backend, as the suite sees it. */
+/**
+ * One storage backend, as the suite sees it.
+ *
+ * TWO factories, because there are two fictional applications: the one with
+ * levers, and the one with nothing to enforce with. Both are storage shapes a
+ * backend has to be able to build, so both live here rather than one being
+ * reached through a side door.
+ */
 export interface ModerationBackend {
   readonly name: 'mongoose' | 'postgres';
   createHarness(options?: HarnessOptions): Promise<Harness>;
+  createReviewOnlyHarness(): Promise<ReviewOnlyHarness>;
 }

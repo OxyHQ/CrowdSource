@@ -1,16 +1,17 @@
-import { CrowdSource } from '@oxyhq/crowdsource';
-import { createCrowdSourceSandbox, type CrowdSourceSandbox } from '@oxyhq/crowdsource-testing';
 import mongoose, { Schema, type Connection } from 'mongoose';
-import { createModerationIntegration, type ModerationIntegration } from '../../integration.js';
 import {
   applyModerationReportIndexes,
   moderationReportSchemaFields,
 } from '../../mongoose/report.js';
 import { registerModerationModels } from '../../mongoose/models.js';
 import { mongooseModerationStore } from '../../mongoose/store/index.js';
-import type { ModerationEnforcementConfig, ModerationReportFields } from '../../types.js';
-import type { HarnessEnforcement, HarnessEvents } from './backend.js';
 import { mongooseEnforcementFacade, mongooseEventsFacade } from './harness.js';
+import {
+  REVIEW_ONLY,
+  reviewOnlyIntegration,
+  type ReviewOnlyHarness,
+  type ReviewOnlyReport,
+} from './reviewOnlyApplication.js';
 
 /**
  * A SECOND fictional application: one with nothing to enforce with.
@@ -21,54 +22,13 @@ import { mongooseEnforcementFacade, mongooseEventsFacade } from './harness.js';
  * and still closes its reports, and every one of those is a property somebody
  * would otherwise discover by adopting the package and finding nothing happens.
  *
- * It lives in `support/` rather than in the test file for the same reason the
- * main harness does: nothing about a driver belongs in a test body, and Task 11
- * gives this factory a Postgres twin.
+ * This file is its MONGO half: the connection, the report model and the row
+ * reads. Everything above the store — the enforcement table, the subject
+ * provider, the sandbox, the integration — is in `reviewOnlyApplication.ts`, so
+ * the two backends share one application rather than resembling each other.
  */
-
-export type ReviewOnlyAction = 'none' | 'review';
-export type ReviewOnlyReport = ModerationReportFields;
-
-/**
- * The whole enforcement config for an application with nothing to enforce with.
- *
- * Three fields. No `apply`, no `severityFallback`, no `precedence`, no `absorb`,
- * no `reversibleActions`, no `reverses` — and `restoreAction: null`, which the
- * type REQUIRES so that "there is nothing to restore" is a written decision
- * rather than a key somebody forgot.
- */
-export const REVIEW_ONLY: ModerationEnforcementConfig<ReviewOnlyAction> = {
-  actions: ['review', 'none'],
-  noneAction: 'none',
-  reviewAction: 'review',
-  restoreAction: null,
-};
 
 let counter = 0;
-
-/**
- * The signing secret this application's webhook receiver is configured with.
- *
- * Shared with the test file's simulator: a receiver and a simulator that
- * disagree about the secret produce `400 malformed_event`, which reads as a
- * delivery problem rather than a fixture one.
- */
-export const REVIEW_ONLY_WEBHOOK_SECRET = 'whsec_test_0123456789abcdef0123456789abcdef';
-
-/**
- * Its own small façade rather than the shared `Harness`, because it is a
- * different application: no widgets, no enforcement lever, its own report model.
- * It reads rows through the SAME façade builders, which is what keeps the
- * assertions in the test file free of a driver.
- */
-export interface ReviewOnlyHarness {
-  sandbox: CrowdSourceSandbox;
-  moderation: ModerationIntegration<ReviewOnlyReport, ReviewOnlyAction>;
-  readReport(id: string): Promise<ReviewOnlyReport | null>;
-  events: HarnessEvents;
-  enforcement: HarnessEnforcement;
-  close(): Promise<void>;
-}
 
 export async function createReviewOnlyHarness(): Promise<ReviewOnlyHarness> {
   const uri = process.env.CROWDSOURCE_APP_TEST_MONGODB_URI;
@@ -92,50 +52,12 @@ export async function createReviewOnlyHarness(): Promise<ReviewOnlyHarness> {
   applyModerationReportIndexes(ReportSchema);
   const reports = connection.model<ReviewOnlyReport>('Report', ReportSchema);
 
-  const sandbox = createCrowdSourceSandbox({ webhookSecret: REVIEW_ONLY_WEBHOOK_SECRET });
   const store = mongooseModerationStore<ReviewOnlyReport>({
     connection,
     reportModel: reports,
     enforcementActions: REVIEW_ONLY.actions,
   });
-  const moderation = createModerationIntegration({
-    store,
-    crowdSource: {
-      enabled: true,
-      serviceKey: sandbox.serviceKey,
-      baseUrl: sandbox.baseUrl,
-      webhookSecret: REVIEW_ONLY_WEBHOOK_SECRET,
-      // `automatic` deliberately: the point is that an application with no
-      // primitive applies nothing even when the mode permits everything.
-      enforcementMode: 'automatic',
-      outboxPollIntervalMs: 50,
-    },
-    subjects: [
-      {
-        reportedType: 'account',
-        subjectType: 'identity.profile',
-        async snapshot(reportedId) {
-          return {
-            subject: { externalId: reportedId, type: 'identity.profile' },
-            content: { type: 'profile', data: { displayName: 'a reported account' } },
-          };
-        },
-      },
-    ],
-    taxonomy: {
-      version: '2026.07',
-      allegationsFor: () => ['harassment.targeted_abuse'],
-    },
-    enforcement: REVIEW_ONLY,
-    logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
-  });
-
-  moderation.client.get = () =>
-    new CrowdSource({
-      serviceKey: sandbox.serviceKey,
-      baseUrl: sandbox.baseUrl,
-      fetch: sandbox.fetch,
-    });
+  const { sandbox, moderation } = reviewOnlyIntegration({ store });
 
   // One call for the three collections this package owns and the application's
   // own report model.

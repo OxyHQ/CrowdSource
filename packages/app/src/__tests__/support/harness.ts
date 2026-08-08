@@ -1,5 +1,4 @@
 import mongoose, { Schema, type ClientSession, type Model } from 'mongoose';
-import type { Decision, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 import {
   applyModerationReportIndexes,
   moderationReportSchemaFields,
@@ -11,16 +10,24 @@ import {
   type ModerationOutboxDocument,
 } from '../../mongoose/models.js';
 import { mongooseModerationStore } from '../../mongoose/store/index.js';
+import { createReviewOnlyHarness } from './reviewOnlyHarness.js';
 import { createModerationIntegration } from '../../integration.js';
 import { createOutboxService, type OutboxService } from '../../outbox/service.js';
 import type { ModerationStore } from '../../store/types.js';
 import type {
   EnforcementEffect,
   ModerationEnforcementConfig,
-  ModerationLogger,
   ModerationSubjectProvider,
 } from '../../types.js';
-import { TEST_ACTIONS, type TestAction, type TestReport } from './backend.js';
+import {
+  TEST_ACTIONS,
+  doodadSubjectProvider,
+  legacyStatusFor,
+  recordingLogger,
+  testTaxonomy,
+  type TestAction,
+  type TestReport,
+} from './backend.js';
 import type {
   Harness,
   HarnessEnforcement,
@@ -177,35 +184,7 @@ export interface TestWidget {
   flagged: boolean;
 }
 
-export const recordingLogger = (
-  sink: Harness['logs'],
-): ModerationLogger => ({
-  info: (message, context) => void sink.push({ level: 'info', message, ...(context ? { context } : {}) }),
-  warn: (message, context) => void sink.push({ level: 'warn', message, ...(context ? { context } : {}) }),
-  error: (message, context) => void sink.push({ level: 'error', message, ...(context ? { context } : {}) }),
-});
 
-const CATEGORY_TO_ALLEGATION: Readonly<Record<string, TaxonomyCode>> = Object.freeze({
-  spam: 'integrity.spam',
-  harassment: 'harassment.targeted_abuse',
-  other: 'other.unclassifiable',
-});
-
-export function testTaxonomy(): {
-  version: string;
-  allegationsFor(categories: readonly string[]): readonly TaxonomyCode[];
-} {
-  return {
-    version: '2026.07',
-    allegationsFor(categories) {
-      const codes = new Set<TaxonomyCode>();
-      for (const category of categories) {
-        codes.add(CATEGORY_TO_ALLEGATION[category] ?? 'other.unclassifiable');
-      }
-      return Array.from(codes).sort();
-    },
-  };
-}
 
 export function widgetSubjectProvider(
   widgets: Model<TestWidget>,
@@ -235,18 +214,6 @@ export function widgetSubjectProvider(
  * action in the table can act on it, which is exactly the case `recordedAs`
  * exists for.
  */
-export function doodadSubjectProvider(): ModerationSubjectProvider {
-  return {
-    reportedType: 'doodad',
-    subjectType: 'custom.test.doodad',
-    async snapshot(reportedId) {
-      return {
-        subject: { externalId: reportedId, type: 'custom.test.doodad' },
-        content: { type: 'text', data: { text: 'a reported doodad' } },
-      };
-    },
-  };
-}
 
 export function testEnforcement(
   widgets: Model<TestWidget>,
@@ -343,16 +310,6 @@ export function testEnforcement(
   };
 }
 
-function legacyStatusFor(decision: Decision): { legacyStatus: string } {
-  switch (decision.outcome) {
-    case 'violation':
-      return { legacyStatus: 'resolved' };
-    case 'no_violation':
-      return { legacyStatus: 'dismissed' };
-    default:
-      return { legacyStatus: 'reviewed' };
-  }
-}
 
 let databaseCounter = 0;
 
@@ -521,4 +478,5 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
 export const mongooseBackend: ModerationBackend = {
   name: 'mongoose',
   createHarness,
+  createReviewOnlyHarness,
 };

@@ -18,44 +18,53 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { reportSubmitEventId } from '../outbox/service.js';
-import { createHarness } from './support/harness.js';
 import type { Harness } from './support/backend.js';
+import { BACKENDS } from './support/backends.js';
 
-let harness: Harness | null = null;
+/**
+ * Both backends, one suite. The leaf test names are unchanged: vitest prints
+ * `mongoose > <name>` and `postgres > <name>`, and the mutation script matches on
+ * the leaf.
+ */
+describe.each(BACKENDS)('$name', (backend) => {
 
-afterEach(async () => {
-  await harness?.close();
-  harness = null;
-});
+  let harness: Harness | null = null;
 
-describe("intake stores the application's own fields", () => {
-  it('keeps them out of the fields this package decides', async () => {
-    harness = await createHarness();
-    const widgetId = await harness.app.createWidget({ body: 'hello', ownerId: 'oxy-owner' });
-
-    const { report } = await harness.moderation.createReport({
-      reporter: 'oxy-reporter',
-      reportedType: 'widget',
-      reportedId: widgetId,
-      categories: ['spam'],
-      extra: {
-        // The adopter's own column, which must land…
-        legacyStatus: 'triaged',
-        // …and one of this package's, which must not.
-        localStatus: 'closed',
-      },
-    });
-
-    const stored = await harness.app.readReport(report.id);
-    expect(stored?.legacyStatus).toBe('triaged');
-    expect(stored?.localStatus).toBe('queued');
-
-    /**
-     * And the status is not merely a label: the delivery event intake committed
-     * in the same transaction is what `queued` means, so a report that took its
-     * status from `extra` would be inconsistent with the row beside it.
-     */
-    const event = await harness.outbox.read(reportSubmitEventId(report.id));
-    expect(event?.status).toBe('pending');
+  afterEach(async () => {
+    await harness?.close();
+    harness = null;
   });
+
+  describe("intake stores the application's own fields", () => {
+    it('keeps them out of the fields this package decides', async () => {
+      harness = await backend.createHarness();
+      const widgetId = await harness.app.createWidget({ body: 'hello', ownerId: 'oxy-owner' });
+
+      const { report } = await harness.moderation.createReport({
+        reporter: 'oxy-reporter',
+        reportedType: 'widget',
+        reportedId: widgetId,
+        categories: ['spam'],
+        extra: {
+          // The adopter's own column, which must land…
+          legacyStatus: 'triaged',
+          // …and one of this package's, which must not.
+          localStatus: 'closed',
+        },
+      });
+
+      const stored = await harness.app.readReport(report.id);
+      expect(stored?.legacyStatus).toBe('triaged');
+      expect(stored?.localStatus).toBe('queued');
+
+      /**
+       * And the status is not merely a label: the delivery event intake committed
+       * in the same transaction is what `queued` means, so a report that took its
+       * status from `extra` would be inconsistent with the row beside it.
+       */
+      const event = await harness.outbox.read(reportSubmitEventId(report.id));
+      expect(event?.status).toBe('pending');
+    });
+  });
+
 });

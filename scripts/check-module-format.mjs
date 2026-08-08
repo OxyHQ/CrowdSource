@@ -64,8 +64,8 @@ const PUBLISHED = {
   sdk: 1,
   "sdk-express": 1,
   testing: 1,
-  // "." and "./mongoose". A third arrives with the Postgres subpath.
-  app: 2,
+  // ".", "./mongoose" and "./postgres".
+  app: 3,
 };
 /** Conditions that select code. `types` selects declarations and is exempt. */
 

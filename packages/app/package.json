@@ -18,6 +18,12 @@
       "require": "./dist/mongoose/index.js",
       "default": "./dist/mongoose/index.js"
     },
+    "./postgres": {
+      "types": "./dist/postgres/index.d.ts",
+      "import": "./dist/esm/postgres/index.js",
+      "require": "./dist/postgres/index.js",
+      "default": "./dist/postgres/index.js"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

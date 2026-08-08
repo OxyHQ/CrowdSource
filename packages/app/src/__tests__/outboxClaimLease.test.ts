@@ -15,58 +15,67 @@
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { createHarness } from './support/harness.js';
 import type { Harness } from './support/backend.js';
+import { BACKENDS } from './support/backends.js';
 
-let harness: Harness | null = null;
+/**
+ * Both backends, one suite. The leaf test names are unchanged: vitest prints
+ * `mongoose > <name>` and `postgres > <name>`, and the mutation script matches on
+ * the leaf.
+ */
+describe.each(BACKENDS)('$name', (backend) => {
 
-afterEach(async () => {
-  await harness?.close();
-  harness = null;
-});
+  let harness: Harness | null = null;
 
-const LEASE_OWNER = 'moderation:test-owner';
-
-async function enqueue(current: Harness, eventId: string): Promise<void> {
-  await current.transaction.run(async (write) => {
-    await write({ eventId, kind: 'report.submit', payload: { reportId: 'claim-lease' } });
-  });
-}
-
-describe('claiming an outbox event', () => {
-  it('returns the event under the id its lease transitions are addressed by', async () => {
-    harness = await createHarness();
-    const eventId = 'moderation:report.submit:claim-carries-its-id';
-    await enqueue(harness, eventId);
-
-    const claimed = await harness.outbox.claim({ leaseOwner: LEASE_OWNER });
-    if (claimed === null) throw new Error('the due event was not claimed');
-
-    expect(claimed.id).toBe(eventId);
-    expect(claimed.kind).toBe('report.submit');
-    expect(claimed.payload.reportId).toBe('claim-lease');
-    // The claim is what counts an attempt, so a retry ceiling can be reached.
-    expect(claimed.attempts).toBe(1);
-
-    // The round trip: the id that came back is the one that completes the lease.
-    expect(await harness.outbox.complete(claimed.id, LEASE_OWNER)).toBe(true);
-    const row = await harness.outbox.read(eventId);
-    expect(row?.status).toBe('processed');
-    expect(row?.leaseOwner).toBeNull();
+  afterEach(async () => {
+    await harness?.close();
+    harness = null;
   });
 
-  it('does not hand the same event to a second claim', async () => {
-    harness = await createHarness();
-    const eventId = 'moderation:report.submit:claimed-once';
-    await enqueue(harness, eventId);
+  const LEASE_OWNER = 'moderation:test-owner';
 
-    const first = await harness.outbox.claim({ leaseOwner: LEASE_OWNER });
-    expect(first?.id).toBe(eventId);
-    /**
-     * The live lease is what holds the second worker off. Without the claim
-     * being atomic — a read of what is due, then a write — both would take it
-     * and one report would be delivered twice.
-     */
-    expect(await harness.outbox.claim({ leaseOwner: 'another-task' })).toBeNull();
+  async function enqueue(current: Harness, eventId: string): Promise<void> {
+    await current.transaction.run(async (write) => {
+      await write({ eventId, kind: 'report.submit', payload: { reportId: 'claim-lease' } });
+    });
+  }
+
+  describe('claiming an outbox event', () => {
+    it('returns the event under the id its lease transitions are addressed by', async () => {
+      harness = await backend.createHarness();
+      const eventId = 'moderation:report.submit:claim-carries-its-id';
+      await enqueue(harness, eventId);
+
+      const claimed = await harness.outbox.claim({ leaseOwner: LEASE_OWNER });
+      if (claimed === null) throw new Error('the due event was not claimed');
+
+      expect(claimed.id).toBe(eventId);
+      expect(claimed.kind).toBe('report.submit');
+      expect(claimed.payload.reportId).toBe('claim-lease');
+      // The claim is what counts an attempt, so a retry ceiling can be reached.
+      expect(claimed.attempts).toBe(1);
+
+      // The round trip: the id that came back is the one that completes the lease.
+      expect(await harness.outbox.complete(claimed.id, LEASE_OWNER)).toBe(true);
+      const row = await harness.outbox.read(eventId);
+      expect(row?.status).toBe('processed');
+      expect(row?.leaseOwner).toBeNull();
+    });
+
+    it('does not hand the same event to a second claim', async () => {
+      harness = await backend.createHarness();
+      const eventId = 'moderation:report.submit:claimed-once';
+      await enqueue(harness, eventId);
+
+      const first = await harness.outbox.claim({ leaseOwner: LEASE_OWNER });
+      expect(first?.id).toBe(eventId);
+      /**
+       * The live lease is what holds the second worker off. Without the claim
+       * being atomic — a read of what is due, then a write — both would take it
+       * and one report would be delivered twice.
+       */
+      expect(await harness.outbox.claim({ leaseOwner: 'another-task' })).toBeNull();
+    });
   });
+
 });

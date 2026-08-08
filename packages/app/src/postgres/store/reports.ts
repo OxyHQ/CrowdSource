@@ -44,6 +44,64 @@ import type { ModerationPgHandle } from './transaction.js';
  */
 
 /**
+ * The fields `ModerationReportFields` declares OPTIONAL, computed from the type.
+ *
+ * Postgres stores an absent value as NULL; Mongo omits the field. Both are the
+ * same claim — "this never happened" — and one suite has to be able to assert it
+ * once, so the package's own optional fields come back ABSENT from either
+ * backend. Two `describe.each` pairs failed on exactly this before it was
+ * settled, both reading `expected null to be undefined`, and neither was about
+ * behaviour.
+ *
+ * Only the fields the PORT owns are normalised. An adopter's own nullable column
+ * is theirs: `extra` goes in untouched and comes back untouched.
+ */
+type OptionalReportField = {
+  [K in keyof ModerationReportFields]-?: undefined extends ModerationReportFields[K]
+    ? K
+    : never;
+}[keyof ModerationReportFields];
+
+const OPTIONAL_REPORT_FIELDS = [
+  'details',
+  'localStatusReason',
+  'crowdSourceReportId',
+  'crowdSourceCaseId',
+  'crowdSourceMerged',
+  'contentSnapshotHash',
+  'submittedAt',
+  'lastDeliveryError',
+  'decisionId',
+  'decisionRevision',
+  'decisionOutcome',
+  'decisionStatus',
+  'decidedAt',
+  'enforcedAction',
+  'enforcedAt',
+] as const satisfies readonly OptionalReportField[];
+
+/** `T` when it is `never`, and a compile error naming the field when it is not. */
+type AssertNever<T extends never> = T;
+
+/**
+ * The exhaustiveness gate. `satisfies` above refuses a field that is not optional;
+ * THIS refuses an optional field that is missing from the list — the direction
+ * that would otherwise ship as a backend difference nobody looked for.
+ */
+export type UncoveredOptionalReportField = AssertNever<
+  Exclude<OptionalReportField, (typeof OPTIONAL_REPORT_FIELDS)[number]>
+>;
+
+/** Drop the package's own optional fields when the column is NULL. */
+function absentWhereNull(row: Record<string, unknown>): Record<string, unknown> {
+  const normalised: Record<string, unknown> = { ...row };
+  for (const field of OPTIONAL_REPORT_FIELDS) {
+    if (normalised[field] === null) delete normalised[field];
+  }
+  return normalised;
+}
+
+/**
  * The row, as the port declares it.
  *
  * An unchecked declaration, not a conversion — the same escape the Mongoose store
@@ -57,8 +115,10 @@ import type { ModerationPgHandle } from './transaction.js';
  * `postgresReportStore.test.ts`. What remains unchecked is a column declared with
  * the wrong TYPE, which the migration and the schema test cover instead.
  */
-function asReport<TReport extends ModerationReportFields>(row: unknown): TReport {
-  return row as TReport;
+function asReport<TReport extends ModerationReportFields>(
+  row: Record<string, unknown>,
+): TReport {
+  return absentWhereNull(row) as TReport;
 }
 
 export function postgresReportStore<TReport extends ModerationReportFields>(input: {
