@@ -30,7 +30,7 @@ async function enqueue(current: Harness, eventId: string): Promise<void> {
   const session = await current.connection.startSession();
   try {
     await session.withTransaction(async () => {
-      await current.moderation.outbox.enqueue(
+      await current.outbox.enqueue(
         { eventId, kind: 'report.submit', payload: { reportId: 'claim-lease' } },
         session,
       );
@@ -46,7 +46,7 @@ describe('claiming an outbox event', () => {
     const eventId = 'moderation:report.submit:claim-carries-its-id';
     await enqueue(harness, eventId);
 
-    const claimed = await harness.moderation.outbox.claim({ leaseOwner: LEASE_OWNER });
+    const claimed = await harness.outbox.claim({ leaseOwner: LEASE_OWNER });
     if (claimed === null) throw new Error('the due event was not claimed');
 
     expect(claimed.id).toBe(eventId);
@@ -56,8 +56,8 @@ describe('claiming an outbox event', () => {
     expect(claimed.attempts).toBe(1);
 
     // The round trip: the id that came back is the one that completes the lease.
-    expect(await harness.moderation.outbox.complete(claimed.id, LEASE_OWNER)).toBe(true);
-    const row = await harness.moderation.models.outbox.findById(eventId).lean();
+    expect(await harness.outbox.complete(claimed.id, LEASE_OWNER)).toBe(true);
+    const row = await harness.models.outbox.findById(eventId).lean();
     expect(row?.status).toBe('processed');
     expect(row?.leaseOwner).toBeUndefined();
   });
@@ -67,13 +67,13 @@ describe('claiming an outbox event', () => {
     const eventId = 'moderation:report.submit:claimed-once';
     await enqueue(harness, eventId);
 
-    const first = await harness.moderation.outbox.claim({ leaseOwner: LEASE_OWNER });
+    const first = await harness.outbox.claim({ leaseOwner: LEASE_OWNER });
     expect(first?.id).toBe(eventId);
     /**
      * The live lease is what holds the second worker off. Without the claim
      * being atomic — a read of what is due, then a write — both would take it
      * and one report would be delivered twice.
      */
-    expect(await harness.moderation.outbox.claim({ leaseOwner: 'another-task' })).toBeNull();
+    expect(await harness.outbox.claim({ leaseOwner: 'another-task' })).toBeNull();
   });
 });

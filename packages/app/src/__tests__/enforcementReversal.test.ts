@@ -80,7 +80,7 @@ describe('a reversal restores what was actually displaced', () => {
     });
     expect(second).toEqual([{ action: 'restrict', result: 'recorded' }]);
 
-    const restrictRows = await harness.moderation.models.enforcement
+    const restrictRows = await harness.models.enforcement
       .find({ subjectType: 'widget', subjectId: subject.id, action: 'restrict' })
       .sort({ createdAt: -1 })
       .lean();
@@ -160,7 +160,7 @@ describe('an action that could not apply to THIS object is labelled honestly', (
      * and it is what was decided — and carries the effective label alongside.
      * Rewriting `action` would make a redelivery claim a different row.
      */
-    const row = await harness.moderation.models.enforcement.findOne({}).lean();
+    const row = await harness.models.enforcement.findOne({}).lean();
     expect(row?.action).toBe('restore');
     expect(row?.recordedAs).toBe('none');
     expect(row?.applied).toBe(false);
@@ -207,7 +207,7 @@ describe('one action reversing several', () => {
       }),
     ).toEqual([{ action: 'flag', result: 'applied' }]);
 
-    const applied = await harness.moderation.models.enforcement
+    const applied = await harness.models.enforcement
       .find({ subjectId: subject.id, applied: true })
       .sort({ createdAt: -1 })
       .lean();

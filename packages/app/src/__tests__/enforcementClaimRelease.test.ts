@@ -75,7 +75,7 @@ describe('an enforcement effect that throws', () => {
     ).rejects.toThrow('the effect failed');
 
     // The claim is gone: no row survives an attempt that changed nothing.
-    expect(await harness.moderation.models.enforcement.countDocuments({})).toBe(0);
+    expect(await harness.models.enforcement.countDocuments({})).toBe(0);
 
     /**
      * The assertion that bites. A release that matched no row leaves the claim
@@ -91,7 +91,7 @@ describe('an enforcement effect that throws', () => {
     });
     expect(outcomes).toEqual([{ action: 'restrict', result: 'applied' }]);
 
-    const rows = await harness.moderation.models.enforcement.find({}).lean();
+    const rows = await harness.models.enforcement.find({}).lean();
     expect(rows).toHaveLength(1);
     expect(rows[0].applied).toBe(true);
     expect(rows[0].previousState).toEqual({ status: 'published' });

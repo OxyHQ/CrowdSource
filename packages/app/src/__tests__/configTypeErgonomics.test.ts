@@ -18,14 +18,21 @@
  * as the consumer's mistake.
  */
 
+import mongoose, { Schema } from 'mongoose';
 import { describe, expect, it } from 'vitest';
 import {
   ModerationRestoreDirectionError,
   assertRestoreDirection,
   planEnforcement,
 } from '../enforcement/planner.js';
+import { createModerationIntegration } from '../integration.js';
+import { moderationReportSchemaFields } from '../mongoose/report.js';
+import { mongooseModerationStore } from '../mongoose/store/index.js';
 import { decision } from './support/decisions.js';
-import type { ModerationEnforcementConfig } from '../types.js';
+import type {
+  ModerationEnforcementConfig,
+  ModerationReportFields,
+} from '../types.js';
 
 type CommerceAction = 'delist' | 'relist' | 'flag' | 'unflag' | 'review' | 'none';
 
@@ -154,5 +161,60 @@ describe('an inverted restoreAction is refused at construction', () => {
     expect(() =>
       assertRestoreDirection({ ...commerce, reverses: {}, restoreAction: ['relist'] }),
     ).not.toThrow();
+  });
+});
+
+/**
+ * The wiring example in `src/index.ts` and `README.md`, as code the compiler
+ * reads.
+ *
+ * A documented example is the one piece of a package nothing executes, so it
+ * survives a signature change indefinitely — and this one changed twice in a
+ * week. Written here, the example is compiled by `bun run lint` and constructed
+ * by the run below, so a config field that moves breaks a build rather than an
+ * adopter's afternoon.
+ *
+ * The three type parameters are the point of the assertion: `createModerationIntegration`
+ * is called with NONE of them written down. `TReport` and `TTx` come from the
+ * store, `TAction` from the enforcement table, and TypeScript has no partial
+ * explicit type arguments — so a caller who has to name one has to name all
+ * three, including a transaction type they should never have to think about.
+ */
+interface CommerceReport extends ModerationReportFields {
+  _id: mongoose.Types.ObjectId;
+}
+
+describe('the documented wiring', () => {
+  it('compiles and constructs with no type arguments and no annotations', async () => {
+    // Never connected: this constructs the integration and does no I/O, which is
+    // the whole surface being asserted.
+    const connection = mongoose.createConnection();
+    const reportModel = connection.model<CommerceReport>(
+      'DocumentedReport',
+      new Schema<CommerceReport>({ ...moderationReportSchemaFields() }, { timestamps: true }),
+    );
+
+    const store = mongooseModerationStore({
+      connection,
+      reportModel,
+      enforcementActions: commerce.actions,
+    });
+
+    const moderation = createModerationIntegration({
+      store,
+      crowdSource: { enabled: true, enforcementMode: 'observe' },
+      subjects: [],
+      taxonomy: { version: '2026.07', allegationsFor: () => ['other.unclassifiable'] },
+      enforcement: commerce,
+      logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
+    });
+
+    expect(typeof moderation.createReport).toBe('function');
+    expect(moderation.deliverableTypes()).toEqual([]);
+    // `ensureSchema()` is the one call in the example that needs a server, so it
+    // is documented rather than run here.
+    expect(typeof store.ensureSchema).toBe('function');
+
+    await connection.close();
   });
 });

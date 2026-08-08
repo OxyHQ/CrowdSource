@@ -54,7 +54,7 @@ describe("intake stores the application's own fields", () => {
      * in the same transaction is what `queued` means, so a report that took its
      * status from `extra` would be inconsistent with the row beside it.
      */
-    const event = await harness.moderation.models.outbox
+    const event = await harness.models.outbox
       .findById(reportSubmitEventId(report.id))
       .lean();
     expect(event?.status).toBe('pending');

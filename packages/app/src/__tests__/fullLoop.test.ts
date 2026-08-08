@@ -164,7 +164,7 @@ describe('report in, decision out', () => {
 
     await eventually(async () => {
       expect(
-        await wired.harness.moderation.models.enforcement.countDocuments({}),
+        await wired.harness.models.enforcement.countDocuments({}),
       ).toBeGreaterThan(0);
     });
     await wired.harness.moderation.dispatcher.stop();
@@ -174,7 +174,7 @@ describe('report in, decision out', () => {
      * the effect is gated — which is what makes observe mode a real rehearsal
      * rather than a log line saying a decision was seen.
      */
-    const enforcement = await wired.harness.moderation.models.enforcement
+    const enforcement = await wired.harness.models.enforcement
       .findOne({})
       .lean();
     expect(enforcement?.applied).toBe(false);

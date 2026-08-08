@@ -12,7 +12,9 @@ none of them has anything to do with what that application's objects are:
 5. apply a decision without a stale revision overwriting a fresh one;
 6. carry out consequences exactly once, and reversibly.
 
-All of that is in here. You supply four things.
+All of that is in here. You supply four things: your subjects, your category
+mapping, your enforcement tables, and a STORE built by the factory of whichever
+backend keeps your reports.
 
 ```bash
 bun add @oxyhq/crowdsource-app @oxyhq/crowdsource-contracts
@@ -39,7 +41,41 @@ import {
   moderationReportSchemaFields,
   applyModerationReportIndexes,
 } from '@oxyhq/crowdsource-app/mongoose';
+
+const store = mongooseModerationStore({
+  connection,
+  reportModel,
+  enforcementActions: commerceEnforcement.actions,
+});
+
+const moderation = createModerationIntegration({
+  store,
+  crowdSource: { enabled: true, serviceKey, webhookSecret, enforcementMode: 'observe' },
+  subjects: [listingSubjectProvider(), reviewSubjectProvider()],
+  taxonomy: { version: '2026.07', allegationsFor },
+  enforcement: commerceEnforcement,
+  logger,
+});
+
+// Indexes before the first write: the unique ones ARE the exactly-once
+// mechanism, and an index that does not exist yet refuses nothing.
+await store.ensureSchema();
+
+// BEFORE express.json() — the signature covers the bytes that arrived.
+app.use('/webhooks', moderation.webhookRouter());
+app.use(express.json());
+
+moderation.dispatcher.start();
 ```
+
+Write no type arguments: `createModerationIntegration` infers your report type
+and your backend's transaction type from `store`, and your action union from
+`enforcement`. TypeScript has no partial explicit type arguments, so naming one
+would mean naming all three.
+
+This example is compiled and constructed by
+`src/__tests__/configTypeErgonomics.test.ts`, which is the only way a documented
+example stays true: nothing else ever executes one.
 
 `mongoose` (8 or 9) is therefore an **optional** peer: a deployment that does not
 import that subpath never installs it, and a bundler never has to resolve it.

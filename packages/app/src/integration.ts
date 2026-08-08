@@ -1,4 +1,3 @@
-import type { ClientSession } from 'mongoose';
 import type { Router } from 'express';
 import { createClientProvider, type CrowdSourceClientProvider } from './client.js';
 import { createDecisionWorker } from './decision.js';
@@ -7,10 +6,8 @@ import { createEnforcementExecutor, type EnforcementExecutor } from './enforceme
 import { assertRestoreDirection } from './enforcement/planner.js';
 import { createSubjectRegistry, type SubjectRegistry } from './evidence.js';
 import { createInboundService, createProcessedEventStore } from './inbound.js';
-import { registerModerationModels, type ModerationModels } from './mongoose/models.js';
-import { mongooseModerationStore } from './mongoose/store/index.js';
 import { ModerationOutboxDispatcher, createOutboxRouter } from './outbox/dispatcher.js';
-import { createOutboxService, type OutboxService } from './outbox/service.js';
+import { createOutboxService } from './outbox/service.js';
 import { createIntake } from './intake.js';
 import {
   ModerationReconciliationJob,
@@ -29,12 +26,16 @@ import type {
  * Everything wired together, from one object.
  *
  * A factory rather than a set of module-level singletons, and that is not
- * stylistic. Mongoose's `mongoose.model()` registers on the DEFAULT connection,
- * so a package that used it would put its collections on whichever connection
- * happened to be default rather than the application's; and a module-level
- * client, dispatcher or registry cannot be built twice, which makes two
- * integrations in one test process impossible and makes test isolation depend on
- * module-registry surgery.
+ * stylistic: a module-level client, dispatcher or registry cannot be built
+ * twice, which makes two integrations in one test process impossible and makes
+ * test isolation depend on module-registry surgery. The store is built OUTSIDE
+ * and passed in, so the same wiring serves either backend and neither is
+ * reachable from here.
+ *
+ * `TTx` is deliberately absent from the returned interface. It is inferred from
+ * the config's store, used only inside this factory, and never surfaces — so a
+ * caller holding a `ModerationIntegration` cannot tell which backend built it,
+ * which is what lets one test suite run against both.
  */
 export interface ModerationIntegration<
   TReport extends ModerationReportFields,
@@ -77,8 +78,6 @@ export interface ModerationIntegration<
   /** The reported types that have a subject provider, so a test can pin the set. */
   deliverableTypes(): string[];
 
-  readonly models: ModerationModels;
-  readonly outbox: OutboxService<ClientSession>;
   readonly registry: SubjectRegistry;
   readonly enforcement: EnforcementExecutor<TAction>;
   readonly client: CrowdSourceClientProvider;
@@ -87,8 +86,9 @@ export interface ModerationIntegration<
 export function createModerationIntegration<
   TReport extends ModerationReportFields,
   TAction extends string,
+  TTx,
 >(
-  config: ModerationIntegrationConfig<TReport, TAction>,
+  config: ModerationIntegrationConfig<TReport, TAction, TTx>,
 ): ModerationIntegration<TReport, TAction> {
   /**
    * Refuse an inverted `restoreAction` before anything is wired. It cannot be
@@ -97,31 +97,7 @@ export function createModerationIntegration<
    */
   assertRestoreDirection(config.enforcement);
 
-  /**
-   * The Mongoose half, built here for now. The store is what a later version of
-   * this config supplies whole; until then the only backend is this one, and
-   * building it inside the factory keeps the seam in one place rather than in
-   * every application that wires the integration.
-   */
-  const store = mongooseModerationStore<TReport>({
-    connection: config.connection,
-    reportModel: config.reportModel,
-    enforcementActions: config.enforcement.actions,
-    ...(config.modelPrefix === undefined ? {} : { modelPrefix: config.modelPrefix }),
-  });
-
-  /**
-   * The same three models the store registered — `registerModerationModels`
-   * reuses whatever is already on the connection, so this is the models it
-   * built, not a second set. Exposed only for the test surface, and it goes
-   * with `ModerationIntegration.models`.
-   */
-  const models = registerModerationModels({
-    connection: config.connection,
-    enforcementActions: config.enforcement.actions,
-    ...(config.modelPrefix === undefined ? {} : { modelPrefix: config.modelPrefix }),
-  });
-
+  const store = config.store;
   const outbox = createOutboxService({ store: store.outbox, logger: config.logger });
   const registry = createSubjectRegistry(config.subjects);
   const client = createClientProvider({
@@ -222,8 +198,6 @@ export function createModerationIntegration<
     reconciliationJob,
     reconcile,
     deliverableTypes: () => registry.deliverableTypes(),
-    models,
-    outbox,
     registry,
     enforcement,
     client,

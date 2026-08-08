@@ -10,18 +10,32 @@
  * reversibly. None of that has anything to do with what the application's
  * objects are.
  *
- * So all of it is here, and an application supplies four things:
+ * So all of it is here, and an application supplies four things: its subjects,
+ * its category mapping, its enforcement tables, and a STORE built by the
+ * factory of whichever backend it keeps its reports in.
  *
  * ```ts
- * const moderation = createModerationIntegration({
+ * import { createModerationIntegration } from '@oxyhq/crowdsource-app';
+ * import { mongooseModerationStore } from '@oxyhq/crowdsource-app/mongoose';
+ *
+ * const store = mongooseModerationStore({
  *   connection,
- *   crowdSource: { enabled: true, serviceKey, webhookSecret, enforcementMode: 'observe' },
  *   reportModel,
+ *   enforcementActions: commerceEnforcement.actions,
+ * });
+ *
+ * const moderation = createModerationIntegration({
+ *   store,
+ *   crowdSource: { enabled: true, serviceKey, webhookSecret, enforcementMode: 'observe' },
  *   subjects: [listingSubjectProvider(), reviewSubjectProvider()],
  *   taxonomy: { version: '2026.07', allegationsFor },
  *   enforcement: commerceEnforcement,
  *   logger,
  * });
+ *
+ * // Indexes before the first write: the unique ones ARE the exactly-once
+ * // mechanism, and an index that does not exist yet refuses nothing.
+ * await store.ensureSchema();
  *
  * // BEFORE express.json() — the signature covers the bytes that arrived.
  * app.use('/webhooks', moderation.webhookRouter());

@@ -31,6 +31,8 @@ import {
   applyModerationReportIndexes,
   moderationReportSchemaFields,
 } from '../mongoose/report.js';
+import { registerModerationModels, type ModerationModels } from '../mongoose/models.js';
+import { mongooseModerationStore } from '../mongoose/store/index.js';
 import { planEnforcement } from '../enforcement/planner.js';
 import { decision } from './support/decisions.js';
 import type { ModerationEnforcementConfig, ModerationReportFields } from '../types.js';
@@ -77,6 +79,8 @@ interface Wired {
   sandbox: CrowdSourceSandbox;
   reports: Model<ReviewOnlyReport>;
   moderation: ModerationIntegration<ReviewOnlyReport, ReviewOnlyAction>;
+  /** The three collections, for assertions about what the pipeline wrote. */
+  models: ModerationModels;
 }
 
 async function wireReviewOnlyApp(): Promise<Wired> {
@@ -100,11 +104,15 @@ async function wireReviewOnlyApp(): Promise<Wired> {
   );
   applyModerationReportIndexes(ReportSchema);
   const reports = connection.model<ReviewOnlyReport>('Report', ReportSchema);
-  await reports.init();
 
   const sandbox = createCrowdSourceSandbox({ webhookSecret: WEBHOOK_SECRET });
-  const moderation = createModerationIntegration<ReviewOnlyReport, ReviewOnlyAction>({
+  const store = mongooseModerationStore<ReviewOnlyReport>({
     connection,
+    reportModel: reports,
+    enforcementActions: REVIEW_ONLY.actions,
+  });
+  const moderation = createModerationIntegration({
+    store,
     crowdSource: {
       enabled: true,
       serviceKey: sandbox.serviceKey,
@@ -115,7 +123,6 @@ async function wireReviewOnlyApp(): Promise<Wired> {
       enforcementMode: 'automatic',
       outboxPollIntervalMs: 50,
     },
-    reportModel: reports,
     subjects: [
       {
         reportedType: 'account',
@@ -143,14 +150,19 @@ async function wireReviewOnlyApp(): Promise<Wired> {
       fetch: sandbox.fetch,
     });
 
-  await Promise.all([
-    moderation.models.enforcement.init(),
-    moderation.models.event.init(),
-    moderation.models.outbox.init(),
-  ]);
+  // One call for the three collections this package owns and the application's
+  // own report model.
+  await store.ensureSchema();
 
-  await moderation.models.outbox.init();
-  return { sandbox, reports, moderation };
+  return {
+    sandbox,
+    reports,
+    moderation,
+    models: registerModerationModels({
+      connection,
+      enforcementActions: REVIEW_ONLY.actions,
+    }),
+  };
 }
 
 async function eventually(assertion: () => Promise<void>, timeoutMs = 20_000): Promise<void> {
@@ -272,7 +284,7 @@ describe('an application with no enforcement primitive', () => {
     expect(decided?.localStatus).toBe('closed');
 
     // The audit row exists and is honest about why nothing happened.
-    const enforcement = await wired.moderation.models.enforcement.findOne({}).lean();
+    const enforcement = await wired.models.enforcement.findOne({}).lean();
     expect(enforcement?.action).toBe('review');
     expect(enforcement?.applied).toBe(false);
     expect(enforcement?.mode).toBe('automatic');
@@ -307,7 +319,7 @@ describe('an application with no enforcement primitive', () => {
 
     await eventually(async () => {
       expect(
-        await wired.moderation.models.enforcement.countDocuments({}),
+        await wired.models.enforcement.countDocuments({}),
       ).toBeGreaterThan(0);
     });
     await wired.moderation.dispatcher.stop();
@@ -318,7 +330,7 @@ describe('an application with no enforcement primitive', () => {
      * can act. An application with no primitive still gets exactly-once
      * bookkeeping.
      */
-    expect(await wired.moderation.models.enforcement.countDocuments({})).toBe(1);
-    expect(await wired.moderation.models.event.countDocuments({})).toBe(1);
+    expect(await wired.models.enforcement.countDocuments({})).toBe(1);
+    expect(await wired.models.event.countDocuments({})).toBe(1);
   });
 });

@@ -1,11 +1,15 @@
-import mongoose, { Schema, type Connection, type Model } from 'mongoose';
+import mongoose, { Schema, type ClientSession, type Connection, type Model } from 'mongoose';
 import type { Decision, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 import {
   applyModerationReportIndexes,
   moderationReportSchemaFields,
 } from '../../mongoose/report.js';
+import { registerModerationModels, type ModerationModels } from '../../mongoose/models.js';
+import { mongooseModerationStore } from '../../mongoose/store/index.js';
 import { createModerationIntegration } from '../../integration.js';
 import type { ModerationIntegration } from '../../integration.js';
+import { createOutboxService, type OutboxService } from '../../outbox/service.js';
+import type { ModerationStore } from '../../store/types.js';
 import type {
   EnforcementEffect,
   ModerationEnforcementConfig,
@@ -54,6 +58,27 @@ export interface Harness {
   widgets: Model<TestWidget>;
   reports: Model<TestReport>;
   moderation: ModerationIntegration<TestReport, TestAction>;
+  /**
+   * The store the integration was built with.
+   *
+   * The integration itself no longer exposes storage — that is what keeps its
+   * type free of a transaction parameter whose value differs per backend — so a
+   * test that needs to reach past the pipeline reaches it here. Note this is the
+   * SAME object the integration holds, which is what makes stubbing a store
+   * method from a test observable inside `createReport`.
+   */
+  store: ModerationStore<TestReport, ClientSession>;
+  /**
+   * An outbox SERVICE over that same store.
+   *
+   * A second instance of a stateless wrapper, not a second outbox: it reads and
+   * writes exactly the rows the integration's own service does. Tests use it for
+   * the policy-level API (`enqueue` computing retention, `claim` computing a
+   * lease) rather than restating those computations.
+   */
+  outbox: OutboxService<ClientSession>;
+  /** The three collections, for assertions about rows the pipeline wrote. */
+  models: ModerationModels;
   logs: { level: string; message: string; context?: Record<string, unknown> }[];
   close(): Promise<void>;
 }
@@ -282,15 +307,16 @@ export async function createHarness(
   );
   applyModerationReportIndexes(ReportSchema);
   const reports = connection.model<TestReport>('Report', ReportSchema);
-
-  // The unique indexes are the mechanism under test in several files, so they
-  // must exist before the first write rather than whenever mongoose gets round
-  // to it.
-  await Promise.all([widgets.init(), reports.init()]);
+  await widgets.init();
 
   const logs: Harness['logs'] = [];
-  const moderation = createModerationIntegration<TestReport, TestAction>({
+  const store = mongooseModerationStore<TestReport>({
     connection,
+    reportModel: reports,
+    enforcementActions: TEST_ACTIONS,
+  });
+  const moderation = createModerationIntegration({
+    store,
     crowdSource: {
       enabled: options.enabled ?? true,
       ...(options.serviceKey === undefined ? {} : { serviceKey: options.serviceKey }),
@@ -301,7 +327,6 @@ export async function createHarness(
       enforcementMode: options.enforcementMode ?? 'automatic',
       outboxPollIntervalMs: 50,
     },
-    reportModel: reports,
     subjects: options.subjects ?? [widgetSubjectProvider(widgets), doodadSubjectProvider()],
     taxonomy: testTaxonomy(),
     enforcement: options.enforcement ?? testEnforcement(widgets),
@@ -309,15 +334,22 @@ export async function createHarness(
     reportDecisionExtraFields: legacyStatusFor,
   });
 
-  await moderation.models.enforcement.init();
-  await moderation.models.event.init();
-  await moderation.models.outbox.init();
+  /**
+   * The unique indexes are the mechanism under test in several files, so they
+   * must exist before the first write rather than whenever mongoose gets round
+   * to it. One call now covers the three collections this package owns AND the
+   * application's own report model.
+   */
+  await store.ensureSchema();
 
   return {
     connection,
     widgets,
     reports,
     moderation,
+    store,
+    outbox: createOutboxService({ store: store.outbox, logger: recordingLogger(logs) }),
+    models: registerModerationModels({ connection, enforcementActions: TEST_ACTIONS }),
     logs,
     async close() {
       await moderation.dispatcher.stop();

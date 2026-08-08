@@ -40,7 +40,7 @@ describe('the outbox refuses to be written outside a transaction', () => {
       expect(session.inTransaction()).toBe(false);
 
       await expect(
-        harness.moderation.outbox.enqueue(
+        harness.outbox.enqueue(
           {
             eventId: 'moderation:report.submit:no-transaction',
             kind: 'report.submit',
@@ -58,7 +58,7 @@ describe('the outbox refuses to be written outside a transaction', () => {
     harness = await createHarness();
     const session = await harness.connection.startSession();
     try {
-      await harness.moderation.outbox
+      await harness.outbox
         .enqueue(
           {
             eventId: 'moderation:report.submit:refused',
@@ -72,7 +72,7 @@ describe('the outbox refuses to be written outside a transaction', () => {
       await session.endSession();
     }
 
-    expect(await harness.moderation.models.outbox.countDocuments({})).toBe(0);
+    expect(await harness.models.outbox.countDocuments({})).toBe(0);
   });
 
   it('accepts a session that IS in a transaction', async () => {
@@ -80,7 +80,7 @@ describe('the outbox refuses to be written outside a transaction', () => {
     const session = await harness.connection.startSession();
     try {
       await session.withTransaction(async () => {
-        await harness?.moderation.outbox.enqueue(
+        await harness?.outbox.enqueue(
           {
             eventId: 'moderation:report.submit:in-transaction',
             kind: 'report.submit',
@@ -94,7 +94,7 @@ describe('the outbox refuses to be written outside a transaction', () => {
     }
 
     expect(
-      await harness.moderation.models.outbox.countDocuments({
+      await harness.models.outbox.countDocuments({
         _id: 'moderation:report.submit:in-transaction',
       }),
     ).toBe(1);
@@ -116,7 +116,7 @@ describe('intake commits the report and its delivery event together, or neither'
     expect(result.report.localStatus).toBe('queued');
     expect(result.outboxEventId).toBe(reportSubmitEventId(String(result.report._id)));
 
-    const event = await harness.moderation.models.outbox
+    const event = await harness.models.outbox
       .findById(result.outboxEventId)
       .lean();
     expect(event?.kind).toBe('report.submit');
@@ -136,7 +136,7 @@ describe('intake commits the report and its delivery event together, or neither'
     expect(result.report.localStatus).toBe('received');
     expect(result.report.localStatusReason).toContain('gizmo');
     expect(result.outboxEventId).toBeUndefined();
-    expect(await harness.moderation.models.outbox.countDocuments({})).toBe(0);
+    expect(await harness.models.outbox.countDocuments({})).toBe(0);
   });
 
   it('rolls the report back when the outbox write fails inside the transaction', async () => {
@@ -148,9 +148,15 @@ describe('intake commits the report and its delivery event together, or neither'
      * second. If the two writes were merely ordered rather than atomic, the
      * report would survive with nothing to deliver it — the silent failure this
      * whole design exists to prevent.
+     *
+     * It is injected into the STORE, not into `harness.outbox`. That is the
+     * object the integration actually holds; the harness's own outbox service is
+     * a second wrapper over the same store, so stubbing it would leave
+     * `createReport` running the real enqueue and this test would assert nothing
+     * about atomicity.
      */
-    const enqueue = harness.moderation.outbox.enqueue;
-    harness.moderation.outbox.enqueue = async () => {
+    const enqueue = harness.store.outbox.enqueue;
+    harness.store.outbox.enqueue = async () => {
       throw new Error('injected outbox failure');
     };
 
@@ -163,10 +169,10 @@ describe('intake commits the report and its delivery event together, or neither'
       }),
     ).rejects.toThrow('injected outbox failure');
 
-    harness.moderation.outbox.enqueue = enqueue;
+    harness.store.outbox.enqueue = enqueue;
 
     expect(await harness.reports.countDocuments({})).toBe(0);
-    expect(await harness.moderation.models.outbox.countDocuments({})).toBe(0);
+    expect(await harness.models.outbox.countDocuments({})).toBe(0);
   });
 
   it('is the same event id for a repeated enqueue, so one report never queues two deliveries', async () => {
@@ -182,7 +188,7 @@ describe('intake commits the report and its delivery event together, or neither'
     const session = await harness.connection.startSession();
     try {
       await session.withTransaction(async () => {
-        await harness?.moderation.outbox.enqueue(
+        await harness?.outbox.enqueue(
           {
             eventId: reportSubmitEventId(String(created.report._id)),
             kind: 'report.submit',
@@ -195,7 +201,7 @@ describe('intake commits the report and its delivery event together, or neither'
       await session.endSession();
     }
 
-    expect(await harness.moderation.models.outbox.countDocuments({})).toBe(1);
+    expect(await harness.models.outbox.countDocuments({})).toBe(1);
   });
 
   it('leaves an existing row completely untouched on a repeated enqueue', async () => {
@@ -218,7 +224,7 @@ describe('intake commits the report and its delivery event together, or neither'
       if (session === undefined) throw new Error('no connection');
       try {
         await session.withTransaction(async () => {
-          await harness?.moderation.outbox.enqueue(
+          await harness?.outbox.enqueue(
             { eventId, kind: 'report.submit', payload: { reportId: 'repeat' } },
             session,
           );
@@ -229,14 +235,14 @@ describe('intake commits the report and its delivery event together, or neither'
     };
 
     await enqueueOnce();
-    const first = await harness.moderation.models.outbox.findById(eventId).lean();
+    const first = await harness.models.outbox.findById(eventId).lean();
     await new Promise((resolve) => setTimeout(resolve, 25));
     await enqueueOnce();
-    const second = await harness.moderation.models.outbox.findById(eventId).lean();
+    const second = await harness.models.outbox.findById(eventId).lean();
 
     expect(first?.createdAt).toBeInstanceOf(Date);
     expect(second?.updatedAt?.getTime()).toBe(first?.updatedAt?.getTime());
-    expect(await harness.moderation.models.outbox.countDocuments({})).toBe(1);
+    expect(await harness.models.outbox.countDocuments({})).toBe(1);
   });
 
   it('re-enqueues inside a transaction without blocking a live lease write', async () => {
@@ -286,13 +292,13 @@ describe('intake commits the report and its delivery event together, or neither'
       if (session === undefined) throw new Error('no connection');
       try {
         await session.withTransaction(async () => {
-          await harness?.moderation.outbox.enqueue(
+          await harness?.outbox.enqueue(
             { eventId, kind: 'report.submit', payload: { reportId: 'contended' } },
             session,
           );
           // The dispatcher, mid-flight on the same row and outside the
           // transaction. A no-op enqueue takes no lock, so this returns at once.
-          await harness?.moderation.models.outbox
+          await harness?.models.outbox
             .updateOne({ _id: eventId }, { $set: { leaseOwner: 'another-task' } })
             .maxTimeMS(2_000);
         });
@@ -303,7 +309,7 @@ describe('intake commits the report and its delivery event together, or neither'
 
     await enqueue();
     await expect(enqueue()).resolves.toBeUndefined();
-    expect(await harness.moderation.models.outbox.countDocuments({})).toBe(1);
+    expect(await harness.models.outbox.countDocuments({})).toBe(1);
   });
 });
 

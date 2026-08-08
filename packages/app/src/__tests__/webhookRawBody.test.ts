@@ -70,7 +70,7 @@ describe('the receiver reads raw bytes', () => {
     // And the consequence: the signature verified, so the event was accepted.
     expect(result.status).toBeGreaterThanOrEqual(200);
     expect(result.status).toBeLessThan(300);
-    expect(await harness.moderation.models.event.countDocuments({ state: 'queued' })).toBe(
+    expect(await harness.models.event.countDocuments({ state: 'queued' })).toBe(
       1,
     );
   });
@@ -84,8 +84,8 @@ describe('the receiver reads raw bytes', () => {
 
     expect(app.bodyTypeAtRouter).toEqual(['object']);
     expect(result.status).toBeGreaterThanOrEqual(400);
-    expect(await harness.moderation.models.event.countDocuments({})).toBe(0);
-    expect(await harness.moderation.models.outbox.countDocuments({})).toBe(0);
+    expect(await harness.models.event.countDocuments({})).toBe(0);
+    expect(await harness.models.outbox.countDocuments({})).toBe(0);
   });
 
   it('refuses a forged signature and records nothing', async () => {
@@ -98,8 +98,8 @@ describe('the receiver reads raw bytes', () => {
     });
 
     expect(result.status).toBeGreaterThanOrEqual(400);
-    expect(await harness.moderation.models.event.countDocuments({})).toBe(0);
-    expect(await harness.moderation.models.outbox.countDocuments({})).toBe(0);
+    expect(await harness.models.event.countDocuments({})).toBe(0);
+    expect(await harness.models.outbox.countDocuments({})).toBe(0);
   });
 
   it('refuses a stale delivery and records nothing', async () => {
@@ -110,7 +110,7 @@ describe('the receiver reads raw bytes', () => {
     const result = await simulator.deliver(await decidedEvent(), { expired: true });
 
     expect(result.status).toBeGreaterThanOrEqual(400);
-    expect(await harness.moderation.models.event.countDocuments({})).toBe(0);
+    expect(await harness.models.event.countDocuments({})).toBe(0);
   });
 
   it('does not mount at all without a webhook secret', async () => {
@@ -141,9 +141,9 @@ describe('the receiver reads raw bytes', () => {
 
     expect(first.status).toBeLessThan(300);
     expect(second.status).toBeLessThan(300);
-    expect(await harness.moderation.models.event.countDocuments({})).toBe(1);
+    expect(await harness.models.event.countDocuments({})).toBe(1);
     expect(
-      await harness.moderation.models.outbox.countDocuments({ kind: 'decision.apply' }),
+      await harness.models.outbox.countDocuments({ kind: 'decision.apply' }),
     ).toBe(1);
   });
 });
