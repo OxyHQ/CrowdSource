@@ -15,7 +15,8 @@
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { createHarness, type Harness } from './support/harness.js';
+import { createHarness } from './support/harness.js';
+import type { Harness } from './support/backend.js';
 
 let harness: Harness | null = null;
 
@@ -27,17 +28,9 @@ afterEach(async () => {
 const LEASE_OWNER = 'moderation:test-owner';
 
 async function enqueue(current: Harness, eventId: string): Promise<void> {
-  const session = await current.connection.startSession();
-  try {
-    await session.withTransaction(async () => {
-      await current.outbox.enqueue(
-        { eventId, kind: 'report.submit', payload: { reportId: 'claim-lease' } },
-        session,
-      );
-    });
-  } finally {
-    await session.endSession();
-  }
+  await current.transaction.run(async (write) => {
+    await write({ eventId, kind: 'report.submit', payload: { reportId: 'claim-lease' } });
+  });
 }
 
 describe('claiming an outbox event', () => {
@@ -57,9 +50,9 @@ describe('claiming an outbox event', () => {
 
     // The round trip: the id that came back is the one that completes the lease.
     expect(await harness.outbox.complete(claimed.id, LEASE_OWNER)).toBe(true);
-    const row = await harness.models.outbox.findById(eventId).lean();
+    const row = await harness.outbox.read(eventId);
     expect(row?.status).toBe('processed');
-    expect(row?.leaseOwner).toBeUndefined();
+    expect(row?.leaseOwner).toBeNull();
   });
 
   it('does not hand the same event to a second claim', async () => {

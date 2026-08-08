@@ -61,7 +61,11 @@ const MUTATIONS = [
     ],
     absent: 'session.inTransaction()',
     test: 'src/__tests__/outboxTransactionCoupling.test.ts',
-    expects: 'throws ModerationOutboxTransactionError for a session with no transaction open',
+    // Renamed with the harness façade: the fixture hands out a bound enqueue
+    // rather than a mongoose session, and the test title must not name a driver
+    // once a second backend runs it. The script matches on this string, so a
+    // stale one reports "the guard is still unproven" rather than passing.
+    expects: 'throws ModerationOutboxTransactionError for a handle with no transaction open',
   },
   {
     name: 'the webhook router is mounted behind express.json()',

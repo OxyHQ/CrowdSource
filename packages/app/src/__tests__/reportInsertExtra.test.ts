@@ -18,7 +18,8 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { reportSubmitEventId } from '../outbox/service.js';
-import { createHarness, type Harness } from './support/harness.js';
+import { createHarness } from './support/harness.js';
+import type { Harness } from './support/backend.js';
 
 let harness: Harness | null = null;
 
@@ -30,12 +31,12 @@ afterEach(async () => {
 describe("intake stores the application's own fields", () => {
   it('keeps them out of the fields this package decides', async () => {
     harness = await createHarness();
-    const widget = await harness.widgets.create({ body: 'hello', ownerId: 'oxy-owner' });
+    const widgetId = await harness.app.createWidget({ body: 'hello', ownerId: 'oxy-owner' });
 
     const { report } = await harness.moderation.createReport({
       reporter: 'oxy-reporter',
       reportedType: 'widget',
-      reportedId: String(widget._id),
+      reportedId: widgetId,
       categories: ['spam'],
       extra: {
         // The adopter's own column, which must land…
@@ -45,7 +46,7 @@ describe("intake stores the application's own fields", () => {
       },
     });
 
-    const stored = await harness.reports.findById(report.id).lean();
+    const stored = await harness.app.readReport(report.id);
     expect(stored?.legacyStatus).toBe('triaged');
     expect(stored?.localStatus).toBe('queued');
 
@@ -54,9 +55,7 @@ describe("intake stores the application's own fields", () => {
      * in the same transaction is what `queued` means, so a report that took its
      * status from `extra` would be inconsistent with the row beside it.
      */
-    const event = await harness.models.outbox
-      .findById(reportSubmitEventId(report.id))
-      .lean();
+    const event = await harness.outbox.read(reportSubmitEventId(report.id));
     expect(event?.status).toBe('pending');
   });
 });

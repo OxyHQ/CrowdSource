@@ -180,9 +180,7 @@ describe('an inverted restoreAction is refused at construction', () => {
  * explicit type arguments — so a caller who has to name one has to name all
  * three, including a transaction type they should never have to think about.
  */
-interface CommerceReport extends ModerationReportFields {
-  _id: mongoose.Types.ObjectId;
-}
+type CommerceReport = ModerationReportFields;
 
 describe('the documented wiring', () => {
   it('compiles and constructs with no type arguments and no annotations', async () => {

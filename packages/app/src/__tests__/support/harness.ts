@@ -1,22 +1,36 @@
-import mongoose, { Schema, type ClientSession, type Connection, type Model } from 'mongoose';
+import mongoose, { Schema, type ClientSession, type Model } from 'mongoose';
 import type { Decision, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 import {
   applyModerationReportIndexes,
   moderationReportSchemaFields,
 } from '../../mongoose/report.js';
-import { registerModerationModels, type ModerationModels } from '../../mongoose/models.js';
+import {
+  registerModerationModels,
+  type ModerationEnforcementDocument,
+  type ModerationEventDocument,
+  type ModerationOutboxDocument,
+} from '../../mongoose/models.js';
 import { mongooseModerationStore } from '../../mongoose/store/index.js';
 import { createModerationIntegration } from '../../integration.js';
-import type { ModerationIntegration } from '../../integration.js';
 import { createOutboxService, type OutboxService } from '../../outbox/service.js';
 import type { ModerationStore } from '../../store/types.js';
 import type {
   EnforcementEffect,
   ModerationEnforcementConfig,
   ModerationLogger,
-  ModerationReportFields,
   ModerationSubjectProvider,
 } from '../../types.js';
+import { TEST_ACTIONS, type TestAction, type TestReport } from './backend.js';
+import type {
+  Harness,
+  HarnessEnforcement,
+  HarnessEnforcementRow,
+  HarnessEvents,
+  HarnessOptions,
+  HarnessOutbox,
+  HarnessOutboxRow,
+  ModerationBackend,
+} from './backend.js';
 
 /**
  * A fictional application, wired the way an adopter wires one.
@@ -28,59 +42,139 @@ import type {
  * with a body and a status — because that is the part every adopter replaces.
  */
 
+/* ------------------------------------------------------------------------- */
+/* The façade, over Mongo                                                     */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * These three builders are exported because `reviewOnlyApplication.test.ts`
+ * wires its own integration — a different application, with no enforcement
+ * primitive — and must reach its rows through the same façade rather than a
+ * second dialect of assertions.
+ */
+
+export function mongooseOutboxFacade(input: {
+  model: Model<ModerationOutboxDocument>;
+  store: ModerationStore<TestReport, ClientSession>;
+  service: OutboxService<ClientSession>;
+}): HarnessOutbox {
+  const { model, store, service } = input;
+  const nullable = <T>(value: T | undefined): T | null => value ?? null;
+
+  return {
+    async count(filter = {}) {
+      return await model.countDocuments({
+        ...(filter.kind === undefined ? {} : { kind: filter.kind }),
+        ...(filter.status === undefined ? {} : { status: filter.status }),
+      });
+    },
+
+    async read(eventId) {
+      const row = await model.findById(eventId).lean();
+      if (row === null) return null;
+      return {
+        id: String(row._id),
+        kind: row.kind,
+        status: row.status,
+        attempts: row.attempts,
+        availableAt: row.availableAt,
+        leaseOwner: nullable(row.leaseOwner),
+        leaseUntil: nullable(row.leaseUntil),
+        lastError: nullable(row.lastError),
+        expiresAt: row.expiresAt,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      } satisfies HarnessOutboxRow;
+    },
+
+    async stealLease(eventId, leaseOwner) {
+      /**
+       * `maxTimeMS` is the bound the façade's contract requires. This write is
+       * made while a transaction on the same row may be open, so it can block —
+       * and an unbounded block is a test that hangs until the runner gives up,
+       * which distinguishes nothing. Two seconds turns that into a named server
+       * error in about two seconds.
+       */
+      await model
+        .updateOne({ _id: eventId }, { $set: { leaseOwner } })
+        .maxTimeMS(2_000);
+    },
+
+    async claim(options) {
+      return await service.claim({ leaseOwner: options.leaseOwner });
+    },
+
+    async complete(eventId, leaseOwner) {
+      return await service.complete(eventId, leaseOwner);
+    },
+
+    breakEnqueue(message) {
+      const original = store.outbox.enqueue;
+      store.outbox.enqueue = async () => {
+        throw new Error(message);
+      };
+      return {
+        restore() {
+          store.outbox.enqueue = original;
+        },
+      };
+    },
+  };
+}
+
+export function mongooseEventsFacade(
+  model: Model<ModerationEventDocument>,
+): HarnessEvents {
+  return {
+    async count(filter = {}) {
+      return await model.countDocuments(
+        filter.state === undefined ? {} : { state: filter.state },
+      );
+    },
+  };
+}
+
+export function mongooseEnforcementFacade(
+  model: Model<ModerationEnforcementDocument>,
+): HarnessEnforcement {
+  return {
+    async rows() {
+      /**
+       * `decisionRevision` breaks a tie, and the tie is real: `createdAt` has
+       * millisecond precision on both backends, so two rows written inside one
+       * millisecond order arbitrarily and a test identifying a row by position
+       * fails once in a while for no reason anybody can reproduce. Every fixture
+       * that depends on the order distinguishes its rows by revision.
+       */
+      const found = await model
+        .find({})
+        .sort({ createdAt: 1, decisionRevision: 1 })
+        .lean();
+      return found.map(
+        (row): HarnessEnforcementRow => ({
+          decisionId: row.decisionId,
+          decisionRevision: row.decisionRevision,
+          action: row.action,
+          recordedAs: row.recordedAs ?? null,
+          applied: row.applied,
+          appliedAt: row.appliedAt ?? null,
+          skippedReason: row.skippedReason ?? null,
+          previousState: row.previousState ?? null,
+          mode: row.mode,
+          createdAt: row.createdAt,
+        }),
+      );
+    },
+  };
+}
+
+/** The application's own noun, as THIS backend stores it. */
 export interface TestWidget {
   _id: mongoose.Types.ObjectId;
   body: string;
   ownerId: string;
   status: 'draft' | 'published' | 'restricted';
   flagged: boolean;
-}
-
-export interface TestReport extends ModerationReportFields {
-  _id: mongoose.Types.ObjectId;
-  /** A legacy verdict field, so the extra-fields escape hatch is exercised. */
-  legacyStatus: string;
-}
-
-export type TestAction = 'restrict' | 'restore' | 'flag' | 'unflag' | 'review' | 'none';
-
-export const TEST_ACTIONS: readonly TestAction[] = [
-  'restrict',
-  'restore',
-  'flag',
-  'unflag',
-  'review',
-  'none',
-];
-
-export interface Harness {
-  connection: Connection;
-  widgets: Model<TestWidget>;
-  reports: Model<TestReport>;
-  moderation: ModerationIntegration<TestReport, TestAction>;
-  /**
-   * The store the integration was built with.
-   *
-   * The integration itself no longer exposes storage — that is what keeps its
-   * type free of a transaction parameter whose value differs per backend — so a
-   * test that needs to reach past the pipeline reaches it here. Note this is the
-   * SAME object the integration holds, which is what makes stubbing a store
-   * method from a test observable inside `createReport`.
-   */
-  store: ModerationStore<TestReport, ClientSession>;
-  /**
-   * An outbox SERVICE over that same store.
-   *
-   * A second instance of a stateless wrapper, not a second outbox: it reads and
-   * writes exactly the rows the integration's own service does. Tests use it for
-   * the policy-level API (`enqueue` computing retention, `claim` computing a
-   * lease) rather than restating those computations.
-   */
-  outbox: OutboxService<ClientSession>;
-  /** The three collections, for assertions about rows the pipeline wrote. */
-  models: ModerationModels;
-  logs: { level: string; message: string; context?: Record<string, unknown> }[];
-  close(): Promise<void>;
 }
 
 export const recordingLogger = (
@@ -262,18 +356,7 @@ function legacyStatusFor(decision: Decision): { legacyStatus: string } {
 
 let databaseCounter = 0;
 
-export async function createHarness(
-  options: {
-    enabled?: boolean;
-    serviceKey?: string;
-    baseUrl?: string;
-    webhookSecret?: string;
-    enforcementMode?: 'observe' | 'manual' | 'automatic';
-    subjects?: readonly ModerationSubjectProvider[];
-    /** Replaces the application's whole enforcement half, `apply` included. */
-    enforcement?: ModerationEnforcementConfig<TestAction>;
-  } = {},
-): Promise<Harness> {
+export async function createHarness(options: HarnessOptions = {}): Promise<Harness> {
   const uri = process.env.CROWDSOURCE_APP_TEST_MONGODB_URI;
   if (uri === undefined) {
     throw new Error(
@@ -342,15 +425,83 @@ export async function createHarness(
    */
   await store.ensureSchema();
 
+  /**
+   * The same three models the store registered — `registerModerationModels`
+   * reuses whatever is already on the connection — so the façade reads exactly
+   * the rows the pipeline wrote.
+   */
+  const models = registerModerationModels({ connection, enforcementActions: TEST_ACTIONS });
+  /**
+   * A second instance of a stateless wrapper over the SAME store, not a second
+   * outbox. It is what gives the façade a policy-level `claim`/`complete`
+   * without a test restating the lease and backoff arithmetic.
+   */
+  const service = createOutboxService({ store: store.outbox, logger: recordingLogger(logs) });
+
   return {
-    connection,
-    widgets,
-    reports,
     moderation,
-    store,
-    outbox: createOutboxService({ store: store.outbox, logger: recordingLogger(logs) }),
-    models: registerModerationModels({ connection, enforcementActions: TEST_ACTIONS }),
     logs,
+
+    app: {
+      async createWidget(input) {
+        const created = await widgets.create({
+          body: input.body,
+          ownerId: input.ownerId,
+          ...(input.status === undefined ? {} : { status: input.status }),
+        });
+        return String(created._id);
+      },
+      async readWidget(id) {
+        if (!mongoose.isValidObjectId(id)) return null;
+        const row = await widgets.findById(id).lean<TestWidget | null>();
+        return row === null ? null : { status: row.status, flagged: row.flagged };
+      },
+      async readReport(id) {
+        if (!mongoose.isValidObjectId(id)) return null;
+        const row = await reports.findById(id).lean<(TestReport & { _id: unknown }) | null>();
+        return row === null ? null : Object.assign(row, { id: String(row._id) });
+      },
+      async countReports() {
+        return await reports.countDocuments({});
+      },
+      /** A syntactically valid ObjectId that was never stored. */
+      absentId() {
+        return String(new mongoose.Types.ObjectId());
+      },
+    },
+
+    outbox: mongooseOutboxFacade({ model: models.outbox, store, service }),
+    events: mongooseEventsFacade(models.event),
+    enforcement: mongooseEnforcementFacade(models.enforcement),
+
+    transaction: {
+      async run(operation) {
+        await store.transaction.run(async (session) => {
+          await operation(async (input) => {
+            await service.enqueue(input, session);
+          });
+        });
+      },
+    },
+
+    async detachedEnqueue() {
+      /**
+       * A bare `startSession()`: it satisfies the required parameter, it
+       * type-checks perfectly, and the row it writes would commit on its own.
+       * That is the mistake the guard exists for, so the fixture has to be able
+       * to make it.
+       */
+      const session = await connection.startSession();
+      return {
+        enqueue: async (input) => {
+          await service.enqueue(input, session);
+        },
+        async dispose() {
+          await session.endSession();
+        },
+      };
+    },
+
     async close() {
       await moderation.dispatcher.stop();
       moderation.reconciliationJob.stop();
@@ -359,3 +510,15 @@ export async function createHarness(
     },
   };
 }
+
+/**
+ * This backend, as the suite sees it.
+ *
+ * One entry today. Task 11 adds the Postgres one and the five storage files run
+ * `describe.each` over both — which is the reason nothing above returns a
+ * connection, a model or a transaction handle.
+ */
+export const mongooseBackend: ModerationBackend = {
+  name: 'mongoose',
+  createHarness,
+};

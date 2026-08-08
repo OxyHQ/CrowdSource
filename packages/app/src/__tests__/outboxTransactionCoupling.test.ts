@@ -6,18 +6,22 @@
  * enqueued without its outbox row is lost moderation work with no trace, and it
  * fails silently until something restarts.
  *
- * These tests run against a real replica set with a real `ClientSession`,
- * because the property is `session.inTransaction()` and a fake session can be
- * made to answer anything. `scripts/test-invariants.mjs` deletes the guard and
- * asserts that the first two tests below fail — an assertion that is worth
- * nothing unless it can.
+ * These tests run against a real database and a real transaction handle, because
+ * the property is whether that handle is actually IN a transaction and a fake
+ * one can be made to answer anything. `scripts/test-invariants.mjs` deletes the
+ * guard and asserts that the first two tests below fail — an assertion that is
+ * worth nothing unless it can.
+ *
+ * Nothing here names a driver. The handle never crosses the harness boundary:
+ * `transaction.run` hands the body an enqueue already bound to an open
+ * transaction, and `detachedEnqueue` binds one to a handle that has none.
  */
 
-import mongoose from 'mongoose';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ModerationOutboxTransactionError, reportSubmitEventId } from '../outbox/service.js';
 import type { CreateReportInput } from '../types.js';
-import { createHarness, type Harness } from './support/harness.js';
+import { createHarness } from './support/harness.js';
+import type { Harness } from './support/backend.js';
 
 let harness: Harness | null = null;
 
@@ -27,98 +31,77 @@ afterEach(async () => {
 });
 
 describe('the outbox refuses to be written outside a transaction', () => {
-  it('throws ModerationOutboxTransactionError for a session with no transaction open', async () => {
+  it('throws ModerationOutboxTransactionError for a handle with no transaction open', async () => {
     harness = await createHarness();
-    const session = await harness.connection.startSession();
+    /**
+     * A handle nobody opened a transaction on is the mistake worth catching. It
+     * satisfies the required parameter, it type-checks perfectly, and the row it
+     * writes commits on its own — so a test that only asserted the row exists
+     * would pass while the guarantee was gone.
+     */
+    const detached = await harness.detachedEnqueue();
     try {
-      /**
-       * A bare `startSession()` is the mistake worth catching. It satisfies the
-       * required parameter, it type-checks perfectly, and the row it writes
-       * commits on its own — so a test that only asserted the row exists would
-       * pass while the guarantee was gone.
-       */
-      expect(session.inTransaction()).toBe(false);
-
       await expect(
-        harness.outbox.enqueue(
-          {
-            eventId: 'moderation:report.submit:no-transaction',
-            kind: 'report.submit',
-            payload: { reportId: 'no-transaction' },
-          },
-          session,
-        ),
+        detached.enqueue({
+          eventId: 'moderation:report.submit:no-transaction',
+          kind: 'report.submit',
+          payload: { reportId: 'no-transaction' },
+        }),
       ).rejects.toBeInstanceOf(ModerationOutboxTransactionError);
     } finally {
-      await session.endSession();
+      await detached.dispose();
     }
   });
 
   it('writes no row at all when it refuses', async () => {
     harness = await createHarness();
-    const session = await harness.connection.startSession();
+    const detached = await harness.detachedEnqueue();
     try {
-      await harness.outbox
-        .enqueue(
-          {
-            eventId: 'moderation:report.submit:refused',
-            kind: 'report.submit',
-            payload: { reportId: 'refused' },
-          },
-          session,
-        )
+      await detached
+        .enqueue({
+          eventId: 'moderation:report.submit:refused',
+          kind: 'report.submit',
+          payload: { reportId: 'refused' },
+        })
         .catch(() => undefined);
     } finally {
-      await session.endSession();
+      await detached.dispose();
     }
 
-    expect(await harness.models.outbox.countDocuments({})).toBe(0);
+    expect(await harness.outbox.count()).toBe(0);
   });
 
-  it('accepts a session that IS in a transaction', async () => {
+  it('accepts a handle that IS in a transaction', async () => {
     harness = await createHarness();
-    const session = await harness.connection.startSession();
-    try {
-      await session.withTransaction(async () => {
-        await harness?.outbox.enqueue(
-          {
-            eventId: 'moderation:report.submit:in-transaction',
-            kind: 'report.submit',
-            payload: { reportId: 'in-transaction' },
-          },
-          session,
-        );
+    await harness.transaction.run(async (enqueue) => {
+      await enqueue({
+        eventId: 'moderation:report.submit:in-transaction',
+        kind: 'report.submit',
+        payload: { reportId: 'in-transaction' },
       });
-    } finally {
-      await session.endSession();
-    }
+    });
 
-    expect(
-      await harness.models.outbox.countDocuments({
-        _id: 'moderation:report.submit:in-transaction',
-      }),
-    ).toBe(1);
+    expect(await harness.outbox.read('moderation:report.submit:in-transaction')).not.toBeNull();
+    expect(await harness.outbox.count()).toBe(1);
   });
 });
 
 describe('intake commits the report and its delivery event together, or neither', () => {
   it('stores both when the reported type has a subject provider', async () => {
     harness = await createHarness();
-    const widget = await harness.widgets.create({ body: 'hello', ownerId: 'oxy-owner' });
+    const widgetId = await harness.app.createWidget({ body: 'hello', ownerId: 'oxy-owner' });
 
     const result = await harness.moderation.createReport({
       reporter: 'oxy-reporter',
       reportedType: 'widget',
-      reportedId: String(widget._id),
+      reportedId: widgetId,
       categories: ['spam'],
     });
 
     expect(result.report.localStatus).toBe('queued');
-    expect(result.outboxEventId).toBe(reportSubmitEventId(String(result.report._id)));
+    expect(result.outboxEventId).toBe(reportSubmitEventId(result.report.id));
 
-    const event = await harness.models.outbox
-      .findById(result.outboxEventId)
-      .lean();
+    const event = await harness.outbox.read(reportSubmitEventId(result.report.id));
     expect(event?.kind).toBe('report.submit');
     expect(event?.status).toBe('pending');
   });
@@ -129,19 +112,19 @@ describe('intake commits the report and its delivery event together, or neither'
     const result = await harness.moderation.createReport({
       reporter: 'oxy-reporter',
       reportedType: 'gizmo',
-      reportedId: String(new mongoose.Types.ObjectId()),
+      reportedId: harness.app.absentId(),
       categories: ['other'],
     });
 
     expect(result.report.localStatus).toBe('received');
     expect(result.report.localStatusReason).toContain('gizmo');
     expect(result.outboxEventId).toBeUndefined();
-    expect(await harness.models.outbox.countDocuments({})).toBe(0);
+    expect(await harness.outbox.count()).toBe(0);
   });
 
   it('rolls the report back when the outbox write fails inside the transaction', async () => {
     harness = await createHarness();
-    const widget = await harness.widgets.create({ body: 'hello', ownerId: 'oxy-owner' });
+    const widgetId = await harness.app.createWidget({ body: 'hello', ownerId: 'oxy-owner' });
 
     /**
      * The failure is injected at the outbox, which is the half that commits
@@ -149,59 +132,48 @@ describe('intake commits the report and its delivery event together, or neither'
      * report would survive with nothing to deliver it — the silent failure this
      * whole design exists to prevent.
      *
-     * It is injected into the STORE, not into `harness.outbox`. That is the
-     * object the integration actually holds; the harness's own outbox service is
-     * a second wrapper over the same store, so stubbing it would leave
+     * `breakEnqueue` injects into the STORE the integration actually holds. That
+     * distinction is the façade's to keep: the harness's own outbox service is a
+     * second wrapper over the same store, so breaking THAT would leave
      * `createReport` running the real enqueue and this test would assert nothing
      * about atomicity.
      */
-    const enqueue = harness.store.outbox.enqueue;
-    harness.store.outbox.enqueue = async () => {
-      throw new Error('injected outbox failure');
-    };
+    const broken = harness.outbox.breakEnqueue('injected outbox failure');
 
     await expect(
       harness.moderation.createReport({
         reporter: 'oxy-reporter',
         reportedType: 'widget',
-        reportedId: String(widget._id),
+        reportedId: widgetId,
         categories: ['spam'],
       }),
     ).rejects.toThrow('injected outbox failure');
 
-    harness.store.outbox.enqueue = enqueue;
+    broken.restore();
 
-    expect(await harness.reports.countDocuments({})).toBe(0);
-    expect(await harness.models.outbox.countDocuments({})).toBe(0);
+    expect(await harness.app.countReports()).toBe(0);
+    expect(await harness.outbox.count()).toBe(0);
   });
 
   it('is the same event id for a repeated enqueue, so one report never queues two deliveries', async () => {
     harness = await createHarness();
-    const widget = await harness.widgets.create({ body: 'hello', ownerId: 'oxy-owner' });
+    const widgetId = await harness.app.createWidget({ body: 'hello', ownerId: 'oxy-owner' });
     const created = await harness.moderation.createReport({
       reporter: 'oxy-reporter',
       reportedType: 'widget',
-      reportedId: String(widget._id),
+      reportedId: widgetId,
       categories: ['spam'],
     });
 
-    const session = await harness.connection.startSession();
-    try {
-      await session.withTransaction(async () => {
-        await harness?.outbox.enqueue(
-          {
-            eventId: reportSubmitEventId(String(created.report._id)),
-            kind: 'report.submit',
-            payload: { reportId: String(created.report._id) },
-          },
-          session,
-        );
+    await harness.transaction.run(async (enqueue) => {
+      await enqueue({
+        eventId: reportSubmitEventId(created.report.id),
+        kind: 'report.submit',
+        payload: { reportId: created.report.id },
       });
-    } finally {
-      await session.endSession();
-    }
+    });
 
-    expect(await harness.models.outbox.countDocuments({})).toBe(1);
+    expect(await harness.outbox.count()).toBe(1);
   });
 
   it('leaves an existing row completely untouched on a repeated enqueue', async () => {
@@ -220,29 +192,20 @@ describe('intake commits the report and its delivery event together, or neither'
     harness = await createHarness();
     const eventId = 'moderation:report.submit:repeat-is-a-no-op';
     const enqueueOnce = async (): Promise<void> => {
-      const session = await harness?.connection.startSession();
-      if (session === undefined) throw new Error('no connection');
-      try {
-        await session.withTransaction(async () => {
-          await harness?.outbox.enqueue(
-            { eventId, kind: 'report.submit', payload: { reportId: 'repeat' } },
-            session,
-          );
-        });
-      } finally {
-        await session.endSession();
-      }
+      await harness?.transaction.run(async (enqueue) => {
+        await enqueue({ eventId, kind: 'report.submit', payload: { reportId: 'repeat' } });
+      });
     };
 
     await enqueueOnce();
-    const first = await harness.models.outbox.findById(eventId).lean();
+    const first = await harness.outbox.read(eventId);
     await new Promise((resolve) => setTimeout(resolve, 25));
     await enqueueOnce();
-    const second = await harness.models.outbox.findById(eventId).lean();
+    const second = await harness.outbox.read(eventId);
 
     expect(first?.createdAt).toBeInstanceOf(Date);
-    expect(second?.updatedAt?.getTime()).toBe(first?.updatedAt?.getTime());
-    expect(await harness.models.outbox.countDocuments({})).toBe(1);
+    expect(second?.updatedAt.getTime()).toBe(first?.updatedAt.getTime());
+    expect(await harness.outbox.count()).toBe(1);
   });
 
   it('re-enqueues inside a transaction without blocking a live lease write', async () => {
@@ -287,29 +250,19 @@ describe('intake commits the report and its delivery event together, or neither'
      */
     harness = await createHarness();
     const eventId = 'moderation:report.submit:contended';
-    const enqueue = async (): Promise<void> => {
-      const session = await harness?.connection.startSession();
-      if (session === undefined) throw new Error('no connection');
-      try {
-        await session.withTransaction(async () => {
-          await harness?.outbox.enqueue(
-            { eventId, kind: 'report.submit', payload: { reportId: 'contended' } },
-            session,
-          );
-          // The dispatcher, mid-flight on the same row and outside the
-          // transaction. A no-op enqueue takes no lock, so this returns at once.
-          await harness?.models.outbox
-            .updateOne({ _id: eventId }, { $set: { leaseOwner: 'another-task' } })
-            .maxTimeMS(2_000);
-        });
-      } finally {
-        await session.endSession();
-      }
+    const enqueueThenSteal = async (): Promise<void> => {
+      await harness?.transaction.run(async (enqueue) => {
+        await enqueue({ eventId, kind: 'report.submit', payload: { reportId: 'contended' } });
+        // The dispatcher, mid-flight on the same row and outside the
+        // transaction. A no-op enqueue takes no lock, so this returns at once.
+        // `stealLease` carries the bound described above — see its contract.
+        await harness?.outbox.stealLease(eventId, 'another-task');
+      });
     };
 
-    await enqueue();
-    await expect(enqueue()).resolves.toBeUndefined();
-    expect(await harness.models.outbox.countDocuments({})).toBe(1);
+    await enqueueThenSteal();
+    await expect(enqueueThenSteal()).resolves.toBeUndefined();
+    expect(await harness.outbox.count()).toBe(1);
   });
 });
 
@@ -323,7 +276,7 @@ describe('intake refuses an identifier that is not a string', () => {
     const input: CreateReportInput = {
       reporter: 'oxy-reporter',
       reportedType: 'widget',
-      reportedId: String(new mongoose.Types.ObjectId()),
+      reportedId: harness.app.absentId(),
       categories: ['spam'],
     };
 
@@ -339,6 +292,6 @@ describe('intake refuses an identifier that is not a string', () => {
     await expect(harness.moderation.createReport(input)).rejects.toBeInstanceOf(
       TypeError,
     );
-    expect(await harness.reports.countDocuments({})).toBe(0);
+    expect(await harness.app.countReports()).toBe(0);
   });
 });

@@ -19,7 +19,8 @@ import {
   type CrowdSourceSandbox,
 } from '@oxyhq/crowdsource-testing';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createHarness, type Harness } from './support/harness.js';
+import { createHarness } from './support/harness.js';
+import type { Harness } from './support/backend.js';
 import { startWebhookApp, type RunningWebhookApp } from './support/webhookApp.js';
 
 const WEBHOOK_SECRET = 'whsec_test_0123456789abcdef0123456789abcdef';
@@ -83,7 +84,7 @@ async function eventually(assertion: () => Promise<void>, timeoutMs = 20_000): P
 describe('report in, decision out', () => {
   it('carries a report to a case, a decision back, and a restricted widget', async () => {
     const wired = await wire();
-    const widget = await wired.harness.widgets.create({
+    const widgetId = await wired.harness.app.createWidget({
       body: 'buy cheap watches',
       ownerId: 'oxy-owner',
     });
@@ -92,7 +93,7 @@ describe('report in, decision out', () => {
     const { report, outboxEventId } = await wired.harness.moderation.createReport({
       reporter: 'oxy-reporter',
       reportedType: 'widget',
-      reportedId: String(widget._id),
+      reportedId: widgetId,
       categories: ['spam'],
     });
     expect(report.localStatus).toBe('queued');
@@ -101,11 +102,11 @@ describe('report in, decision out', () => {
     // --- Delivery.
     wired.harness.moderation.dispatcher.start();
     await eventually(async () => {
-      const row = await wired.harness.reports.findById(report._id).lean();
+      const row = await wired.harness.app.readReport(report.id);
       expect(row?.localStatus).toBe('submitted');
     });
 
-    const submitted = await wired.harness.reports.findById(report._id).lean();
+    const submitted = await wired.harness.app.readReport(report.id);
     expect(submitted?.crowdSourceCaseId).toBeDefined();
     expect(submitted?.contentSnapshotHash).toMatch(/^sha256:[0-9a-f]{64}$/);
     const caseId = submitted?.crowdSourceCaseId;
@@ -119,13 +120,13 @@ describe('report in, decision out', () => {
 
     // --- The decision reaches the widget.
     await eventually(async () => {
-      expect(await wired.harness.widgets.findById(widget._id).lean()).toMatchObject({
+      expect(await wired.harness.app.readWidget(widgetId)).toMatchObject({
         status: 'restricted',
       });
     });
     await wired.harness.moderation.dispatcher.stop();
 
-    const decided = await wired.harness.reports.findById(report._id).lean();
+    const decided = await wired.harness.app.readReport(report.id);
     expect(decided?.localStatus).toBe('closed');
     expect(decided?.decisionOutcome).toBe('violation');
     expect(decided?.decisionRevision).toBe(decision.revision);
@@ -136,24 +137,24 @@ describe('report in, decision out', () => {
 
   it('leaves the widget alone in observe mode, and still records the plan', async () => {
     const wired = await wire({ enforcementMode: 'observe' });
-    const widget = await wired.harness.widgets.create({
+    const widgetId = await wired.harness.app.createWidget({
       body: 'buy cheap watches',
       ownerId: 'oxy-owner',
     });
     const { report } = await wired.harness.moderation.createReport({
       reporter: 'oxy-reporter',
       reportedType: 'widget',
-      reportedId: String(widget._id),
+      reportedId: widgetId,
       categories: ['spam'],
     });
 
     wired.harness.moderation.dispatcher.start();
     await eventually(async () => {
-      const row = await wired.harness.reports.findById(report._id).lean();
+      const row = await wired.harness.app.readReport(report.id);
       expect(row?.localStatus).toBe('submitted');
     });
 
-    const stored = await wired.harness.reports.findById(report._id).lean();
+    const stored = await wired.harness.app.readReport(report.id);
     const caseId = stored?.crowdSourceCaseId;
     if (caseId === undefined) throw new Error('the report was never given a case id');
 
@@ -163,9 +164,7 @@ describe('report in, decision out', () => {
     );
 
     await eventually(async () => {
-      expect(
-        await wired.harness.models.enforcement.countDocuments({}),
-      ).toBeGreaterThan(0);
+      expect((await wired.harness.enforcement.rows()).length).toBeGreaterThan(0);
     });
     await wired.harness.moderation.dispatcher.stop();
 
@@ -174,36 +173,34 @@ describe('report in, decision out', () => {
      * the effect is gated — which is what makes observe mode a real rehearsal
      * rather than a log line saying a decision was seen.
      */
-    const enforcement = await wired.harness.models.enforcement
-      .findOne({})
-      .lean();
-    expect(enforcement?.applied).toBe(false);
-    expect(enforcement?.mode).toBe('observe');
-    expect(enforcement?.skippedReason).toContain('observe mode');
-    expect(await wired.harness.widgets.findById(widget._id).lean()).toMatchObject({
+    const [enforcement] = await wired.harness.enforcement.rows();
+    expect(enforcement.applied).toBe(false);
+    expect(enforcement.mode).toBe('observe');
+    expect(enforcement.skippedReason).toContain('observe mode');
+    expect(await wired.harness.app.readWidget(widgetId)).toMatchObject({
       status: 'published',
     });
   });
 
   it('restores the widget when a correction supersedes the removal', async () => {
     const wired = await wire();
-    const widget = await wired.harness.widgets.create({
+    const widgetId = await wired.harness.app.createWidget({
       body: 'buy cheap watches',
       ownerId: 'oxy-owner',
     });
     const { report } = await wired.harness.moderation.createReport({
       reporter: 'oxy-reporter',
       reportedType: 'widget',
-      reportedId: String(widget._id),
+      reportedId: widgetId,
       categories: ['spam'],
     });
 
     wired.harness.moderation.dispatcher.start();
     await eventually(async () => {
-      const row = await wired.harness.reports.findById(report._id).lean();
+      const row = await wired.harness.app.readReport(report.id);
       expect(row?.localStatus).toBe('submitted');
     });
-    const caseId = (await wired.harness.reports.findById(report._id).lean())
+    const caseId = (await wired.harness.app.readReport(report.id))
       ?.crowdSourceCaseId;
     if (caseId === undefined) throw new Error('the report was never given a case id');
 
@@ -212,7 +209,7 @@ describe('report in, decision out', () => {
       wired.sandbox.eventFor(wired.sandbox.decide(caseId, { outcome: 'violation' })),
     );
     await eventually(async () => {
-      expect(await wired.harness.widgets.findById(widget._id).lean()).toMatchObject({
+      expect(await wired.harness.app.readWidget(widgetId)).toMatchObject({
         status: 'restricted',
       });
     });
@@ -232,13 +229,13 @@ describe('report in, decision out', () => {
     await simulator.deliver(wired.sandbox.eventFor(correction));
 
     await eventually(async () => {
-      expect(await wired.harness.widgets.findById(widget._id).lean()).toMatchObject({
+      expect(await wired.harness.app.readWidget(widgetId)).toMatchObject({
         status: 'published',
       });
     });
     await wired.harness.moderation.dispatcher.stop();
 
-    const corrected = await wired.harness.reports.findById(report._id).lean();
+    const corrected = await wired.harness.app.readReport(report.id);
     expect(corrected?.decisionRevision).toBe(correction.revision);
     expect(corrected?.decisionOutcome).toBe('no_violation');
     expect(corrected?.legacyStatus).toBe('dismissed');
@@ -267,10 +264,10 @@ describe('the report records what was effectively done', () => {
 
     wired.harness.moderation.dispatcher.start();
     await eventually(async () => {
-      const row = await wired.harness.reports.findById(report._id).lean();
+      const row = await wired.harness.app.readReport(report.id);
       expect(row?.localStatus).toBe('submitted');
     });
-    const caseId = (await wired.harness.reports.findById(report._id).lean())
+    const caseId = (await wired.harness.app.readReport(report.id))
       ?.crowdSourceCaseId;
     if (caseId === undefined) throw new Error('the report was never given a case id');
 
@@ -280,12 +277,12 @@ describe('the report records what was effectively done', () => {
     );
 
     await eventually(async () => {
-      const row = await wired.harness.reports.findById(report._id).lean();
+      const row = await wired.harness.app.readReport(report.id);
       expect(row?.decisionOutcome).toBe('violation');
     });
     await wired.harness.moderation.dispatcher.stop();
 
-    const decided = await wired.harness.reports.findById(report._id).lean();
+    const decided = await wired.harness.app.readReport(report.id);
     expect(decided?.enforcedAction).toBe('none');
     expect(decided?.enforcedAt).toBeUndefined();
   });

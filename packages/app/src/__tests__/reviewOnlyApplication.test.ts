@@ -18,152 +18,27 @@
  * points, and it was.
  */
 
-import { CrowdSource } from '@oxyhq/crowdsource';
-import {
-  createCrowdSourceSandbox,
-  WebhookSimulator,
-  type CrowdSourceSandbox,
-} from '@oxyhq/crowdsource-testing';
-import mongoose, { Schema, type Connection, type Model } from 'mongoose';
+import { WebhookSimulator } from '@oxyhq/crowdsource-testing';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createModerationIntegration, type ModerationIntegration } from '../integration.js';
-import {
-  applyModerationReportIndexes,
-  moderationReportSchemaFields,
-} from '../mongoose/report.js';
-import { registerModerationModels, type ModerationModels } from '../mongoose/models.js';
-import { mongooseModerationStore } from '../mongoose/store/index.js';
 import { planEnforcement } from '../enforcement/planner.js';
 import { decision } from './support/decisions.js';
-import type { ModerationEnforcementConfig, ModerationReportFields } from '../types.js';
+import {
+  REVIEW_ONLY,
+  REVIEW_ONLY_WEBHOOK_SECRET,
+  createReviewOnlyHarness,
+  type ReviewOnlyHarness,
+} from './support/reviewOnlyHarness.js';
 import { startWebhookApp, type RunningWebhookApp } from './support/webhookApp.js';
 
-const WEBHOOK_SECRET = 'whsec_test_0123456789abcdef0123456789abcdef';
-
-type ReviewOnlyAction = 'none' | 'review';
-
-interface ReviewOnlyReport extends ModerationReportFields {
-  _id: mongoose.Types.ObjectId;
-}
-
-/**
- * The whole enforcement config for an application with nothing to enforce with.
- *
- * Three fields. No `apply`, no `severityFallback`, no `precedence`, no `absorb`,
- * no `reversibleActions`, no `reverses` — and `restoreAction: null`, which the
- * type REQUIRES so that "there is nothing to restore" is a written decision
- * rather than a key somebody forgot.
- */
-const REVIEW_ONLY: ModerationEnforcementConfig<ReviewOnlyAction> = {
-  actions: ['review', 'none'],
-  noneAction: 'none',
-  reviewAction: 'review',
-  restoreAction: null,
-};
-
-let connection: Connection | null = null;
+let wired: ReviewOnlyHarness | null = null;
 let app: RunningWebhookApp | null = null;
-let counter = 0;
 
 afterEach(async () => {
   await app?.close();
   app = null;
-  if (connection) {
-    await connection.dropDatabase();
-    await connection.close();
-    connection = null;
-  }
+  await wired?.close();
+  wired = null;
 });
-
-interface Wired {
-  sandbox: CrowdSourceSandbox;
-  reports: Model<ReviewOnlyReport>;
-  moderation: ModerationIntegration<ReviewOnlyReport, ReviewOnlyAction>;
-  /** The three collections, for assertions about what the pipeline wrote. */
-  models: ModerationModels;
-}
-
-async function wireReviewOnlyApp(): Promise<Wired> {
-  const uri = process.env.CROWDSOURCE_APP_TEST_MONGODB_URI;
-  if (uri === undefined) throw new Error('vitest.globalSetup.ts did not run.');
-
-  counter += 1;
-  connection = mongoose.createConnection(uri, {
-    dbName: `crowdsource_review_only_${process.pid}_${counter}`,
-  });
-  await connection.asPromise();
-
-  const ReportSchema = new Schema<ReviewOnlyReport>(
-    {
-      ...moderationReportSchemaFields({
-        reportedTypes: ['account', 'message'],
-        categories: ['harassment'],
-      }),
-    },
-    { timestamps: true },
-  );
-  applyModerationReportIndexes(ReportSchema);
-  const reports = connection.model<ReviewOnlyReport>('Report', ReportSchema);
-
-  const sandbox = createCrowdSourceSandbox({ webhookSecret: WEBHOOK_SECRET });
-  const store = mongooseModerationStore<ReviewOnlyReport>({
-    connection,
-    reportModel: reports,
-    enforcementActions: REVIEW_ONLY.actions,
-  });
-  const moderation = createModerationIntegration({
-    store,
-    crowdSource: {
-      enabled: true,
-      serviceKey: sandbox.serviceKey,
-      baseUrl: sandbox.baseUrl,
-      webhookSecret: WEBHOOK_SECRET,
-      // `automatic` deliberately: the point is that an application with no
-      // primitive applies nothing even when the mode permits everything.
-      enforcementMode: 'automatic',
-      outboxPollIntervalMs: 50,
-    },
-    subjects: [
-      {
-        reportedType: 'account',
-        subjectType: 'identity.profile',
-        async snapshot(reportedId) {
-          return {
-            subject: { externalId: reportedId, type: 'identity.profile' },
-            content: { type: 'profile', data: { displayName: 'a reported account' } },
-          };
-        },
-      },
-    ],
-    taxonomy: {
-      version: '2026.07',
-      allegationsFor: () => ['harassment.targeted_abuse'],
-    },
-    enforcement: REVIEW_ONLY,
-    logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
-  });
-
-  moderation.client.get = () =>
-    new CrowdSource({
-      serviceKey: sandbox.serviceKey,
-      baseUrl: sandbox.baseUrl,
-      fetch: sandbox.fetch,
-    });
-
-  // One call for the three collections this package owns and the application's
-  // own report model.
-  await store.ensureSchema();
-
-  return {
-    sandbox,
-    reports,
-    moderation,
-    models: registerModerationModels({
-      connection,
-      enforcementActions: REVIEW_ONLY.actions,
-    }),
-  };
-}
 
 async function eventually(assertion: () => Promise<void>, timeoutMs = 20_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -246,37 +121,38 @@ describe('an application with no enforcement primitive', () => {
   });
 
   it('records the decision, and never claims an effect it did not have', async () => {
-    const wired = await wireReviewOnlyApp();
-    app = await startWebhookApp(wired.moderation);
+    const built = await createReviewOnlyHarness();
+    wired = built;
+    app = await startWebhookApp(built.moderation);
 
-    const { report } = await wired.moderation.createReport({
+    const { report } = await built.moderation.createReport({
       reporter: 'oxy-reporter',
       reportedType: 'account',
       reportedId: 'oxy-reported-account',
       categories: ['harassment'],
     });
 
-    wired.moderation.dispatcher.start();
+    built.moderation.dispatcher.start();
     await eventually(async () => {
-      const row = await wired.reports.findById(report._id).lean();
+      const row = await built.readReport(report.id);
       expect(row?.localStatus).toBe('submitted');
     });
 
-    const caseId = (await wired.reports.findById(report._id).lean())?.crowdSourceCaseId;
+    const caseId = (await built.readReport(report.id))?.crowdSourceCaseId;
     if (caseId === undefined) throw new Error('the report was never given a case id');
 
-    const simulator = new WebhookSimulator({ secret: WEBHOOK_SECRET, url: app.url });
+    const simulator = new WebhookSimulator({ secret: REVIEW_ONLY_WEBHOOK_SECRET, url: app.url });
     await simulator.deliver(
-      wired.sandbox.eventFor(wired.sandbox.decide(caseId, { outcome: 'violation' })),
+      built.sandbox.eventFor(built.sandbox.decide(caseId, { outcome: 'violation' })),
     );
 
     await eventually(async () => {
-      const row = await wired.reports.findById(report._id).lean();
+      const row = await built.readReport(report.id);
       expect(row?.decisionOutcome).toBe('violation');
     });
-    await wired.moderation.dispatcher.stop();
+    await built.moderation.dispatcher.stop();
 
-    const decided = await wired.reports.findById(report._id).lean();
+    const decided = await built.readReport(report.id);
     // What the application DECIDED is recorded…
     expect(decided?.enforcedAction).toBe('review');
     // …and what it did is not claimed, because it did nothing.
@@ -284,45 +160,44 @@ describe('an application with no enforcement primitive', () => {
     expect(decided?.localStatus).toBe('closed');
 
     // The audit row exists and is honest about why nothing happened.
-    const enforcement = await wired.models.enforcement.findOne({}).lean();
-    expect(enforcement?.action).toBe('review');
-    expect(enforcement?.applied).toBe(false);
-    expect(enforcement?.mode).toBe('automatic');
-    expect(enforcement?.skippedReason).toContain('no enforcement primitive');
+    const [enforcement] = await built.enforcement.rows();
+    expect(enforcement.action).toBe('review');
+    expect(enforcement.applied).toBe(false);
+    expect(enforcement.mode).toBe('automatic');
+    expect(enforcement.skippedReason).toContain('no enforcement primitive');
   });
 
   it('keeps the idempotency claim, so a redelivered decision is still recorded once', async () => {
-    const wired = await wireReviewOnlyApp();
-    app = await startWebhookApp(wired.moderation);
+    const built = await createReviewOnlyHarness();
+    wired = built;
+    app = await startWebhookApp(built.moderation);
 
-    const { report } = await wired.moderation.createReport({
+    const { report } = await built.moderation.createReport({
       reporter: 'oxy-reporter',
       reportedType: 'account',
       reportedId: 'oxy-reported-account',
       categories: ['harassment'],
     });
 
-    wired.moderation.dispatcher.start();
+    built.moderation.dispatcher.start();
     await eventually(async () => {
-      const row = await wired.reports.findById(report._id).lean();
+      const row = await built.readReport(report.id);
       expect(row?.localStatus).toBe('submitted');
     });
-    const caseId = (await wired.reports.findById(report._id).lean())?.crowdSourceCaseId;
+    const caseId = (await built.readReport(report.id))?.crowdSourceCaseId;
     if (caseId === undefined) throw new Error('the report was never given a case id');
 
-    const simulator = new WebhookSimulator({ secret: WEBHOOK_SECRET, url: app.url });
-    const event = wired.sandbox.eventFor(
-      wired.sandbox.decide(caseId, { outcome: 'violation' }),
+    const simulator = new WebhookSimulator({ secret: REVIEW_ONLY_WEBHOOK_SECRET, url: app.url });
+    const event = built.sandbox.eventFor(
+      built.sandbox.decide(caseId, { outcome: 'violation' }),
     );
     await simulator.deliver(event);
     await simulator.deliver(event);
 
     await eventually(async () => {
-      expect(
-        await wired.models.enforcement.countDocuments({}),
-      ).toBeGreaterThan(0);
+      expect((await built.enforcement.rows()).length).toBeGreaterThan(0);
     });
-    await wired.moderation.dispatcher.stop();
+    await built.moderation.dispatcher.stop();
 
     /**
      * One row, because the claim is keyed on `decisionId + revision + action`
@@ -330,7 +205,7 @@ describe('an application with no enforcement primitive', () => {
      * can act. An application with no primitive still gets exactly-once
      * bookkeeping.
      */
-    expect(await wired.models.enforcement.countDocuments({})).toBe(1);
-    expect(await wired.models.event.countDocuments({})).toBe(1);
+    expect(await built.enforcement.rows()).toHaveLength(1);
+    expect(await built.events.count()).toBe(1);
   });
 });

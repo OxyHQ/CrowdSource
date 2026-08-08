@@ -27,7 +27,8 @@
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { createHarness, type Harness } from './support/harness.js';
+import { createHarness } from './support/harness.js';
+import type { Harness } from './support/backend.js';
 import { decision } from './support/decisions.js';
 
 let harness: Harness | null = null;
@@ -42,12 +43,12 @@ const CASE_ID = 'case_reversal';
 describe('a reversal restores what was actually displaced', () => {
   it('reads the applied row, not the newer recorded-only one', async () => {
     harness = await createHarness();
-    const widget = await harness.widgets.create({
+    const widgetId = await harness.app.createWidget({
       body: 'a draft nobody has seen',
       ownerId: 'oxy-owner',
       status: 'draft',
     });
-    const subject = { type: 'widget', id: String(widget._id) };
+    const subject = { type: 'widget', id: widgetId };
 
     // --- Revision 1: a violation. Restricts a DRAFT, recording what it was.
     const first = await harness.moderation.enforcement.apply({
@@ -60,7 +61,7 @@ describe('a reversal restores what was actually displaced', () => {
       subject,
     });
     expect(first).toEqual([{ action: 'restrict', result: 'applied' }]);
-    expect((await harness.widgets.findById(widget._id).lean())?.status).toBe('restricted');
+    expect((await harness.app.readWidget(widgetId))?.status).toBe('restricted');
 
     /**
      * Revision 2: the same violation upheld. It plans `restrict` again, the
@@ -80,16 +81,15 @@ describe('a reversal restores what was actually displaced', () => {
     });
     expect(second).toEqual([{ action: 'restrict', result: 'recorded' }]);
 
-    const restrictRows = await harness.models.enforcement
-      .find({ subjectType: 'widget', subjectId: subject.id, action: 'restrict' })
-      .sort({ createdAt: -1 })
-      .lean();
+    const restrictRows = (await harness.enforcement.rows()).filter(
+      (row) => row.action === 'restrict',
+    );
     expect(restrictRows).toHaveLength(2);
-    // The two rows disagree, and the newer one is the uninformative one.
-    expect(restrictRows[0].applied).toBe(false);
-    expect(restrictRows[0].previousState).toBeUndefined();
-    expect(restrictRows[1].applied).toBe(true);
-    expect(restrictRows[1].previousState).toEqual({ status: 'draft' });
+    // Oldest first, and the two rows disagree: the NEWER one is uninformative.
+    expect(restrictRows[0].applied).toBe(true);
+    expect(restrictRows[0].previousState).toEqual({ status: 'draft' });
+    expect(restrictRows[1].applied).toBe(false);
+    expect(restrictRows[1].previousState).toBeNull();
 
     // --- Revision 3: the correction. The restore must read the APPLIED row.
     const third = await harness.moderation.enforcement.apply({
@@ -112,7 +112,7 @@ describe('a reversal restores what was actually displaced', () => {
      * draft into publication — a moderation correction publishing something its
      * author never did.
      */
-    expect((await harness.widgets.findById(widget._id).lean())?.status).toBe('draft');
+    expect((await harness.app.readWidget(widgetId))?.status).toBe('draft');
   });
 
 });
@@ -130,12 +130,12 @@ describe('an action that could not apply to THIS object is labelled honestly', (
      * particular object has no such lever, and `recordedAs` is how it says so.
      */
     harness = await createHarness();
-    const widget = await harness.widgets.create({
+    const widgetId = await harness.app.createWidget({
       body: 'never restricted',
       ownerId: 'oxy-owner',
       status: 'published',
     });
-    const subject = { type: 'gizmo', id: String(widget._id) };
+    const subject = { type: 'gizmo', id: widgetId };
 
     const outcomes = await harness.moderation.enforcement.apply({
       decision: decision({
@@ -160,10 +160,10 @@ describe('an action that could not apply to THIS object is labelled honestly', (
      * and it is what was decided — and carries the effective label alongside.
      * Rewriting `action` would make a redelivery claim a different row.
      */
-    const row = await harness.models.enforcement.findOne({}).lean();
-    expect(row?.action).toBe('restore');
-    expect(row?.recordedAs).toBe('none');
-    expect(row?.applied).toBe(false);
+    const [row] = await harness.enforcement.rows();
+    expect(row.action).toBe('restore');
+    expect(row.recordedAs).toBe('none');
+    expect(row.applied).toBe(false);
   });
 });
 
@@ -182,12 +182,12 @@ describe('one action reversing several', () => {
      * while reading the older `restrict` row would restore `draft`.
      */
     harness = await createHarness();
-    const widget = await harness.widgets.create({
+    const widgetId = await harness.app.createWidget({
       body: 'a draft nobody has seen',
       ownerId: 'oxy-owner',
       status: 'draft',
     });
-    const subject = { type: 'widget', id: String(widget._id) };
+    const subject = { type: 'widget', id: widgetId };
 
     // Older applied row: restrict, displacing `draft`.
     expect(
@@ -207,13 +207,11 @@ describe('one action reversing several', () => {
       }),
     ).toEqual([{ action: 'flag', result: 'applied' }]);
 
-    const applied = await harness.models.enforcement
-      .find({ subjectId: subject.id, applied: true })
-      .sort({ createdAt: -1 })
-      .lean();
-    expect(applied.map((row) => row.action)).toEqual(['flag', 'restrict']);
-    expect(applied[0].previousState).toEqual({ flagged: false });
-    expect(applied[1].previousState).toEqual({ status: 'draft' });
+    const applied = (await harness.enforcement.rows()).filter((row) => row.applied);
+    // Oldest first: `restrict` displaced the status, then `flag` displaced the flag.
+    expect(applied.map((row) => row.action)).toEqual(['restrict', 'flag']);
+    expect(applied[0].previousState).toEqual({ status: 'draft' });
+    expect(applied[1].previousState).toEqual({ flagged: false });
 
     // The correction. Its restore must read the FLAG row, not the restrict one.
     expect(
@@ -235,7 +233,7 @@ describe('one action reversing several', () => {
      * instead would put the widget back to `draft` — the right answer to a
      * question nobody asked, drawn from a row two revisions stale.
      */
-    expect((await harness.widgets.findById(widget._id).lean())?.status).toBe('published');
+    expect((await harness.app.readWidget(widgetId))?.status).toBe('published');
   });
 });
 
@@ -255,12 +253,12 @@ describe('a correction undoes every reversible action, not just the first', () =
      * WAS the bug.
      */
     harness = await createHarness();
-    const widget = await harness.widgets.create({
+    const widgetId = await harness.app.createWidget({
       body: 'hidden and labelled',
       ownerId: 'oxy-owner',
       status: 'published',
     });
-    const subject = { type: 'widget', id: String(widget._id) };
+    const subject = { type: 'widget', id: widgetId };
 
     // One revision does both: restrict and flag.
     await harness.moderation.enforcement.apply({
@@ -273,7 +271,7 @@ describe('a correction undoes every reversible action, not just the first', () =
       caseId: CASE_ID,
       subject,
     });
-    expect(await harness.widgets.findById(widget._id).lean()).toMatchObject({
+    expect(await harness.app.readWidget(widgetId)).toMatchObject({
       status: 'restricted',
       flagged: true,
     });
@@ -299,7 +297,7 @@ describe('a correction undoes every reversible action, not just the first', () =
      * declared restore leaves the widget visible and labelled — the exact state
      * an appellant is told they were cleared of.
      */
-    expect(await harness.widgets.findById(widget._id).lean()).toMatchObject({
+    expect(await harness.app.readWidget(widgetId)).toMatchObject({
       status: 'published',
       flagged: false,
     });
@@ -319,12 +317,12 @@ describe('the restore dedup is per action, not per set', () => {
      * happen to recommend a restore. Asking per action keeps them independent.
      */
     harness = await createHarness();
-    const widget = await harness.widgets.create({
+    const widgetId = await harness.app.createWidget({
       body: 'hidden and labelled',
       ownerId: 'oxy-owner',
       status: 'published',
     });
-    const subject = { type: 'widget', id: String(widget._id) };
+    const subject = { type: 'widget', id: widgetId };
 
     await harness.moderation.enforcement.apply({
       decision: decision({ revision: 1, recommendedActions: [{ action: 'label' }] }),
@@ -353,7 +351,7 @@ describe('the restore dedup is per action, not per set', () => {
       'restore',
       'unflag',
     ]);
-    expect(await harness.widgets.findById(widget._id).lean()).toMatchObject({
+    expect(await harness.app.readWidget(widgetId)).toMatchObject({
       status: 'published',
       flagged: false,
     });

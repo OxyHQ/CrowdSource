@@ -17,10 +17,10 @@
  * type-checks perfectly.
  */
 
-import mongoose from 'mongoose';
 import { afterEach, describe, expect, it } from 'vitest';
 import { decision } from './support/decisions.js';
-import { createHarness, TEST_ACTIONS, type Harness, type TestAction } from './support/harness.js';
+import { createHarness } from './support/harness.js';
+import { TEST_ACTIONS, type Harness, type TestAction } from './support/backend.js';
 import type { EnforcementEffect, ModerationEnforcementConfig } from '../types.js';
 
 let harness: Harness | null = null;
@@ -59,7 +59,7 @@ describe('an enforcement effect that throws', () => {
   it('releases its claim, so the same decision revision can be applied on a retry', async () => {
     let failing = true;
     harness = await createHarness({ enforcement: unreliableEnforcement(() => failing) });
-    const subject = { type: 'widget', id: String(new mongoose.Types.ObjectId()) };
+    const subject = { type: 'widget', id: harness.app.absentId() };
     const violation = decision({
       revision: 1,
       outcome: 'violation',
@@ -75,7 +75,7 @@ describe('an enforcement effect that throws', () => {
     ).rejects.toThrow('the effect failed');
 
     // The claim is gone: no row survives an attempt that changed nothing.
-    expect(await harness.models.enforcement.countDocuments({})).toBe(0);
+    expect(await harness.enforcement.rows()).toHaveLength(0);
 
     /**
      * The assertion that bites. A release that matched no row leaves the claim
@@ -91,7 +91,7 @@ describe('an enforcement effect that throws', () => {
     });
     expect(outcomes).toEqual([{ action: 'restrict', result: 'applied' }]);
 
-    const rows = await harness.models.enforcement.find({}).lean();
+    const rows = await harness.enforcement.rows();
     expect(rows).toHaveLength(1);
     expect(rows[0].applied).toBe(true);
     expect(rows[0].previousState).toEqual({ status: 'published' });
