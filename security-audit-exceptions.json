@@ -7,6 +7,22 @@
       "reason": "Expo, Jest and ESLint still resolve the legacy CommonJS API. Forcing brace-expansion 5 across those dependency contracts is a breaking transitive override.",
       "compensation": "No server request path or shipped application bundle invokes glob expansion; CI passes only repository-owned paths and patterns.",
       "expires": "2026-10-31"
+    },
+    {
+      "advisory": "GHSA-w3rx-r6r6-pgpr",
+      "package": "image-size",
+      "scope": "Metro bundler, build time only",
+      "reason": "No fixed version exists on any line: the advisory range is <=2.0.2 and 2.0.2 is the newest published release, so this cannot be pinned away. image-size reaches this repository solely as a dependency of metro, which reads it to compute asset dimensions while bundling.",
+      "compensation": "The only images parsed are the repository's own bundled assets, chosen at build time; no server request path and no shipped bundle invokes the ICNS parser on caller-supplied input. Revisit when image-size publishes a fixed release.",
+      "expires": "2026-09-15"
+    },
+    {
+      "advisory": "GHSA-5p2g-fcmc-qvqq",
+      "package": "image-size",
+      "scope": "Metro bundler, build time only",
+      "reason": "Same package and same absence of a fix as GHSA-w3rx-r6r6-pgpr: the range is <=2.0.2 with 2.0.2 the newest published release. Listed separately because the gate matches on advisory id, so one entry cannot cover both.",
+      "compensation": "The only images parsed are the repository's own bundled assets, chosen at build time; no server request path and no shipped bundle invokes the JXL or HEIF parsers on caller-supplied input. Revisit when image-size publishes a fixed release.",
+      "expires": "2026-09-15"
     }
   ]
 }
