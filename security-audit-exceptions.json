@@ -7,6 +7,22 @@
       "reason": "Expo, Jest and ESLint still resolve the legacy CommonJS API. Forcing brace-expansion 5 across those dependency contracts is a breaking transitive override.",
       "compensation": "No server request path or shipped application bundle invokes glob expansion; CI passes only repository-owned paths and patterns.",
       "expires": "2026-10-31"
+    },
+    {
+      "advisory": "GHSA-w3rx-r6r6-pgpr",
+      "package": "image-size",
+      "scope": "Metro bundler, build time only (@crowdsource/console and @crowdsource/reviewer)",
+      "reason": "No fixed version of image-size exists. The advisory covers <=2.0.2 and 2.0.2 is the latest published release on every dist-tag (latest 2.0.2, legacy 1.2.1), so an override has nothing to point at; metro 0.84.4 pins ^1.0.2 in any case. The only real-dependency path is react-native > @react-native/community-cli-plugin > metro > image-size, entered exclusively by the two Expo app workspaces.",
+      "compensation": "Denial of service through an infinite loop in the ICNS parser, reachable only by parsing a hostile image. Metro reads image dimensions at bundle time from repository-owned assets; no server request path, no published package, and no shipped app bundle parses image bytes with it. @crowdsource/backend reaches image-size only through @oxyhq/core's optional peer @react-native-async-storage/async-storage, which the backend does not install as a dependency and never loads.",
+      "expires": "2026-09-30"
+    },
+    {
+      "advisory": "GHSA-5p2g-fcmc-qvqq",
+      "package": "image-size",
+      "scope": "Metro bundler, build time only (@crowdsource/console and @crowdsource/reviewer)",
+      "reason": "No fixed version of image-size exists. The advisory covers <=2.0.2 and 2.0.2 is the latest published release on every dist-tag (latest 2.0.2, legacy 1.2.1), so an override has nothing to point at; metro 0.84.4 pins ^1.0.2 in any case. The only real-dependency path is react-native > @react-native/community-cli-plugin > metro > image-size, entered exclusively by the two Expo app workspaces.",
+      "compensation": "Denial of service through infinite loops in the JXL and HEIF parsers, reachable only by parsing a hostile image. Metro reads image dimensions at bundle time from repository-owned assets; no server request path, no published package, and no shipped app bundle parses image bytes with it. @crowdsource/backend reaches image-size only through @oxyhq/core's optional peer @react-native-async-storage/async-storage, which the backend does not install as a dependency and never loads.",
+      "expires": "2026-09-30"
     }
   ]
 }
