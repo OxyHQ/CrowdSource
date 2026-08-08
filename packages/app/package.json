@@ -1,6 +1,6 @@
 {
   "name": "@oxyhq/crowdsource-app",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "The application half of a CrowdSource integration: a transactional outbox, delivery, a webhook receiver, decision application and idempotent enforcement, wired to your own subjects",
   "type": "commonjs",
   "main": "dist/index.js",
