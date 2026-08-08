@@ -117,7 +117,11 @@ jobs:
           # mutation script is what proves the two invariant tests can fail at all,
           # so a job that skipped it would gate nothing that matters.
           - package: app
-            command: bun run --cwd packages/app test:unit -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/app-tests.json" && bun run --cwd packages/app test:invariants
+            # `test:table-type` is listed explicitly rather than reached through the
+            # package's own `test` script, because this command replaces it: a gate
+            # chained into a script CI does not call is a gate that never runs, and
+            # an absent check is indistinguishable from a passing one.
+            command: bun run --cwd packages/app test:unit -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/app-tests.json" && bun run --cwd packages/app test:invariants && bun run --cwd packages/app test:table-type
             build: bun run build:contracts && bun run --cwd packages/sdk build && bun run --cwd packages/sdk-express build && bun run --cwd packages/testing build
             minimum_tests: 48
             # The package's schema tests run against a REAL Postgres: a fake

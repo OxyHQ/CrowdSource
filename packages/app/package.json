@@ -27,8 +27,9 @@
     "dev": "tsc --watch",
     "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",
     "prepublishOnly": "bun run build",
-    "test": "bun run test:unit && bun run test:invariants",
+    "test": "bun run test:unit && bun run test:invariants && bun run test:table-type",
     "test:invariants": "bun ./scripts/test-invariants.mjs",
+    "test:table-type": "bun ./scripts/test-report-table-type.mjs",
     "test:unit": "node ../../node_modules/vitest/vitest.mjs run",
     "test:watch": "node ../../node_modules/vitest/vitest.mjs"
   },
