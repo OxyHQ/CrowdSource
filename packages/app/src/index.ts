@@ -48,32 +48,14 @@
 export { createModerationIntegration } from './integration.js';
 export type { ModerationIntegration } from './integration.js';
 
-export {
-  moderationReportSchemaFields,
-  applyModerationReportIndexes,
-  MODERATION_LOCAL_STATUSES,
-} from './mongoose/report.js';
-export type { ModerationReportSchemaOptions } from './mongoose/report.js';
-
+/**
+ * The retention windows are policy both backends share, so they stay here while
+ * everything Mongoose-shaped lives behind `@oxyhq/crowdsource-app/mongoose`.
+ */
 export {
   MODERATION_EVENT_RETENTION_SECONDS,
   MODERATION_OUTBOX_RETENTION_SECONDS,
 } from './retention.js';
-
-export { mongooseModerationStore } from './mongoose/store/index.js';
-
-export {
-  MODERATION_ENFORCEMENT_COLLECTION,
-  MODERATION_EVENT_COLLECTION,
-  MODERATION_OUTBOX_COLLECTION,
-} from './mongoose/models.js';
-export type {
-  ModerationEnforcementDocument,
-  ModerationEventDocument,
-  ModerationEventState,
-  ModerationModels,
-  ModerationOutboxDocument,
-} from './mongoose/models.js';
 
 export {
   ModerationOutboxTransactionError,

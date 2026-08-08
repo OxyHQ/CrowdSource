@@ -12,6 +12,12 @@
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./mongoose": {
+      "types": "./dist/mongoose/index.d.ts",
+      "import": "./dist/esm/mongoose/index.js",
+      "require": "./dist/mongoose/index.js",
+      "default": "./dist/mongoose/index.js"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -52,11 +58,14 @@
   "devDependencies": {
     "@oxyhq/crowdsource-contracts": "workspace:*",
     "@oxyhq/crowdsource-testing": "workspace:*",
+    "@oxyhq/db": "^0.1.2",
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.5",
+    "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "mongodb-memory-server": "^11.2.0",
     "mongoose": "^8.24.1",
+    "postgres": "^3.4.9",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },
@@ -67,7 +76,24 @@
   ],
   "peerDependencies": {
     "@oxyhq/crowdsource-contracts": "^0.4.0",
+    "@oxyhq/db": "^0.1.2",
+    "drizzle-orm": "^0.45.2",
     "express": ">=4.18.0 <6",
-    "mongoose": "^8.0.0 || ^9.0.0"
+    "mongoose": "^8.0.0 || ^9.0.0",
+    "postgres": "^3.4.9"
+  },
+  "peerDependenciesMeta": {
+    "@oxyhq/db": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    },
+    "mongoose": {
+      "optional": true
+    },
+    "postgres": {
+      "optional": true
+    }
   }
 }

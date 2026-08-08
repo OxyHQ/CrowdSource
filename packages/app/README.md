@@ -23,7 +23,34 @@ missing peer silently with no warning at all — so install it explicitly. Two
 copies of contracts produce no type error and no diagnostic; the symptom is every
 webhook answering `400 malformed_event`, which reads as a delivery problem.
 
-`mongoose` (8 or 9) and `express` (4.18+ or 5) are peers too.
+`express` (4.18+ or 5) is a required peer as well.
+
+## Storage is a subpath
+
+The root entry is storage-free. Everything MongoDB-shaped — the schema fields
+you compose into your own report model, the indexes its queries depend on, the
+three collections this package owns, and the store the integration is wired with
+— is behind `@oxyhq/crowdsource-app/mongoose`:
+
+```ts
+import { createModerationIntegration } from '@oxyhq/crowdsource-app';
+import {
+  mongooseModerationStore,
+  moderationReportSchemaFields,
+  applyModerationReportIndexes,
+} from '@oxyhq/crowdsource-app/mongoose';
+```
+
+`mongoose` (8 or 9) is therefore an **optional** peer: a deployment that does not
+import that subpath never installs it, and a bundler never has to resolve it.
+Import the subpath without `mongoose` present and it fails at the import, by
+name — rather than as a driver quietly missing at the first write.
+
+`@oxyhq/db`, `drizzle-orm` and `postgres` are declared as optional peers for the
+PostgreSQL half. **This version imports none of them**; they are listed so the
+requirement is visible at install time rather than at first import, and
+`postgres` in particular is `@oxyhq/db`'s own peer rather than anything this
+package calls.
 
 ### If you saw `Dynamic require of "zod" is not supported`
 
@@ -50,21 +77,28 @@ for a Node server bundle, but it is now a preference rather than a workaround.
 
 ## Before publishing this package (maintainers)
 
-`bun run check` includes `check:module-format`, which asserts the CommonJS-only
-shape statically and that this guide still carries the mitigation above. That
-runs on every pull request. **Two things it cannot do**, because they need a
-network install, so they belong here:
+`bun run check` includes `check:module-format`, which asserts statically that
+every declared export entry resolves `import` to real ESM and `require` to real
+CommonJS, that the two are different files, that the `{"type":"module"}` marker
+governing the ESM half exists, and that no package has silently LOST a subpath.
+It reads manifests and build output only — it does not read this file, and it
+cannot install anything. **Two things it therefore cannot do**, so they belong
+here, and they must be run per subpath:
 
 ```bash
-# 1. Plain Node ESM must be able to import the PACKED artifact.
+# 1. Plain Node must be able to load the PACKED artifact, both entries and both
+#    module systems.
 bun pm pack
-mkdir -p /tmp/esm-check && cd /tmp/esm-check
+mkdir -p /tmp/esm-check && cd /tmp/esm-check && echo '{"name":"c","private":true}' > package.json
 bun add <path-to>/oxyhq-crowdsource-app-*.tgz @oxyhq/crowdsource-contracts mongoose express
 node --input-type=module -e "import('@oxyhq/crowdsource-app').then(m => console.log(Object.keys(m).length))"
+node --input-type=module -e "import('@oxyhq/crowdsource-app/mongoose').then(m => console.log(Object.keys(m).length))"
+node -e "console.log(Object.keys(require('@oxyhq/crowdsource-app/mongoose')).length)"
 
-# 2. An esbuild ESM consumer must work WITH the documented mitigation,
-#    and is expected to fail without it.
-npx esbuild entry.mjs --bundle --platform=node --format=esm --outfile=out.mjs --external:'@oxyhq/*'
+# 2. An esbuild ESM consumer must work with THIS PACKAGE INLINED. Externalise
+#    the driver, never `@oxyhq/*` — see below.
+npx esbuild entry.mjs --bundle --platform=node --format=esm --outfile=out.mjs \
+  --external:mongoose --external:mongodb --external:express
 node out.mjs
 ```
 
@@ -73,6 +107,17 @@ took a backend down on 2026-07-30: plain Node imports a CommonJS package quite
 happily, so a checklist with only the first would have shipped it. The
 distinction is the durable lesson — **exports being declared is not exports
 being loadable**, and the two forms of "loadable" are not the same question.
+
+**`--external:'@oxyhq/*'` is the wrong flag for check 2, and it took until the
+subpath landed to notice.** It externalises exactly the code under test, so the
+bundle proves nothing about the format this package publishes. Externalising the
+DRIVER instead inlines every `@oxyhq/*` module into the ESM bundle, which is the
+question worth asking — measured on 0.4.0: the bundle runs, and esbuild emits no
+`Dynamic require` shim at all. Bundling with nothing external still fails, and
+the failure is `Dynamic require of "fs"` from inside `mongodb`: a property of the
+driver, not of this package. Read the module named in that error before
+concluding anything — the 2026-07-30 defect named `@oxyhq/crowdsource-contracts`,
+and only that class is ours to fix.
 
 ## Requirements
 
