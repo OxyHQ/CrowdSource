@@ -22,14 +22,15 @@
   },
   "scripts": {
     "build": "tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs",
-    "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
+    "db:generate": "drizzle-kit generate",
+    "dev": "tsc --watch",
     "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",
+    "prepublishOnly": "bun run build",
     "test": "bun run test:unit && bun run test:invariants",
-    "test:unit": "node ../../node_modules/vitest/vitest.mjs run",
     "test:invariants": "bun ./scripts/test-invariants.mjs",
-    "test:watch": "node ../../node_modules/vitest/vitest.mjs",
-    "prepublishOnly": "bun run build"
+    "test:unit": "node ../../node_modules/vitest/vitest.mjs run",
+    "test:watch": "node ../../node_modules/vitest/vitest.mjs"
   },
   "keywords": [
     "crowdsource",
@@ -61,6 +62,7 @@
     "@oxyhq/db": "^0.1.2",
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.5",
+    "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "mongodb-memory-server": "^11.2.0",

@@ -120,6 +120,13 @@ jobs:
             command: bun run --cwd packages/app test:unit -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/app-tests.json" && bun run --cwd packages/app test:invariants
             build: bun run build:contracts && bun run --cwd packages/sdk build && bun run --cwd packages/sdk-express build && bun run --cwd packages/testing build
             minimum_tests: 48
+            # The package's schema tests run against a REAL Postgres: a fake
+            # cannot answer a `pg_index` query, and the checks that matter here
+            # (is the swept column indexed, does the composite primary key exist)
+            # are catalogue questions. Started from the SAME compose file a
+            # developer uses, so the version CI tests against cannot drift from
+            # the version they do.
+            postgres: true
           # The console has no coverage threshold of its own yet, so it runs the plain
           # suite: a `coverage: true` entry whose package publishes no summary would fail
           # the upload step below with `if-no-files-found: error`, which is a CI failure
@@ -145,7 +152,18 @@ jobs:
       # import; only a clean checkout shows it.
       - name: Build the workspace dependencies this suite resolves
         run: ${{ matrix.build || 'bun run build:contracts' }}
+      # `--wait` rather than a sleep: the compose file carries a `pg_isready`
+      # healthcheck, and a suite that starts before the server is accepting
+      # connections fails as a connection error rather than as a schema problem.
+      - name: Start PostgreSQL
+        if: matrix.postgres
+        run: docker compose -f docker-compose.postgres.yml up -d --wait postgres
       - name: Run complete package test suite
+        # The suite REFUSES to run without this (vitest.globalSetup.ts throws), so
+        # a job that forgot it fails loudly instead of silently skipping the
+        # schema tests — which is the whole reason the setup throws.
+        env:
+          CROWDSOURCE_APP_TEST_POSTGRES_URL: ${{ matrix.postgres && 'postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres' || '' }}
         run: ${{ matrix.command }}
       # A suite that runs nothing exits 0. This states the count the runner
       # actually reached and refuses one below the floor, so a job cannot report

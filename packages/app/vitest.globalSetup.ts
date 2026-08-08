@@ -17,6 +17,27 @@ export async function setup(): Promise<void> {
     replSet: { count: 1, storageEngine: 'wiredTiger' },
   });
   process.env.CROWDSOURCE_APP_TEST_MONGODB_URI = replicaSet.getUri();
+
+  /**
+   * Postgres is required, not optional, and an absent URL THROWS here rather
+   * than letting the schema tests skip.
+   *
+   * A skipped test is a green run that gated nothing — the same vacuity a test
+   * floor exists to catch, arriving through the one door a floor cannot see. A
+   * developer who has not started the database gets this message; CI starts the
+   * same compose file, so the version they test against cannot disagree.
+   *
+   * Unlike Mongo, this is not started in-process: `mongodb-memory-server`
+   * downloads and runs a mongod, and there is no equivalent for Postgres that is
+   * worth the download on every machine — the container is one command.
+   */
+  if (!process.env.CROWDSOURCE_APP_TEST_POSTGRES_URL) {
+    throw new Error(
+      'CROWDSOURCE_APP_TEST_POSTGRES_URL is unset. Start the database with:\n' +
+        '  docker compose -f docker-compose.postgres.yml up -d --wait postgres\n' +
+        'then export the URL printed in that file (port 5436 on this repository).',
+    );
+  }
 }
 
 export async function teardown(): Promise<void> {

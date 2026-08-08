@@ -1,0 +1,56 @@
+##
+## Docker Compose — local PostgreSQL for `packages/app`'s Postgres backend.
+##
+## Separate from anything that runs the application stack: this file holds only
+## the database `packages/app`'s schema and store tests need next to
+## `bun run --cwd packages/app test`.
+##
+## Usage:
+##   docker compose -f docker-compose.postgres.yml up -d --wait postgres
+##   docker compose -f docker-compose.postgres.yml logs -f postgres
+##   docker compose -f docker-compose.postgres.yml down -v   # wipe (data is disposable)
+##
+## Then, for the suite:
+##   export CROWDSOURCE_APP_TEST_POSTGRES_URL=postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres
+##
+## That URL names the always-present `postgres` maintenance database on purpose:
+## every test creates its own throwaway database on that server and drops it
+## again (`createTestDatabase` from `@oxyhq/db/testing`), so nothing in the suite
+## writes to a database a developer might care about.
+##
+
+services:
+  postgres:
+    # Plain Postgres 17, NOT a PostGIS image. Nothing in the moderation tables
+    # needs PostGIS, and pinning a heavier image would imply otherwise to whoever
+    # reads this next — the schema is text, jsonb, timestamptz and integers.
+    #
+    # `.github/workflows/ci.yml` starts this same file, so a developer's database
+    # and CI's cannot disagree about the version they are testing against.
+    image: postgres:17
+    container_name: crowdsource-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: crowdsource
+      POSTGRES_PASSWORD: crowdsource
+      POSTGRES_DB: postgres
+    ports:
+      # 5436, and the reason is a measurement rather than a guess: on this
+      # machine 5432 is oxy-api's, 5433 Mention's, 5434 Homiio's, 5435
+      # Mercaria's, and 5545 a Syra verification container. Several of these
+      # repositories are routinely open at once, so a port collision is a
+      # `docker compose up` that fails with `port is already allocated` — which
+      # is what picking 5434 from the older two-repository map produced.
+      # Loopback-only: this database is never exposed off the host.
+      - "127.0.0.1:5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crowdsource -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - crowdsource-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  crowdsource-postgres-data:
