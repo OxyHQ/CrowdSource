@@ -21,6 +21,33 @@
  *
  * The original files are restored from an in-memory copy and verified by hash,
  * whatever happens — including on a thrown error or a Ctrl-C.
+ *
+ * ## The backend axis
+ *
+ * Each mutation declares which storage it attacks. A `shared` one lives in the
+ * backend-free half and runs the suite as it stands; a `mongoose` or `postgres`
+ * one narrows the run with `CROWDSOURCE_APP_TEST_BACKEND`, because a guard in one
+ * store cannot be proven by a test the other store answered.
+ *
+ * The floor is per BUCKET rather than a total, and that is the point: a total of
+ * eighteen is satisfied by a run where the Postgres bucket was zero and six
+ * shared mutations happened to be counted twice. Each bucket is asserted on its
+ * own, so a backend that silently stopped running fails by name.
+ *
+ * ## Mutation 3 has no Postgres twin, and that is information rather than a gap
+ *
+ * Its failure is a Mongoose-specific update-operator conflict — `$set` and
+ * `$setOnInsert` naming one path, `ConflictingUpdateOperators`, code 40 — and
+ * nothing in the Postgres path can produce it. `ON CONFLICT DO NOTHING` has no
+ * operator to conflict with. Its sibling 4 DOES have a twin (13), because
+ * "a repeated enqueue must not write" is a property both backends can break.
+ *
+ * ## What CANNOT be mutated, said here so the absence does not read as a gap
+ *
+ * The Postgres event store's claim has no catch block: `ON CONFLICT DO NOTHING`
+ * plus `RETURNING` makes a duplicate a row COUNT rather than an exception, so
+ * there is no predicate to widen and nothing on the insert side to delete. The
+ * attackable surface is the READ, which is what 18 removes.
  */
 
 import { createHash } from 'node:crypto';
@@ -31,9 +58,20 @@ import { fileURLToPath } from 'node:url';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** @type {{name: string, file: string, edits: {find: string, replace: string}[], absent: string, test: string, expects: string}[]} */
+/**
+ * @type {{
+ *   backend: 'shared' | 'mongoose' | 'postgres',
+ *   name: string,
+ *   file: string,
+ *   edits: {find: string, replace: string}[],
+ *   absent: string,
+ *   test: string,
+ *   expects: string,
+ * }[]}
+ */
 const MUTATIONS = [
   {
+    backend: 'mongoose',
     name: 'the outbox may be written outside a transaction',
     // The guard is the STORE's: only a backend knows what an open transaction
     // looks like. The error it throws still belongs to the shared half, so both
@@ -68,6 +106,7 @@ const MUTATIONS = [
     expects: 'throws ModerationOutboxTransactionError for a handle with no transaction open',
   },
   {
+    backend: 'shared',
     name: 'the webhook router is mounted behind express.json()',
     file: 'src/__tests__/support/webhookApp.ts',
     edits: [
@@ -87,6 +126,7 @@ const MUTATIONS = [
      * the server refuses the write. Intake's transaction aborts with it, so this
      * is not a degradation — no report can be filed at all.
      */
+    backend: 'mongoose',
     name: 'the enqueue lets Mongoose add its timestamps on top of the explicit ones',
     file: 'src/mongoose/store/outbox.ts',
     edits: [{ find: `{ upsert: true, session, timestamps: false }`, replace: `{ upsert: true, session }` }],
@@ -104,6 +144,7 @@ const MUTATIONS = [
      * type-checks, passes every happy path, and quietly turns a repeated enqueue
      * into a real write that conflicts with a live lease.
      */
+    backend: 'mongoose',
     name: 'the enqueue writes on a repeated event instead of being a no-op',
     file: 'src/mongoose/store/outbox.ts',
     edits: [
@@ -124,6 +165,7 @@ const MUTATIONS = [
      * primitive, so a regression here writes a false audit trail on every
      * decided report rather than on an edge case.
      */
+    backend: 'shared',
     name: 'enforcedAt is stamped for an action that was only recorded',
     file: 'src/decision.ts',
     edits: [
@@ -148,6 +190,7 @@ const MUTATIONS = [
      * test of this cannot fail — see the file's own comment — so the mutation is
      * the only thing that proves the arrangement in it is load-bearing.
      */
+    backend: 'mongoose',
     name: 'a reversal reads the newest row instead of the newest APPLIED row',
     file: 'src/mongoose/store/enforcement.ts',
     edits: [
@@ -170,6 +213,7 @@ const MUTATIONS = [
      * wrong only for subjects no lever can act on — which for some applications
      * is most of them.
      */
+    backend: 'shared',
     name: 'the report records the planned action instead of the effective one',
     file: 'src/decision.ts',
     edits: [
@@ -188,6 +232,7 @@ const MUTATIONS = [
      * any application whose levers are exercised one at a time, and wrong
      * exactly when two of them applied — which is when a reversal matters most.
      */
+    backend: 'mongoose',
     name: 'a multi-action reversal reads only the first declared action',
     file: 'src/mongoose/store/enforcement.ts',
     edits: [
@@ -205,6 +250,7 @@ const MUTATIONS = [
      * visible and stays labelled forever: the appeal succeeded, the warning
      * never lifts, and nothing errors.
      */
+    backend: 'shared',
     name: 'a correction plans only the first declared restore',
     file: 'src/enforcement/planner.ts',
     edits: [
@@ -228,6 +274,7 @@ const MUTATIONS = [
      * restore — so it is invisible on every other decision, and on those it
      * suppresses the whole set.
      */
+    backend: 'shared',
     name: 'the restore dedup suppresses the whole set instead of one action',
     file: 'src/enforcement/planner.ts',
     edits: [
@@ -251,6 +298,7 @@ const MUTATIONS = [
      * no type can catch and that does not fail at runtime — it applies a
      * punishment on an accepted appeal, which succeeds.
      */
+    backend: 'shared',
     name: 'an inverted restoreAction is accepted at construction',
     file: 'src/enforcement/planner.ts',
     edits: [
@@ -263,18 +311,188 @@ const MUTATIONS = [
     test: 'src/__tests__/configTypeErgonomics.test.ts',
     expects: 'throws when restoreAction names the actions being undone',
   },
+  {
+    /**
+     * Mutation 1's twin. Both handles are a `ModerationPgHandle`, so handing the
+     * enqueue the POOL type-checks perfectly — and the row then commits on its own
+     * connection, independently of the domain write it was meant to be atomic
+     * with. Same lost guarantee as a Mongo session nobody opened a transaction on,
+     * reached by a different route.
+     *
+     * The two import lines go with the guard: without them the mutated tree fails
+     * `noUnusedLocals`, and a red test would prove nothing about the guard.
+     */
+    backend: 'postgres',
+    name: 'the Postgres outbox may be written outside a transaction',
+    file: 'src/postgres/store/outbox.ts',
+    edits: [
+      {
+        find: `      if (!(tx instanceof PgTransaction)) {
+        throw new ModerationOutboxTransactionError(event.eventId);
+      }
+`,
+        replace: '',
+      },
+      { find: `import { PgTransaction } from 'drizzle-orm/pg-core';\n`, replace: '' },
+      {
+        find: `import { ModerationOutboxTransactionError } from '../../outbox/service.js';\n`,
+        replace: '',
+      },
+    ],
+    absent: 'tx instanceof PgTransaction',
+    test: 'src/__tests__/outboxTransactionCoupling.test.ts',
+    expects: 'throws ModerationOutboxTransactionError for a handle with no transaction open',
+  },
+  {
+    /**
+     * Mutation 4's twin: the repeated enqueue that WRITES. `DO UPDATE` is the
+     * Postgres spelling of letting Mongoose own the timestamps — a repeat becomes a
+     * real write, which conflicts with a live lease and aborts the enclosing
+     * transaction. The replacement touches `updated_at` and `payload` because
+     * those are what the test observes.
+     */
+    backend: 'postgres',
+    name: 'the Postgres enqueue updates on conflict instead of doing nothing',
+    file: 'src/postgres/store/outbox.ts',
+    edits: [
+      {
+        find: `        .onConflictDoNothing({ target: outbox.id });`,
+        replace: `        .onConflictDoUpdate({
+          target: outbox.id,
+          set: { updatedAt: event.now, payload: event.payload },
+        });`,
+      },
+    ],
+    absent: '.onConflictDoNothing({ target: outbox.id })',
+    test: 'src/__tests__/outboxTransactionCoupling.test.ts',
+    expects: 'leaves an existing row completely untouched on a repeated enqueue',
+  },
+  {
+    /** Mutation 6's twin: the reversal reading a row whose effect never happened. */
+    backend: 'postgres',
+    name: 'the Postgres reversal reads the newest row instead of the newest APPLIED row',
+    file: 'src/postgres/store/enforcement.ts',
+    edits: [{ find: `            eq(enforcements.applied, true),\n`, replace: '' }],
+    absent: 'eq(enforcements.applied, true)',
+    test: 'src/__tests__/enforcementReversal.test.ts',
+    expects: 'reads the applied row, not the newer recorded-only one',
+  },
+  {
+    /**
+     * Mutation 8's twin: a multi-action reversal querying only the first declared
+     * action. The `inArray` import goes with it, for the `noUnusedLocals` reason
+     * above.
+     */
+    backend: 'postgres',
+    name: 'the Postgres reversal reads only the first declared action',
+    file: 'src/postgres/store/enforcement.ts',
+    edits: [
+      {
+        find: `            inArray(enforcements.action, [...actions]),`,
+        replace: `            eq(enforcements.action, actions[0] ?? ''),`,
+      },
+      {
+        find: `import { and, eq, inArray, sql } from 'drizzle-orm';`,
+        replace: `import { and, eq, sql } from 'drizzle-orm';`,
+      },
+    ],
+    absent: 'inArray(enforcements.action, [...actions])',
+    test: 'src/__tests__/enforcementReversal.test.ts',
+    expects: 'reads the most recent applied row across the whole declared set',
+  },
+  {
+    /**
+     * `SKIP LOCKED` removed. Without it the claim BLOCKS on the row another
+     * connection holds and is then cancelled by the pool's `statement_timeout`, so
+     * the test fails as a named `57014` rather than as a hang — which is the whole
+     * reason that bound exists. Its assertion also checks the elapsed time, so
+     * "answered null promptly" and "was cancelled after two seconds" cannot both
+     * read as a pass.
+     */
+    backend: 'postgres',
+    name: 'the claim waits for a locked row instead of skipping it',
+    file: 'src/postgres/store/outbox.ts',
+    edits: [
+      { find: `        .for('update', { skipLocked: true });`, replace: `        .for('update');` },
+    ],
+    absent: 'skipLocked: true',
+    test: 'src/__tests__/postgresOutboxStore.test.ts',
+    expects: 'skips a row another connection holds, promptly rather than by timing out',
+  },
+  {
+    /**
+     * The enqueue writing through the POOL rather than the transaction it was
+     * handed. Note the test: the parameterised rollback case injects its failure
+     * through `breakEnqueue`, which replaces this method, so it never reaches the
+     * mutated line — the store's own test is the one that observes the row
+     * surviving a rollback.
+     */
+    backend: 'postgres',
+    name: 'the Postgres enqueue writes through the pool instead of the transaction',
+    file: 'src/postgres/store/outbox.ts',
+    edits: [
+      {
+        find: `      await tx
+        .insert(outbox)`,
+        replace: `      await db
+        .insert(outbox)`,
+      },
+    ],
+    absent: `await tx\n        .insert(outbox)`,
+    test: 'src/__tests__/postgresOutboxStore.test.ts',
+    expects: 'rolls the row back when the enclosing transaction throws',
+  },
+  {
+    /**
+     * The event store's claim answering `true` for everybody. There is nothing to
+     * delete on its insert side — `ON CONFLICT DO NOTHING` plus `RETURNING` is a
+     * row count rather than a catch block — so the READ is the only attackable
+     * surface, and this is what a widened `catch { return false }` would amount to
+     * on the Mongo side: two instances behind one load balancer each believing
+     * they took the claim.
+     *
+     * `void rows;` goes with it: the binding would otherwise be unused.
+     */
+    backend: 'postgres',
+    name: 'the event claim reports success for every caller',
+    file: 'src/postgres/store/events.ts',
+    edits: [
+      {
+        find: `      return rows.length === 1;`,
+        replace: `      void rows;\n      return true;`,
+      },
+    ],
+    absent: 'return rows.length === 1;',
+    test: 'src/__tests__/postgresEventStore.test.ts',
+    expects: 'is taken by exactly one of two concurrent callers',
+  },
 ];
 
 const digest = (value) => createHash('sha256').update(value, 'utf8').digest('hex');
 
-/** @param {string[]} argv */
-function run(argv) {
+/**
+ * @param {string[]} argv
+ * @param {Record<string, string>} [extraEnv]
+ */
+function run(argv, extraEnv = {}) {
   return spawnSync(argv[0], argv.slice(1), {
     cwd: packageRoot,
     encoding: 'utf8',
-    env: process.env,
+    // SPREAD rather than replaced: the Mongo URI and the Postgres URL both live in
+    // the inherited environment, and a replaced env loses both — the suite would
+    // then fail to start and every mutation would look caught.
+    env: { ...process.env, ...extraEnv },
   });
 }
+
+/**
+ * The floor, per bucket.
+ *
+ * A total of eighteen is satisfied by a run where the Postgres bucket was zero and
+ * six shared mutations were somehow counted twice. Each bucket is asserted on its
+ * own so a backend that stopped running fails BY NAME.
+ */
+const EXPECTED_BY_BACKEND = { shared: 6, mongoose: 5, postgres: 7 };
 
 const originals = new Map();
 function restoreAll() {
@@ -297,13 +515,40 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 
 const failures = [];
 let checked = 0;
+/** @type {Record<string, number>} */
+const checkedByBackend = { shared: 0, mongoose: 0, postgres: 0 };
+
+/**
+ * Pre-flight, before anything is mutated: every mutation must name a test that
+ * still exists.
+ *
+ * A renamed test detaches its mutation silently — the run then reports "the suite
+ * failed but never named X", which reads as a broken guard rather than a stale
+ * citation. That happened once here already, and it cost a bisect. Checking the
+ * string against the file first turns it into one line at the top of the run, and
+ * costs nothing.
+ */
+for (const mutation of MUTATIONS) {
+  const source = readFileSync(resolve(packageRoot, mutation.test), 'utf8');
+  if (!source.includes(mutation.expects)) {
+    failures.push(
+      `${mutation.file}: '${mutation.expects}' names no test in ${mutation.test}. ` +
+        'It was probably renamed — update this mutation rather than deleting it.',
+    );
+  }
+}
+if (failures.length > 0) {
+  console.error('Invariant guards are not proven:\n');
+  for (const failure of failures) console.error(`  • ${failure}\n`);
+  process.exit(1);
+}
 
 for (const mutation of MUTATIONS) {
   const path = resolve(packageRoot, mutation.file);
   const original = readFileSync(path, 'utf8');
   originals.set(path, original);
 
-  console.log(`\n── mutation: ${mutation.name}`);
+  console.log(`\n── mutation: ${mutation.name}  [${mutation.backend}]`);
 
   // --- 1. every edit landed.
   let mutated = original;
@@ -368,13 +613,17 @@ for (const mutation of MUTATIONS) {
   console.log('   type-clean');
 
   // --- 3. the test fails, and names itself.
-  const result = run([
-    'node',
-    '../../node_modules/vitest/vitest.mjs',
-    'run',
-    mutation.test,
-    '--reporter=verbose',
-  ]);
+  const result = run(
+    ['node', '../../node_modules/vitest/vitest.mjs', 'run', mutation.test, '--reporter=verbose'],
+    /**
+     * A guard in one store cannot be proven by a test the OTHER store answered:
+     * with both backends running, the twin's leaf stays green and its own leaf
+     * fails, so the run is narrowed to the backend under attack.
+     */
+    mutation.backend === 'shared'
+      ? {}
+      : { CROWDSOURCE_APP_TEST_BACKEND: mutation.backend },
+  );
   const output = `${result.stdout}${result.stderr}`;
 
   if (result.status === 0) {
@@ -390,6 +639,7 @@ for (const mutation of MUTATIONS) {
   } else {
     console.log(`   caught by: ${mutation.expects}`);
     checked += 1;
+    checkedByBackend[mutation.backend] += 1;
   }
 
   writeFileSync(path, original, 'utf8');
@@ -404,6 +654,15 @@ if (checked !== MUTATIONS.length) {
     `only ${checked} of ${MUTATIONS.length} mutations were confirmed caught.`,
   );
 }
+for (const [backend, expected] of Object.entries(EXPECTED_BY_BACKEND)) {
+  if (checkedByBackend[backend] !== expected) {
+    failures.push(
+      `the ${backend} bucket confirmed ${checkedByBackend[backend]} of ${expected} ` +
+        'mutations. A bucket short of its floor is a backend whose guards are ' +
+        'unproven, however healthy the total looks.',
+    );
+  }
+}
 
 if (failures.length > 0) {
   console.error('\nInvariant guards are not proven:\n');
@@ -412,5 +671,8 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `\nThe guards hold: ${checked} mutations applied, type-checked, and caught.`,
+  `\nThe guards hold: ${checked} mutations applied, type-checked, and caught ` +
+    `(${Object.entries(checkedByBackend)
+      .map(([backend, count]) => `${backend} ${count}`)
+      .join(', ')}).`,
 );
