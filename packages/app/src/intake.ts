@@ -66,7 +66,17 @@ export class DuplicateReportError<TReport> extends Error {
  * one arrives.
  */
 function requireIdentifier(value: unknown, field: string): string {
-  if (typeof value !== 'string' || value.length === 0) {
+  /**
+   * `trim()` and not `length === 0`, because `'   '` is not an identifier.
+   *
+   * A whitespace-only reporter or reported id is not a string somebody meant:
+   * it comes from a form field, a trimmed-elsewhere value, or a client that
+   * sends `' '` for absent. Stored, it is an id that matches nothing and reads
+   * as present — the duplicate check finds no earlier report, the delivery
+   * carries it as `externalReportId`, and nothing fails until a human asks why
+   * a case names nobody.
+   */
+  if (typeof value !== 'string' || value.trim() === '') {
     throw new TypeError(`createReport: ${field} must be a non-empty string.`);
   }
   return value;

@@ -145,6 +145,36 @@ export interface ModerationSubjectProvider {
 export interface ModerationTaxonomy {
   readonly version: string;
   /**
+   * Extra metadata to stamp on every report this application sends.
+   *
+   * **Opt-in, and merged UNDER this package's own keys.** An application that
+   * sets nothing emits a byte-identical envelope to one that could not set it,
+   * which is the property that makes adding this safe: the SDK derives the case
+   * envelope from the `ReportInput`, ingress fingerprints that envelope to
+   * detect "same external id, different body", and a metadata change is
+   * therefore an envelope change. A default that altered the envelope for every
+   * adopter at once would turn each of their in-flight retries into a permanent
+   * 409, days later, as reports silently stuck in a queue.
+   *
+   * `taxonomyVersion` and `categories` are written AFTER this, so an entry using
+   * either name is ignored rather than shadowing the two keys a case is read
+   * back against.
+   *
+   * The motivating case, because it is the shape worth recognising rather than
+   * the specific field: an application that KNOWS a jury is not being given
+   * material it can see exists — Syra's agent avatars are bare strings with no
+   * digest recorded anywhere, so they cannot be attached — can say so
+   * (`evidenceAttachmentsSupported: false`), and a jury then answers
+   * `insufficient_context` for the right reason instead of guessing. Losing that
+   * degrades decision quality with nothing failing anywhere.
+   *
+   * Static, not per-report: it is stamped identically on every report, so it
+   * cannot vary between two deliveries of the same one.
+   *
+   * Credit: `syra`, whose adoption found it missing.
+   */
+  readonly metadata?: Readonly<Record<string, string | number | boolean>>;
+  /**
    * The allegation codes for a report's categories.
    *
    * MUST be deterministic and stably ordered for a given input set. Ingress

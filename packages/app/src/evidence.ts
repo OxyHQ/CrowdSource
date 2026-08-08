@@ -213,6 +213,14 @@ export async function buildModerationReportInput(input: {
        */
       submittedAt: report.createdAt,
       metadata: {
+        /**
+         * The application's own entries FIRST, so the two below cannot be
+         * shadowed. An adopter that names `taxonomyVersion` or `categories` gets
+         * them overwritten rather than winning — a case has to be readable back
+         * against the mapping that produced it, and that is not negotiable per
+         * application.
+         */
+        ...taxonomy.metadata,
         /** So a case can be read back against the mapping that produced it. */
         taxonomyVersion: taxonomy.version,
         categories: [...report.categories].sort().join(','),
