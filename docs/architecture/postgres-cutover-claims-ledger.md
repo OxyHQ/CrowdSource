@@ -77,7 +77,19 @@ never supply it are still the contract; only the ENFORCEMENT moves.
 **3.1 A second database role.** The migrator/app split means two roles and a
 two-connection-string contract. `oxy-infra`'s runbook 30
 (`docs/runbooks/30-postgres-database-provisioning.md`) is written for the
-one-role model and states, at §0:
+one-role model.
+
+> **Read this before going looking for it: runbook 30 is NOT on `oxy-infra`'s
+> `origin/main`.** It exists only in an unpushed local commit (`9748159`,
+> 2026-08-07) in the shared checkout, alongside a 875-line
+> `docs/postgres-shared-instance-capacity.md` and a Syra provisioning script —
+> eight commits, ~1,900 lines, that `origin/main` has never seen while main moved
+> on independently. So the successor described below cannot be written as a PR
+> against it today, and anyone who clones `oxy-infra` fresh will not find the
+> runbook at all. Getting that work pushed is the prerequisite. Flagged
+> 2026-08-10.
+
+Its §0 states:
 
 > **There is no `GRANT` anywhere in this runbook.** If you find yourself writing
 > one, the database was created by the wrong role. Fix the ownership; do not
