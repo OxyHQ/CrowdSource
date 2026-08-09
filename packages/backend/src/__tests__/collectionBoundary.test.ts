@@ -8,10 +8,18 @@ import { DRIVER_ACCESS_ALLOWED, findDriverEscapes, type ScannedFile } from '../d
 // Imported for their side effect: a collection is only registered once the
 // module that declares it is loaded, and an empty registry would make every
 // assertion below vacuously true.
+//
+// A PARTIAL registry is the same failure one step quieter, and it is the reason
+// `every collection module is imported` below derives this list from the module
+// tree instead of trusting it: two modules were missing here, so `Decision` and
+// `Appeal` — the jury's own output and the appeals against it — sat outside
+// every assertion in this file while the suite passed.
+import '../modules/appeals/appeal.collection';
 import '../modules/audit/audit.collection';
 import '../modules/cases/case.collection';
 import '../modules/console/console.collections';
 import '../modules/console/staffAudit.collection';
+import '../modules/decision/decision.collection';
 import '../modules/ingestion/report.collection';
 import '../modules/trust/applicationTrust.collection';
 import '../modules/trust/usageCounter.collection';
@@ -57,6 +65,83 @@ function collectSources(directory: string): ScannedFile[] {
 }
 
 const sources = collectSources(sourceRoot);
+
+/** This file, read back so it can check its own import block. */
+const TEST_FILE_NAME = 'collectionBoundary.test.ts';
+
+/** Every module that declares a collection, taken from the tree, not from a list. */
+const collectionModulePaths = sources
+  .map((file) => file.path)
+  .filter((filePath) => /^src\/modules\/.+\.collections?\.ts$/.test(filePath))
+  .sort();
+
+/** `src/modules/audit/audit.collection.ts` → `../modules/audit/audit.collection`. */
+function importSpecifierFor(modulePath: string): string {
+  return modulePath.replace(/^src\//, '../').replace(/\.ts$/, '');
+}
+
+/** The collection modules `source` does not import for its side effect. */
+function unimportedModules(source: string, modulePaths: readonly string[]): string[] {
+  return modulePaths.filter(
+    (modulePath) => !source.includes(`import '${importSpecifierFor(modulePath)}';`),
+  );
+}
+
+/**
+ * The registry this file can see is decided by its own import block, and a
+ * module missing from it is invisible in the shape that reads as success: the
+ * registry is simply smaller, the exact-set assertions below are satisfied by
+ * the smaller set, and nothing reports a gap.
+ *
+ * That is measured rather than imagined. `Decision` and `Appeal` were absent
+ * from the import block, so the registry held 24 of 26 collections and the two
+ * carrying the jury's decisions were outside the tenant boundary gate — while
+ * every test here passed. Two independent mechanisms hid it: an unimported
+ * module never registers a rationale, so the exact `toEqual` on the unscoped set
+ * could not see it either; and the tenant-side assertion was
+ * `expect.arrayContaining`, a SUBSET check, which cannot notice an absence at
+ * all. Both are fixed below.
+ *
+ * Deriving the expected list from the module tree is what stops it recurring: a
+ * new collection module fails this test until it is imported, instead of quietly
+ * narrowing what every other assertion in this file covers.
+ */
+describe('the collection modules this file can see', () => {
+  /**
+   * The vacuity floor on the traversal itself. A filter that matched nothing
+   * would make the assertion below pass while checking no modules whatsoever —
+   * the same defect, one layer up.
+   */
+  it('found the collection modules in the source tree', () => {
+    expect(collectionModulePaths.length).toBeGreaterThanOrEqual(17);
+    expect(collectionModulePaths).toContain('src/modules/decision/decision.collection.ts');
+    expect(collectionModulePaths).toContain('src/modules/appeals/appeal.collection.ts');
+  });
+
+  it('imports every one of them, so the registry below is complete', () => {
+    const source = readFileSync(path.join(__dirname, TEST_FILE_NAME), 'utf8');
+
+    // The full module paths, so a failure names what to import rather than
+    // asserting a count somebody then has to go and diff by hand.
+    expect(unimportedModules(source, collectionModulePaths)).toEqual([]);
+  });
+
+  /**
+   * The mutation test. Break the thing the check guards and confirm it fails AND
+   * names the offending module — otherwise the empty result above is
+   * indistinguishable from a predicate that matches everything.
+   */
+  it('would notice a collection module that was never imported', () => {
+    const onlyOne = "import '../modules/audit/audit.collection';";
+
+    expect(
+      unimportedModules(onlyOne, [
+        'src/modules/audit/audit.collection.ts',
+        'src/modules/decision/decision.collection.ts',
+      ]),
+    ).toEqual(['src/modules/decision/decision.collection.ts']);
+  });
+});
 
 describe('driver access', () => {
   /**
@@ -238,26 +323,55 @@ describe('collections that are exempt from tenant scoping', () => {
    * The other half of the pin. Every collection that CAN be tenant-scoped must
    * be, so a new one added as unscoped shows up as a failure in the list above
    * and a new one added as scoped shows up here.
+   *
+   * EXACT, not `expect.arrayContaining`. A subset check reports a set that has
+   * everything it names, which is satisfied just as well by a registry missing
+   * something — so it could never have caught `Decision` and `Appeal` going
+   * absent, and it did not. An exact comparison is what makes adding a
+   * tenant-owned collection an edit to this list.
    */
-  it('registers the tenant-owned collections too', () => {
-    expect(registeredCollectionNames()).toEqual(
-      expect.arrayContaining([
-        'Report',
-        'Case',
-        'CaseReport',
-        'PolicySet',
-        'AuditEvent',
-        'WebhookEndpoint',
-        'WebhookSecret',
-        'WebhookAttempt',
-        /**
-         * The usage meter IS scopable and therefore is scoped. It counts one tenant's
-         * accepted reports, it is read by that tenant's quota check and by its own
-         * console, and no cross-tenant reader needs it — so it belongs on this side of
-         * the boundary even though the trust row next to it does not.
-         */
-        'UsageCounter',
-      ]),
-    );
+  it('registers exactly the tenant-owned collections, and no others', () => {
+    const exempt = new Set(unscopedCollectionReasons().keys());
+    const tenantScoped = registeredCollectionNames()
+      .filter((name) => !exempt.has(name))
+      .sort();
+
+    expect(tenantScoped).toEqual([
+      /**
+       * The appeal against a decision, and the decision itself. Both are
+       * tenant-owned like any other case material — and both were missing from
+       * this file's import block until the gate was fixed, which is why they are
+       * named first here rather than filed alphabetically without comment.
+       */
+      'Appeal',
+      'AuditEvent',
+      'Case',
+      'CaseReport',
+      'Decision',
+      'PolicySet',
+      'Report',
+      /**
+       * The usage meter IS scopable and therefore is scoped. It counts one tenant's
+       * accepted reports, it is read by that tenant's quota check and by its own
+       * console, and no cross-tenant reader needs it — so it belongs on this side of
+       * the boundary even though the trust row next to it does not.
+       */
+      'UsageCounter',
+      'WebhookAttempt',
+      'WebhookEndpoint',
+      'WebhookSecret',
+    ]);
+  });
+
+  /**
+   * The vacuity floor on the registry, which is what the two assertions above
+   * are read against. Both compare against an exact list, and both would still
+   * pass on a registry that had lost a collection they do not name — this is the
+   * one that fails when the total moves at all, in either direction.
+   */
+  it('registers every declared collection', () => {
+    // 11 tenant-owned above, 15 exempt in the list before it.
+    expect(registeredCollectionNames()).toHaveLength(26);
+    expect(unscopedCollectionReasons().size).toBe(15);
   });
 });
