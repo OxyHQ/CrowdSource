@@ -90,7 +90,11 @@ Apply the same rule beyond this table. Anything the ecosystem already solves onc
 
 ### Persistence
 
-**MongoDB is the system of record**; files go through the Oxy media chokepoint. Valkey holds nothing that must survive (see the BullMQ invariant above).
+**MongoDB is the system of record** for `packages/backend`, the ECS service; files go through the Oxy media chokepoint. Valkey holds nothing that must survive (see the BullMQ invariant above).
+
+`@oxyhq/crowdsource-app` (`packages/app`) is the exception and already ships BOTH stores — `src/mongoose/` and `src/postgres/` (#79). "CrowdSource is on Mongo" is true of the service and false of the package; say which one you mean.
+
+**A Postgres cutover for the service is planned, and everything it falsifies is listed in [`docs/architecture/postgres-cutover-claims-ledger.md`](docs/architecture/postgres-cutover-claims-ledger.md).** Work through it in the cutover rather than rediscovering it afterwards — including the two things nothing else in Oxy has (a second database role, and RLS), and the `databaseIdentity.ts` guard, whose failure mode is a Mongo-only `dbName` override and therefore RETIRES rather than porting.
 
 `packages/backend/src/config/databaseIdentity.ts` declares the database name. This is a source constant and NOT configuration on purpose: `mongoose.connect(uri, { dbName })` hands `dbName` to the driver, which does `dbName != null ? client.db(dbName) : client.db()` — it **overrides** the database named in `MONGODB_URI`. A wrong value does not fail to connect; it silently reads and writes another Oxy product's live data. Four things move together, always in the same change: that declaration, `.github/scripts/assert-own-database.sh` (reads it before a release is built), `.github/scripts/test-assert-own-database.sh` (mutation-tests the guard), and `src/__tests__/databaseIdentity.test.ts` (asserts the connection actually uses the declared value, so the guard cannot pass while the runtime ignores it).
 
