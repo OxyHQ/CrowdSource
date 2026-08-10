@@ -80,6 +80,19 @@ jobs:
           - package: backend
             command: bun run --cwd packages/backend test:coverage -- --coverage.reportsDirectory="$RUNNER_TEMP/backend-coverage"
             coverage: true
+            # The tenant-isolation tests run against a REAL Postgres, and there is
+            # no version of them that does not. Row-level security is a property of
+            # the server: a mock cannot answer whether `FORCE` is set, whether a
+            # superuser bypasses a policy, or whether `SET LOCAL` reverts at commit
+            # — and each of those was measured, not assumed.
+            #
+            # It matters more here than for `app`, because the failure mode is
+            # RETURNING ROWS rather than erroring. A suite that silently stopped
+            # running these would be green, and production cannot contradict it:
+            # the database holds two documents and neither carries a tenant pair.
+            # `vitest.globalSetup.ts` therefore THROWS without the URL rather than
+            # skipping, so a job that forgot this flag fails loudly.
+            postgres: true
           - package: reviewer
             command: bun run --cwd packages/reviewer test:coverage -- --coverageDirectory="$RUNNER_TEMP/reviewer-coverage"
             coverage: true
@@ -179,6 +192,13 @@ jobs:
         # schema tests — which is the whole reason the setup throws.
         env:
           CROWDSOURCE_APP_TEST_POSTGRES_URL: ${{ matrix.postgres && 'postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres' || '' }}
+          # A second variable naming the same server, rather than one shared
+          # between the packages. Each package resolves its own admin URL and
+          # names it after itself — the same reasoning `@oxyhq/db/testing` gives
+          # for having no environment default of its own — so the two suites can
+          # never end up disagreeing about which of them is configured. Both
+          # create their own throwaway database on this server and drop it again.
+          CROWDSOURCE_BACKEND_TEST_POSTGRES_URL: ${{ matrix.postgres && 'postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres' || '' }}
         run: ${{ matrix.command }}
       # A suite that runs nothing exits 0. This states the count the runner
       # actually reached and refuses one below the floor, so a job cannot report
