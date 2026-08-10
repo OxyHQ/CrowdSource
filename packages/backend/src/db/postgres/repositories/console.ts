@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 
 import { organizationMembers, staffAuditEvents, trustSafetyStaff } from '../schema/console';
 import type { PgHandle } from '../withTenant';
@@ -216,24 +216,22 @@ export async function appendStaffAuditEvent(
   await db.insert(staffAuditEvents).values({ ...event, roles: [...event.roles] });
 }
 
-/**
- * The investigator's read, which does not exist in production yet.
+/*
+ * There is deliberately NO read of `staff_audit_events` in this module.
  *
- * Deliberately NOT exported for production use — it exists so the realdb suite can
- * prove the trail is readable and correctly ordered, which is a different claim
- * from "something reads it". Naming it plainly is better than a test reaching for
- * the table directly and quietly becoming the only description of how it is meant
- * to be queried.
+ * One existed briefly — `listStaffAuditByActor`, labelled as having no
+ * production caller — and it was removed rather than kept with a label. The
+ * distinction it failed is worth stating, because it is the line between this
+ * whole layer being acceptable and not: a repository may land ahead of its
+ * caller BECAUSE the switch supplies the caller, which makes it a temporary
+ * state with a known end. A function that will still have no caller after the
+ * switch is not in that category — it is an export that exists to be tested.
+ *
+ * The property it proved is real and is still proved: the suite queries the
+ * table inline to show the trail is readable and correctly ordered. What is
+ * gone is the public function nobody invokes.
+ *
+ * When Trust & Safety grows a reader, it belongs here — and the reader census
+ * pins the current state, so its arrival shows up as a change to that file
+ * rather than as nothing.
  */
-export async function listStaffAuditByActor(
-  db: PgHandle,
-  actorOxyUserId: string,
-  limit = 100,
-) {
-  return await db
-    .select()
-    .from(staffAuditEvents)
-    .where(eq(staffAuditEvents.actorOxyUserId, actorOxyUserId))
-    .orderBy(desc(staffAuditEvents.occurredAt))
-    .limit(limit);
-}
