@@ -319,9 +319,9 @@ export function staleExcuses(
   sites: readonly ReaderSite[],
   excused: readonly ExcusedSite[] = CENSUS_EXCUSED_SITES,
 ): string[] {
-  const found = new Set(sites.map((site) => `${site.table} ${formatReaderSite(site)}`));
+  const found = new Set(sites.map((site) => `${site.table}\u0000${formatReaderSite(site)}`));
   return excused
-    .filter((entry) => !found.has(`${entry.table} ${entry.site}`))
+    .filter((entry) => !found.has(`${entry.table}\u0000${entry.site}`))
     .map((entry) => `${entry.table}: ${entry.site}`)
     .sort();
 }
