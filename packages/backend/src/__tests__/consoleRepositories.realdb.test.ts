@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { desc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import * as consoleRepository from '../db/postgres/repositories/console';
+import { staffAuditEvents } from '../db/postgres/schema/console';
 import {
   createPostgresTestDatabase,
   type PostgresTestDatabase,
@@ -202,7 +204,25 @@ describe('the staff audit trail — names an application without belonging to on
       occurredAt: new Date('2026-08-10T02:00:00.000Z'),
     });
 
-    const trail = await consoleRepository.listStaffAuditByActor(database.db, STAFF_USER);
+    /**
+     * The read is INLINE, not a repository export.
+     *
+     * `staff_audit_events` is write-only in production, and a repository function
+     * with no caller after the switch would be an export that exists to be tested
+     * — which is exactly what the "repositories may not land unused" rule is
+     * against. A repository may precede its caller because the switch supplies
+     * one; nothing will supply one here until Trust & Safety grows a reader.
+     *
+     * The property is still worth proving, so it is proved here: the trail is
+     * readable and comes back newest-first. When a real reader arrives, the query
+     * moves into `repositories/console.ts` with it.
+     */
+    const trail = await database.db
+      .select()
+      .from(staffAuditEvents)
+      .where(eq(staffAuditEvents.actorOxyUserId, STAFF_USER))
+      .orderBy(desc(staffAuditEvents.occurredAt))
+      .limit(100);
 
     // Newest first.
     expect(trail.map((row) => row.staffAuditId)).toEqual(['audit_without_app', 'audit_with_app']);
