@@ -628,13 +628,68 @@ if [[ -s "$test_directory/migration-credential-missing/aws.log" ]] &&
   exit 1
 fi
 
-run_release zero-desired-count false false false 0 false 0
+# A service parked at desiredCount 0 — the state every store cutover leaves it
+# in — must still land its image, because the release that would make the service
+# bootable again is the one a refusal blocks.
+#
+# The exact log is the whole assertion, and what it does NOT contain matters more
+# than what it does. Compare it against `migration-phases` above, which is the
+# same release at desired=1: there, `service:` is followed by `smoke`,
+# `--phase=post` and `reconcile`. Here the log must STOP at `service:`, because
+# none of those three are real when nothing is running — a smoke check against a
+# service with zero tasks, and a destructive `post` migration with no healthy
+# image to confirm it, are exactly the plausible greens this gate exists to
+# refuse. `diff -u` fails if any of them appears.
+run_release zero-desired-count true true false 0 false 0
+printf '%s\n' \
+  migrate-register \
+  'migrate-run:arn:aws:ecs:test:task-definition/crowdsource-test-migrate:8:--phase=pre' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:2:desired=0' \
+  >"$test_directory/zero-desired-count/expected.log"
+diff -u \
+  "$test_directory/zero-desired-count/expected.log" \
+  "$test_directory/zero-desired-count/aws.log"
+# `service:...crowdsource-test:2:...` is the REPOINT, and it is the half that is
+# easy to drop: registering a revision does not point the service at it, so
+# without this line a later scale-up would launch the OLD image and every
+# subsequent deploy would render from the stale revision.
 grep -F \
-  "must have a positive desiredCount before deployment (current: 0)" \
+  "service:arn:aws:ecs:test:task-definition/crowdsource-test:2:desired=0" \
+  "$test_directory/zero-desired-count/aws.log" \
+  >/dev/null
+grep -F \
+  "NO ROLLOUT PERFORMED: ECS service crowdsource-test is at desiredCount=0" \
   "$test_directory/zero-desired-count/output.log" \
   >/dev/null
-if [[ -s "$test_directory/zero-desired-count/aws.log" ]]; then
-  echo "Zero-capacity service reached a mutating AWS call." >&2
+grep -F \
+  "NO ROLLOUT PERFORMED: the task definition WAS registered and the service now points at it: arn:aws:ecs:test:task-definition/crowdsource-test:2" \
+  "$test_directory/zero-desired-count/output.log" \
+  >/dev/null
+grep -F \
+  "NO ROLLOUT PERFORMED: the 'post' migration phase was NOT applied" \
+  "$test_directory/zero-desired-count/output.log" \
+  >/dev/null
+# The success line of an ordinary release. If it ever appears here, a reader of
+# the workflow log six weeks from now cannot tell this run apart from one that
+# actually shipped, which is the failure this whole case exists to prevent.
+if grep -qF \
+  "ECS rollout reached a healthy steady state" \
+  "$test_directory/zero-desired-count/output.log"; then
+  echo "A zero-capacity release claimed a healthy rollout it never performed." >&2
+  exit 1
+fi
+
+# The negative control for the case above: desiredCount ABSENT is ECS declining
+# to answer, which is not the same fact as a zero it reports confidently, and
+# must still refuse. Without this, deleting the numeric check outright would
+# leave the suite green.
+run_release missing-desired-count false false false 0 false null
+grep -F \
+  "reported a non-numeric desiredCount" \
+  "$test_directory/missing-desired-count/output.log" \
+  >/dev/null
+if [[ -s "$test_directory/missing-desired-count/aws.log" ]]; then
+  echo "A service with an unreadable desiredCount reached a mutating AWS call." >&2
   exit 1
 fi
 
