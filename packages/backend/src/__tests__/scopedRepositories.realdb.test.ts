@@ -509,6 +509,106 @@ describe('webhooks: endpoints, secrets and attempts', () => {
   });
 });
 
+describe('the branches a happy path never reaches', () => {
+  /**
+   * These were found by CI's branch-coverage threshold, not by review, and they
+   * are real untested behaviour rather than a metric to satisfy: a `null` return,
+   * an omitted optional field and a non-default limit each take a code path the
+   * happy path never enters.
+   *
+   * The `null` cases matter for a specific reason — "absent" and "filtered by the
+   * policy" must be the SAME value, so a caller can never accidentally tell them
+   * apart. Asserting `toBeNull` on a row that does not exist is what pins that.
+   */
+  it('every find answers null for a row that is not there', async () => {
+    const readings = await withTenant(database.db, alpha, async (tx) => ({
+      report: await reportRepository.findReportById(tx, 'rep_nowhere'),
+      reportKey: await reportRepository.findReportByIdempotencyKey(tx, 'idem_nowhere'),
+      decision: await decisionRepository.findDecisionById(tx, 'dec_nowhere'),
+      decisionRev: await decisionRepository.findDecisionForRevision(tx, 'case_nowhere', 99),
+      appeal: await decisionRepository.findAppealById(tx, 'app_nowhere'),
+      appealRev: await decisionRepository.findAppealForRevision(tx, 'case_nowhere', 99),
+      appealKey: await decisionRepository.findAppealByIdempotencyKey(tx, 'idem_nowhere'),
+      policy: await governanceRepository.findPolicySetVersion(tx, 'pol_nowhere', '1'),
+      counter: await governanceRepository.findUsageCounter(tx, '1999-01-01'),
+      endpoint: await webhookRepository.findWebhookEndpointById(tx, 'whe_nowhere'),
+    }));
+
+    for (const [name, value] of Object.entries(readings)) {
+      expect(value, `${name} must answer null, not undefined`).toBeNull();
+    }
+  });
+
+  /**
+   * `updatePolicySetStatus` omitting `publishedAt` entirely.
+   *
+   * The happy path above passes it, so the `=== undefined` branch — which must
+   * leave the stored instant ALONE rather than nulling it — had never run. That is
+   * the branch that matters: a status change should not silently unpublish.
+   */
+  it('leaves publishedAt alone when the patch omits it', async () => {
+    const before = await withTenant(database.db, alpha, async (tx) =>
+      governanceRepository.findPolicySetVersion(tx, 'pol_alpha', '1'),
+    );
+    expect(before?.publishedAt).not.toBeNull();
+
+    expect(
+      await withTenant(database.db, alpha, async (tx) =>
+        governanceRepository.updatePolicySetStatus(tx, 'pol_alpha', '1', { status: 'archived' }),
+      ),
+    ).toBe(1);
+
+    const after = await withTenant(database.db, alpha, async (tx) =>
+      governanceRepository.findPolicySetVersion(tx, 'pol_alpha', '1'),
+    );
+    expect(after?.status).toBe('archived');
+    expect(after?.publishedAt?.getTime()).toBe(before?.publishedAt?.getTime());
+  });
+
+  /** A non-default increment, and a non-default limit — both defaulted everywhere else. */
+  it('accepts explicit values where a default is usual', async () => {
+    await withTenant(database.db, alpha, async (tx) =>
+      governanceRepository.incrementUsageCounter(tx, alpha, '2026-08-11', 5),
+    );
+    const counter = await withTenant(database.db, alpha, async (tx) =>
+      governanceRepository.findUsageCounter(tx, '2026-08-11'),
+    );
+    expect(counter?.reportsReceived).toBe(5);
+
+    const trail = await withTenant(database.db, alpha, async (tx) =>
+      governanceRepository.listAuditEventsForCase(tx, 'case_alpha', 1),
+    );
+    expect(trail).toHaveLength(1);
+
+    const recent = await withTenant(database.db, alpha, async (tx) =>
+      reportRepository.listRecentReports(tx, 1),
+    );
+    expect(recent).toHaveLength(1);
+  });
+
+  /** An empty attempt list, and a secret summary for an endpoint with none. */
+  it('returns empty lists rather than throwing', async () => {
+    const readings = await withTenant(database.db, alpha, async (tx) => ({
+      attempts: await webhookRepository.listWebhookAttempts(tx, 'whd_nowhere'),
+      secrets: await webhookRepository.listWebhookSecretsForSigning(tx, 'whe_nowhere'),
+      summaries: await webhookRepository.listWebhookSecretSummaries(tx, 'whe_nowhere'),
+      caseReports: await reportRepository.listCaseReports(tx, 'case_nowhere'),
+      decisions: await decisionRepository.listDecisionsForCase(tx, 'case_nowhere'),
+      versions: await governanceRepository.listPolicySetVersions(tx, 'pol_nowhere'),
+    }));
+
+    for (const [name, value] of Object.entries(readings)) {
+      expect(value, `${name} must be an empty array`).toEqual([]);
+    }
+
+    expect(
+      await withTenant(database.db, alpha, async (tx) =>
+        reportRepository.countCaseReports(tx, 'case_nowhere'),
+      ),
+    ).toBe(0);
+  });
+});
+
 describe('the suite exercises every module', () => {
   /**
    * One gate per module, reading this file's own source. A repository function

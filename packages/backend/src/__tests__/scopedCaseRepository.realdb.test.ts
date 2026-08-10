@@ -177,6 +177,91 @@ describe('the scoped repository sees its own tenant and no other', () => {
   });
 });
 
+describe('keyset pagination, which nothing exercised until the coverage gate said so', () => {
+  /**
+   * The cursor branch of `listCasesPage` had no test at all.
+   *
+   * It was found by CI's branch-coverage threshold rather than by review, which is
+   * the useful part: the happy path returns the right rows whether or not the
+   * cursor comparison is correct, so a suite that only paged the first page cannot
+   * tell a working keyset from a broken one.
+   *
+   * The two cases below are the ones that break a naive implementation: a second
+   * page must not repeat the first, and two rows sharing a `created_at` must not
+   * lose one to the tie-break — which is ordinary under load and is why the
+   * comparison carries `case_id` at all.
+   */
+  /**
+   * Its OWN tenant, and a distinct subject per case.
+   *
+   * Both were mistakes on the first attempt and both were caught by the real
+   * server rather than by review. Seeding into `alpha` broke a later test that
+   * asserts an exact `countCasesSince` — shared fixture state read by an exact
+   * count is order-dependent by construction. And reusing one
+   * `subject_external_id` hit `cases_application_subject_key`, which is the
+   * deduplication unique doing exactly its job: one subject per application is one
+   * case, so two cases sharing a subject is the thing the schema forbids.
+   */
+  const pager: TenantContext = createTenantContext('org_alpha', 'app_alpha_pager');
+
+  it('pages without repeating or skipping, including a created_at tie', async () => {
+    const sameInstant = new Date('2026-08-10T05:00:00.000Z');
+    for (const suffix of ['b', 'a']) {
+      await withTenant(database.db, pager, async (tx) => {
+        await caseRepository.insertCase(tx, {
+          caseId: `case_page_${suffix}`,
+          organizationId: pager.organizationId,
+          applicationId: pager.applicationId,
+          subjectExternalId: `subject_${suffix}`,
+          status: 'received',
+          openedAt: sameInstant,
+        });
+      });
+      await database.asMigrator`
+        UPDATE cases SET created_at = ${sameInstant} WHERE case_id = ${`case_page_${suffix}`}
+      `;
+    }
+
+    const first = await withTenant(database.db, pager, async (tx) =>
+      caseRepository.listCasesPage(tx, { limit: 1 }),
+    );
+    expect(first).toHaveLength(1);
+
+    const second = await withTenant(database.db, pager, async (tx) =>
+      caseRepository.listCasesPage(tx, {
+        limit: 5,
+        cursor: { createdAt: first[0].createdAt, caseId: first[0].caseId },
+      }),
+    );
+
+    // The cursor row itself must not come back, and nothing may be skipped —
+    // both rows share a `created_at`, so the `case_id` tie-break is what decides.
+    expect(second.map((row) => row.caseId)).not.toContain(first[0].caseId);
+    const all = [first[0].caseId, ...second.map((row) => row.caseId)];
+    expect(new Set(all).size).toBe(all.length);
+    expect(all.sort()).toEqual(['case_page_a', 'case_page_b']);
+  });
+});
+
+describe('the not-found paths', () => {
+  /**
+   * Every `findX` returns `null` rather than `undefined` for a row that is not
+   * there, and each of those was an uncovered branch. They are worth asserting on
+   * their own terms: a caller that distinguishes "absent" from "filtered" cannot,
+   * and both must be the same value so the distinction is never accidentally
+   * available.
+   */
+  it('answer null rather than undefined', async () => {
+    const readings = await withTenant(database.db, alpha, async (tx) => ({
+      byId: await caseRepository.findCaseById(tx, 'case_nowhere'),
+      many: await caseRepository.findCasesByIds(tx, ['case_nowhere']),
+    }));
+
+    expect(readings.byId).toBeNull();
+    expect(readings.many).toEqual([]);
+  });
+});
+
 describe('a missing tenant context is loud, not empty', () => {
   /**
    * The failure this whole mechanism exists to prevent.
