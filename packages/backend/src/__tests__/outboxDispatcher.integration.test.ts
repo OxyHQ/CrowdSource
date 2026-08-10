@@ -96,7 +96,33 @@ describe('dispatching a row', () => {
       if (event.eventId === eventId) handled.push(event.payload.caseId ?? '');
     });
 
-    await runOnce();
+    /**
+     * `drainOutbox` rather than a single `runOnce`, and it is a correctness fix
+     * rather than a preference.
+     *
+     * `runOnce` claims at most 25 rows, oldest first, across every tenant. This
+     * file's header says each test owns its event type so suite order cannot
+     * matter — but `writeEvent` uses `report.received`, which `fanout.ts`,
+     * `report.service.ts` and `webhookDelivery.integration.test.ts` also produce.
+     * So the row this test asserts on sits BEHIND however many `report.received`
+     * rows earlier files happened to leave pending, and one `runOnce` reaches it
+     * only while that backlog stays under 25.
+     *
+     * MEASURED on 2026-08-10, instrumenting this line across twelve full-suite
+     * runs: the count of older pending `report.received` rows is bimodal, 0 or
+     * 17, against the limit of 25 — decided by which files Vitest's sequencer put
+     * before this one. At 17 it passes; the margin is six rows. Adding ANY test
+     * file anywhere in the package reshuffles that order, which is how this
+     * surfaced: 2 failures in 12 runs with one file added, 0 in 9 without it.
+     *
+     * Draining until nothing is claimable is also what the assertion actually
+     * means — "run the dispatcher, then check our event was handled" — so this is
+     * the honest spelling rather than a bigger number. It raises the ceiling to
+     * `10 * 25` and stops as soon as the queue is empty; it does not make the
+     * dependency zero. That only goes away when the outbox moves to PostgreSQL,
+     * where each real-database file gets its own database.
+     */
+    await drainOutbox();
 
     expect(handled).toContain(caseId);
     const stored = await readEvent(eventId);
