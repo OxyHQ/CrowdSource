@@ -126,14 +126,13 @@ jobs:
           # rotates, and nothing fails when it goes stale. Each module adds its
           # own here as it ships — REDIS_URL arrives with the first BullMQ queue,
           # and it will need the shared-Valkey database-index guard back.
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
           # The key webhook signing secrets are encrypted with at rest (§13.4).
           # Without it the two webhook-management routes answer 503 and no
           # endpoint can be registered — the service still boots, deliberately,
           # so that adding this variable could not take production down on the
           # deploy that introduced it.
           WEBHOOK_SECRET_ENCRYPTION_KEY: ${{ secrets.WEBHOOK_SECRET_ENCRYPTION_KEY }}
-          SSM_SECRET_ALLOWLIST: MONGODB_URI WEBHOOK_SECRET_ENCRYPTION_KEY
+          SSM_SECRET_ALLOWLIST: WEBHOOK_SECRET_ENCRYPTION_KEY
         run: |
           set -euo pipefail
 
@@ -152,12 +151,12 @@ jobs:
               continue
             fi
 
-            # Deliberately NO check on the database named in MONGODB_URI: the
-            # driver ignores it, because src/utils/database.ts supplies `dbName`
-            # from src/config/databaseIdentity.ts and that overrides the URI. A
-            # check on the URI's database component could not fail for a real
-            # reason, which is worse than no check. The real guard is
-            # assert-own-database.sh, which runs above against source.
+            # MONGODB_URI is no longer synced (the shared instance was retired
+            # on 2026-08-10 — oxy-infra runbook 31), so the note that used to sit
+            # here about not checking its database component no longer applies.
+            # assert-own-database.sh still runs above against source; it guards a
+            # shared-instance hazard that no longer exists and is left for the
+            # Postgres port to retire deliberately rather than as a side effect.
             aws ssm put-parameter \
               --name "/oxy/$APP/$key" \
               --value "$value" \
@@ -185,8 +184,9 @@ jobs:
           # task definition has to name it. This is the one place the two halves
           # meet, so a secret added above without an entry here reaches SSM and
           # nothing else, and the symptom is a 503 from a route nobody is
-          # watching yet. MONGODB_URI is absent because oxy-infra's task
-          # definition already carries it.
+          # watching yet. There is deliberately no DATABASE_URL entry: the
+          # CrowdSource database is not provisioned, and naming a parameter that
+          # does not exist is what has kept tnp-api from starting.
           TASK_SECRET_OVERRIDES_JSON: >-
             {"WEBHOOK_SECRET_ENCRYPTION_KEY":
             "arn:aws:ssm:us-west-2:237343248947:parameter/oxy/crowdsource/WEBHOOK_SECRET_ENCRYPTION_KEY"}
