@@ -1,6 +1,10 @@
 import { Schema, type ClientSession } from 'mongoose';
 
 import { defineUnscopedCollection } from '../../db/collections';
+import {
+  OUTBOX_STATUSES,
+  type OutboxStatus,
+} from '../../db/postgres/schema/infrastructure';
 import { tenantScopedDocument, type TenantContext } from '../../db/tenantScope';
 import { newPublicId } from '../../utils/identifiers';
 
@@ -110,14 +114,12 @@ export interface OutboxEventPayload {
 /**
  * §3.2-style lifecycle for a row.
  *
- * `dispatching` is a LEASE, not a state a consumer reports: the dispatcher
- * stamps it with an expiry, and a row whose lease has run out is claimable
- * again. That is what makes a dispatcher crash a delay rather than a stuck row —
- * without it, a process that died mid-handler would hold its events forever and
- * nothing would say so.
+ * Defined in `db/postgres/schema/infrastructure.ts` and imported here, not the
+ * other way round: the CHECK constraint on `outbox_events.status` is rendered
+ * from that tuple, so it is the column's property rather than this schema's, and
+ * drizzle-kit loads the schema barrel at generate time — a dependency pointing
+ * back at this file would pull mongoose in with it.
  */
-export const OUTBOX_STATUSES = ['pending', 'dispatching', 'dispatched', 'failed'] as const;
-export type OutboxStatus = (typeof OUTBOX_STATUSES)[number];
 
 export interface OutboxEventDocument {
   eventId: string;

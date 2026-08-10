@@ -1,0 +1,33 @@
+-- oxy:deploy-phase=pre
+--
+-- PRE, even though a CHECK NARROWS what may be written — and the reason is the
+-- rule itself rather than an exception to it. A `post` statement is one that
+-- BREAKS A WRITE THE PREVIOUS IMAGE PERFORMS. This one breaks none: the only
+-- writers of `outbox_events.status` are `appendOutboxEvent` ('pending') and the
+-- dispatcher ('dispatching', 'dispatched', 'pending', 'failed'), which is the
+-- whole constrained set. So the previous image keeps running against it
+-- unchanged, which is exactly the property `pre` asserts.
+--
+-- This restores the ONE writer-side enforcement the table had in Mongo,
+-- `enum: OUTBOX_STATUSES` on the Mongoose path. A port that dropped it would
+-- turn a structural guarantee into a comment, and nothing recomputes a comment.
+-- A prohibition is a TYPE or a CHECK, never a convention.
+--
+-- The value list is RENDERED from the `OUTBOX_STATUSES` tuple in
+-- `db/postgres/schema/infrastructure.ts` via `inList`, not spelled out here, so
+-- adding a member is a code change plus a migration in the same PR rather than a
+-- constraint that silently stops agreeing with the type. Rendered with
+-- `sql.raw` deliberately: an ordinary interpolation into `check()` emits the
+-- bound parameter `$1`, which fails at APPLY time with no local signal.
+--
+-- `type` DELIBERATELY GETS NO CHECK. It was never enum-constrained in Mongo
+-- (`type: { type: String, required: true }`), so constraining it here would be a
+-- NEW restriction smuggled in under a port rather than a preserved one. The
+-- asymmetry is recorded so a later reader does not "fix" it.
+--
+-- REGENERATION WARNING. This header is HAND-MAINTAINED: `bun run db:generate`
+-- emits only the statement below and this block is gone. Re-apply it, keep
+-- exactly ONE `-- oxy:deploy-phase=` line, and read the regenerated file for
+-- statements you did not intend.
+
+ALTER TABLE "outbox_events" ADD CONSTRAINT "outbox_events_status_check" CHECK ("outbox_events"."status" in ('pending', 'dispatching', 'dispatched', 'failed'));

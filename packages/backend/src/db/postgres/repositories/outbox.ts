@@ -1,12 +1,11 @@
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm';
 
-import { outboxEvents } from '../schema/infrastructure';
+import { outboxEvents, type OutboxStatus } from '../schema/infrastructure';
 import type { TenantContext } from '../../tenantScope';
 import { requireTransaction, type PgHandle, type PgTransactionHandle } from '../withTenant';
 import {
   type OutboxEventPayload,
   type OutboxEventType,
-  type OutboxStatus,
 } from '../../../modules/outbox/outbox.collection';
 import { newPublicId } from '../../../utils/identifiers';
 

@@ -40,10 +40,8 @@ import {
 } from '../modules/consensus/consensus';
 import { CONSOLE_ROLES, STAFF_ROLES } from '../modules/console/console.collections';
 import { STAFF_AUDIT_ACTIONS } from '../modules/console/staffAudit.collection';
-import {
-  OUTBOX_EVENT_TYPES,
-  OUTBOX_STATUSES,
-} from '../modules/outbox/outbox.collection';
+import { OUTBOX_STATUSES } from '../db/postgres/schema/infrastructure';
+import { OUTBOX_EVENT_TYPES } from '../modules/outbox/outbox.collection';
 import {
   OUTBOX_LEASE_MS,
   OUTBOX_MAX_ATTEMPTS,

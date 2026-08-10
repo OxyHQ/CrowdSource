@@ -1,6 +1,25 @@
-import { boolean, doublePrecision, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { boolean, check, doublePrecision, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
 
-import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+
+/**
+ * The lifecycle of an outbox row, and the ONE definition of it.
+ *
+ * It lives here rather than beside the Mongoose schema that used to own it,
+ * because the closed set is a property of the COLUMN: the CHECK below is
+ * rendered from this tuple, so adding a member is a code change plus a migration
+ * in the same PR rather than a silent divergence between a constraint and a type.
+ * The dependency runs one way on purpose — the Mongo collection imports this, and
+ * never the reverse, because drizzle-kit loads the schema barrel at generate time
+ * and would pull mongoose in with it.
+ *
+ * `dispatching` is a LEASE, not a state a consumer reports: the dispatcher stamps
+ * it with an expiry, and a row whose lease has run out is claimable again. That
+ * is what makes a dispatcher crash a delay rather than a stranded row.
+ */
+export const OUTBOX_STATUSES = ['pending', 'dispatching', 'dispatched', 'failed'] as const;
+export type OutboxStatus = (typeof OUTBOX_STATUSES)[number];
 
 /**
  * The two tables a background worker CLAIMS from, and the one that scores an
@@ -61,6 +80,30 @@ export const outboxEvents = pgTable(
      * because it is the equality term; `available_at` is the range.
      */
     index('outbox_events_status_available_at_idx').on(table.status, table.availableAt),
+
+    /**
+     * The port's replacement for Mongoose's `enum: OUTBOX_STATUSES`.
+     *
+     * That validator was the single writer-side enforcement this table had, and
+     * a port that dropped it would convert a structural guarantee into a comment
+     * — which is where a wrong belief survives, because nothing recomputes it. A
+     * prohibition is a TYPE or a CHECK, never a convention.
+     *
+     * `sql.raw` on the value list is REQUIRED, not stylistic: a value
+     * interpolated into `check()` the ordinary way is emitted as the bound
+     * parameter `$1` in the generated migration, which then fails at APPLY time
+     * with no local signal. The COLUMN stays an interpolated drizzle column so
+     * its SQL name still comes from the casing authority.
+     *
+     * `type` DELIBERATELY GETS NO CHECK, and the asymmetry is recorded so a later
+     * reader does not "fix" it: `type` was never enum-constrained in Mongo
+     * (`type: { type: String, required: true }`), so constraining it here would
+     * be a NEW restriction smuggled in under a port, not a preserved one.
+     */
+    check(
+      'outbox_events_status_check',
+      sql`${table.status} in (${sql.raw(inList(OUTBOX_STATUSES))})`,
+    ),
   ],
 );
 
