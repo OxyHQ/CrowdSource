@@ -42,14 +42,24 @@ describe('the migration entrypoint the deploy runs', () => {
    * pushes — the failure is the migration task exiting non-zero with "module not
    * found", after production has the image.
    */
-  it('is emitted where the deploy script looks for it', () => {
+  it('is emitted where the deploy names it', () => {
     expect(tsconfig).toMatch(/"rootDir":\s*"\.\/"/);
     expect(tsconfig).toMatch(/"outDir":\s*"dist"/);
     expect(tsconfig).toMatch(/"include":\s*\[[^\]]*"scripts\/\*\*\/\*\.ts"/s);
 
-    // Derived from those three, not restated from the workflow.
+    /**
+     * Derived from those three, not restated from the deploy.
+     *
+     * Searched across BOTH files because the command moved: it used to be
+     * hardcoded in `deploy-ecs-image.sh`, and is now `MIGRATION_COMMAND_JSON`
+     * in the workflow, so the script can serve any consumer's entrypoint and
+     * the phases can be appended per run. Today the workflow carries it in the
+     * comment that says what to set when `RUN_MIGRATIONS` is flipped; after the
+     * flip it carries it as the value. Either satisfies this, and a rename of
+     * `scripts/migrate.ts` that forgets the deploy satisfies neither.
+     */
     const emitted = path.posix.join('packages/backend', 'dist', 'scripts', 'migrate.js');
-    expect(deployScript).toContain(emitted);
+    expect(`${deployScript}\n${deployWorkflow}`).toContain(emitted);
   });
 
   /**

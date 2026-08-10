@@ -151,6 +151,47 @@ aws() {
         revision="$DEPLOY_TEST_RUNNING_REVISION"
         status=ACTIVE
         extra_environment=""
+      elif [[ "$requested" == "crowdsource-test-migrate" ]]; then
+        # The migration family, as oxy-infra registers it: the migrator's
+        # credential and nothing else. `DEPLOY_TEST_MIGRATION_SECRET` lets a case
+        # take it away and prove the release refuses rather than migrating as
+        # whatever role the definition does carry.
+        jq -n \
+          --arg image "example.invalid/crowdsource-test:old" \
+          --arg secret "${DEPLOY_TEST_MIGRATION_SECRET-MIGRATOR_DATABASE_URL}" \
+          '{
+            taskDefinitionArn: "arn:aws:ecs:test:task-definition/crowdsource-test-migrate:7",
+            family: "crowdsource-test-migrate",
+            revision: 7,
+            status: "ACTIVE",
+            registeredAt: "2026-07-29T12:00:00Z",
+            registeredBy: "arn:aws:sts::123456789012:assumed-role/oxy-terraform/apply",
+            networkMode: "awsvpc",
+            requiresCompatibilities: ["FARGATE"],
+            cpu: "256",
+            memory: "512",
+            containerDefinitions: [{
+              name: "crowdsource-test",
+              image: $image,
+              essential: true,
+              secrets: (
+                if $secret == "" then []
+                else [{
+                  name: $secret,
+                  valueFrom: "arn:aws:ssm:test:123456789012:parameter/oxy/crowdsource/MIGRATOR_DATABASE_URL"
+                }]
+                end
+              ),
+              logConfiguration: {
+                logDriver: "awslogs",
+                options: {
+                  "awslogs-group": "/ecs/crowdsource-test",
+                  "awslogs-stream-prefix": "ecs"
+                }
+              }
+            }]
+          }'
+        return 0
       else
         printf 'Mocked describe-task-definition received an unexpected revision: %s\n' \
           "$requested" >&2
@@ -251,6 +292,19 @@ aws() {
         ' "$input_json" >/dev/null
         printf 'task-secret:arn\n' >>"$DEPLOY_TEST_LOG"
       fi
+      # A registration of the MIGRATION family is logged distinctly, so a case
+      # can prove the release rendered a migration revision carrying this
+      # release's image rather than reusing the family's stale one.
+      if jq -e '.family == "crowdsource-test-migrate"' "$input_json" >/dev/null; then
+        jq -e --arg image "$DEPLOY_TEST_IMAGE_URI" '
+          .containerDefinitions[]
+          | select(.name == "crowdsource-test")
+          | .image == $image
+        ' "$input_json" >/dev/null
+        printf 'migrate-register\n' >>"$DEPLOY_TEST_LOG"
+        printf '%s\n' "arn:aws:ecs:test:task-definition/crowdsource-test-migrate:8"
+        return 0
+      fi
       printf '%s\n' "$registered_task_definition"
       ;;
     "ecs update-service")
@@ -277,6 +331,29 @@ aws() {
       printf '{}\n'
       ;;
     "ecs run-task")
+      local rt_previous="" rt_task_definition="" rt_overrides=""
+      local rt_argument
+      for rt_argument in "$@"; do
+        if [[ "$rt_previous" == "--task-definition" ]]; then
+          rt_task_definition="$rt_argument"
+        elif [[ "$rt_previous" == "--overrides" ]]; then
+          rt_overrides="$rt_argument"
+        fi
+        rt_previous="$rt_argument"
+      done
+      # The whole point of the split: a migration must never run against the
+      # SERVICE's task definition, which does not carry the migrator credential.
+      if [[ "$rt_overrides" == *"migrate.js"* ]]; then
+        printf 'migrate-run:%s:%s\n' \
+          "$rt_task_definition" \
+          "$(jq -r '[.containerOverrides[0].command[] | select(startswith("--phase="))] | join(",")' <<<"$rt_overrides")" \
+          >>"$DEPLOY_TEST_LOG"
+        printf '%s\n' '{
+          "failures": [],
+          "tasks": [{"taskArn": "arn:aws:ecs:test:task/crowdsource-migrate"}]
+        }'
+        return 0
+      fi
       printf 'reconcile\n' >>"$DEPLOY_TEST_LOG"
       printf '%s\n' '{
         "failures": [],
@@ -372,6 +449,7 @@ run_release() {
     'printf "smoke\n" >>"$DEPLOY_TEST_LOG"' \
     >"$smoke_script"
 
+  export DEPLOY_TEST_IMAGE_URI="example.invalid/crowdsource-test@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   local -a release_environment=(
     AWS_REGION=test
     AWS_ACCOUNT_ID=123456789012
@@ -385,6 +463,13 @@ run_release() {
     POST_DEPLOY_SMOKE_SCRIPT="$smoke_script"
     POST_DEPLOY_TASK_COMMAND_JSON='["reconcile"]'
   )
+  if [[ "$run_migrations" == "true" && "${DEPLOY_TEST_OMIT_MIGRATION_INPUTS:-false}" != "true" ]]; then
+    release_environment+=(
+      MIGRATION_TASK_DEFINITION_FAMILY=crowdsource-test-migrate
+      MIGRATION_TARGET_DATABASE=crowdsource
+      MIGRATION_COMMAND_JSON='["bun","packages/backend/dist/scripts/migrate.js"]'
+    )
+  fi
   if [[ "$inject_internal_metrics" == "true" ]]; then
     release_environment+=(
       INTERNAL_METRICS_PARAMETER=/oxy/crowdsource/INTERNAL_METRICS_TOKEN
@@ -459,9 +544,15 @@ diff -u \
   "$test_directory/reconciliation-failure/expected.log" \
   "$test_directory/reconciliation-failure/aws.log"
 
+# A failed PRE migration must stop the release before the rollout, and it must
+# have run against the MIGRATION family — the service's own definition does not
+# carry the migrator credential, so a migration that ran there would either fail
+# on a permission error or, against a single-role database, succeed and leave
+# every table owned by the application role with row security enforcing nothing.
 run_release migration-failure false true false 1
 printf '%s\n' \
-  reconcile \
+  migrate-register \
+  'migrate-run:arn:aws:ecs:test:task-definition/crowdsource-test-migrate:8:--phase=pre' \
   tasklogs \
   >"$test_directory/migration-failure/expected.log"
 diff -u \
@@ -473,6 +564,67 @@ grep -F \
   >/dev/null
 if grep -q '^service:' "$test_directory/migration-failure/aws.log"; then
   echo "Failed migration reached update-service." >&2
+  exit 1
+fi
+
+# The phases straddle the rollout, and the ORDER is the property: `pre` is
+# additive and safe against the image still serving, `post` takes something away
+# and is an outage on it.
+#
+# `post` runs after the SMOKE CHECK, not merely after the rollout, and that is
+# deliberate. A smoke failure rolls back to the previous image; if `post` had
+# already dropped a column that image reads, the rollback would restore an image
+# the schema can no longer serve — the one repair path turned into a second
+# outage. So the drop waits until the new image is confirmed healthy.
+#
+# Both run against the migration family; the generic post-deploy reconciliation
+# still runs on the service's own definition.
+run_release migration-phases true true false 0
+printf '%s\n' \
+  migrate-register \
+  'migrate-run:arn:aws:ecs:test:task-definition/crowdsource-test-migrate:8:--phase=pre' \
+  'service:arn:aws:ecs:test:task-definition/crowdsource-test:2:desired=1' \
+  smoke \
+  'migrate-run:arn:aws:ecs:test:task-definition/crowdsource-test-migrate:8:--phase=post' \
+  reconcile \
+  >"$test_directory/migration-phases/expected.log"
+diff -u \
+  "$test_directory/migration-phases/expected.log" \
+  "$test_directory/migration-phases/aws.log"
+
+# Fail closed: migrations on with no migration family named. Defaulting to the
+# service's task definition is the one outcome that must be unreachable, so this
+# asserts the release refuses BEFORE any mutating AWS call.
+DEPLOY_TEST_OMIT_MIGRATION_INPUTS=true \
+  run_release migration-inputs-missing false true false 0
+if ! grep -qF \
+  "MIGRATION_TASK_DEFINITION_FAMILY is unset" \
+  "$test_directory/migration-inputs-missing/output.log"; then
+  echo "A release with migrations on and no migration family did not refuse by name." >&2
+  exit 1
+fi
+if [[ -s "$test_directory/migration-inputs-missing/aws.log" ]]; then
+  echo "A release with no migration task definition reached a mutating AWS call." >&2
+  exit 1
+fi
+
+# Fail closed the other way: the family exists but carries no migrator
+# credential. Running there would apply DDL as whatever role it does carry, and
+# on a single-role database that SUCCEEDS — the failure that leaves no trace.
+DEPLOY_TEST_MIGRATION_SECRET="" \
+  run_release migration-credential-missing false true false 0
+if ! grep -qF \
+  "does not carry MIGRATOR_DATABASE_URL" \
+  "$test_directory/migration-credential-missing/output.log"; then
+  echo "A migration family without the migrator credential did not refuse by name." >&2
+  exit 1
+fi
+# `-s` first: a refusal this early may leave no log at all, and `grep` on a
+# missing file exits non-zero, which would read as "no service line" and pass
+# for the wrong reason.
+if [[ -s "$test_directory/migration-credential-missing/aws.log" ]] &&
+   grep -q '^service:' "$test_directory/migration-credential-missing/aws.log"; then
+  echo "A migration family without the migrator credential reached update-service." >&2
   exit 1
 fi
 

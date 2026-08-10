@@ -173,13 +173,25 @@ jobs:
         env:
           IMAGE_URI: ${{ env.ECR_REGISTRY }}/oxy/${{ env.APP }}@${{ steps.build.outputs.digest }}
           # The migration runner now EXISTS — `packages/backend/dist/scripts/
-          # migrate.js`, emitted from `scripts/migrate.ts`. What still gates
-          # RUN_MIGRATIONS is INFRASTRUCTURE: the database is not provisioned,
-          # and the one-shot needs the MIGRATOR's credential, which the serving
-          # task definition must never carry. ECS container overrides cannot
-          # inject a secret, so the migration task needs its own task
-          # definition. Turned on before that lands, every deploy fails at the
-          # migration step.
+          # migrate.js`, emitted from `scripts/migrate.ts` — and
+          # `deploy-ecs-image.sh` knows how to run it: it registers a revision
+          # of the MIGRATION family carrying this release's image, applies
+          # `--phase=pre` before the rollout and `--phase=post` after the smoke
+          # check, and refuses outright if the family, the target database or
+          # the migrator credential is missing.
+          #
+          # What still gates RUN_MIGRATIONS is INFRASTRUCTURE: the database is
+          # not provisioned and `oxy-crowdsource-migrate` does not exist yet.
+          # Turn this on in the SAME change that lands them, together with the
+          # variables below — the script fails closed without them, so a
+          # half-configured flip stops the deploy rather than migrating as the
+          # wrong role:
+          #
+          #   MIGRATION_TASK_DEFINITION_FAMILY: oxy-crowdsource-migrate
+          #   MIGRATION_TARGET_DATABASE: crowdsource
+          #   MIGRATION_COMMAND_JSON: >-
+          #     ["bun","packages/backend/dist/scripts/migrate.js"]
+          #   MIGRATION_CONTAINER_NAME: only if it differs from CONTAINER_NAME
           RUN_MIGRATIONS: 'false'
           POST_DEPLOY_SMOKE_SCRIPT: .github/scripts/smoke-crowdsource.sh
           # Syncing a parameter to SSM does not put it in the container: the
