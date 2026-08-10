@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
+import type { PgDatabase, PgQueryResultHKT, PgTransaction } from 'drizzle-orm/pg-core';
 import type { TablesRelationalConfig } from 'drizzle-orm';
 
 import type { TenantContext } from '../tenantScope';
@@ -26,6 +26,27 @@ import { APPLICATION_GUC, ORGANIZATION_GUC } from './tenancy';
  * that are unscoped by design.
  */
 export type PgHandle = PgDatabase<
+  PgQueryResultHKT,
+  Record<string, unknown>,
+  TablesRelationalConfig
+>;
+
+/**
+ * A handle that is INSIDE a transaction — the type drizzle itself distinguishes.
+ *
+ * `PgTransaction` extends `PgDatabase` and adds `rollback`, `schema`,
+ * `nestedIndex` and `setTransaction`, so the pool is NOT assignable to it and
+ * "passed the pool where a transaction was required" is a `tsc` error rather
+ * than a runtime surprise. Measured: assigning a `PgHandle` here reports
+ * `TS2739` naming all four missing members.
+ *
+ * This is what the Mongo side could not have. There, the root connection and a
+ * session-bearing handle share ONE type alias, so nothing could discriminate
+ * them at compile time and `requireTransaction` had to be a runtime predicate.
+ * Here the type does the work, and the runtime check below is the second layer
+ * for handles that arrive through a cast or an `any`.
+ */
+export type PgTransactionHandle = PgTransaction<
   PgQueryResultHKT,
   Record<string, unknown>,
   TablesRelationalConfig
@@ -65,7 +86,9 @@ declare const tenantScopedBrand: unique symbol;
  * reads as a simplification — one fewer cast — which is exactly why the warning is
  * here, on the line somebody would change, rather than only beside the cast.
  */
-export type TenantScopedHandle = PgHandle & { readonly [tenantScopedBrand]: true };
+export type TenantScopedHandle = PgTransactionHandle & {
+  readonly [tenantScopedBrand]: true;
+};
 
 /**
  * The ONE place a branded handle is minted, and the only assertion in this layer.
@@ -81,8 +104,42 @@ export type TenantScopedHandle = PgHandle & { readonly [tenantScopedBrand]: true
  * `scopedRepositoryBoundary.test.ts` fails the build if the brand or this cast
  * appears anywhere outside this module.
  */
-function asTenantScoped(tx: PgHandle): TenantScopedHandle {
-  return tx as unknown as TenantScopedHandle;
+function asTenantScoped(tx: PgTransactionHandle): TenantScopedHandle {
+  return tx as TenantScopedHandle;
+}
+
+/**
+ * The unscoped writer's guard: prove at RUNTIME that a handle is a transaction.
+ *
+ * `TenantScopedHandle` covers repositories that carry a tenant. It does not
+ * cover the rest of the atomicity requirement: `outbox_events` is UNSCOPED — the
+ * dispatcher claims across every tenant — yet its row must commit with the
+ * domain write it records, because a single-node Valkey can lose a queued job
+ * and the outbox is the only thing that makes the work re-derivable. A row
+ * written outside that transaction is lost moderation work with no trace.
+ *
+ * `PgTransactionHandle` makes the ordinary mistake a compile error, and it is
+ * not sufficient on its own. A handle reaching an unscoped repository through a
+ * cast, an `any`, or a generic boundary can be typed as a transaction and be a
+ * pool at run time — which is exactly the case the Mongo guard was written for.
+ * So this checks a property the pool cannot have: drizzle puts `rollback` on
+ * `PgTransaction` and nowhere else.
+ *
+ * Structural rather than `instanceof`, because `PgTransaction` is abstract and
+ * the concrete class is the driver's own; asserting on the shape survives a
+ * driver swap, an `instanceof` against a subclass does not.
+ *
+ * @throws {Error} When `handle` is not inside a transaction.
+ */
+export function requireTransaction(handle: PgHandle): PgTransactionHandle {
+  if (typeof (handle as Partial<PgTransactionHandle>).rollback !== 'function') {
+    throw new Error(
+      'This write must run inside a transaction: it records something whose ' +
+        'outbox row has to commit with it. A pool handle commits independently, ' +
+        'so the row and the work it records can be separated by a crash.',
+    );
+  }
+  return handle as PgTransactionHandle;
 }
 
 /**

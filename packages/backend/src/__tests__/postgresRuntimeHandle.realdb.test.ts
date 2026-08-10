@@ -8,6 +8,12 @@ import {
 } from '../db/postgres/database';
 import { cases } from '../db/postgres/schema/cases';
 import {
+  requireTransaction,
+  withTenant,
+  type PgTransactionHandle,
+  type TenantScopedHandle,
+} from '../db/postgres/withTenant';
+import {
   createPostgresTestDatabase,
   type PostgresTestDatabase,
 } from './support/postgresTestDatabase';
@@ -103,6 +109,89 @@ describe('the runtime PostgreSQL handle', () => {
     );
 
     await expect(pingPostgres()).rejects.toThrow();
+  });
+});
+
+describe('requireTransaction', () => {
+  /**
+   * The case the guard exists for, and the one the type cannot catch.
+   *
+   * `PgTransactionHandle` makes "passed the pool" a compile error wherever the
+   * handle is typed. This covers what arrives through a cast, an `any` or a
+   * generic boundary — the same hole the Mongo `requireTransaction` was written
+   * for, where the root connection and a session-bearing handle shared one type
+   * alias and nothing could tell them apart at compile time.
+   *
+   * The pool is passed as the REAL pool rather than a stub, because the property
+   * being asserted is a fact about drizzle's own objects: `rollback` exists on
+   * `PgTransaction` and on nothing else. A hand-made `{}` would pass this test
+   * while proving nothing about the driver.
+   */
+  it('refuses the pool, which commits independently', () => {
+    expect(() => requireTransaction(database.db)).toThrow(/must run inside a transaction/);
+  });
+
+  it('accepts a real transaction handle and returns it', async () => {
+    const returned = await database.db.transaction(async (tx) => requireTransaction(tx));
+    expect(returned).toBeDefined();
+  });
+
+  /**
+   * The property the whole guard rests on, asserted directly so that a driver
+   * upgrade which moved or renamed `rollback` fails HERE — naming the
+   * mechanism — rather than silently turning the guard into one that accepts
+   * everything.
+   */
+  it('discriminates on a property the pool genuinely lacks', async () => {
+    const poolHasRollback = typeof (database.db as { rollback?: unknown }).rollback;
+    const txHasRollback = await database.db.transaction(
+      async (tx) => typeof (tx as { rollback?: unknown }).rollback,
+    );
+
+    expect(poolHasRollback).not.toBe('function');
+    expect(txHasRollback).toBe('function');
+  });
+});
+
+/**
+ * A COMPILE-TIME assertion, checked by `tsc -p tsconfig.test.json` in `lint`.
+ *
+ * The runtime test below proves the handle can roll back TODAY. It cannot catch
+ * the type-level weakening, because `withTenant` passes a real transaction
+ * whatever the declared type says — measured: moving the brand back onto
+ * `PgHandle` leaves every test in this file green.
+ *
+ * What must hold is that a scoped handle SATISFIES a transaction parameter, so
+ * a scoped repository can call an unscoped writer that requires one — the
+ * outbox above all. Until that call site exists (PR 1) nothing else pins it, so
+ * this line is the pin: it stops compiling the moment `TenantScopedHandle` is
+ * branded onto anything that is not a transaction.
+ */
+const scopedHandleSatisfiesATransaction: PgTransactionHandle =
+  undefined as unknown as TenantScopedHandle;
+void scopedHandleSatisfiesATransaction;
+
+describe('the branded handle is really a transaction', () => {
+  /**
+   * `TenantScopedHandle` is branded onto `PgTransactionHandle`, so it now
+   * asserts TWO things: a tenant is set, and this is a transaction. The second
+   * half is what lets a scoped repository call an unscoped writer that requires
+   * a transaction — `outbox_events` above all, whose row must commit with the
+   * domain write it records.
+   *
+   * Branded onto the base `PgHandle` instead, as it was, the type still
+   * compiles and the pool still satisfies it. This asserts the RUNTIME
+   * consequence rather than the declaration, because that is what a future
+   * simplification would actually break.
+   */
+  it('hands the operation a handle that can roll back', async () => {
+    const seen = await withTenant(
+      database.db,
+      { organizationId: 'org_brand_probe', applicationId: 'app_brand_probe' },
+      async (tx) => typeof (tx as { rollback?: unknown }).rollback,
+    );
+
+    expect(seen).toBe('function');
   });
 });
 
