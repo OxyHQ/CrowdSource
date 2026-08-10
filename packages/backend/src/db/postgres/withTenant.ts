@@ -56,6 +56,14 @@ declare const tenantScopedBrand: unique symbol;
  * tenant is set, NOT WHICH ONE. A scoped repository called under the wrong
  * tenant's context is a different bug, and row security then correctly returns
  * that tenant's rows. Nothing in this type addresses it.
+ *
+ * DO NOT MAKE THE BRAND OPTIONAL. Writing `[tenantScopedBrand]?: true` removes the
+ * need for the assertion in `asTenantScoped` below and DESTROYS THE GUARANTEE in
+ * the same edit: with the property optional, `PgHandle` becomes assignable to
+ * `TenantScopedHandle` again, so the pool is silently accepted everywhere a
+ * transaction is required and every scoped read quietly returns zero rows. It
+ * reads as a simplification — one fewer cast — which is exactly why the warning is
+ * here, on the line somebody would change, rather than only beside the cast.
  */
 export type TenantScopedHandle = PgHandle & { readonly [tenantScopedBrand]: true };
 
