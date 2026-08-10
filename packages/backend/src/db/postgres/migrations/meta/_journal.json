@@ -8,6 +8,13 @@
       "when": 1786325586089,
       "tag": "0000_jittery_silver_samurai",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786327394498,
+      "tag": "0001_pale_toro",
+      "breakpoints": true
     }
   ]
 }
