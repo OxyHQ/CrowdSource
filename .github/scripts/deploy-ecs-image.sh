@@ -34,6 +34,61 @@ MIGRATION_TARGET_DATABASE="${MIGRATION_TARGET_DATABASE:-}"
 MIGRATION_COMMAND_JSON="${MIGRATION_COMMAND_JSON:-}"
 DEPLOY_HEAD_GUARD_SCRIPT="${DEPLOY_HEAD_GUARD_SCRIPT:-.github/scripts/require-current-main.sh}"
 
+# Authorises a deploy against a service deliberately scaled to ZERO — and says
+# which one, until when.
+#
+# desiredCount 0 has two indistinguishable causes: a service parked for a store
+# cutover on purpose, and a service that lost its capacity by accident. The
+# release must land in the first case (the image that makes the service bootable
+# again is the one a refusal blocks) and must NOT report green in the second.
+# Nothing ECS reports tells the two apart, so the operator declares it.
+#
+# It names the SERVICE rather than being a boolean, for the same reason
+# `--confirm-truncate` names the database: a bare `true` left in a workflow file
+# or pasted out of a runbook authorises a zero-count deploy of ANYTHING, and the
+# value that would be wrong is exactly the value that is easiest to copy.
+#
+# It carries an EXPIRY because an authorisation is a decision about a state of
+# the world, not a voucher to spend later. Without one, a variable set for a
+# single window silently disarms this guard forever, and the failure surfaces the
+# day somebody scales to zero for an unrelated reason and the deploy reports
+# green onto no capacity. With one, a forgotten variable disarms ITSELF.
+ALLOW_ZERO_DESIRED_COUNT="${ALLOW_ZERO_DESIRED_COUNT:-}"
+
+# Whether THIS run may proceed against a zero-count service.
+#
+# The value is `<service>:<YYYY-MM-DD>` and BOTH halves must hold: the service
+# must be this one, and the date must not have passed. Every other shape refuses.
+# It can only ever fail toward REFUSING — if the window slips past the expiry the
+# deploy refuses loudly, mid-window, and is fixed by updating the variable.
+zero_desired_count_allowed=false
+zero_optin_expiry=""
+if [[ -n "$ALLOW_ZERO_DESIRED_COUNT" ]]; then
+  if [[ ! "$ALLOW_ZERO_DESIRED_COUNT" =~ ^[A-Za-z0-9_-]+:[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    echo "::error::ALLOW_ZERO_DESIRED_COUNT is set but malformed: expected <service>:<YYYY-MM-DD>, e.g. $APP:$(date -u -d '+2 days' +%F). Refusing to treat an unparseable authorisation as permission."
+    exit 1
+  fi
+  zero_optin_service="${ALLOW_ZERO_DESIRED_COUNT%%:*}"
+  zero_optin_expiry="${ALLOW_ZERO_DESIRED_COUNT#*:}"
+  # A regex-valid but NONEXISTENT date (2026-13-45) would sort after every real
+  # date and therefore never expire — fail-open, the one direction this must not
+  # have. Round-tripping it through `date` rejects that.
+  if ! zero_optin_parsed="$(date -u -d "$zero_optin_expiry" +%F 2>/dev/null)" ||
+     [[ "$zero_optin_parsed" != "$zero_optin_expiry" ]]; then
+    echo "::error::ALLOW_ZERO_DESIRED_COUNT carries an invalid date: $zero_optin_expiry. Refusing."
+    exit 1
+  fi
+  zero_optin_today="$(date -u +%F)"
+  # ISO dates compare correctly as strings; the expiry day itself is still valid.
+  if [[ "$zero_optin_expiry" < "$zero_optin_today" ]]; then
+    echo "::error::ALLOW_ZERO_DESIRED_COUNT expired on $zero_optin_expiry (today is $zero_optin_today). If this window is still running, update the variable; do not delete the expiry."
+    exit 1
+  fi
+  if [[ "$zero_optin_service" == "$APP" ]]; then
+    zero_desired_count_allowed=true
+  fi
+fi
+
 if ! [[ "$MAX_WAIT_SECS" =~ ^[0-9]+$ ]] || (( MAX_WAIT_SECS < 1 )); then
   echo "::error::MAX_WAIT_SECS must be a positive integer."
   exit 1
@@ -170,8 +225,17 @@ fi
 # bump would start the OLD image, and this script derives its next render from
 # `services[0].taskDefinition` (see `current_task_definition` above), so every
 # subsequent deploy would keep building on the stale revision too.
+#
+# Which of the two zero-count causes this is, ECS cannot tell us — a parked
+# service and one that lost its capacity report the identical 0. So an
+# unauthorised zero still REFUSES, exactly as loudly as before, and only a
+# dated authorisation naming this service opens the path below.
 zero_capacity_deploy=false
 if (( service_desired_count < 1 )); then
+  if [[ "$zero_desired_count_allowed" != true ]]; then
+    echo "::error::ECS service $APP must have a positive desiredCount before deployment (current: ${service_desired_count:-missing}). Scale the service up explicitly before retrying, or set the repository variable ALLOW_ZERO_DESIRED_COUNT=$APP:<YYYY-MM-DD> if this is a deliberate zero-capacity deploy."
+    exit 1
+  fi
   zero_capacity_deploy=true
 fi
 
@@ -800,6 +864,7 @@ fi
 # the plausible-looking green this repo keeps getting caught by.
 if [[ "$zero_capacity_deploy" == "true" ]]; then
   echo "::warning::NO ROLLOUT PERFORMED: ECS service $APP is at desiredCount=0 and is running ZERO tasks."
+  echo "::warning::NO ROLLOUT PERFORMED: authorised by ALLOW_ZERO_DESIRED_COUNT=$ALLOW_ZERO_DESIRED_COUNT, which expires after $zero_optin_expiry. After that date this deploy REFUSES until the variable is updated."
   echo "::warning::NO ROLLOUT PERFORMED: the task definition WAS registered and the service now points at it: $new_task_definition"
   echo "::warning::NO ROLLOUT PERFORMED: image $IMAGE_URI is NOT live and $APP is serving NOTHING. This deploy released nothing to users."
   echo "::warning::NO ROLLOUT PERFORMED: the 'post' migration phase was NOT applied — it drops and narrows, and there is no healthy image to confirm first. It applies on the first deploy after the service is scaled up."

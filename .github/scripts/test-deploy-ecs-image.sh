@@ -43,6 +43,13 @@ aws() {
   fi
 
   local service_json
+  # `absent-desired-count` DELETES the key rather than passing a sentinel. A
+  # sentinel is a value the script can compare, and the case under test is a
+  # field ECS did not report at all — a sentinel would pass for the wrong reason.
+  local desired_count_filter='.'
+  if [[ "${DEPLOY_TEST_DELETE_DESIRED_COUNT:-false}" == "true" ]]; then
+    desired_count_filter='del(.services[0].desiredCount)'
+  fi
   service_json="$(jq -n \
     --arg running "$running_task_definition" \
     --arg registered "$registered_task_definition" \
@@ -78,6 +85,7 @@ aws() {
         ]
       }]
     }')"
+  service_json="$(jq "$desired_count_filter" <<<"$service_json")"
 
   case "$1 $2" in
     "ecs describe-services")
@@ -462,6 +470,7 @@ run_release() {
     RUN_MIGRATIONS="$run_migrations"
     POST_DEPLOY_SMOKE_SCRIPT="$smoke_script"
     POST_DEPLOY_TASK_COMMAND_JSON='["reconcile"]'
+    ALLOW_ZERO_DESIRED_COUNT="${DEPLOY_TEST_ALLOW_ZERO_DESIRED_COUNT:-}"
   )
   if [[ "$run_migrations" == "true" && "${DEPLOY_TEST_OMIT_MIGRATION_INPUTS:-false}" != "true" ]]; then
     release_environment+=(
@@ -640,7 +649,80 @@ fi
 # service with zero tasks, and a destructive `post` migration with no healthy
 # image to confirm it, are exactly the plausible greens this gate exists to
 # refuse. `diff -u` fails if any of them appears.
-run_release zero-desired-count true true false 0 false 0
+zero_optin_future="$(date -u -d '+2 days' +%F)"
+zero_optin_past="$(date -u -d '-1 day' +%F)"
+
+# ALLOW_ZERO_DESIRED_COUNT, in the states that carry the design.
+#
+# desiredCount 0 has two indistinguishable causes — a service parked for a
+# cutover on purpose, and one that lost its capacity by accident. ECS reports the
+# same 0 for both, so the operator declares which it is, naming the service and a
+# date. Everything else refuses.
+#
+# 1. ABSENT -> refuses, exactly as loudly as before this option existed.
+DEPLOY_TEST_ALLOW_ZERO_DESIRED_COUNT="" \
+  run_release zero-count-optin-absent false false false 0 false 0
+grep -F \
+  "must have a positive desiredCount before deployment (current: 0)" \
+  "$test_directory/zero-count-optin-absent/output.log" \
+  >/dev/null
+if [[ -s "$test_directory/zero-count-optin-absent/aws.log" ]]; then
+  echo "Unauthorised zero-count deploy reached a mutating AWS call." >&2
+  exit 1
+fi
+
+# 2. MALFORMED (no expiry -- the shape somebody reaches for first) -> refuses.
+#    An unparseable authorisation is not permission.
+DEPLOY_TEST_ALLOW_ZERO_DESIRED_COUNT="true" \
+  run_release zero-count-optin-malformed false false false 0 false 0
+grep -F \
+  "ALLOW_ZERO_DESIRED_COUNT is set but malformed" \
+  "$test_directory/zero-count-optin-malformed/output.log" \
+  >/dev/null
+
+# 3. WRONG service, valid date -> refuses. A boolean cannot tell this from case 6,
+#    which is the whole reason the value names the service.
+DEPLOY_TEST_ALLOW_ZERO_DESIRED_COUNT="crowdsource-test-worker:$zero_optin_future" \
+  run_release zero-count-optin-wrong-service false false false 0 false 0
+grep -F \
+  "must have a positive desiredCount before deployment (current: 0)" \
+  "$test_directory/zero-count-optin-wrong-service/output.log" \
+  >/dev/null
+if [[ -s "$test_directory/zero-count-optin-wrong-service/aws.log" ]]; then
+  echo "A zero-count deploy authorised by the WRONG service name reached a mutating AWS call. The opt-in is being read as a boolean rather than compared against APP." >&2
+  exit 1
+fi
+
+# 4. Right service, EXPIRED -> refuses BY NAME rather than falling through to the
+#    generic message. This is what makes a forgotten variable disarm itself.
+DEPLOY_TEST_ALLOW_ZERO_DESIRED_COUNT="crowdsource-test:$zero_optin_past" \
+  run_release zero-count-optin-expired false false false 0 false 0
+grep -F \
+  "ALLOW_ZERO_DESIRED_COUNT expired on $zero_optin_past" \
+  "$test_directory/zero-count-optin-expired/output.log" \
+  >/dev/null
+
+# 5. A regex-valid but NONEXISTENT date must refuse rather than sort after every
+#    real date and never expire -- the one fail-OPEN this could have had.
+DEPLOY_TEST_ALLOW_ZERO_DESIRED_COUNT="crowdsource-test:2026-13-45" \
+  run_release zero-count-optin-impossible-date false false false 0 false 0
+grep -F \
+  "carries an invalid date: 2026-13-45" \
+  "$test_directory/zero-count-optin-impossible-date/output.log" \
+  >/dev/null
+
+# 6. Right service, valid date -> the release lands.
+#
+# The exact log is the whole assertion, and what it does NOT contain matters more
+# than what it does. Compare `migration-phases` above, the same release at
+# desired=1: there, `service:` is followed by `smoke`, `--phase=post` and
+# `reconcile`. Here the log must STOP at `service:`, because none of those three
+# are real when nothing is running -- a smoke check against a service with zero
+# tasks, and a destructive `post` migration with no healthy image to confirm it,
+# are exactly the plausible greens this gate exists to refuse. `diff -u` fails if
+# any of them appears.
+DEPLOY_TEST_ALLOW_ZERO_DESIRED_COUNT="crowdsource-test:$zero_optin_future" \
+  run_release zero-desired-count true true false 0 false 0
 printf '%s\n' \
   migrate-register \
   'migrate-run:arn:aws:ecs:test:task-definition/crowdsource-test-migrate:8:--phase=pre' \
@@ -662,6 +744,10 @@ grep -F \
   "$test_directory/zero-desired-count/output.log" \
   >/dev/null
 grep -F \
+  "NO ROLLOUT PERFORMED: authorised by ALLOW_ZERO_DESIRED_COUNT=crowdsource-test:$zero_optin_future, which expires after $zero_optin_future" \
+  "$test_directory/zero-desired-count/output.log" \
+  >/dev/null
+grep -F \
   "NO ROLLOUT PERFORMED: the task definition WAS registered and the service now points at it: arn:aws:ecs:test:task-definition/crowdsource-test:2" \
   "$test_directory/zero-desired-count/output.log" \
   >/dev/null
@@ -679,19 +765,35 @@ if grep -qF \
   exit 1
 fi
 
-# The negative control for the case above: desiredCount ABSENT is ECS declining
-# to answer, which is not the same fact as a zero it reports confidently, and
-# must still refuse. Without this, deleting the numeric check outright would
-# leave the suite green.
-run_release missing-desired-count false false false 0 false null
+# ABSENCE IS NOT ZERO, and no authorisation covers it. A `desiredCount` ECS did
+# not report means the API did not answer -- throttled, malformed, changed -- and
+# treating that as a deliberate hold turns an API failure into a silent no-op
+# deploy that exits 0. Today's guard has this property only by accident, because
+# `< 1` is false for an empty string, which is exactly why it needs a test that
+# holds it deliberately.
+#
+# The key is DELETED rather than set to a sentinel: a sentinel is a value the
+# script can compare, and the case under test is a field that is not there.
+DEPLOY_TEST_ALLOW_ZERO_DESIRED_COUNT="crowdsource-test:$zero_optin_future" \
+DEPLOY_TEST_DELETE_DESIRED_COUNT=true \
+  run_release absent-desired-count false false false 0 false 0
 grep -F \
   "reported a non-numeric desiredCount" \
-  "$test_directory/missing-desired-count/output.log" \
+  "$test_directory/absent-desired-count/output.log" \
   >/dev/null
-if [[ -s "$test_directory/missing-desired-count/aws.log" ]]; then
-  echo "A service with an unreadable desiredCount reached a mutating AWS call." >&2
+if [[ -s "$test_directory/absent-desired-count/aws.log" ]]; then
+  echo "A service with an unreadable desiredCount reached a mutating AWS call, even though a valid authorisation was present. Absence must not be covered by any opt-in." >&2
   exit 1
 fi
+
+# The same fact for an explicit null, which is a different JSON shape and reaches
+# the numeric test by a different route.
+DEPLOY_TEST_ALLOW_ZERO_DESIRED_COUNT="crowdsource-test:$zero_optin_future" \
+  run_release null-desired-count false false false 0 false null
+grep -F \
+  "reported a non-numeric desiredCount" \
+  "$test_directory/null-desired-count/output.log" \
+  >/dev/null
 
 run_release transient-zero-deployment true false false 0 false 1 transient-zero-deployment
 printf '%s\n' \
