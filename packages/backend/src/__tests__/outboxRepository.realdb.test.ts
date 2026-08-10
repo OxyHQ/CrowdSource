@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import * as outboxRepository from '../db/postgres/repositories/outbox';
-import { outboxEvents } from '../db/postgres/schema/infrastructure';
+import { OUTBOX_STATUSES, outboxEvents } from '../db/postgres/schema/infrastructure';
 import { createTenantContext, type TenantContext } from '../db/tenantScope';
 import { withTenant, type PgTransactionHandle } from '../db/postgres/withTenant';
 import {
@@ -229,6 +229,45 @@ describe('the append commits with the work it records', () => {
     expect(await countById(appended[0])).toBe(0);
     // The seeded row is untouched — the rollback undid the attempt, not the table.
     expect(await countById(clash)).toBe(1);
+  });
+});
+
+/**
+ * The CHECK that replaces Mongoose's `enum: OUTBOX_STATUSES`.
+ *
+ * A real server or nothing: a mocked insert accepts any statement, including one
+ * the server rejects, so a constraint tested against a mock is a claim rather
+ * than a fact. This is also the only place the constraint is exercised at all —
+ * without it the migration ships an assertion nobody has ever seen fire.
+ */
+describe('status is a closed set the database enforces', () => {
+  it('refuses a status outside the tuple', async () => {
+    await expect(
+      database.asMigrator`
+        INSERT INTO outbox_events (event_id, organization_id, application_id, type, payload,
+                                   status, attempts, available_at)
+        VALUES ('evt_bad_status', ${tenant.organizationId}, ${tenant.applicationId},
+                ${OUTBOX_EVENT_TYPES.reportReceived}, '{}'::jsonb, 'nonsense', 0, ${NOW})
+      `,
+    ).rejects.toMatchObject({ code: '23514', constraint_name: 'outbox_events_status_check' });
+
+    expect(await countById('evt_bad_status')).toBe(0);
+  });
+
+  /**
+   * The control, in the same currency: every member of the tuple is accepted.
+   * Without it, a CHECK that rejected EVERYTHING would satisfy the assertion
+   * above — and "no row can be written" is not the property being claimed.
+   *
+   * Written as the migrator, which is subject to the CHECK like anyone else:
+   * a CHECK is not row security, so ownership grants no exemption from it.
+   */
+  it('accepts every member of the tuple', async () => {
+    for (const status of OUTBOX_STATUSES) {
+      const eventId = `evt_status_${status}`;
+      await seed({ eventId, status });
+      expect(await countById(eventId)).toBe(1);
+    }
   });
 });
 
@@ -480,27 +519,110 @@ describe('claiming a due row', () => {
  * Bounded, it fails as `57014 query_canceled` in about two seconds.
  */
 describe('two dispatchers racing for the same rows', () => {
+  /**
+   * How many granted row-level write locks are open on the table right now.
+   *
+   * Read from a THIRD connection (the migrator's), and from `pg_locks` rather
+   * than `pg_stat_activity`: the two roles differ, and Postgres blanks `state`
+   * and `query` for another role's backend, so a `pg_stat_activity` predicate
+   * would silently match nothing. `pg_locks` is not role-filtered.
+   */
+  async function openWriteLocks(): Promise<number> {
+    const [row] = await database.asMigrator<{ n: number }[]>`
+      SELECT count(*)::int AS n
+      FROM pg_locks
+      WHERE relation = 'outbox_events'::regclass
+        AND mode = 'RowExclusiveLock'
+        AND granted
+    `;
+    return row.n;
+  }
+
+  /**
+   * Runs a second claim while the first one's transaction is genuinely still
+   * open, and REFUSES to run it otherwise.
+   *
+   * Two awaited calls in sequence never overlap, so the naive version of this
+   * test proves nothing about concurrency. Neither does `Promise.all`: two
+   * promises are not two interleaved transactions, and a compare-and-swap test
+   * built that way has been measured elsewhere in the estate passing 15/15
+   * against a deliberately broken guard, because each transaction finished
+   * before the event loop returned to the other.
+   *
+   * So the overlap is established two ways, neither of them a sleep:
+   *
+   *  - CAUSALLY — the first claim's `UPDATE` has RETURNED before the contender
+   *    starts, which is what makes its row lock held rather than merely likely;
+   *    and the transaction cannot commit until `release()`, which happens after.
+   *  - POSITIVELY — `pg_locks` is polled until the lock actually appears, and
+   *    this THROWS if it never does. A timing assumption that silently fails
+   *    would move the vacuity up one level and make it harder to see, which is
+   *    the whole failure being guarded against.
+   *
+   * BOTH, and the first one survives its own mutation test — deleting
+   * `await claimReturned` leaves the suite green, because the poll below happens
+   * to be reached after the `UPDATE` has finished anyway. It is kept because the
+   * two waits are not equivalent at the level that matters: `RowExclusiveLock` on
+   * the RELATION is taken when the `UPDATE` BEGINS, while what `SKIP LOCKED`
+   * contends on is the TUPLE lock, which exists only once the row has actually
+   * been updated. So the poll alone can in principle admit the contender into the
+   * window between those two moments, where it would find the row unlocked and
+   * claim it — the failure would read as "SKIP LOCKED is broken" on a machine
+   * slow enough to open the gap. This suite is too fast to show it, which is a
+   * fact about the fixtures rather than about the line.
+   *
+   * The negative control is the assertion that the count is 0 BEFORE the first
+   * claim: without it, a predicate matching some unrelated lock would report a
+   * held lock at every moment and the wait would pass by never measuring
+   * anything.
+   */
   async function whileFirstClaimIsOpen(
     types: readonly OutboxEventType[],
   ): Promise<{
     first: outboxRepository.OutboxEventRow | null;
     second: outboxRepository.OutboxEventRow | null;
   }> {
+    expect(
+      await openWriteLocks(),
+      'a write lock on outbox_events was already open before this test started; ' +
+        'the precondition below would then be satisfied by somebody else and measure nothing',
+    ).toBe(0);
+
     let release = (): void => undefined;
     const held = new Promise<void>((resolve) => {
       release = resolve;
     });
+    let signalClaimed = (): void => undefined;
+    const claimReturned = new Promise<void>((resolve) => {
+      signalClaimed = resolve;
+    });
 
     const firstPromise = database.db.transaction(async (tx) => {
       const claimed = await outboxRepository.claimNextOutboxEvent(tx, claimOf(types));
+      signalClaimed();
       await held;
       return claimed;
     });
 
-    // Long enough for the first transaction to have taken its row lock. If it has
-    // not, the second call simply claims the same row and the assertions below
-    // fail — the correct direction for a flake to fail in.
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await claimReturned;
+
+    // Bounded, and a failure here is an ERROR rather than a quiet pass.
+    const deadline = Date.now() + 2_000;
+    let locks = await openWriteLocks();
+    while (locks === 0 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      locks = await openWriteLocks();
+    }
+    if (locks === 0) {
+      release();
+      await firstPromise;
+      throw new Error(
+        'the first claim never took a row lock on outbox_events, so the second ' +
+          'claim would not have contended with it and this test would have ' +
+          'passed without measuring SKIP LOCKED at all',
+      );
+    }
+
     const second = await outboxRepository.claimNextOutboxEvent(database.db, claimOf(types));
     release();
 
