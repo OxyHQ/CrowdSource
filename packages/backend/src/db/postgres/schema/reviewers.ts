@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   doublePrecision,
   index,
   integer,
@@ -9,7 +11,26 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
+import { REVIEWER_STATES } from '@oxyhq/crowdsource-contracts';
+
+import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+
+/**
+ * Where a reviewer's declared relationship came from (§8.5).
+ *
+ * Declared HERE rather than in `reviewer.collection.ts`, following the same move
+ * `OUTBOX_STATUSES` made: the Mongoose file is what goes away at the switch, and
+ * the CHECK below has to be rendered from the same tuple the Mongoose `enum`
+ * validates. Two copies of a closed value set is how they drift, and the copy
+ * that survives should be the one in the store that survives.
+ *
+ * `REVIEWER_STATES` does NOT move and is imported from the contracts package
+ * instead. It crosses the reviewer API boundary — the app renders it — so
+ * contracts is already its one home, and relocating it here would take a
+ * published value set out of the published package.
+ */
+export const REVIEWER_RELATION_SOURCES = ['declared', 'recusal'] as const;
+export type ReviewerRelationSource = (typeof REVIEWER_RELATION_SOURCES)[number];
 
 /**
  * The reviewer tables: the people juries are drawn from.
@@ -138,6 +159,32 @@ export const reviewerProfiles = pgTable(
 
     /** §8.3's cap of one panel member per risk cluster starts as a lookup. */
     index('reviewer_profiles_risk_cluster_id_idx').on(table.riskClusterId),
+
+    /**
+     * The port's replacement for Mongoose's `enum: REVIEWER_STATES`.
+     *
+     * §8.1's ladder is enforced in code by `assertTransition`, which decides
+     * which MOVES are legal. This decides which VALUES exist at all, and the two
+     * are not the same guarantee: `assertTransition` is reached through
+     * `mutateProfile`, and `recordSubmittedReview` deliberately writes a
+     * promotion outside it (documented on `assertTransition` itself, because it
+     * is the only path that promotes anybody). A state written on that path had
+     * exactly one thing standing between it and the column — this validator.
+     *
+     * `sql.raw` on the value list is REQUIRED, not stylistic: a value
+     * interpolated into `check()` the ordinary way is emitted as the bound
+     * parameter `$1` in the generated migration and fails at APPLY time with no
+     * local signal. The COLUMN stays an interpolated drizzle column so its SQL
+     * name still comes from the casing authority.
+     *
+     * NOTHING ELSE on this table gets a CHECK, and the asymmetry is deliberate.
+     * `max_sensitivity_rank` is an integer whose meaning is an index into
+     * `CONSENTABLE_SENSITIVITY`, and a range CHECK on it would be a NEW
+     * restriction smuggled in under a port — Mongo constrained it with
+     * `type: Number` and nothing more. `categories`, `languages` and the two
+     * consent arrays were `[String]` with no `enum`, for the same reason.
+     */
+    check('reviewer_profiles_state_check', sql`${table.state} in (${sql.raw(inList(REVIEWER_STATES))})`),
   ],
 );
 
@@ -214,6 +261,26 @@ export const reviewerRelations = pgTable(
     index('reviewer_relations_application_id_external_principal_id_idx').on(
       table.applicationId,
       table.externalPrincipalId,
+    ),
+
+    /**
+     * The port's replacement for Mongoose's `enum: REVIEWER_RELATION_SOURCES`.
+     *
+     * Two members, and the narrowness is the point: `source` is what a later
+     * reader uses to tell a conflict the reviewer DECLARED from one inferred
+     * from a recusal, and §8.7 forbids penalising a recusal. A third value
+     * arriving unchallenged — say from the Oxy relationship read this collection's
+     * header anticipates — would be indistinguishable from either, and the
+     * distinction is what stops a recusal being read as a penalty.
+     *
+     * Which is also why this CHECK is the right shape for it rather than an
+     * over-reach: when that third source does arrive, adding it is a change to
+     * the tuple above PLUS a migration in the same PR, which is exactly the
+     * review this deserves.
+     */
+    check(
+      'reviewer_relations_source_check',
+      sql`${table.source} in (${sql.raw(inList(REVIEWER_RELATION_SOURCES))})`,
     ),
   ],
 );

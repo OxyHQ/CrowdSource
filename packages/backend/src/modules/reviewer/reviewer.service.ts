@@ -6,6 +6,7 @@ import {
 } from '@oxyhq/crowdsource-contracts';
 
 import { ApiError } from '../../http/apiError';
+import type { ReviewerRelationSource } from '../../db/postgres/schema/reviewers';
 import { newPublicId } from '../../utils/identifiers';
 import type { SensitivityClass } from '../triage/triage';
 import {
@@ -26,7 +27,6 @@ import {
   sensitivityRank,
   type ReviewerPrincipalLink,
   type ReviewerProfileDocument,
-  type ReviewerRelationSource,
 } from './reviewer.collection';
 import { canTransition } from './reviewerState';
 

@@ -43,6 +43,23 @@ export const ID_PREFIX = {
    * nowhere else.
    */
   reviewer: 'rvw',
+  /**
+   * One row of `reviewer_relations` and one of `reviewer_principal_links`.
+   *
+   * Neither existed on Mongo: the relation was identified by its `_id` and the
+   * principal link was an ELEMENT of an array inside the reviewer profile, so
+   * neither had an id of its own. Both tables carry a surrogate text primary key,
+   * so both need something to put in it.
+   *
+   * Prefixed like every other key in this map rather than a bare UUID, even
+   * though neither id crosses an API boundary. The prefix earns its place in a
+   * LOG: these two tables are read side by side during a draw, both carry a
+   * `reviewer_id` and an `external_principal_id`, and an unprefixed opaque
+   * identifier in a diagnostic is one nobody can attribute to a table without
+   * going and querying for it.
+   */
+  reviewerRelation: 'rvr',
+  reviewerPrincipalLink: 'rvl',
   assignment: 'asg',
   /** One sortition draw: its seed, its candidate snapshot and its outcome. */
   sortitionDraw: 'drw',
