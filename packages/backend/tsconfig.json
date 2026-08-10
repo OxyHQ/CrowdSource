@@ -25,6 +25,11 @@
     // root (not under src/); TypeScript auto-excludes `outDir` (dist) from the
     // compilation, so the emitted production tree mirrors the non-test source
     // tree under dist/. Tests remain source-only and run directly in Vitest.
+    //
+    // That mirroring is a runtime contract for `scripts/` too, and not only for
+    // `server.ts`: `.github/scripts/deploy-ecs-image.sh` runs the migration
+    // one-shot as `packages/backend/dist/scripts/migrate.js`, which exists only
+    // because `scripts/migrate.ts` sits one level below this rootDir.
     "noEmit": false,
     "rootDir": "./",
     "outDir": "dist",
@@ -39,7 +44,11 @@
       "@oxyhq/crowdsource-contracts/*": ["../contracts/src/*"]
     }
   },
-  "include": ["server.ts", "src/**/*.ts", "package.json"],
+  // `scripts/**` is compiled, not just type-checked: the migration entrypoint
+  // ships in the image. Omit it and `tsc` succeeds, the image builds, and the
+  // deploy's migration task fails at run time with "module not found" — after
+  // the image has been pushed.
+  "include": ["server.ts", "scripts/**/*.ts", "src/**/*.ts", "package.json"],
   "exclude": ["dist", "src/__tests__", "**/*.test.ts", "**/*.spec.ts"],
   "references": [{ "path": "../contracts" }]
 }

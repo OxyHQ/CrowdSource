@@ -1,10 +1,9 @@
-import { resolve } from 'node:path';
-
 import { createDatabase, type OxyDatabase } from '@oxyhq/db';
-import { runMigrations } from '@oxyhq/db/migrate';
 import { createTestDatabase, dropTestDatabase } from '@oxyhq/db/testing';
 import postgres from 'postgres';
 
+import { runBackendMigrations } from '../../db/migrate';
+import { type BackendSchema } from '../../db/postgres/database';
 import * as schema from '../../db/postgres/schema';
 import { APPLICATION_ROLE, MIGRATOR_ROLE } from '../../db/postgres/tenancy';
 
@@ -26,8 +25,6 @@ import { APPLICATION_ROLE, MIGRATOR_ROLE } from '../../db/postgres/tenancy';
  * role, which owns nothing.
  */
 
-const MIGRATIONS_FOLDER = resolve(__dirname, '..', '..', 'db', 'postgres', 'migrations');
-
 /**
  * Two seconds, and it is not tuning.
  *
@@ -45,7 +42,7 @@ export const STATEMENT_TIMEOUT_MS = 2_000;
 const MIGRATOR_PASSWORD = 'crowdsource_migrator_test';
 const APPLICATION_PASSWORD = 'crowdsource_app_test';
 
-export type BackendSchema = typeof schema;
+export type { BackendSchema };
 
 export interface PostgresTestDatabase {
   /** Connected as the APPLICATION role: owns nothing, subject to every policy. */
@@ -168,21 +165,38 @@ export async function createPostgresTestDatabase(): Promise<PostgresTestDatabase
         await admin.end();
       }
 
-      await runMigrations({
-        // The migrator's own connection string, NOT the admin's. This is the
-        // whole point: tables created by the admin would be owned by a superuser,
-        // every policy on them would be bypassed, and the suite would measure
-        // nothing. In production these are two separate SSM parameters on two
-        // separate task definitions, because ECS cannot inject a secret through a
-        // container override.
-        databaseUrl: withCredentials(databaseUrl, MIGRATOR_ROLE, MIGRATOR_PASSWORD),
-        migrationsFolder: MIGRATIONS_FOLDER,
-        // None. The schema is text, timestamptz and integers; `uuidv7` is
-        // JavaScript. `CREATE EXTENSION` is privileged on RDS, so needing one
-        // would make this service an infrastructure change.
-        extensions: [],
-        run: 'all',
-        dryRun: false,
+      /**
+       * Through `runBackendMigrations` — the SAME composition
+       * `scripts/migrate.ts` runs in production — rather than calling
+       * `runMigrations` with a second set of options.
+       *
+       * Two compositions of one migration are two things that can disagree, and
+       * the disagreement would be invisible: a harness that migrated a folder
+       * production does not, or under options production does not use, still
+       * produces a green suite against a correctly-built database. Going
+       * through the real entrypoint means the migrations folder resolution, the
+       * `--target-database` guard, the phase parsing and the migrator-credential
+       * refusal are all exercised by every real-database test file rather than
+       * only by their own unit tests.
+       *
+       * `MIGRATOR_DATABASE_URL` is the migrator's own connection string, NOT the
+       * admin's, and that is the whole point of the harness: tables created by
+       * the admin would be owned by a superuser, every policy on them would be
+       * bypassed, and the suite would measure nothing. In production it arrives
+       * as a separate SSM parameter on a separate task definition, because ECS
+       * cannot inject a secret through a container override.
+       */
+      await runBackendMigrations({
+        argv: [`--target-database=${databaseName}`, '--phase=all'],
+        env: {
+          ...process.env,
+          MIGRATOR_DATABASE_URL: withCredentials(
+            databaseUrl,
+            MIGRATOR_ROLE,
+            MIGRATOR_PASSWORD,
+          ),
+          DRY_RUN: '',
+        },
         logger: { info: () => undefined, debug: () => undefined },
       });
     },

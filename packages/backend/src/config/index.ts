@@ -31,6 +31,26 @@ const environmentSchema = z.object({
    * Mongoose applies as `dbName` and which overrides whatever the URI names.
    */
   MONGODB_URI: optionalString,
+  /**
+   * PostgreSQL connection string for the APPLICATION role, and the one
+   * variable in this file that is required.
+   *
+   * Required rather than optional, unlike `WEBHOOK_SECRET_ENCRYPTION_KEY`
+   * above, and the difference is what absence costs. An unset webhook key
+   * degrades two routes to a 503 that names it. An unset database URL cannot
+   * degrade anything: under `FORCE` row security every scoped read answers
+   * ZERO ROWS rather than erroring, so a task with no database serves traffic
+   * and reports perfect health while answering "you have no data" to every
+   * customer. There is no production observation that separates that from a
+   * quiet day — see `db/postgres/withTenant.ts` — so the only place it can be
+   * caught is at boot, and the only way to catch it there is to refuse.
+   *
+   * The role this names owns NOTHING. It holds DML grants and is subject to
+   * every policy; the migrator connects under its own separate credential,
+   * which never reaches the serving container. See `MIGRATOR_DATABASE_URL` in
+   * `scripts/migrate.ts`.
+   */
+  DATABASE_URL: z.string().min(1),
   MONGODB_MAX_POOL_SIZE: z.coerce.number().int().min(1).default(50),
   MONGODB_MIN_POOL_SIZE: z.coerce.number().int().min(0).default(5),
   MONGODB_SERVER_SELECTION_TIMEOUT_MS: z.coerce.number().int().min(1).default(20_000),
@@ -103,6 +123,7 @@ function loadConfig() {
     port: environment.PORT,
     logLevel: environment.LOG_LEVEL,
     mongoUri: environment.MONGODB_URI,
+    databaseUrl: environment.DATABASE_URL,
     webhookSecretEncryptionKey: environment.WEBHOOK_SECRET_ENCRYPTION_KEY,
     db: {
       maxPoolSize: environment.MONGODB_MAX_POOL_SIZE,

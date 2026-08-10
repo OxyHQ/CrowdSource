@@ -3,6 +3,7 @@ import http from 'node:http';
 import { createApp } from './src/app';
 import { config } from './src/config';
 import { ensureIndexes } from './src/db/collections';
+import { closePostgresDatabase, pingPostgres } from './src/db/postgres/database';
 import {
   startOutboxDispatcher,
   stopOutboxDispatcher,
@@ -50,6 +51,20 @@ const server = http.createServer(createApp());
  */
 async function start(): Promise<void> {
   await connectToDatabase();
+
+  /**
+   * Reach PostgreSQL once, before anything can serve a request against it.
+   *
+   * The same reasoning as the MongoDB connect above, and it matters more here
+   * because of how this store fails. Under `FORCE` row security a scoped read
+   * on an unreachable or misconfigured database does not error — the whole
+   * tenant boundary is evaluated against runtime parameters, and a statement
+   * that matches nothing returns ZERO ROWS. Zero rows is an entirely ordinary
+   * answer, so a task that never had a working database would serve traffic,
+   * pass every check that looks at HTTP status, and tell customers they have no
+   * cases. Boot is the last moment that failure is loud.
+   */
+  await pingPostgres();
   // Refuse a deployment that could never honour the outbox, rather than
   // discovering it at the first transactional write.
   await assertTransactionalTopology();
@@ -140,9 +155,14 @@ function shutdown(signal: NodeJS.Signals): void {
       process.exit(1);
       return;
     }
-    disconnectFromDatabase()
-      .catch((disconnectError: unknown) => {
-        logger.error({ err: disconnectError }, 'MongoDB did not disconnect cleanly');
+    Promise.allSettled([disconnectFromDatabase(), closePostgresDatabase()])
+      .then(([mongo, postgres]) => {
+        if (mongo.status === 'rejected') {
+          logger.error({ err: mongo.reason }, 'MongoDB did not disconnect cleanly');
+        }
+        if (postgres.status === 'rejected') {
+          logger.error({ err: postgres.reason }, 'PostgreSQL did not disconnect cleanly');
+        }
       })
       .finally(() => {
         process.exit(0);

@@ -10,6 +10,20 @@
 process.env.MONGODB_URI ??= 'mongodb://127.0.0.1:27017/unused-by-design';
 
 /**
+ * `DATABASE_URL` is required to boot, so `config` throws at import without it
+ * and every test file in the suite imports `config` transitively.
+ *
+ * This value is never dialled and is not the database the real-database tests
+ * use: each of those creates its own throwaway database and builds its own
+ * handle against it (`support/postgresTestDatabase.ts`), connecting as an
+ * unprivileged application role, which is the only shape that measures a policy
+ * rather than a bypass. What this satisfies is the boot-time REQUIREMENT, and it
+ * is deliberately pointed at a database name that says so — a test that reached
+ * it would be reaching for the wrong handle.
+ */
+process.env.DATABASE_URL ??= 'postgres://unused:unused@127.0.0.1:5432/unused-by-design';
+
+/**
  * A disposable key for the webhook secret cipher (§13.4).
  *
  * `config` is validated once at import time and the real key is a deployment

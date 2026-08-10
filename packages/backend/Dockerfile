@@ -67,6 +67,21 @@ COPY --from=prod-deps /app/packages/backend/package.json packages/backend/
 COPY --from=builder /app/packages/contracts/dist/ packages/contracts/dist/
 COPY --from=builder /app/packages/backend/dist/ packages/backend/dist/
 
+# The SQL migrations. `tsc` copies no `.sql` file, so without this the image
+# holds a migration entrypoint and nothing for it to apply — and that failure is
+# quiet in the worst way: a migrations folder with no journal in it reads as "no
+# migrations pending", so the one-shot task logs a success line and exits 0 while
+# the database stays empty.
+#
+# The destination is under `dist/`, beside the COMPILED migrator, because
+# `src/db/migrate.ts` resolves the folder relative to its own `__dirname` and
+# `rootDir` mirrors the source tree into `dist/`. Copying to the source path
+# instead puts the files somewhere nothing looks — measured, by running the
+# built entrypoint. `deployWiring.test.ts` derives this destination from the
+# constant itself rather than restating it.
+COPY --from=builder /app/packages/backend/src/db/postgres/migrations/ \
+  packages/backend/dist/src/db/postgres/migrations/
+
 USER appuser
 EXPOSE 3000
 
