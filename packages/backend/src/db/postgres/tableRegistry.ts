@@ -88,7 +88,7 @@ export type UnscopedReason =
    * yields the tenant. A policy on these tables would leave the service unable to
    * authenticate anybody.
    */
-  | { kind: 'defines_the_tenant'; shape: TenantColumnShape; why: string }
+  | { kind: 'defines_the_tenant'; shape: TenantColumnShape; why: string; readers: readonly string[] }
   /**
    * The row has no tenant dimension at all. A reviewer is a person drawn across
    * every application; a staff member acts across every tenant; a co-service pair
@@ -97,7 +97,7 @@ export type UnscopedReason =
    * The shape is pinned to a literal, so a table filed here that actually carries
    * a tenant column is unrepresentable in the type.
    */
-  | { kind: 'no_tenant_dimension'; shape: 'neither'; why: string }
+  | { kind: 'no_tenant_dimension'; shape: 'neither'; why: string; readers: readonly string[] }
   /**
    * The row IS tenant-owned and carries both keys, stamped from its parent inside
    * the parent's own transaction — but the only caller that reads it holds an Oxy
@@ -112,7 +112,7 @@ export type UnscopedReason =
    * Shape pinned to a literal: a table filed here that does not carry both
    * columns `NOT NULL` cannot be expressed.
    */
-  | { kind: 'tenant_stamped_reached_through_parent'; shape: 'both_not_null'; why: string }
+  | { kind: 'tenant_stamped_reached_through_parent'; shape: 'both_not_null'; why: string; readers: readonly string[] }
   /**
    * The row NAMES a tenant without BELONGING to one. The tenant is an attribute of
    * the fact recorded rather than its owner, so no predicate is right: filtering
@@ -127,7 +127,7 @@ export type UnscopedReason =
    * later, which is exactly the sort of statement nobody goes back to check. A
    * property of the ROW stays true either way.
    */
-  | { kind: 'tenant_attributed_not_tenant_owned'; shape: TenantColumnShape; why: string };
+  | { kind: 'tenant_attributed_not_tenant_owned'; shape: TenantColumnShape; why: string; readers: readonly string[] };
 
 /**
  * Exempt, each with the kind of exemption, the tenant columns it claims to carry,
@@ -148,21 +148,53 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     kind: 'defines_the_tenant',
     shape: 'organization_only',
     why: 'An organization IS the tenant root; there is no wider tenant to scope it by, and the row carries no application at all.',
+    readers: [
+      'src/modules/console/membership.service.ts#assertOrganizationUsable',
+      'src/modules/console/membership.service.ts#grantMembership',
+      'src/modules/console/membership.service.ts#membershipsWithOrganizations',
+      'src/modules/console/trustSafety.routes.ts#namesFor',
+      'src/modules/tenancy/provisioning.service.ts#createApplication',
+      'src/modules/tenancy/provisioning.service.ts#createOrganization',
+      'src/modules/tenancy/provisioning.service.ts#setOrganizationStatus',
+    ],
   },
   applications: {
     kind: 'defines_the_tenant',
     shape: 'both_not_null',
     why: 'Credential resolution reads an application before any tenant context exists; its own id is half of every other table’s tenant key.',
+    readers: [
+      'src/modules/console/console.routes.ts#pathOrganizationId',
+      'src/modules/console/membership.service.ts#resolveApplicationForMember',
+      'src/modules/console/trustSafety.routes.ts#namesFor',
+      'src/modules/tenancy/credential.service.ts#authenticateServiceCredential',
+      'src/modules/tenancy/provisioning.service.ts#createApplication',
+      'src/modules/tenancy/provisioning.service.ts#issueApplicationCredential',
+      'src/modules/tenancy/provisioning.service.ts#setApplicationStatus',
+    ],
   },
   application_credentials: {
     kind: 'defines_the_tenant',
     shape: 'both_not_null',
     why: 'A presented credential is looked up by its own id (credential.service.ts:106, no tenant term), and that read is what yields the tenant.',
+    readers: [
+      'src/modules/tenancy/credential.service.ts#authenticateServiceCredential',
+      'src/modules/tenancy/provisioning.service.ts#issueApplicationCredential',
+      'src/modules/tenancy/provisioning.service.ts#listApplicationCredentials',
+      'src/modules/tenancy/provisioning.service.ts#revokeCredential',
+    ],
   },
   organization_members: {
     kind: 'defines_the_tenant',
     shape: 'organization_only',
     why: 'A membership row ESTABLISHES the tenant for a console session (membership.service.ts:83 reads by oxyUserId), so a filter by the tenant it derives would be circular.',
+    readers: [
+      'src/modules/console/membership.service.ts#grantMembership',
+      'src/modules/console/membership.service.ts#membersOf',
+      'src/modules/console/membership.service.ts#membershipsOf',
+      'src/modules/console/membership.service.ts#requireMembership',
+      'src/modules/console/membership.service.ts#resolveApplicationForMember',
+      'src/modules/console/membership.service.ts#revokeMembership',
+    ],
   },
 
   // ── no_tenant_dimension ───────────────────────────────────────────────────
@@ -170,16 +202,38 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     kind: 'no_tenant_dimension',
     shape: 'neither',
     why: 'Trust & Safety staff act ACROSS every tenant by definition (§4.3); the row grants authority rather than belonging to a customer.',
+    readers: [
+      'src/modules/console/consoleAuth.ts#requireStaffRole',
+      'src/modules/console/consoleAuth.ts#staffRolesOf',
+      'src/modules/console/staff.service.ts#grantStaffRoles',
+      'src/modules/console/staff.service.ts#revokeStaff',
+    ],
   },
   reviewer_profiles: {
     kind: 'no_tenant_dimension',
     shape: 'neither',
     why: 'A reviewer is a person drawn across every application, not data owned by one tenant; profiles carry no tenant keys and are never returned to an application-API caller.',
+    readers: [
+      'src/modules/consensus/consensus.service.ts#evaluateCase',
+      'src/modules/reviewer/reviewer.service.ts#completeTrainingModule',
+      'src/modules/reviewer/reviewer.service.ts#ensureReviewerProfile',
+      'src/modules/reviewer/reviewer.service.ts#mutateProfile',
+      'src/modules/reviewer/reviewer.service.ts#recordSubmittedReview',
+      'src/modules/reviewer/reviewer.service.ts#submitCalibration',
+      'src/modules/reviewer/reviewer.service.ts#updateReviewerPreferences',
+      'src/modules/sortition/candidatePool.ts#sampleCandidates',
+      'src/modules/sortition/sortition.service.ts#gatherParties',
+      'src/modules/sortition/sortition.service.ts#seatedIncumbents',
+    ],
   },
   reviewer_affinities: {
     kind: 'no_tenant_dimension',
     shape: 'neither',
     why: 'Co-service is a property of a PAIR of people across every panel they have sat on, and panels span tenants; the pair has no owning application.',
+    readers: [
+      'src/modules/sortition/sortition.service.ts#bumpAffinities',
+      'src/modules/sortition/sortition.service.ts#gatherAffinity',
+    ],
   },
 
   // ── tenant_stamped_reached_through_parent ─────────────────────────────────
@@ -187,26 +241,69 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     kind: 'tenant_stamped_reached_through_parent',
     shape: 'both_not_null',
     why: 'An assignment joins a tenant’s case to a reviewer who belongs to none, and is read by an Oxy session carrying no tenant to scope by (sortition.service.ts:177); rows are stamped from the case inside the draw transaction.',
+    readers: [
+      'src/modules/consensus/consensus.service.ts#evaluateCase',
+      'src/modules/sortition/assignment.service.ts#authorizeAssignment',
+      'src/modules/sortition/assignment.service.ts#consumeAssignmentForReview',
+      'src/modules/sortition/assignment.service.ts#expireDueAssignments',
+      'src/modules/sortition/assignment.service.ts#nextAssignment',
+      'src/modules/sortition/assignment.service.ts#openAssignment',
+      'src/modules/sortition/assignment.service.ts#recuseAssignment',
+      'src/modules/sortition/exposure.ts#exposureRows',
+      'src/modules/sortition/sortition.service.ts#gatherParties',
+      'src/modules/sortition/sortition.service.ts#openPanel',
+      'src/modules/sortition/sortition.service.ts#panelAssignments',
+      'src/modules/sortition/sortition.service.ts#replayDraw',
+      'src/modules/sortition/sortition.worker.ts#handleAssignmentVacated',
+      'src/modules/sortition/sortition.worker.ts#handleCaseReadyForReview',
+    ],
   },
   sortition_draws: {
     kind: 'tenant_stamped_reached_through_parent',
     shape: 'both_not_null',
     why: 'A draw records reviewers, who belong to no tenant, alongside the case they were drawn for; it is written by the sortition worker and never returned to an application-API caller.',
+    readers: [
+      'src/modules/sortition/sortition.service.ts#openPanel',
+      'src/modules/sortition/sortition.service.ts#recordRefusal',
+      'src/modules/sortition/sortition.service.ts#replayDraw',
+    ],
   },
   reviews: {
     kind: 'tenant_stamped_reached_through_parent',
     shape: 'both_not_null',
     why: 'A review joins a tenant’s case to a tenantless reviewer, and §4.1’s history reads a reviewer’s own reviews across every application (reviewHistory.ts:192, no tenant term); rows are stamped from the assignment.',
+    readers: [
+      'src/modules/consensus/consensus.service.ts#evaluateCase',
+      'src/modules/review/review.service.ts#submitReview',
+      'src/modules/review/reviewHistory.ts#reviewHistoryPage',
+    ],
   },
   outbox_events: {
     kind: 'tenant_stamped_reached_through_parent',
     shape: 'both_not_null',
     why: 'The dispatcher claims and publishes across every tenant (outbox.dispatcher.ts is the sole reader); rows are tenant-stamped on write.',
+    readers: [
+      'src/modules/outbox/outbox.collection.ts#appendOutboxEvent',
+      'src/modules/outbox/outbox.dispatcher.ts#claimNext',
+      'src/modules/outbox/outbox.dispatcher.ts#markDispatched',
+      'src/modules/outbox/outbox.dispatcher.ts#markFailed',
+    ],
   },
   webhook_deliveries: {
     kind: 'tenant_stamped_reached_through_parent',
     shape: 'both_not_null',
     why: 'The delivery worker claims due rows across every tenant (claimDueDelivery matches on status and a deadline only); rows are tenant-stamped on write, and their attempts ARE scoped.',
+    readers: [
+      'src/modules/webhooks/delivery.service.ts#claimDueDelivery',
+      'src/modules/webhooks/delivery.service.ts#deliveryCountsAcrossTenants',
+      'src/modules/webhooks/delivery.service.ts#deliveryHealthFor',
+      'src/modules/webhooks/delivery.service.ts#findTenantDelivery',
+      'src/modules/webhooks/delivery.service.ts#listDeadLetteredDeliveriesAcrossTenants',
+      'src/modules/webhooks/delivery.service.ts#listTenantDeliveries',
+      'src/modules/webhooks/delivery.service.ts#recordAttempt',
+      'src/modules/webhooks/delivery.service.ts#recordDelivery',
+      'src/modules/webhooks/delivery.service.ts#replayDeadLetteredDelivery',
+    ],
   },
 
   // ── tenant_attributed_not_tenant_owned ────────────────────────────────────
@@ -214,21 +311,42 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     kind: 'tenant_attributed_not_tenant_owned',
     shape: 'application_nullable',
     why: 'The trail of privileged activity. Its application_id is the application ACTED ON and is nullable; the row is the operator’s act, not a customer’s data, and filing it in tenant-scoped audit_events would force a choice between an incomplete trail and filling every customer’s with operator activity.',
+    readers: [
+      'src/modules/console/staffAudit.collection.ts#appendStaffAuditEvent',
+    ],
   },
   reviewer_relations: {
     kind: 'tenant_attributed_not_tenant_owned',
     shape: 'application_only',
     why: 'A reviewer’s declared conflicts follow the PERSON across every application they may be drawn for; application_id names whose principal id space the conflict is written in, not an owner.',
+    readers: [
+      'src/modules/reviewer/reviewer.service.ts#declareReviewerRelation',
+      'src/modules/sortition/sortition.service.ts#gatherParties',
+    ],
   },
   reviewer_principal_links: {
     kind: 'tenant_attributed_not_tenant_owned',
     shape: 'application_only',
     why: 'Which application account a reviewer says is theirs (§8.5 self-exclusion). Extracted from ReviewerProfile.principalLinks because the draw queries into it; the row is a fact about a person and application_id names the id space, not an owner.',
+    readers: [
+      'src/modules/reviewer/reviewer.service.ts#ensureReviewerProfile',
+      'src/modules/reviewer/reviewer.service.ts#signalsOf',
+      'src/modules/reviewer/reviewer.service.ts#updateReviewerPreferences',
+      'src/modules/sortition/exclusions.ts#exclusionFor',
+      'src/modules/sortition/sortition.service.ts#gatherParties',
+    ],
   },
   app_trust_snapshots: {
     kind: 'tenant_attributed_not_tenant_owned',
     shape: 'both_not_null',
     why: 'CrowdSource’s own opinion OF an application. Trust & Safety compares standing across every application with no filter (§4.3), and the tenant-serving read re-imposes the pair explicitly in applicationTrustFor rather than relying on a policy.',
+    readers: [
+      'src/modules/trust/applicationTrust.service.ts#applicationCountsByStanding',
+      'src/modules/trust/applicationTrust.service.ts#applicationTrustFor',
+      'src/modules/trust/applicationTrust.service.ts#createApplicationTrust',
+      'src/modules/trust/applicationTrust.service.ts#listApplicationTrust',
+      'src/modules/trust/applicationTrust.service.ts#setApplicationStanding',
+    ],
   },
 };
 

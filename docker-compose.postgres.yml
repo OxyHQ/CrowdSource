@@ -1,17 +1,25 @@
 ##
-## Docker Compose — local PostgreSQL for `packages/app`'s Postgres backend.
+## Docker Compose — local PostgreSQL for the test suites.
 ##
 ## Separate from anything that runs the application stack: this file holds only
-## the database `packages/app`'s schema and store tests need next to
-## `bun run --cwd packages/app test`.
+## the database the tests need. TWO suites use it now, and each reads its OWN
+## variable — `packages/app`'s schema and store tests, and `packages/backend`'s
+## real-database tests (tenant isolation, the table boundary, the RLS catalogue).
 ##
 ## Usage:
 ##   docker compose -f docker-compose.postgres.yml up -d --wait postgres
 ##   docker compose -f docker-compose.postgres.yml logs -f postgres
 ##   docker compose -f docker-compose.postgres.yml down -v   # wipe (data is disposable)
 ##
-## Then, for the suite:
+## Then, for the suites — BOTH, or the one you skip fails closed:
 ##   export CROWDSOURCE_APP_TEST_POSTGRES_URL=postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres
+##   export CROWDSOURCE_BACKEND_TEST_POSTGRES_URL=postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres
+##
+## Two variables rather than one shared name on purpose: the two suites can then
+## be pointed at different servers. The cost is that documenting only one of them
+## — as this file did until the backend gained real-database tests — makes a first
+## run read as a broken checkout rather than as an unset variable, which is why
+## both are listed here and neither is described as the default.
 ##
 ## That URL names the always-present `postgres` maintenance database on purpose:
 ## every test creates its own throwaway database on that server and drops it
