@@ -76,4 +76,34 @@ describe('config', () => {
     expect(config.db.maxPoolSize).toBe(20);
     expect(config.db.maxRetries).toBe(2);
   });
+
+  it('reads DATABASE_URL', async () => {
+    const { config } = await loadConfigModule({
+      NODE_ENV: 'test',
+      DATABASE_URL: 'postgres://crowdsource_app:secret@db.internal/crowdsource',
+    });
+
+    expect(config.databaseUrl).toBe(
+      'postgres://crowdsource_app:secret@db.internal/crowdsource',
+    );
+  });
+
+  /**
+   * The one required variable, and the reason it is required rather than
+   * optional-with-a-503 like `WEBHOOK_SECRET_ENCRYPTION_KEY`.
+   *
+   * An absent database cannot degrade this service into something noticeable.
+   * Under `FORCE` row security a scoped read with no working connection — or
+   * with no tenant parameters set — returns ZERO ROWS rather than erroring, and
+   * zero rows is what a customer with no cases legitimately sees. So a task with
+   * no database serves traffic, passes every status-code check, and tells every
+   * customer their data is gone. Production cannot contradict that: the database
+   * being migrated to holds two documents. Boot is the only place it is
+   * catchable, which is what this refusal buys.
+   */
+  it('refuses to boot without DATABASE_URL', async () => {
+    await expect(
+      loadConfigModule({ NODE_ENV: 'test', DATABASE_URL: '' }),
+    ).rejects.toThrow(/Invalid environment configuration.*DATABASE_URL/s);
+  });
 });

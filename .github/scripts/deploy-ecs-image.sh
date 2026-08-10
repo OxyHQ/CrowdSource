@@ -21,6 +21,17 @@ AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-}"
 AWS_PARTITION="${AWS_PARTITION:-aws}"
 POST_DEPLOY_SMOKE_SCRIPT="${POST_DEPLOY_SMOKE_SCRIPT:-}"
 POST_DEPLOY_TASK_COMMAND_JSON="${POST_DEPLOY_TASK_COMMAND_JSON:-}"
+# The migration one-shot runs against its OWN task definition family, never the
+# service's, and the reason is the credential rather than tidiness. Migrations
+# are applied by a role that OWNS every table; a table's owner is exempt from
+# its own row-security policies and can DROP POLICY in one statement. ECS
+# container overrides cannot inject a secret, so the only way to hand the
+# migrator its credential without also handing it to every serving task is a
+# second task definition carrying it.
+MIGRATION_TASK_DEFINITION_FAMILY="${MIGRATION_TASK_DEFINITION_FAMILY:-}"
+MIGRATION_CONTAINER_NAME="${MIGRATION_CONTAINER_NAME:-$CONTAINER_NAME}"
+MIGRATION_TARGET_DATABASE="${MIGRATION_TARGET_DATABASE:-}"
+MIGRATION_COMMAND_JSON="${MIGRATION_COMMAND_JSON:-}"
 DEPLOY_HEAD_GUARD_SCRIPT="${DEPLOY_HEAD_GUARD_SCRIPT:-.github/scripts/require-current-main.sh}"
 
 if ! [[ "$MAX_WAIT_SECS" =~ ^[0-9]+$ ]] || (( MAX_WAIT_SECS < 1 )); then
@@ -34,6 +45,35 @@ fi
 if [[ "$RUN_MIGRATIONS" != "true" && "$RUN_MIGRATIONS" != "false" ]]; then
   echo "::error::RUN_MIGRATIONS must be either 'true' or 'false'."
   exit 1
+fi
+# Every one of these refuses rather than defaulting, because each default would
+# be silently wrong. Falling back to the service's task definition would run the
+# migrator under the application role, which owns nothing — or, against a
+# single-role database, would succeed and leave row security enforcing nothing.
+# Omitting --target-database is the guard whose absence exits 0 against the
+# wrong database: a migrator pointed elsewhere finds an empty ledger, applies
+# the whole journal and logs a success line.
+if [[ "$RUN_MIGRATIONS" == "true" ]]; then
+  if [[ -z "$MIGRATION_TASK_DEFINITION_FAMILY" ]]; then
+    echo "::error::RUN_MIGRATIONS is true but MIGRATION_TASK_DEFINITION_FAMILY is unset; refusing to run migrations on the service's own task definition, which does not carry the migrator credential."
+    exit 1
+  fi
+  if [[ -z "$MIGRATION_TARGET_DATABASE" ]]; then
+    echo "::error::RUN_MIGRATIONS is true but MIGRATION_TARGET_DATABASE is unset; --target-database is required on every run."
+    exit 1
+  fi
+  if [[ -z "$MIGRATION_COMMAND_JSON" ]]; then
+    echo "::error::RUN_MIGRATIONS is true but MIGRATION_COMMAND_JSON is unset."
+    exit 1
+  fi
+  if ! jq -e '
+       type == "array" and
+       length > 0 and
+       all(.[]; type == "string" and length > 0)
+     ' <<<"$MIGRATION_COMMAND_JSON" >/dev/null; then
+    echo "::error::MIGRATION_COMMAND_JSON must be a non-empty JSON string array."
+    exit 1
+  fi
 fi
 if [[ -n "$POST_DEPLOY_SMOKE_SCRIPT" && ! -f "$POST_DEPLOY_SMOKE_SCRIPT" ]]; then
   echo "::error::POST_DEPLOY_SMOKE_SCRIPT does not exist: $POST_DEPLOY_SMOKE_SCRIPT"
@@ -355,11 +395,13 @@ print_task_definition_drift() {
 
 run_one_shot_command() {
   local label="$1"
-  local command_json="$2"
+  local task_definition_to_run="$2"
+  local container_to_override="$3"
+  local command_json="$4"
   local overrides run_json task_json exit_code stopped_reason container_reason
 
   overrides="$(jq -cn \
-    --arg name "$CONTAINER_NAME" \
+    --arg name "$container_to_override" \
     --argjson command "$command_json" \
     '{
       containerOverrides: [{
@@ -368,7 +410,9 @@ run_one_shot_command() {
       }]
     }')"
 
-  if ! run_json="$(aws "${one_shot_run_task_args[@]}" --overrides "$overrides")"; then
+  if ! run_json="$(aws "${one_shot_run_task_args[@]}" \
+      --task-definition "$task_definition_to_run" \
+      --overrides "$overrides")"; then
     echo "::error::ECS failed to start the $label task."
     return 1
   fi
@@ -386,7 +430,7 @@ run_one_shot_command() {
   active_one_shot_label="$label"
   active_one_shot_task_stopped=false
 
-  echo "Running $label with $new_task_definition"
+  echo "Running $label with $task_definition_to_run"
   if ! wait_for_task_stop "$active_one_shot_task_arn" "$label" "$MAX_WAIT_SECS"; then
     return 1
   fi
@@ -395,13 +439,13 @@ run_one_shot_command() {
   task_json="$(aws ecs describe-tasks \
     --cluster "$CLUSTER" \
     --tasks "$active_one_shot_task_arn")"
-  exit_code="$(jq -r --arg name "$CONTAINER_NAME" '
+  exit_code="$(jq -r --arg name "$container_to_override" '
     .tasks[0].containers[] | select(.name == $name) | .exitCode // -1
   ' <<<"$task_json")"
   if [[ "$exit_code" != "0" ]]; then
     print_one_shot_logs "$active_one_shot_task_arn" "$label"
     stopped_reason="$(jq -r '.tasks[0].stoppedReason // "unknown"' <<<"$task_json")"
-    container_reason="$(jq -r --arg name "$CONTAINER_NAME" '
+    container_reason="$(jq -r --arg name "$container_to_override" '
       .tasks[0].containers[] | select(.name == $name) | .reason // "unknown"
     ' <<<"$task_json")"
     echo "::error::$label task failed (exit=$exit_code, stopped=$stopped_reason, container=$container_reason)."
@@ -597,10 +641,11 @@ if [[ "$RUN_MIGRATIONS" == "true" || -n "$POST_DEPLOY_TASK_COMMAND_JSON" ]]; the
     exit 1
   fi
 
+  # No --task-definition here: the migration one-shot and the post-deploy task
+  # run against DIFFERENT definitions, so each call names its own.
   one_shot_run_task_args=(
     ecs run-task
     --cluster "$CLUSTER"
-    --task-definition "$new_task_definition"
     --count 1
     --network-configuration "$network_configuration"
   )
@@ -618,10 +663,78 @@ if [[ "$RUN_MIGRATIONS" == "true" || -n "$POST_DEPLOY_TASK_COMMAND_JSON" ]]; the
   fi
 fi
 
+# The migration family gets its own revision carrying THIS release's image.
+#
+# `run-task` cannot override an image — `containerOverrides` accepts a command,
+# an environment and sizing, and nothing else — so the only way the one-shot
+# applies the migrations from the release being deployed is to register a
+# revision of the migration family pointing at the same digest. Rendered from
+# the family's own latest revision so the credential and networking oxy-infra
+# put there are carried forward untouched; the image is the only field replaced.
+migration_task_definition=""
 if [[ "$RUN_MIGRATIONS" == "true" ]]; then
+  migration_task_definition_file="$(mktemp)"
+  rendered_migration_task_definition_file="$(mktemp)"
+
+  aws ecs describe-task-definition \
+    --task-definition "$MIGRATION_TASK_DEFINITION_FAMILY" \
+    --query taskDefinition \
+    >"$migration_task_definition_file"
+
+  migration_container_matches="$(jq --arg name "$MIGRATION_CONTAINER_NAME" \
+    '[.containerDefinitions[] | select(.name == $name)] | length' \
+    "$migration_task_definition_file")"
+  if [[ "$migration_container_matches" != "1" ]]; then
+    echo "::error::Expected exactly one container named $MIGRATION_CONTAINER_NAME in $MIGRATION_TASK_DEFINITION_FAMILY; found $migration_container_matches."
+    exit 1
+  fi
+
+  # A migration task definition that does not carry the migrator credential
+  # would run the one-shot as whatever role it does carry. Refuse: the entire
+  # point of the split is that exactly one of the two roles reaches this
+  # container, and a migration applied by the application role leaves every
+  # table owned by it and row security enforcing nothing.
+  if ! jq -e --arg name "$MIGRATION_CONTAINER_NAME" '
+       [.containerDefinitions[] | select(.name == $name) | (.secrets // [])[].name]
+       | index("MIGRATOR_DATABASE_URL") != null
+     ' "$migration_task_definition_file" >/dev/null; then
+    echo "::error::$MIGRATION_TASK_DEFINITION_FAMILY does not carry MIGRATOR_DATABASE_URL; the migration one-shot would run without the credential that owns the tables."
+    exit 1
+  fi
+
+  jq \
+    --arg name "$MIGRATION_CONTAINER_NAME" \
+    --arg image "$IMAGE_URI" \
+    '
+      del(
+        .taskDefinitionArn,
+        .revision,
+        .status,
+        .requiresAttributes,
+        .compatibilities,
+        .registeredAt,
+        .registeredBy
+      )
+      | .containerDefinitions |= map(
+          if .name == $name then .image = $image else . end
+        )
+    ' \
+    "$migration_task_definition_file" >"$rendered_migration_task_definition_file"
+
+  migration_task_definition="$(aws ecs register-task-definition \
+    --cli-input-json "file://$rendered_migration_task_definition_file" \
+    --query 'taskDefinition.taskDefinitionArn' \
+    --output text)"
+  echo "Registered migration task definition $migration_task_definition"
+
+  # `pre` only, and only what is additive. This runs while the PREVIOUS image is
+  # still serving, so anything that takes a column away would be an outage on it.
   if ! run_one_shot_command \
-    "Migration" \
-    '["bun","packages/backend/dist/scripts/migrate.js"]'; then
+    "Migration (pre)" \
+    "$migration_task_definition" \
+    "$MIGRATION_CONTAINER_NAME" \
+    "$(jq -cn --argjson base "$MIGRATION_COMMAND_JSON" --arg db "$MIGRATION_TARGET_DATABASE" \
+        '$base + ["--target-database=" + $db, "--phase=pre"]')"; then
     exit 1
   fi
 fi
@@ -672,9 +785,37 @@ if [[ -n "$POST_DEPLOY_SMOKE_SCRIPT" ]]; then
   fi
 fi
 
+# `post` runs once the NEW image is live, which is what makes a DROP or a
+# narrowed constraint safe: the image that still selected the removed column is
+# gone. It BLOCKS if a `pre` migration is somehow still pending, which fails this
+# task and rolls the service back — the correct repair, said out loud.
+#
+# DO NOT MOVE THIS ABOVE THE SMOKE CHECK. Running it directly after the rollout
+# looks tidier and is wrong: a smoke failure rolls the service back to the
+# PREVIOUS image, and a `post` migration that has already dropped a column that
+# image reads leaves nothing to roll back to — the one repair path becomes a
+# second outage. The drop waits until the new image is confirmed healthy.
+# `test-deploy-ecs-image.sh`'s `migration-phases` case pins this exact ordering.
+if [[ "$RUN_MIGRATIONS" == "true" ]]; then
+  if ! run_one_shot_command \
+    "Migration (post)" \
+    "$migration_task_definition" \
+    "$MIGRATION_CONTAINER_NAME" \
+    "$(jq -cn --argjson base "$MIGRATION_COMMAND_JSON" --arg db "$MIGRATION_TARGET_DATABASE" \
+        '$base + ["--target-database=" + $db, "--phase=post"]')"; then
+    echo "::error::Post-rollout migration failed; rolling back to the image whose schema is on disk."
+    if ! rollback_service; then
+      echo "::error::The post migration and the rollback both failed; manual intervention is required."
+    fi
+    exit 1
+  fi
+fi
+
 if [[ -n "$POST_DEPLOY_TASK_COMMAND_JSON" ]]; then
   if ! run_one_shot_command \
     "Post-deploy reconciliation" \
+    "$new_task_definition" \
+    "$CONTAINER_NAME" \
     "$POST_DEPLOY_TASK_COMMAND_JSON"; then
     echo "::error::Post-deploy reconciliation failed."
     if ! rollback_service; then

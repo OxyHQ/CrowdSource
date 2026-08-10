@@ -172,12 +172,26 @@ jobs:
       - name: Register immutable task definition and deploy
         env:
           IMAGE_URI: ${{ env.ECR_REGISTRY }}/oxy/${{ env.APP }}@${{ steps.build.outputs.digest }}
-          # No migration one-shot and no post-deploy task yet: the migration
-          # runner (`packages/backend/dist/scripts/migrate.js`) has not been
-          # rebuilt. Set RUN_MIGRATIONS back to 'true' in the same change that
-          # adds it, never before — the one-shot connects through the same
-          # `dbName` path the service does, so the database guard above already
-          # covers it.
+          # The migration runner now EXISTS — `packages/backend/dist/scripts/
+          # migrate.js`, emitted from `scripts/migrate.ts` — and
+          # `deploy-ecs-image.sh` knows how to run it: it registers a revision
+          # of the MIGRATION family carrying this release's image, applies
+          # `--phase=pre` before the rollout and `--phase=post` after the smoke
+          # check, and refuses outright if the family, the target database or
+          # the migrator credential is missing.
+          #
+          # What still gates RUN_MIGRATIONS is INFRASTRUCTURE: the database is
+          # not provisioned and `oxy-crowdsource-migrate` does not exist yet.
+          # Turn this on in the SAME change that lands them, together with the
+          # variables below — the script fails closed without them, so a
+          # half-configured flip stops the deploy rather than migrating as the
+          # wrong role:
+          #
+          #   MIGRATION_TASK_DEFINITION_FAMILY: oxy-crowdsource-migrate
+          #   MIGRATION_TARGET_DATABASE: crowdsource
+          #   MIGRATION_COMMAND_JSON: >-
+          #     ["bun","packages/backend/dist/scripts/migrate.js"]
+          #   MIGRATION_CONTAINER_NAME: only if it differs from CONTAINER_NAME
           RUN_MIGRATIONS: 'false'
           POST_DEPLOY_SMOKE_SCRIPT: .github/scripts/smoke-crowdsource.sh
           # Syncing a parameter to SSM does not put it in the container: the
@@ -186,7 +200,16 @@ jobs:
           # nothing else, and the symptom is a 503 from a route nobody is
           # watching yet. There is deliberately no DATABASE_URL entry: the
           # CrowdSource database is not provisioned, and naming a parameter that
-          # does not exist is what has kept tnp-api from starting.
+          # does not exist is what has kept tnp-api from starting. It arrives
+          # WITH the provisioning, in one change, together with its allow-list
+          # entry above — two halves of one fact.
+          #
+          # MIGRATOR_DATABASE_URL must NEVER appear here, provisioned or not. It
+          # names crowdsource_migrator, which OWNS every table — and a table's
+          # owner is exempt from its own row-security policies and can DROP
+          # POLICY in one statement. The whole tenant boundary rests on the
+          # serving container holding only crowdsource_app, which owns nothing.
+          # `deployWiring.test.ts` fails the build if it appears.
           TASK_SECRET_OVERRIDES_JSON: >-
             {"WEBHOOK_SECRET_ENCRYPTION_KEY":
             "arn:aws:ssm:us-west-2:237343248947:parameter/oxy/crowdsource/WEBHOOK_SECRET_ENCRYPTION_KEY"}
