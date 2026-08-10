@@ -210,29 +210,51 @@ describe('the migration interlock', () => {
 
 describe('the secrets the service cannot boot without', () => {
   /**
-   * Syncing a parameter to SSM does not put it in the container: the task
-   * definition has to name it. They are two halves of one fact, and this asserts
-   * they move TOGETHER rather than asserting either is present.
+   * SYNCED IMPLIES NAMED — an implication, not a biconditional, and the
+   * correction matters more than the rule.
    *
-   * Presence is the wrong thing to gate on here, and #94 is why. `DATABASE_URL`
-   * is deliberately absent from both today: the CrowdSource database is not
-   * provisioned, and a task definition naming a parameter that does not exist is
-   * the exact fault holding tnp-api at `desired_count = 0`, unable to start. It
-   * arrives with the provisioning.
+   * This started as `inAllowlist === inTaskDefinition`, on the reasoning that a
+   * sync entry and a task-definition entry are two halves of one fact. That is
+   * true only while CI OWNS the secret. `/oxy/crowdsource/DATABASE_URL` is a
+   * hand-written SecureString with no GitHub secret behind it, so the
+   * biconditional would have failed the correct configuration and, worse, the
+   * obvious way to satisfy it would be to add the allow-list entry — which
+   * declares CI ownership of a value CI does not write, and arms the next
+   * deploy to overwrite a live credential with an empty or placeholder secret.
    *
-   * A biconditional is true now (absent from both) and true afterwards (present
-   * in both), and it fails on the state that actually breaks a deploy: synced
-   * but unnamed, so the secret reaches SSM and nothing else; or named but
-   * unsynced, so every task fails to start on a parameter nothing writes.
+   * What the workflow can genuinely enforce is one direction: a secret CI
+   * writes that no task definition names reaches SSM and nothing else, which is
+   * what the file's own comment says. The converse — named but not synced — is
+   * legitimate and is the intended configuration for every hand-managed
+   * parameter.
+   *
+   * What this cannot check is that the named parameter EXISTS in SSM. That is
+   * an infrastructure fact, and naming one that does not exist is what holds a
+   * service at `desired_count = 0`, unable to start.
    */
-  it('keeps the DATABASE_URL sync and its task-definition entry in step', () => {
-    const inAllowlist = /SSM_SECRET_ALLOWLIST:[^\n]*\bDATABASE_URL\b/.test(deployWorkflow);
-    const inTaskDefinition =
-      /TASK_SECRET_OVERRIDES_JSON:[\s\S]*?"DATABASE_URL":[\s\S]*?parameter\/oxy\/crowdsource\/DATABASE_URL/.test(
-        deployWorkflow,
-      );
+  it('never syncs a secret the task definition does not name', () => {
+    const syncedNames = /SSM_SECRET_ALLOWLIST:([^\n]*)/.exec(deployWorkflow)?.[1] ?? '';
+    const taskDefinition =
+      /TASK_SECRET_OVERRIDES_JSON:[\s\S]*?\n(?= {8}\S|\S)/.exec(deployWorkflow)?.[0] ?? '';
 
-    expect(inAllowlist).toBe(inTaskDefinition);
+    const synced = syncedNames.trim().split(/\s+/).filter(Boolean);
+    expect(synced.length).toBeGreaterThan(0); // the allow-list must not read as empty
+
+    for (const name of synced) {
+      expect(taskDefinition).toContain(`"${name}"`);
+    }
+  });
+
+  /**
+   * The named-but-unsynced direction, asserted as a POSITIVE fact rather than
+   * left implicit, so that reintroducing the allow-list entry is a deliberate
+   * act somebody has to argue for rather than a tidy-up nobody notices.
+   */
+  it('leaves the hand-managed DATABASE_URL out of the sync allow-list', () => {
+    expect(deployWorkflow).toMatch(
+      /TASK_SECRET_OVERRIDES_JSON:[\s\S]*?"DATABASE_URL":[\s\S]*?parameter\/oxy\/crowdsource\/DATABASE_URL/,
+    );
+    expect(deployWorkflow).not.toMatch(/SSM_SECRET_ALLOWLIST:[^\n]*\bDATABASE_URL\b/);
   });
 
   /**

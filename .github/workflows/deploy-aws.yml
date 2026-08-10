@@ -185,34 +185,46 @@ jobs:
           # Turn this on in the SAME change that lands them, together with the
           # variables below — the script fails closed without them, so a
           # half-configured flip stops the deploy rather than migrating as the
-          # wrong role:
+          # wrong role.
           #
-          #   MIGRATION_TASK_DEFINITION_FAMILY: oxy-crowdsource-migrate
-          #   MIGRATION_TARGET_DATABASE: crowdsource
-          #   MIGRATION_COMMAND_JSON: >-
-          #     ["bun","packages/backend/dist/scripts/migrate.js"]
-          #   MIGRATION_CONTAINER_NAME: only if it differs from CONTAINER_NAME
-          RUN_MIGRATIONS: 'false'
+          # `oxy-crowdsource-migrate` carries MIGRATOR_DATABASE_URL and nothing
+          # else. Its own image is whatever revision 1 was registered with; the
+          # release replaces it with this build's digest before running, which
+          # is why the migrations applied are always the ones being deployed.
+          RUN_MIGRATIONS: 'true'
+          MIGRATION_TASK_DEFINITION_FAMILY: oxy-crowdsource-migrate
+          MIGRATION_TARGET_DATABASE: crowdsource
+          MIGRATION_COMMAND_JSON: >-
+            ["bun","packages/backend/dist/scripts/migrate.js"]
           POST_DEPLOY_SMOKE_SCRIPT: .github/scripts/smoke-crowdsource.sh
           # Syncing a parameter to SSM does not put it in the container: the
-          # task definition has to name it. This is the one place the two halves
-          # meet, so a secret added above without an entry here reaches SSM and
-          # nothing else, and the symptom is a 503 from a route nobody is
-          # watching yet. There is deliberately no DATABASE_URL entry: the
-          # CrowdSource database is not provisioned, and naming a parameter that
-          # does not exist is what has kept tnp-api from starting. It arrives
-          # WITH the provisioning, in one change, together with its allow-list
-          # entry above — two halves of one fact.
+          # task definition has to name it. A secret in the allow-list above
+          # with no entry here reaches SSM and nothing else.
           #
-          # MIGRATOR_DATABASE_URL must NEVER appear here, provisioned or not. It
-          # names crowdsource_migrator, which OWNS every table — and a table's
-          # owner is exempt from its own row-security policies and can DROP
-          # POLICY in one statement. The whole tenant boundary rests on the
-          # serving container holding only crowdsource_app, which owns nothing.
-          # `deployWiring.test.ts` fails the build if it appears.
+          # DATABASE_URL is named here and is deliberately NOT in that
+          # allow-list, which is not an oversight — it is how the parameter is
+          # managed. `/oxy/crowdsource/DATABASE_URL` is a hand-written
+          # SecureString (Alia's shape); there is no GitHub secret behind it,
+          # and there must not be one. An allow-list entry would declare that CI
+          # owns the value, so the day somebody creates a `DATABASE_URL` secret
+          # — a placeholder, a stale copy, the migrator's string — the next
+          # deploy would overwrite the credential the service cannot boot
+          # without. The relationship the workflow can enforce is therefore
+          # one-way: SYNCED IMPLIES NAMED, never the converse.
+          # `deployWiring.test.ts` pins exactly that implication.
+          #
+          # MIGRATOR_DATABASE_URL must NEVER appear here. It names
+          # crowdsource_migrator, which OWNS every table — and a table's owner
+          # is exempt from its own row-security policies and can DROP POLICY in
+          # one statement. The whole tenant boundary rests on the serving
+          # container holding only crowdsource_app, which owns nothing. It lives
+          # on `oxy-crowdsource-migrate` instead, which nothing serves traffic
+          # from, and `deployWiring.test.ts` fails the build if it appears here.
           TASK_SECRET_OVERRIDES_JSON: >-
             {"WEBHOOK_SECRET_ENCRYPTION_KEY":
-            "arn:aws:ssm:us-west-2:237343248947:parameter/oxy/crowdsource/WEBHOOK_SECRET_ENCRYPTION_KEY"}
+            "arn:aws:ssm:us-west-2:237343248947:parameter/oxy/crowdsource/WEBHOOK_SECRET_ENCRYPTION_KEY",
+            "DATABASE_URL":
+            "arn:aws:ssm:us-west-2:237343248947:parameter/oxy/crowdsource/DATABASE_URL"}
         # ELB mutations belong in oxy-infra because the deploy role
         # intentionally lacks ELB access; the target group's health check path
         # is owned there.
