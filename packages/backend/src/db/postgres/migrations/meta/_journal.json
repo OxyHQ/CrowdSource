@@ -29,6 +29,13 @@
       "when": 1786363812611,
       "tag": "0003_whole_dakota_north",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786405072115,
+      "tag": "0004_simple_nemesis",
+      "breakpoints": true
     }
   ]
 }

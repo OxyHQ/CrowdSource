@@ -7,6 +7,10 @@ import {
 } from '@oxyhq/crowdsource-contracts';
 
 import { defineUnscopedCollection } from '../../db/collections';
+import {
+  REVIEWER_RELATION_SOURCES,
+  type ReviewerRelationSource,
+} from '../../db/postgres/schema/reviewers';
 import type { SensitivityClass } from '../triage/triage';
 
 
@@ -289,9 +293,6 @@ export const reviewerProfiles = defineUnscopedCollection('ReviewerProfile', revi
  * When an Oxy relationship read does exist, it populates this collection with a
  * third source and nothing else in the selector changes.
  */
-export const REVIEWER_RELATION_SOURCES = ['declared', 'recusal'] as const;
-export type ReviewerRelationSource = (typeof REVIEWER_RELATION_SOURCES)[number];
-
 export interface ReviewerRelationDocument {
   reviewerId: string;
   applicationId: string;

@@ -77,7 +77,78 @@ const SEEDING_MARKERS = [
   'reviewerProfiles.insertOne(',
   'reviewerProfiles.insertMany(',
   '/v1/reviewer/preferences',
+  /**
+   * The two PostgreSQL routes, added with the reviewer repositories.
+   *
+   * Every marker above is a MONGO shape, and that was fine for exactly as long as
+   * Mongo was the only store. A suite seeding reviewers through a Postgres
+   * repository matches none of them, so it would have been invisible to the
+   * completeness assertion below — not exempted, not reported, simply absent —
+   * and "no file is missing an entry" would have stayed true by not looking.
+   *
+   * That is the failure this file was written to prevent, arriving from the other
+   * side: the collision it exists to catch was caused by two files declaring
+   * their axes where no single reader could see both, and a marker list that
+   * silently stops recognising a whole store is the same blindness with a
+   * different cause.
+   *
+   * `insertReviewerProfileIfAbsent(` is the repository route and
+   * `.insert(reviewerProfiles)` is the direct-drizzle one; between them a
+   * globally drawable row cannot reach `reviewer_profiles` unrecognised.
+   */
+  'insertReviewerProfileIfAbsent(',
+  '.insert(reviewerProfiles)',
 ] as const;
+
+/**
+ * Suites that seed reviewer profiles and CANNOT be drawn into another suite's
+ * panels, with the reason each one is exempt.
+ *
+ * The registry's whole premise is a SHARED population: every Mongo integration
+ * file runs against one `mongodb-memory-server` replica set, reviewer profiles
+ * carry no tenant key, and `candidatePool` has no tenant filter — so one file's
+ * pool is a candidate for every other file's case, and the only wall is the
+ * `(family, language)` cell. A suite that does not share a population has no such
+ * wall to build and nothing to collide with.
+ *
+ * ## Why the list is restricted to `*.realdb.test.ts` BY SHAPE
+ *
+ * An exemption list is the cheapest way to make this gate green, which makes it
+ * the most dangerous thing in the file: the moment a Mongo integration suite
+ * trips the completeness check, adding a line here is easier than declaring
+ * axes, and it silently reintroduces exactly the collision the gate exists to
+ * catch.
+ *
+ * So the structural constraint below is load-bearing rather than tidy. Only a
+ * `*.realdb.test.ts` file may appear here, because only a real-database suite
+ * gets its own throwaway PostgreSQL database — `createPostgresTestDatabase()` in
+ * its own `beforeAll`, one per test file, dropped at the end. For a Mongo
+ * integration file the exemption is UNAVAILABLE, so the cheapest way to make the
+ * gate green is the correct one: declare a cell.
+ *
+ * The naming convention is doing real work there, and that is worth saying out
+ * loud: a Mongo suite renamed to `*.realdb.test.ts` would become exemptible
+ * without becoming isolated. What stops that is that the name is also what makes
+ * a file take `createPostgresTestDatabase()`, and a file that seeds Mongo
+ * reviewers under a realdb name is a lie a reviewer can see in one line.
+ */
+const NOT_APPLICABLE: Readonly<Record<string, string>> = {
+  'reviewerRepositories.realdb.test.ts':
+    'Seeds reviewer_profiles into a throwaway PostgreSQL database created in its ' +
+    'own beforeAll and dropped at the end, so it shares no reviewer population ' +
+    'with any suite and cannot seat or be seated by one.',
+};
+
+/**
+ * Exactly the number of exemptions there are meant to be.
+ *
+ * A floor would be the wrong shape here, because the hazard is the list GROWING
+ * rather than shrinking: an exemption list nobody counts accumulates one quiet
+ * line at a time until the completeness check covers nothing. Stated as an
+ * equality so adding an entry is a deliberate edit to a number in a second place,
+ * the way `SEEDING_FILE_FLOOR` already works.
+ */
+const NOT_APPLICABLE_COUNT = 1;
 
 /**
  * Floors, not targets. `TEST_FILE_FLOOR` sits comfortably below the current
@@ -90,7 +161,11 @@ const SEEDING_MARKERS = [
  * part of that act.
  */
 const TEST_FILE_FLOOR = 55;
-const SEEDING_FILE_FLOOR = 8;
+/**
+ * Nine since `reviewerRepositories.realdb.test.ts` joined the count — eight Mongo
+ * suites plus the one PostgreSQL suite the two markers above were added to see.
+ */
+const SEEDING_FILE_FLOOR = 9;
 
 function cellOf(axis: ReviewerAxis): string {
   return `${axis.family}|${axis.language}`;
@@ -125,7 +200,9 @@ describe('the reviewer axis registry is complete', () => {
   });
 
   it('gives every seeding suite an entry in REVIEWER_AXES', () => {
-    const missing = seedingFiles.filter((file) => REVIEWER_AXES[file] === undefined);
+    const missing = seedingFiles.filter(
+      (file) => REVIEWER_AXES[file] === undefined && NOT_APPLICABLE[file] === undefined,
+    );
 
     expect(
       missing,
@@ -135,6 +212,51 @@ describe('the reviewer axis registry is complete', () => {
         'drawn into one — the failure surfaces as a panel seated with the wrong ' +
         "people in a file that changed nothing, and only when the suite's " +
         'execution order shifts.',
+    ).toEqual([]);
+  });
+
+  /**
+   * The constraint that decides whether the exemption list is a safety valve or a
+   * hole. See `NOT_APPLICABLE`'s header: the cheapest way to green this gate must
+   * not be the dangerous action.
+   */
+  it('lets only a real-database suite be exempt from declaring axes', () => {
+    const ineligible = Object.keys(NOT_APPLICABLE).filter(
+      (file) => !file.endsWith('.realdb.test.ts'),
+    );
+
+    expect(
+      ineligible,
+      `${ineligible.join(', ')} is exempted from the axis registry but is not a ` +
+        '*.realdb.test.ts suite. Only a real-database suite gets its own throwaway ' +
+        'PostgreSQL database; every other suite shares one replica set, where ' +
+        'reviewer profiles are global. Exempting one of those does not make it ' +
+        'isolated — it makes the collision invisible, which is what this file ' +
+        'exists to prevent. Declare a cell in support/reviewerAxes.ts instead.',
+    ).toEqual([]);
+  });
+
+  it('keeps the exemption list at exactly the size it is meant to be', () => {
+    expect(
+      Object.keys(NOT_APPLICABLE).length,
+      'the not-applicable list changed size. It is asserted as an equality rather ' +
+        'than a floor because the hazard is GROWTH: a list nobody counts absorbs ' +
+        'one suite at a time until the completeness check covers nothing. If the ' +
+        'new entry is right, say so by changing NOT_APPLICABLE_COUNT in the same ' +
+        'edit.',
+    ).toBe(NOT_APPLICABLE_COUNT);
+  });
+
+  it('exempts only files that exist and actually seed reviewers', () => {
+    const stale = Object.keys(NOT_APPLICABLE).filter((file) => !seedingFiles.includes(file));
+
+    expect(
+      stale,
+      `${stale.join(', ')} is exempted from the axis registry but does not match ` +
+        'any seeding marker — either the file is gone, or it stopped creating ' +
+        'reviewers, or a marker stopped recognising it. All three make the ' +
+        'exemption a claim about nothing, and the third is the one that also ' +
+        'blinds the completeness check above.',
     ).toEqual([]);
   });
 
