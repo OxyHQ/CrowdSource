@@ -789,6 +789,13 @@ fi
 # narrowed constraint safe: the image that still selected the removed column is
 # gone. It BLOCKS if a `pre` migration is somehow still pending, which fails this
 # task and rolls the service back — the correct repair, said out loud.
+#
+# DO NOT MOVE THIS ABOVE THE SMOKE CHECK. Running it directly after the rollout
+# looks tidier and is wrong: a smoke failure rolls the service back to the
+# PREVIOUS image, and a `post` migration that has already dropped a column that
+# image reads leaves nothing to roll back to — the one repair path becomes a
+# second outage. The drop waits until the new image is confirmed healthy.
+# `test-deploy-ecs-image.sh`'s `migration-phases` case pins this exact ordering.
 if [[ "$RUN_MIGRATIONS" == "true" ]]; then
   if ! run_one_shot_command \
     "Migration (post)" \
