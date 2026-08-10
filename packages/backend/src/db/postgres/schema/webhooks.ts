@@ -3,10 +3,19 @@ import { index, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core'
 import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
 
 /**
- * Webhook endpoints, their signing secrets, and the delivery attempt journal.
+ * Webhook endpoints, their signing secrets, the delivery attempt journal — and
+ * `webhook_deliveries`, which is the odd one out and sits at the bottom.
  *
- * `webhook_deliveries` is NOT here: the delivery worker claims across every
- * tenant, so it cannot be found through a tenant filter and stays unscoped.
+ * Three of these four tables are tenant-owned and carry a policy. The delivery
+ * does not: the worker claims due rows across every tenant, so the row it claims
+ * could not be found through a tenant filter. It is nonetheless tenant-STAMPED
+ * like the other three, which is why it lives beside them rather than in another
+ * file — and why the registry's `tenant_stamped_reached_through_parent` kind
+ * exists to keep somebody from "correcting" it later.
+ *
+ * Its `webhook_attempts` children ARE tenant-scoped, because the worker derives a
+ * context from the delivery row it has just claimed. That is the seam: one claim
+ * spanning tenants, everything below it scoped.
  */
 export const webhookEndpoints = pgTable(
   'webhook_endpoints',
@@ -154,5 +163,89 @@ export const webhookAttempts = pgTable(
     ),
     /** The sweep's index. Without it the reaper degrades to a full scan. */
     index('webhook_attempts_attempted_at_idx').on(table.attemptedAt),
+  ],
+);
+
+/**
+ * One logical delivery per endpoint and event; many attempts beneath it.
+ *
+ * Unscoped, and the only table in this file that is. See the header.
+ */
+export const webhookDeliveries = pgTable(
+  'webhook_deliveries',
+  {
+    deliveryId: text('delivery_id').primaryKey(),
+
+    /** Stamped on write from the outbox row's own tenant. */
+    organizationId: text('organization_id').notNull(),
+    applicationId: text('application_id').notNull(),
+
+    webhookEndpointId: text('webhook_endpoint_id').notNull(),
+    /**
+     * The event id, which is the OUTBOX row's id — §10.7's `evt_…`.
+     *
+     * Sharing it is what makes replay safe end to end: an outbox row redelivered
+     * produces the same `(endpoint, event)` pairs, the unique below refuses the
+     * second insert, and the receiver's own idempotency keys on the same value.
+     */
+    eventId: text('event_id').notNull(),
+    eventType: text('event_type').notNull(),
+
+    /**
+     * The exact bytes signed and sent, written once when the delivery is created.
+     *
+     * Stored rather than rebuilt per attempt, because the signature covers these
+     * bytes: a payload re-derived from domain state would change under a later
+     * revision, and a retry would carry something the first attempt never said.
+     */
+    body: text('body').notNull(),
+
+    status: text('status').notNull(),
+    /** Total attempts ever made. Also the source of the next attempt NUMBER. */
+    attemptCount: integer('attempt_count').notNull(),
+    /**
+     * Attempts since this delivery was created or last replayed. The §10.9 ladder
+     * reads THIS one, so a manual replay gets the full schedule again while
+     * `attempt_count` keeps numbering monotonically and the history stays whole.
+     */
+    cycleAttemptCount: integer('cycle_attempt_count').notNull(),
+
+    nextAttemptAt: timestamptz(),
+    /** While `delivering`, when another worker may take the row back. */
+    leaseExpiresAt: timestamptz(),
+    lastResponseStatus: integer('last_response_status'),
+    deadLetterReason: text('dead_letter_reason'),
+    succeededAt: timestamptz(),
+    deadLetteredAt: timestamptz(),
+    replayCount: integer('replay_count').notNull(),
+
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    /**
+     * §12.7 verbatim, and the constraint that stops a retry becoming a second
+     * delivery. An INDEX rather than a lookup because a lookup races: two workers
+     * replaying the same outbox row both read nothing and both insert, and the
+     * tenant receives one decision twice.
+     *
+     * No tenant prefix, on purpose and as on Mongo — endpoint ids are random and
+     * globally unique, so the pair is already stronger than a prefixed version.
+     */
+    uniqueIndex('webhook_deliveries_endpoint_event_key').on(
+      table.webhookEndpointId,
+      table.eventId,
+    ),
+    /** The worker's claim, which spans every tenant. */
+    index('webhook_deliveries_status_next_attempt_at_idx').on(
+      table.status,
+      table.nextAttemptAt,
+    ),
+    /** "What happened to this tenant's webhooks lately" — the console's question. */
+    index('webhook_deliveries_application_status_created_idx').on(
+      table.applicationId,
+      table.status,
+      table.createdAt.desc(),
+    ),
   ],
 );

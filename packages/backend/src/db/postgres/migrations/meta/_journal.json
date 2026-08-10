@@ -15,6 +15,13 @@
       "when": 1786327394498,
       "tag": "0001_pale_toro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786329477315,
+      "tag": "0002_massive_iron_man",
+      "breakpoints": true
     }
   ]
 }

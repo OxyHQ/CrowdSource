@@ -16,6 +16,10 @@ import {
   declaredTableNames,
 } from '../db/postgres/tableRegistry';
 import {
+  describeTenantColumns,
+  tenantColumnShapeOf,
+} from '../db/postgres/tenantColumnShape';
+import {
   createPostgresTestDatabase,
   type PostgresTestDatabase,
 } from './support/postgresTestDatabase';
@@ -103,9 +107,107 @@ describe('every table is an explicit decision', () => {
   });
 
   it('makes every exemption state a reason', () => {
-    for (const [table, why] of Object.entries(UNSCOPED_TABLES)) {
-      expect(why.trim().length, `${table} must say why it is exempt`).toBeGreaterThanOrEqual(30);
+    for (const [table, reason] of Object.entries(UNSCOPED_TABLES)) {
+      expect(
+        reason.why.trim().length,
+        `${table} must say why it is exempt`,
+      ).toBeGreaterThanOrEqual(30);
     }
+  });
+
+  /**
+   * The vacuity floor for everything in the next block.
+   *
+   * Every shape assertion below iterates `UNSCOPED_TABLES`, so an empty or
+   * truncated registry would satisfy all of them while checking nothing — the
+   * `appeals` measurement one layer over: a table absent from the list is simply
+   * not checked.
+   */
+  it('has the exemptions it is supposed to have', () => {
+    expect(Object.keys(UNSCOPED_TABLES)).toHaveLength(16);
+    expect(declaredTableNames()).toHaveLength(27);
+  });
+});
+
+/**
+ * The two-way structural exemption.
+ *
+ * A reason string could not be contradicted by anything: prose reading "this has
+ * no tenant dimension" looks identical whether or not the table carries the two
+ * columns. The kind now implies a column shape, and this is where the live server
+ * gets to refuse it — so a misclassification fails the build instead of reading
+ * plausibly forever.
+ *
+ * It runs BOTH ways, which is the whole point. A `no_tenant_dimension` table that
+ * actually carries the pair is caught, and so is a
+ * `tenant_stamped_reached_through_parent` one that does not.
+ */
+describe('every exemption declares the tenant columns it really carries', () => {
+  /**
+   * Existence FIRST, and separately, because the shape query cannot answer it.
+   *
+   * `tenantColumnShapeOf` reads rows about two named columns, so a table that
+   * does not exist at all returns zero rows — indistinguishable from a table that
+   * exists and carries neither column, which is a legitimate shape. A typo in a
+   * registry key would therefore PASS as `neither`. This is the assertion that
+   * makes the shape check mean something.
+   */
+  it('names only tables that exist in the database', async () => {
+    const names = Object.keys(UNSCOPED_TABLES);
+    const rows = await database.asMigrator<{ table_name: string }[]>`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = ANY(${names})
+    `;
+
+    const missing = names.filter((name) => !rows.some((row) => row.table_name === name));
+    expect(missing).toEqual([]);
+  });
+
+  it('matches information_schema.columns for every one of them', async () => {
+    const names = Object.keys(UNSCOPED_TABLES);
+    const rows = await database.asMigrator<
+      { table_name: string; column_name: string; is_nullable: string }[]
+    >`
+      SELECT table_name, column_name, is_nullable
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = ANY(${names})
+        AND column_name IN ('organization_id', 'application_id')
+    `;
+
+    const mismatches = Object.entries(UNSCOPED_TABLES).flatMap(([table, reason]) => {
+      const columns = rows.filter((row) => row.table_name === table);
+      const observed = tenantColumnShapeOf(columns);
+      if (observed === reason.shape) return [];
+      return [
+        `${table}: declared ${reason.shape} (${reason.kind}), observed ` +
+          `${observed ?? 'a combination the vocabulary cannot express'} — ${describeTenantColumns(columns)}`,
+      ];
+    });
+
+    // Named, with both shapes and the raw columns, so a failure says what the
+    // database actually has rather than only that it disagreed.
+    expect(mismatches).toEqual([]);
+  });
+
+  /**
+   * The kind→shape implications the type cannot express on its own.
+   *
+   * Two of the four kinds pin `shape` to a literal, so TypeScript already refuses
+   * a wrong one at compile time. The other two accept any shape, deliberately —
+   * their members genuinely differ — but they still may not be `neither`: a row
+   * that names no tenant at all is not "attributed to a tenant" and does not
+   * "define" one, it simply has no tenant dimension, which is a different kind.
+   */
+  it('never files a table with no tenant columns under a kind that claims some', () => {
+    const contradictions = Object.entries(UNSCOPED_TABLES)
+      .filter(
+        ([, reason]) =>
+          reason.shape === 'neither' && reason.kind !== 'no_tenant_dimension',
+      )
+      .map(([table, reason]) => `${table} is ${reason.kind} but carries no tenant column`);
+
+    expect(contradictions).toEqual([]);
   });
 });
 
