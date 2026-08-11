@@ -10,6 +10,8 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
+import { CONTEXT_SUFFICIENCIES, REVIEW_OUTCOMES } from '@oxyhq/crowdsource-contracts';
+
 import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
 
 import { SLOT_TYPES } from '../../../modules/sortition/panelSpec';
@@ -397,5 +399,58 @@ export const reviews = pgTable(
     ),
     /** One review per assignment: a reviewer submits once. */
     uniqueIndex('reviews_assignment_id_key').on(table.assignmentId),
+
+    /**
+     * §12.7's `case_id + reviewer_id + decision_revision` — ONE REVIEW PER JUROR
+     * PER REVISION, and the second half of a pair the port had split.
+     *
+     * `review.collection.ts` states the rule and, unusually, states why one
+     * constraint cannot stand for the other: "**Both are needed** — the first
+     * stops a reviewer voting twice through two assignments, the second stops one
+     * assignment producing two reviews." Only the second (`reviews_assignment_id_key`)
+     * reached PostgreSQL; this restores the first.
+     *
+     * It is not made redundant by `assignments_case_id_reviewer_id_case_revision_key`,
+     * which migration 0005 restored on the other table. That one binds the SEAT;
+     * this one binds the VOTE, and the columns here are denormalised copies taken
+     * from the assignment at write time — nothing in the database forces them to
+     * agree with it. A review written with a mismatched `case_revision` is refused
+     * by this constraint and by nothing else.
+     *
+     * Same shape as its sibling and for the same reasons: `unique()` rather than
+     * `uniqueIndex()` (drizzle-kit emits every FK before every
+     * `CREATE UNIQUE INDEX`, so an index cannot be an FK target), and TOTAL rather
+     * than partial — there is no state in which a second vote by one juror on one
+     * revision is legitimate.
+     */
+    unique('reviews_case_id_reviewer_id_case_revision_key').on(
+      table.caseId,
+      table.reviewerId,
+      table.caseRevision,
+    ),
+
+    /**
+     * The two closed value sets this table carried in Mongo, restored.
+     *
+     * Rendered from `REVIEW_OUTCOMES` and `CONTEXT_SUFFICIENCIES` in the contracts
+     * package rather than from a local copy: both cross the reviewer API boundary
+     * — the app submits them and consensus counts them — so contracts is already
+     * their one home, and relocating them here would take a published value set
+     * out of the published package. That is the same split
+     * `REVIEWER_STATES` versus `REVIEWER_RELATION_SOURCES` made.
+     *
+     * `recommended_actions` DELIBERATELY gets no constraint. It is
+     * `{ type: [String], required: true, default: [] }` in Mongo with no `enum`,
+     * so a containment check here would be a NEW restriction smuggled in under a
+     * port — even though the TypeScript type is the closed `RecommendedAction`
+     * vocabulary, and even though consensus counts the values. The type is not the
+     * validator, and only the validator is being restored. `findings` is jsonb and
+     * its interior paths carry no enum either.
+     */
+    check('reviews_outcome_check', sql`${table.outcome} in (${sql.raw(inList(REVIEW_OUTCOMES))})`),
+    check(
+      'reviews_context_sufficiency_check',
+      sql`${table.contextSufficiency} in (${sql.raw(inList(CONTEXT_SUFFICIENCIES))})`,
+    ),
   ],
 );

@@ -231,6 +231,22 @@ const MAPPED: Readonly<
     column: 'requested_slots',
     constraint: 'sortition_draws_requested_slots_check',
   },
+
+  /**
+   * The review ledger, closed by migration 0006. Both render from the CONTRACTS
+   * package rather than a schema-local tuple: they cross the reviewer API
+   * boundary, so contracts is already their one home.
+   */
+  'Review.outcome': {
+    table: 'reviews',
+    column: 'outcome',
+    constraint: 'reviews_outcome_check',
+  },
+  'Review.contextSufficiency': {
+    table: 'reviews',
+    column: 'context_sufficiency',
+    constraint: 'reviews_context_sufficiency_check',
+  },
 };
 
 /**
@@ -353,8 +369,6 @@ const KNOWN_GAPS: readonly EnumKey[] = [
   'OrganizationMember.status',
   'PolicySet.status',
   'Report.status',
-  'Review.contextSufficiency',
-  'Review.outcome',
   'StaffAuditEvent.action',
   'StaffAuditEvent.roles',
   'TrustSafetyStaff.roles',
@@ -367,8 +381,8 @@ const KNOWN_GAPS: readonly EnumKey[] = [
   'WebhookEndpoint.status',
 ];
 
-/** Frozen. Lower it when you write a migration; never raise it. Was 35. */
-const KNOWN_GAP_COUNT = 28;
+/** Frozen. Lower it when you write a migration; never raise it. Was 35, then 28. */
+const KNOWN_GAP_COUNT = 26;
 
 interface CheckConstraint {
   readonly table_name: string;
@@ -641,12 +655,18 @@ describe('every mapped value set is enforced by the database', () => {
    * loosened, this count would jump by roughly the number of NOT NULL columns in
    * the schema, which is in the hundreds.
    *
-   * The count is of ROWS, not of constraints, and after 0005 the two differ: the
+   * The count is of ROWS, not of constraints, and since 0005 the two differ: the
    * query joins `unnest(con.conkey)`, so a CHECK spanning two columns yields two
    * rows. `sortition_draws_requested_slots_cardinality_check` names both `status`
-   * and `requested_slots`, which is why eleven constraints read as twelve rows.
-   * Said explicitly because "eleven" is the number a reader counts in the
-   * migrations, and finding twelve here would otherwise look like a bug.
+   * and `requested_slots` — the only multi-column CHECK in the schema — which is
+   * why THIRTEEN constraints read as FOURTEEN rows. Said explicitly because
+   * thirteen is the number a reader counts in the migrations, and finding fourteen
+   * here would otherwise look like a bug.
+   *
+   * The bound below is deliberately loose. It is not a count of the schema's
+   * CHECKs — that number changes with every slice of the port and a tight bound
+   * would turn this vacuity floor into a chore. It exists to catch the `contype`
+   * filter widening, whose signature is hundreds.
    */
   it('reads CHECK constraints specifically, not every constraint in the catalogue', async () => {
     const constraints = await checkConstraints();
@@ -654,8 +674,8 @@ describe('every mapped value set is enforced by the database', () => {
     expect(constraints.length).toBeGreaterThanOrEqual(Object.keys(MAPPED).length);
     expect(
       constraints.length,
-      `${constraints.length} constrained-column rows found, from eleven CHECK ` +
-        'constraints across migrations 0003, 0004 and 0005. A number in the ' +
+      `${constraints.length} constrained-column rows found, from thirteen CHECK ` +
+        'constraints across migrations 0003, 0004, 0005 and 0006. A number in the ' +
         'hundreds means the contype filter stopped selecting CHECK constraints ' +
         'specifically and is now counting NOT NULL, which PostgreSQL 17 also ' +
         'records here.',
