@@ -242,6 +242,62 @@ const MAPPED: Readonly<
     column: 'outcome',
     constraint: 'reviews_outcome_check',
   },
+
+  /**
+   * §9.6's decision vocabulary and §9.8's appeal grounds, closed by migration
+   * 0007. All four render from the CONTRACTS package: they cross the reviewer and
+   * console API boundaries, so contracts is already their one authority and no
+   * relocation was needed.
+   *
+   * All four validators genuinely FIRED on Mongo — each row is written through
+   * `insertOne`, which reaches `Model.create()`. Established rather than assumed:
+   * `updateOne` and `findOneAndUpdate` never pass `runValidators` anywhere in
+   * `db/collections.ts`, so a field written only by those paths had a validator
+   * that never ran. Those are recorded in `NOT_APPLICABLE` instead, because a
+   * validator that never RAN must not become a constraint that does.
+   */
+  'Appeal.reason': {
+    table: 'appeals',
+    column: 'reason',
+    constraint: 'appeals_reason_check',
+  },
+  'Decision.status': {
+    table: 'decisions',
+    column: 'status',
+    constraint: 'decisions_status_check',
+  },
+  'Decision.outcome': {
+    table: 'decisions',
+    column: 'outcome',
+    constraint: 'decisions_outcome_check',
+  },
+  'Decision.contextSufficiency': {
+    table: 'decisions',
+    column: 'context_sufficiency',
+    constraint: 'decisions_context_sufficiency_check',
+  },
+
+  /**
+   * The delivery lifecycle, closed by the same migration. Their tuples MOVED out
+   * of `webhook.collections.ts` into `db/postgres/schema/webhooks.ts` to render
+   * these: a schema importing from a Mongoose module would pull mongoose into
+   * `db:generate`, so the dependency runs one way only.
+   *
+   * `event_type` is deliberately absent from every bucket here and that is
+   * correct rather than an oversight — it carries no Mongoose `enum`, so the
+   * walk never sees it as a value set at all. Constraining it would be a new
+   * restriction, not a restored one.
+   */
+  'WebhookDelivery.status': {
+    table: 'webhook_deliveries',
+    column: 'status',
+    constraint: 'webhook_deliveries_status_check',
+  },
+  'WebhookDelivery.deadLetterReason': {
+    table: 'webhook_deliveries',
+    column: 'dead_letter_reason',
+    constraint: 'webhook_deliveries_dead_letter_reason_check',
+  },
   'Review.contextSufficiency': {
     table: 'reviews',
     column: 'context_sufficiency',
@@ -353,7 +409,6 @@ const ENUMS_WITHOUT_CHECK_AT_FREEZE: readonly EnumKey[] = [
  * records what was true on 2026-08-11 and closing a gap does not change the past.
  */
 const KNOWN_GAPS: readonly EnumKey[] = [
-  'Appeal.reason',
   'Application.status',
   'ApplicationCredential.status',
   'ApplicationTrust.lastStandingReason',
@@ -361,9 +416,6 @@ const KNOWN_GAPS: readonly EnumKey[] = [
   'AuditEvent.action',
   'AuditEvent.reason',
   'Case.status',
-  'Decision.contextSufficiency',
-  'Decision.outcome',
-  'Decision.status',
   'Organization.status',
   'OrganizationMember.role',
   'OrganizationMember.status',
@@ -375,14 +427,12 @@ const KNOWN_GAPS: readonly EnumKey[] = [
   'TrustSafetyStaff.status',
   'WebhookAttempt.failureKind',
   'WebhookAttempt.outcome',
-  'WebhookDelivery.deadLetterReason',
-  'WebhookDelivery.status',
   'WebhookEndpoint.disabledReason',
   'WebhookEndpoint.status',
 ];
 
 /** Frozen. Lower it when you write a migration; never raise it. Was 35, then 28. */
-const KNOWN_GAP_COUNT = 26;
+const KNOWN_GAP_COUNT = 20;
 
 interface CheckConstraint {
   readonly table_name: string;
