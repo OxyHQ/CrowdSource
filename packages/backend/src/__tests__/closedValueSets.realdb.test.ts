@@ -203,27 +203,83 @@ const NOT_APPLICABLE: Readonly<Record<EnumKey, string>> = {
 };
 
 /**
+ * A HISTORICAL RECORD: the enum-constrained paths that had no CHECK on
+ * 2026-08-11, when this gate landed.
+ *
+ * ## This list must never gain a member, and that is the whole mechanism
+ *
+ * It is not the working list — `KNOWN_GAPS` below is. This one is a statement
+ * about the PAST, and the assertion that makes the gate hard to cheat is
+ * `KNOWN_GAPS ⊆ ENUMS_WITHOUT_CHECK_AT_FREEZE`.
+ *
+ * The reasoning is worth keeping, because the first version of this file got it
+ * wrong in an instructive way. A single frozen list, held only by an exact count
+ * and a may-only-shrink note, still leaves the cheapest way to green a NEWLY
+ * ported table that dropped its enum as "add a line to the list" — a plausible
+ * bookkeeping edit that a reviewer reads as routine. That is the hazard the gate
+ * exists to refuse, so an invariant whose easiest satisfaction is the hazard is
+ * the wrong invariant.
+ *
+ * Splitting the list in two supplies the missing structure. A new enum's key is
+ * BY CONSTRUCTION not in the record below, so adding it to `KNOWN_GAPS` fails the
+ * subset assertion. To silence it you would have to edit this list — an edit that
+ * is visibly a false claim about what the schema looked like on a date in the
+ * past, not a bookkeeping line. **The cheapest green for a new enum therefore
+ * becomes writing the CHECK**, which is the property the gate is for.
+ *
+ * It is the same trick as the axis registry's `*.realdb.test.ts` constraint, one
+ * level up: there is no property distinguishing a new enum from an old one IN THE
+ * ENUM, so the distinction lives in the LIST instead.
+ */
+const ENUMS_WITHOUT_CHECK_AT_FREEZE: readonly EnumKey[] = [
+  'Appeal.reason',
+  'Application.status',
+  'ApplicationCredential.status',
+  'ApplicationTrust.lastStandingReason',
+  'ApplicationTrust.standing',
+  'Assignment.filledAs',
+  'Assignment.slotType',
+  'Assignment.status',
+  'AuditEvent.action',
+  'AuditEvent.reason',
+  'Case.status',
+  'Decision.contextSufficiency',
+  'Decision.outcome',
+  'Decision.status',
+  'Organization.status',
+  'OrganizationMember.role',
+  'OrganizationMember.status',
+  'PolicySet.status',
+  'Report.status',
+  'Review.contextSufficiency',
+  'Review.outcome',
+  'SortitionDraw.kind',
+  'SortitionDraw.pool',
+  'SortitionDraw.requestedSlots',
+  'SortitionDraw.status',
+  'StaffAuditEvent.action',
+  'StaffAuditEvent.roles',
+  'TrustSafetyStaff.roles',
+  'TrustSafetyStaff.status',
+  'WebhookAttempt.failureKind',
+  'WebhookAttempt.outcome',
+  'WebhookDelivery.deadLetterReason',
+  'WebhookDelivery.status',
+  'WebhookEndpoint.disabledReason',
+  'WebhookEndpoint.status',
+];
+
+/**
  * Enums whose CHECK has NOT been written yet — task #110's remaining work.
  *
- * ## Read this before adding a line
+ * The WORKING list, and it may only ever SHRINK. Every member must also appear in
+ * `ENUMS_WITHOUT_CHECK_AT_FREEZE` above; see that header for why the pair exists
+ * rather than one list.
  *
- * This list is FROZEN at the 35 that existed when the gate landed on 2026-08-11,
- * and it may only ever SHRINK. It is asserted by exact MEMBERSHIP, not merely by
- * count, so adding an entry is a visible diff in a list whose whole purpose is to
- * empty out.
- *
- * The reason for that severity is worth stating plainly, because this list is the
- * one dangerous thing in the file. **The cheapest way to green a newly-ported
- * table that dropped its enum would be to add a line here** — which is exactly the
- * loss the gate exists to refuse. Unlike the axis registry's exemption list, there
- * is no SHAPE that separates a new enum from an old one, so no structural
- * constraint can make the wrong move impossible; frozen membership plus a
- * may-only-shrink rule is the strongest available, and it is the same discipline
- * this repo already applies to its test floors.
- *
- * So: if you are here because a new table failed this gate, the answer is a
- * migration, not a line. If you are here to REMOVE a line because you wrote that
- * migration, move the entry into `MAPPED` and drop `KNOWN_GAP_COUNT` by one.
+ * If you are here because a new table failed this gate, the answer is a
+ * migration, not a line — a line will not work, by construction. If you are here
+ * to REMOVE a line because you wrote that migration, move the entry into `MAPPED`
+ * and drop `KNOWN_GAP_COUNT` by one, leaving the record above untouched.
  */
 const KNOWN_GAPS: readonly EnumKey[] = [
   'Appeal.reason',
@@ -421,7 +477,39 @@ describe('every closed value set is accounted for', () => {
   });
 
   /**
-   * The ratchet. See `KNOWN_GAPS`'s header for why it is asserted this hard.
+   * The ratchet's teeth. See `ENUMS_WITHOUT_CHECK_AT_FREEZE`'s header.
+   *
+   * This is the assertion a new enum cannot be talked out of: its key is not in
+   * the historical record, so filing it as a known gap fails here rather than
+   * passing as bookkeeping.
+   */
+  it('lets the known-gap list name only enums that were already gaps at the freeze', () => {
+    const frozen = new Set(ENUMS_WITHOUT_CHECK_AT_FREEZE);
+    const smuggled = KNOWN_GAPS.filter((key) => !frozen.has(key));
+
+    expect(
+      smuggled,
+      `${smuggled.join(', ')} is filed as a known gap but was NOT one on ` +
+        '2026-08-11, when this gate froze the list. That means it is a value set ' +
+        'that lost its CHECK AFTER the gate existed — the exact regression this ' +
+        'file is here to refuse. Write the migration. Adding it above cannot ' +
+        'work, and editing ENUMS_WITHOUT_CHECK_AT_FREEZE to accommodate it would ' +
+        'be a false statement about what the schema looked like on that date.',
+    ).toEqual([]);
+  });
+
+  it('never lets the historical record grow', () => {
+    expect(
+      ENUMS_WITHOUT_CHECK_AT_FREEZE.length,
+      'ENUMS_WITHOUT_CHECK_AT_FREEZE is a statement about the past and cannot ' +
+        'change. If this number moved, something is being backdated.',
+    ).toBe(35);
+  });
+
+  /**
+   * The size ratchet, which the subset assertion above does not replace: without
+   * it, an entry could be REMOVED from the working list without its migration
+   * being written, quietly dropping a gap off the books.
    */
   it('keeps the known-gap list frozen at its recorded size', () => {
     expect(
