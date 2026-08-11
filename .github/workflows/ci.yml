@@ -11,7 +11,37 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # PULL REQUESTS CANCEL; MAIN NEVER DOES, and the second half is a deploy
+  # invariant rather than a CI preference.
+  #
+  # `deploy-aws.yml` and `deploy-frontends.yml` both trigger on
+  # `workflow_run … types: [completed]` and gate on
+  # `workflow_run.conclusion == 'success'`. `completed` fires on ANY completion,
+  # cancellation included — so a cancelled CI run starts the deploy workflow,
+  # fails its scope job, and the run reports `skipped`. That is the same word a
+  # legitimately path-filtered deploy uses, and nothing anywhere is red.
+  #
+  # With `cancel-in-progress: true` on main, two merges landing inside one CI
+  # runtime meant the FIRST one never deployed at all. Measured 2026-08-11:
+  # `bb419e0b` added migration `0005_fluffy_chronomancer`, its CI run
+  # `31447000177` was cancelled 19s later by the next merge, and deploy runs
+  # `31447285794`/`31447285764` reported `skipped`. The migration sat unapplied
+  # behind two green pull requests until a later deploy's `pre` phase happened
+  # to pick it up.
+  #
+  # It is usually self-healing — the next successful deploy applies everything
+  # pending, and the scope diff runs from the `deployed/backend` marker rather
+  # than from the previous commit — which is exactly what makes it dangerous:
+  # the loss is invisible unless the cancelling commit's own CI then fails, or
+  # it is the last merge for a while.
+  #
+  # An EXPRESSION, and the two ways of getting it wrong are not symmetric. A
+  # mistype that evaluates falsy disables cancelling everywhere: slower PR CI,
+  # main still protected — safe. A mistype in the BRANCH NAME (`refs/heads/mian`)
+  # evaluates TRUE on main and silently restores the defect. That asymmetry is
+  # why `deployWiring.test.ts` matches this expression exactly rather than
+  # semantically.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   BUN_VERSION: '1.3.14'
