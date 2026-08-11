@@ -1,0 +1,62 @@
+-- oxy:deploy-phase=pre
+--
+-- PRE, on the reasoning 0003, 0004 and 0005 set out: a `post` statement is one
+-- that BREAKS A WRITE THE PREVIOUS IMAGE PERFORMS. None of the three below breaks
+-- one — the Mongoose `unique` and `enum` validators already constrain these paths
+-- to exactly these sets, and no production caller writes `reviews` in PostgreSQL
+-- yet. The table is also EMPTY, so nothing can fail on existing data.
+--
+-- Do NOT paraphrase that as "post = narrowing". A CHECK and a UNIQUE both narrow;
+-- the zero-capacity deploy path applies `post` only after the repoint, and
+-- CrowdSource is parked at desiredCount=0, so the phase is load-bearing rather
+-- than bookkeeping.
+--
+-- ALL THREE ARE RESTORATIONS. Each existed as a Mongoose validator and the port
+-- dropped it. Nothing here is a new rule.
+--
+-- ## The UNIQUE is the second half of a pair the port split
+--
+-- `review.collection.ts` declares TWO uniques and, unusually, says why neither
+-- stands for the other: "**Both are needed** — the first stops a reviewer voting
+-- twice through two assignments, the second stops one assignment producing two
+-- reviews." Only the second (`reviews_assignment_id_key`, migration 0002) reached
+-- PostgreSQL. This restores the first, §12.7's
+-- `case_id + reviewer_id + decision_revision`.
+--
+-- It is NOT made redundant by `assignments_case_id_reviewer_id_case_revision_key`,
+-- which 0005 restored on the other table. That one binds the SEAT; this binds the
+-- VOTE. The columns here are denormalised copies taken from the assignment at
+-- write time, and nothing in the database forces them to agree with it — a review
+-- written with a mismatched `case_revision` is refused by this constraint and by
+-- nothing else.
+--
+-- Same shape as its sibling: `unique()` not `uniqueIndex()` (drizzle-kit emits
+-- every FK before every `CREATE UNIQUE INDEX`, so an index cannot be an FK
+-- target), and TOTAL not partial — no state makes a second vote legitimate.
+--
+-- ## The two value sets
+--
+-- Rendered from `REVIEW_OUTCOMES` and `CONTEXT_SUFFICIENCIES` in the CONTRACTS
+-- package via `inList`, not from a local copy: both cross the reviewer API
+-- boundary, so contracts is already their one home and moving them into the
+-- schema would take a published value set out of the published package. Rendered
+-- with `sql.raw` deliberately — an ordinary interpolation into `check()` emits the
+-- bound parameter `$1`, which fails at APPLY time with no local signal.
+--
+-- `recommended_actions` DELIBERATELY gets no constraint, and the reason is worth
+-- stating because it is the one a reader will want to overturn: it is
+-- `{ type: [String], required: true, default: [] }` in Mongo with NO `enum`, so a
+-- containment check would be a NEW restriction smuggled in under a port — even
+-- though its TypeScript type is the closed `RecommendedAction` vocabulary and
+-- consensus counts the values. The type is not the validator, and only the
+-- validator is being restored here. `findings` is jsonb and its interior paths
+-- carry no enum either.
+--
+-- REGENERATION WARNING. This header is HAND-MAINTAINED: `bun run db:generate`
+-- emits only the statements below and this block is gone. Re-apply it, keep
+-- exactly ONE `-- oxy:deploy-phase=` line, and read the regenerated file for
+-- statements you did not intend.
+
+ALTER TABLE "reviews" ADD CONSTRAINT "reviews_case_id_reviewer_id_case_revision_key" UNIQUE("case_id","reviewer_id","case_revision");--> statement-breakpoint
+ALTER TABLE "reviews" ADD CONSTRAINT "reviews_outcome_check" CHECK ("reviews"."outcome" in ('violation', 'no_violation', 'insufficient_context', 'content_unavailable'));--> statement-breakpoint
+ALTER TABLE "reviews" ADD CONSTRAINT "reviews_context_sufficiency_check" CHECK ("reviews"."context_sufficiency" in ('sufficient', 'insufficient'));

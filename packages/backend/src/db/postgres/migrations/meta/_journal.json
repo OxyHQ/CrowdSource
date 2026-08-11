@@ -43,6 +43,13 @@
       "when": 1786407759550,
       "tag": "0005_fluffy_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786410419159,
+      "tag": "0006_ambitious_silver_surfer",
+      "breakpoints": true
     }
   ]
 }
