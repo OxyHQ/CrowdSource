@@ -906,12 +906,25 @@ fi
 # gone. It BLOCKS if a `pre` migration is somehow still pending, which fails this
 # task and rolls the service back — the correct repair, said out loud.
 #
-# DO NOT MOVE THIS ABOVE THE SMOKE CHECK. Running it directly after the rollout
-# looks tidier and is wrong: a smoke failure rolls the service back to the
-# PREVIOUS image, and a `post` migration that has already dropped a column that
-# image reads leaves nothing to roll back to — the one repair path becomes a
-# second outage. The drop waits until the new image is confirmed healthy.
-# `test-deploy-ecs-image.sh`'s `migration-phases` case pins this exact ordering.
+# DO NOT MOVE THIS ABOVE THE SMOKE CHECK — ON THIS PATH. Running it directly
+# after the rollout looks tidier and is wrong: a smoke failure rolls the service
+# back to the PREVIOUS image, and a `post` migration that has already dropped a
+# column that image reads leaves nothing to roll back to — the one repair path
+# becomes a second outage. The drop waits until the new image is confirmed
+# healthy. `test-deploy-ecs-image.sh`'s `migration-phases` case pins this order.
+#
+# THE ZERO-CAPACITY PATH ABOVE RUNS ITS OWN COPY OF THIS BLOCK EARLIER, AND THAT
+# IS NOT A VIOLATION OF THIS RULE — do not "restore" the ordering by deleting it.
+# Every term in the sentence above is empty at desiredCount=0: the smoke check is
+# skipped (nothing is serving for it to reach), there is no rollback (nothing is
+# running to roll back from), and there is no previous image still selecting the
+# dropped column. What the rule protects does not exist there.
+#
+# Skipping it there is the option that is actually unsafe: @oxyhq/db's ledger is
+# a high-water mark and cannot skip a hole, so an unapplied `post` REFUSES every
+# later `pre` run and every subsequent deploy fails at its migration step. That
+# is not a deferral, it is a deadlock, and it needs a human with `--phase=all`.
+# Measured in alia, parked at zero: four consecutive merges deployed red.
 if [[ "$RUN_MIGRATIONS" == "true" ]]; then
   if ! run_one_shot_command \
     "Migration (post)" \
