@@ -51,15 +51,65 @@ export const cases = pgTable(
   },
   (table) => [
     /**
-     * Case deduplication, and the reason it is UNIQUE rather than a service-level
-     * check: two reports about the same subject arriving together both read
-     * nothing and both create a case, which is two cases and eventually two
-     * penalties for one incident. The index is the arbiter, so the race has no
-     * window.
+     * ONE CASE PER SUBJECT — WHICH IS **NOT** §7.3's DEDUPLICATION RULE.
+     *
+     * ## Read this before writing the upsert
+     *
+     * This constraint is two columns. Mongo's is four:
+     * `case.collection.ts:181` declares
+     * `{applicationId, externalSubjectId, contentHash, policyVersion}` unique,
+     * commented "§12.7's case dedup constraint, and the thing that actually
+     * enforces §7.3. The four fields are the plan's, verbatim."
+     *
+     * **The difference is not a narrowing. It is a different rule, pointing the
+     * other way.** `(application_id, subject_external_id)` says one case per
+     * subject FOREVER. §7.3 deliberately opens a NEW case when the content hash
+     * changes (the material was edited) or the policy version changes (it is being
+     * judged under different rules) — so under Mongo a second report about edited
+     * content is a second case, and under this constraint it is not.
+     *
+     * **Which way it breaks depends on how the switch spells the write, and both
+     * ways are wrong.** An upsert keyed on these two columns silently MERGES an
+     * edited-content report into the old case — `case.service.ts` documents that
+     * the loser of the race merges, so nothing errors and nothing logs. A plain
+     * insert instead COLLIDES on this unique. Neither is §7.3, neither names its
+     * cause, and neither is what the previous version of this comment promised.
+     *
+     * ## Latent today, and this is the moment it is cheap
+     *
+     * `case.service.ts:157` still upserts on the four-field key against Mongo, and
+     * `repositories/scoped/cases.ts` has a plain `insertCase` with no upsert path
+     * at all — so nothing reaches this constraint yet. It becomes live the moment
+     * the ingestion switch is written, which is why the decision is recorded here
+     * rather than left to whoever writes it.
+     *
+     * ## The decision: four columns, restored before the switch
+     *
+     * `content_hash` and `policy_version` DO NOT EXIST as columns on this table —
+     * it has 8 against the Mongoose model's 40 — so this is three columns plus an
+     * upsert, not an index change, and it belongs to the `cases` slice rather than
+     * to a schema tidy.
+     *
+     * The tempting alternative was rejected deliberately: `caseDedupKey` is a
+     * sha256 of exactly those four inputs, already computed by
+     * `attachReportToCase` and already stored in Mongo, so `unique(application_id,
+     * case_dedup_key)` would be one column instead of three. It is not taken
+     * because **Mongo has both and gives them different jobs** — the four-field
+     * unique is the arbiter, and `{applicationId, caseDedupKey}` is NON-unique and
+     * described as "for lookup and for future cross-application correlation".
+     * Promoting a lookup key to arbiter is a design change, not a port, and it
+     * makes every non-equality question ("which cases are on policy version N")
+     * unanswerable without recomputation.
+     *
+     * The Mongo lookup index is NOT ported either, and that is measured rather
+     * than assumed: `case_dedup_key` has **no reader anywhere** — it is written at
+     * insert and returned to the caller, and nothing queries by it. An index
+     * nobody reads is a guess at an access path.
      *
      * Scoped by APPLICATION, not by organization — one customer's staging and
      * production products must be able to report the same subject id
-     * independently, exactly as two unrelated customers can.
+     * independently, exactly as two unrelated customers can. That part of the
+     * original reasoning survives and applies to the four-column form too.
      */
     uniqueIndex('cases_application_subject_key').on(
       table.applicationId,
