@@ -1,4 +1,5 @@
-import type { WebhookDeadLetterReason, WebhookFailureKind } from './webhook.collections';
+import type { WebhookDeadLetterReason } from '../../db/postgres/schema/webhooks';
+import type { WebhookFailureKind } from './webhook.collections';
 
 /**
  * The retry ladder and the failure classification of §10.9.

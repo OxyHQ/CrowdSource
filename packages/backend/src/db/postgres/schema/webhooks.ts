@@ -1,6 +1,40 @@
-import { index, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { check, index, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
-import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+
+/**
+ * A LOGICAL delivery: one event to one endpoint, however many attempts it takes
+ * (§12.7, App. D).
+ *
+ * `pending` carries a `nextAttemptAt`; `delivering` is a lease the worker holds
+ * while an attempt is in flight; `succeeded` and `dead_letter` are terminal.
+ * A dead letter is never deleted — §10.9 promises manual replay, and a row that
+ * was discarded is a decision the tenant never received and nobody can name.
+ */
+export const WEBHOOK_DELIVERY_STATUSES = [
+  'pending',
+  'delivering',
+  'succeeded',
+  'dead_letter',
+] as const;
+export type WebhookDeliveryStatus = (typeof WEBHOOK_DELIVERY_STATUSES)[number];
+
+/** Why a delivery stopped. Each one is a different operator conversation. */
+export const WEBHOOK_DEAD_LETTER_REASONS = [
+  /** The §10.9 ladder ran out. */
+  'attempts_exhausted',
+  /** 410: the endpoint is gone, and it was disabled. */
+  'endpoint_gone',
+  /** A 4xx that will not become a 2xx by waiting (§10.9's "with classification"). */
+  'client_error',
+  /** The URL resolved into a private or reserved address at delivery time. */
+  'unsafe_target',
+  /** The endpoint was disabled between fan-out and the attempt. */
+  'endpoint_disabled',
+] as const;
+export type WebhookDeadLetterReason = (typeof WEBHOOK_DEAD_LETTER_REASONS)[number];
+
 
 /**
  * Webhook endpoints, their signing secrets, the delivery attempt journal — and
@@ -246,6 +280,35 @@ export const webhookDeliveries = pgTable(
       table.applicationId,
       table.status,
       table.createdAt.desc(),
+    ),
+
+    /**
+     * §12.7's delivery lifecycle and §10.9's stop reasons, restored as
+     * constraints. Both validators fired on Mongo: a delivery is written through
+     * `insertOne`, which reaches `Model.create()`.
+     *
+     * `dead_letter_reason` IS NULLABLE and this CHECK admits NULL without saying
+     * so anywhere else, which is the thing a reader gets wrong: a CHECK rejects
+     * only FALSE, and `NULL in (…)` is NULL rather than FALSE. Measured on a real
+     * server — the same constraint accepted a NULL row and rejected `'zzz'` with
+     * 23514. So "no reason yet" is already legal and an `OR … IS NULL` would be
+     * redundant rather than protective.
+     *
+     * `event_type` DELIBERATELY GETS NO CHECK, recorded here because its absence
+     * beside these two reads as an omission. §10.6's event types are a published
+     * vocabulary, but the Mongoose path is `{ type: String, required: true }`
+     * with no `enum` — so a constraint would be a NEW restriction rather than a
+     * restored one. It is also the field most likely to gain a member, and a
+     * CHECK there dead-letters a legitimate new event at the DATABASE rather than
+     * at the contract, in exactly the rollout where that is hardest to diagnose.
+     */
+    check(
+      'webhook_deliveries_status_check',
+      sql`${table.status} in (${sql.raw(inList(WEBHOOK_DELIVERY_STATUSES))})`,
+    ),
+    check(
+      'webhook_deliveries_dead_letter_reason_check',
+      sql`${table.deadLetterReason} in (${sql.raw(inList(WEBHOOK_DEAD_LETTER_REASONS))})`,
     ),
   ],
 );

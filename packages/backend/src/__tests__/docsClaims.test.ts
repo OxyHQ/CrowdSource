@@ -41,6 +41,7 @@ import {
 import { CONSOLE_ROLES, STAFF_ROLES } from '../modules/console/console.collections';
 import { STAFF_AUDIT_ACTIONS } from '../modules/console/staffAudit.collection';
 import { OUTBOX_STATUSES } from '../db/postgres/schema/infrastructure';
+import { WEBHOOK_DEAD_LETTER_REASONS } from '../db/postgres/schema/webhooks';
 import { OUTBOX_EVENT_TYPES } from '../modules/outbox/outbox.collection';
 import {
   OUTBOX_LEASE_MS,
@@ -68,7 +69,6 @@ import {
   WEBHOOK_MAX_ATTEMPTS,
 } from '../modules/webhooks/retrySchedule';
 import {
-  WEBHOOK_DEAD_LETTER_REASONS,
   WEBHOOK_FAILURE_KINDS,
 } from '../modules/webhooks/webhook.collections';
 

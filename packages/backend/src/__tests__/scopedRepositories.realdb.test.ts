@@ -190,7 +190,15 @@ describe('decisions and appeals', () => {
     applicationId: alpha.applicationId,
     caseId: 'case_alpha',
     revision: 1,
-    status: 'published',
+    /**
+     * `final`, not `published`. This fixture said `published` until migration
+     * 0007 put a CHECK on the column and the insert began failing with 23514.
+     * `published` is a POLICY SET status and was never a decision status —
+     * `decision.service.ts` writes `final` and then `superseded`. The value was
+     * always wrong and nothing noticed, because the fixture writes straight to
+     * Postgres and so never met the Mongoose validator production goes through.
+     */
+    status: 'final',
     outcome: 'violation',
     contextSufficiency: 'sufficient',
     confidence: 0.9,
@@ -272,7 +280,14 @@ describe('decisions and appeals', () => {
         supersededRevision: 1,
         supersededDecisionId: 'dec_alpha',
         openedRevision: 2,
-        reason: 'new evidence',
+        /**
+         * A real member of `APPEAL_REASONS`. This fixture said 'new evidence'
+         * until migration 0007 put a CHECK on the column and the insert started
+         * failing with 23514 — the value was never legal, and nothing noticed
+         * because the fixture writes straight to Postgres and so never met the
+         * Mongoose validator that production writes go through.
+         */
+        reason: 'finding_incorrect',
         appellantExternalPrincipalId: 'principal_one',
         authorContext: null,
         previousRequiredVotes: 3,
@@ -291,7 +306,7 @@ describe('decisions and appeals', () => {
       byKey: await decisionRepository.findAppealByIdempotencyKey(tx, 'idem_appeal_alpha'),
     }));
 
-    expect(readings.byId?.reason).toBe('new evidence');
+    expect(readings.byId?.reason).toBe('finding_incorrect');
     expect(readings.byRevision?.appealId).toBe('app_alpha');
     expect(readings.byKey?.appealId).toBe('app_alpha');
   });

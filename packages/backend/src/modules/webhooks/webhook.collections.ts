@@ -1,6 +1,12 @@
 import { Schema } from 'mongoose';
 
 import { defineTenantCollection, defineUnscopedCollection } from '../../db/collections';
+import {
+  WEBHOOK_DEAD_LETTER_REASONS,
+  WEBHOOK_DELIVERY_STATUSES,
+  type WebhookDeadLetterReason,
+  type WebhookDeliveryStatus,
+} from '../../db/postgres/schema/webhooks';
 import type { TenantContext } from '../../db/tenantScope';
 
 /**
@@ -156,38 +162,6 @@ webhookSecretSchema.index({ applicationId: 1, webhookEndpointId: 1, version: 1 }
 webhookSecretSchema.index({ applicationId: 1, webhookEndpointId: 1, activatesAt: -1 });
 
 export const webhookSecrets = defineTenantCollection('WebhookSecret', webhookSecretSchema);
-
-/**
- * A LOGICAL delivery: one event to one endpoint, however many attempts it takes
- * (§12.7, App. D).
- *
- * `pending` carries a `nextAttemptAt`; `delivering` is a lease the worker holds
- * while an attempt is in flight; `succeeded` and `dead_letter` are terminal.
- * A dead letter is never deleted — §10.9 promises manual replay, and a row that
- * was discarded is a decision the tenant never received and nobody can name.
- */
-export const WEBHOOK_DELIVERY_STATUSES = [
-  'pending',
-  'delivering',
-  'succeeded',
-  'dead_letter',
-] as const;
-export type WebhookDeliveryStatus = (typeof WEBHOOK_DELIVERY_STATUSES)[number];
-
-/** Why a delivery stopped. Each one is a different operator conversation. */
-export const WEBHOOK_DEAD_LETTER_REASONS = [
-  /** The §10.9 ladder ran out. */
-  'attempts_exhausted',
-  /** 410: the endpoint is gone, and it was disabled. */
-  'endpoint_gone',
-  /** A 4xx that will not become a 2xx by waiting (§10.9's "with classification"). */
-  'client_error',
-  /** The URL resolved into a private or reserved address at delivery time. */
-  'unsafe_target',
-  /** The endpoint was disabled between fan-out and the attempt. */
-  'endpoint_disabled',
-] as const;
-export type WebhookDeadLetterReason = (typeof WEBHOOK_DEAD_LETTER_REASONS)[number];
 
 export interface WebhookDeliveryDocument extends TenantContext {
   deliveryId: string;

@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   doublePrecision,
   index,
   integer,
@@ -9,7 +11,13 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import {
+  APPEAL_REASONS,
+  CONTEXT_SUFFICIENCIES,
+  DECISION_OUTCOMES,
+  DECISION_STATUSES,
+} from '@oxyhq/crowdsource-contracts';
 
 /**
  * A jury's decision on a case, and the appeal that can supersede it.
@@ -78,6 +86,32 @@ export const decisions = pgTable(
       table.caseId,
       table.revision.desc(),
     ),
+
+    /**
+     * §9.6's three closed sets, restored as constraints.
+     *
+     * All three validators fired on Mongo — a decision is written through
+     * `insertOne`, which reaches `Model.create()`. They render from the CONTRACTS
+     * package rather than a schema-local tuple because they cross the reviewer
+     * and console API boundaries, so contracts is already their one authority.
+     *
+     * `outcome` matters most of the three: §9.6 requires `inconclusive` to be its
+     * own outcome and never to collapse into `no_violation`, and a column that
+     * accepts any string is one bad write away from erasing that distinction in
+     * the store rather than in the code that was careful about it.
+     */
+    check(
+      'decisions_status_check',
+      sql`${table.status} in (${sql.raw(inList(DECISION_STATUSES))})`,
+    ),
+    check(
+      'decisions_outcome_check',
+      sql`${table.outcome} in (${sql.raw(inList(DECISION_OUTCOMES))})`,
+    ),
+    check(
+      'decisions_context_sufficiency_check',
+      sql`${table.contextSufficiency} in (${sql.raw(inList(CONTEXT_SUFFICIENCIES))})`,
+    ),
   ],
 );
 
@@ -144,6 +178,25 @@ export const appeals = pgTable(
       table.applicationId,
       table.caseId,
       table.openedRevision,
+    ),
+
+    /**
+     * §9.8's grounds for appeal, restored as a constraint.
+     *
+     * Mongoose enforced `enum: APPEAL_REASONS` and the validator DID fire — the
+     * appeal is written through `insertOne`, which goes to `Model.create()`.
+     * Everything in this repo that writes through `updateOne` or
+     * `findOneAndUpdate` never ran its validators, because nothing passes
+     * `runValidators`; those are recorded in the gate as not-applicable rather
+     * than given a constraint they never had.
+     *
+     * `sql.raw` on the value list is required, not stylistic: an ordinary
+     * interpolation into `check()` emits the bound parameter `$1` into the
+     * generated migration, which then fails at APPLY time with no local signal.
+     */
+    check(
+      'appeals_reason_check',
+      sql`${table.reason} in (${sql.raw(inList(APPEAL_REASONS))})`,
     ),
   ],
 );
