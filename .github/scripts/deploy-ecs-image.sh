@@ -793,16 +793,87 @@ if ! aws ecs update-service \
   exit 1
 fi
 
-# Everything real at zero capacity is now done: the `pre` migration ran, the
-# revision is registered, and the service points at it. The rollout is the part
-# that would be a lie, so it is skipped rather than waited on — a rollout at
-# desiredCount 0 reaches "COMPLETED" with zero running tasks, which is exactly
-# the plausible-looking green this repo keeps getting caught by.
+# The ROLLOUT is the only thing here that would be a lie, so it is the only
+# thing skipped: a rollout at desiredCount 0 reaches "COMPLETED" with zero
+# running tasks, which is exactly the plausible-looking green this estate keeps
+# getting caught by. The post-deploy one-shot is neither a lie nor optional.
+#
+# It runs as its OWN ECS task — run_one_shot_command calls `ecs run-task`, not
+# the service — so the service's capacity has nothing to do with it. The
+# pre-rollout run above is the positive control: it launches and succeeds at
+# this same desiredCount=0, by the same mechanism, on the same revision.
+#
+# And zero capacity is the one condition under which `post` is unconditionally
+# SAFE. A `post` statement is defined as one that breaks a write the previous
+# image performs; with zero tasks running there is no previous image, and no
+# such write. The rule that defers it has no subject here.
+#
+# Deferring it anyway DEADLOCKS the service. @oxyhq/db records migration
+# progress as a high-water mark and cannot skip a hole (see planMigrationRun in
+# its migrate/phases), so the NEXT release's `pre` run is BLOCKED behind the
+# unapplied `post` one and that deploy fails at its migration step — before ever
+# reaching the post-deploy task that was supposed to catch up. So "it applies on
+# the first deploy after the service is scaled up" is FALSE: every deploy in
+# between fails, and a human has to clear it with a `--phase=all` one-shot.
+# Measured in alia, which sat parked at zero: four consecutive merges deployed
+# red behind an unapplied 0016 while every one of their PRs was green.
 if [[ "$zero_capacity_deploy" == "true" ]]; then
+  if [[ -n "$POST_DEPLOY_SMOKE_SCRIPT" ]]; then
+    # Skipped, and named rather than silently omitted. Every smoke script in
+    # this estate asserts HTTP against the service's own public origin, so with
+    # zero running tasks it can only fail on a target group with no healthy
+    # member, or "pass" against something in front that is not this image.
+    # Neither outcome measures the release, and a rollback over either is
+    # meaningless when nothing is serving.
+    echo "::warning::NO ROLLOUT PERFORMED: post-deploy smoke checks were SKIPPED ($POST_DEPLOY_SMOKE_SCRIPT). With zero running tasks they cannot reach this image, so they could only fail or mislead."
+  fi
+
+  # THIS REPO APPLIES ITS `post` PHASE THROUGH THE MIGRATION TASK DEFINITION,
+  # not through POST_DEPLOY_TASK_COMMAND_JSON — deploy-aws.yml sets the latter
+  # for nothing at all. A fix that only moved the reconciliation block would
+  # therefore change nothing here. Both run, in the order they have at capacity.
+  #
+  # The "DO NOT MOVE THIS ABOVE THE SMOKE CHECK" rule further down is NOT
+  # violated. Its subject is a smoke failure rolling the service back to a
+  # PREVIOUS image that still reads a column the `post` phase dropped. At zero
+  # capacity the smoke check is skipped, there is no rollback, and no previous
+  # image is serving — every term in that sentence is empty.
+  if [[ "$RUN_MIGRATIONS" == "true" ]]; then
+    if ! run_one_shot_command \
+      "Migration (post)" \
+      "$migration_task_definition" \
+      "$MIGRATION_CONTAINER_NAME" \
+      "$(jq -cn --argjson base "$MIGRATION_COMMAND_JSON" --arg db "$MIGRATION_TARGET_DATABASE" \
+          '$base + ["--target-database=" + $db, "--phase=post"]')"; then
+      # No rollback, for the same reason update-service does not roll back here:
+      # nothing is running to roll back FROM, and rollback_service would sit in
+      # wait_for_service_rollout until MAX_WAIT_SECS waiting for a steady state
+      # that cannot arrive.
+      echo "::error::Post-rollout migration failed at desiredCount=0. $APP is left pointed at $new_task_definition with the post phase UNAPPLIED, and no rollback was attempted because nothing is running to roll back from. Resolve it before the next deploy: a later pre-phase migration queued behind an unapplied post one is refused, which fails that deploy at its migration step."
+      exit 1
+    fi
+  fi
+
+  if [[ -n "$POST_DEPLOY_TASK_COMMAND_JSON" ]]; then
+    if ! run_one_shot_command \
+      "Post-deploy reconciliation" \
+      "$new_task_definition" \
+      "$CONTAINER_NAME" \
+      "$POST_DEPLOY_TASK_COMMAND_JSON"; then
+      echo "::error::Post-deploy reconciliation failed at desiredCount=0. $APP is left pointed at $new_task_definition and no rollback was attempted because nothing is running to roll back from."
+      exit 1
+    fi
+  fi
+
   echo "::warning::NO ROLLOUT PERFORMED: ECS service $APP is at desiredCount=0 and is running ZERO tasks."
   echo "::warning::NO ROLLOUT PERFORMED: the task definition WAS registered and the service now points at it: $new_task_definition"
   echo "::warning::NO ROLLOUT PERFORMED: image $IMAGE_URI is NOT live and $APP is serving NOTHING. This deploy released nothing to users."
-  echo "::warning::NO ROLLOUT PERFORMED: the 'post' migration phase was NOT applied — it drops and narrows, and there is no healthy image to confirm first. It applies on the first deploy after the service is scaled up."
+  # Which phases ran, stated rather than implied. A reader of this log has to be
+  # able to tell a schema that is fully migrated from one that is half migrated,
+  # and "NO ROLLOUT PERFORMED" is silent about both.
+  if [[ "$RUN_MIGRATIONS" == "true" ]]; then
+    echo "::warning::NO ROLLOUT PERFORMED: MIGRATIONS DID RUN — phase=pre before the repoint and phase=post after it. The schema is fully migrated; only the rollout was skipped."
+  fi
   echo "::warning::NO ROLLOUT PERFORMED: to run this image, raise desired_count in oxy-infra terraform and deploy again."
   exit 0
 fi
