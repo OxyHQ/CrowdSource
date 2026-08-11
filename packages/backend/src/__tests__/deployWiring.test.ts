@@ -29,6 +29,38 @@ function read(...segments: string[]): string {
 
 const deployScript = read('.github', 'scripts', 'deploy-ecs-image.sh');
 const deployWorkflow = read('.github', 'workflows', 'deploy-aws.yml');
+const deployFrontendsWorkflow = read('.github', 'workflows', 'deploy-frontends.yml');
+const ciWorkflow = read('.github', 'workflows', 'ci.yml');
+
+/**
+ * The top-level `concurrency:` block — the key at column 0 and every indented
+ * line under it, stopping at the next column-0 key.
+ *
+ * Scoping is the point: a JOB-level `concurrency` block would otherwise satisfy
+ * an assertion meant for the workflow-level one, which is the only one that
+ * governs whether a whole run gets cancelled.
+ */
+function topLevelConcurrency(workflow: string): string {
+  const match = /^concurrency:\n((?: {2}.*\n|\n)*)/m.exec(workflow);
+  return match?.[1] ?? '';
+}
+
+/**
+ * The same block with `#` lines removed, for assertions about what the workflow
+ * DIRECTS rather than what it explains.
+ *
+ * The concurrency block below carries a long comment that quotes
+ * `cancel-in-progress: true` while explaining why it is wrong. A negative
+ * assertion run over the raw block matches that prose, so it would fail the
+ * CORRECT configuration the moment someone rewrapped the paragraph — a gate that
+ * fails on the right answer, which is worse than no gate. Directives only.
+ */
+function directivesOnly(block: string): string {
+  return block
+    .split('\n')
+    .filter((line) => !/^\s*#/.test(line))
+    .join('\n');
+}
 const dockerfile = readFileSync(path.join(packageRoot, 'Dockerfile'), 'utf8');
 const tsconfig = readFileSync(path.join(packageRoot, 'tsconfig.json'), 'utf8');
 
@@ -205,6 +237,77 @@ describe('the migration interlock', () => {
   it('never cancels a deploy that is already running', () => {
     expect(deployWorkflow).toMatch(/cancel-in-progress:\s*false/);
     expect(deployWorkflow).not.toMatch(/cancel-in-progress:\s*true/);
+  });
+
+  /**
+   * THE ASSERTION ABOVE IS STATED IN THE FILE THAT CANNOT ENFORCE IT.
+   *
+   * Both deploy workflows trigger on `workflow_run … types: [completed]` and
+   * gate on `workflow_run.conclusion == 'success'`. `completed` fires on ANY
+   * completion, cancellation included — so a CANCELLED CI run starts the deploy
+   * workflow, fails its scope job, and the run reports `skipped`. Whatever
+   * `deploy-aws.yml` says about its own concurrency group is irrelevant: the
+   * deploy never began, so there was nothing to cancel.
+   *
+   * The cancelling happens in `ci.yml`, one file earlier, and until this gate
+   * landed it cancelled on every ref. Measured 2026-08-11: `bb419e0b` added
+   * migration `0005_fluffy_chronomancer`, CI run `31447000177` was cancelled
+   * 19 seconds later by the next merge to main, and deploy runs `31447285794`
+   * and `31447285764` reported `skipped`. The migration was never applied by
+   * that commit's deploy, behind two green pull requests and no red job.
+   *
+   * WHY A TEXT GATE. Both files are individually valid YAML and individually
+   * reasonable; the defect exists only in their relationship, which no linter,
+   * typechecker or single run of either workflow observes. And it rots fast —
+   * restoring `cancel-in-progress: true` is a one-word edit that reads as an
+   * optimisation.
+   *
+   * WHY EXACT RATHER THAN SEMANTIC. Deciding "does this expression exclude
+   * refs/heads/main" in general means reimplementing GitHub's expression
+   * language, and being approximately right is worse than requiring a
+   * deliberate edit here. The two failure directions are also asymmetric: an
+   * expression that degrades to falsy disables cancelling everywhere (slower PR
+   * CI, main still protected — safe), while a typo in the branch name evaluates
+   * TRUE on main and silently restores the defect. Only the second is dangerous,
+   * and only an exact match catches it.
+   */
+  it('does not let a later merge cancel the CI run that gates a deploy', () => {
+    // Vacuity floor: prove we are reading the workflow this test is about
+    // before asserting anything about its contents. A path typo would otherwise
+    // make every assertion below vacuous in the permissive direction.
+    expect(ciWorkflow).toMatch(/^name:\s*CI$/m);
+    expect(ciWorkflow).toMatch(/^concurrency:/m);
+
+    const ciConcurrency = directivesOnly(topLevelConcurrency(ciWorkflow));
+    expect(ciConcurrency).not.toBe('');
+    // Positive control on the stripper: it must not have eaten the directives
+    // along with the prose, or both assertions below pass over an empty string.
+    expect(ciConcurrency).toMatch(/^\s*group:/m);
+    expect(ciConcurrency).toContain(
+      "cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}",
+    );
+    // The bare form is what this replaced, and what a future "optimisation"
+    // would restore. Asserted over directives only — the comment above it quotes
+    // this exact string while explaining why it is wrong.
+    expect(ciConcurrency).not.toMatch(/cancel-in-progress:\s*true/);
+  });
+
+  /**
+   * The other half of the pair: the gate above is only load-bearing while the
+   * deploys actually key off a CI *conclusion*. If either workflow stopped
+   * being `workflow_run`-triggered, or stopped requiring `success`, the
+   * cancellation would no longer skip it — and this assertion would be
+   * protecting nothing while still passing.
+   *
+   * So it is asserted here, beside the fix, rather than assumed: this is the
+   * condition that makes the expression above matter.
+   */
+  it('still gates both deploys on a successful CI conclusion', () => {
+    for (const workflow of [deployWorkflow, deployFrontendsWorkflow]) {
+      expect(workflow).toMatch(/workflow_run:/);
+      expect(workflow).toMatch(/types:\s*\[completed\]/);
+      expect(workflow).toMatch(/workflow_run\.conclusion == 'success'/);
+    }
   });
 });
 
