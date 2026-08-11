@@ -3,11 +3,8 @@ import {
   SENSITIVE_EXPOSURE_WINDOW_HOURS,
   type ExposureFacts,
 } from '../reviewer/eligibility';
-import {
-  assignments,
-  OPEN_ASSIGNMENT_STATUSES,
-  type AssignmentDocument,
-} from './assignment.collection';
+import { OPEN_ASSIGNMENT_STATUSES } from '../../db/postgres/schema/sortition';
+import { assignments, type AssignmentDocument } from './assignment.collection';
 
 /**
  * §13.7's exposure and rest, counted from the assignments themselves.

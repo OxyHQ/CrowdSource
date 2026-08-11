@@ -1,6 +1,10 @@
 import { Schema } from 'mongoose';
 
 import { defineUnscopedCollection } from '../../db/collections';
+import {
+  ASSIGNMENT_STATUSES,
+  type AssignmentStatus,
+} from '../../db/postgres/schema/sortition';
 import type { SensitivityClass } from '../triage/triage';
 import { SLOT_TYPES, type SlotType } from './panelSpec';
 
@@ -33,26 +37,13 @@ import { SLOT_TYPES, type SlotType } from './panelSpec';
  */
 
 /**
- * §8.7's lifecycle.
+ * §8.7's lifecycle now lives in `db/postgres/schema/sortition.ts`, with
+ * `OPEN_ASSIGNMENT_STATUSES`, and both are imported above.
  *
- * `offered` and `accepted` are separate because §8.7 describes both routes: an
- * assignment may be offered and accepted, or created directly when the reviewer
- * asks for their next case. Both end in the same place; what differs is whether
- * the reviewer has yet looked at it.
+ * They moved because THIS file is the one that goes away at the switch, and the
+ * CHECK constraint restoring the value set has to be rendered from the same tuple
+ * the `enum` below validates. Two copies is how they drift.
  */
-export const ASSIGNMENT_STATUSES = [
-  'offered',
-  'accepted',
-  'submitted',
-  'recused',
-  'expired',
-  /** Superseded by a replacement, e.g. after the case revision moved on. */
-  'replaced',
-] as const;
-export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
-
-/** Statuses in which the reviewer still holds the case. */
-export const OPEN_ASSIGNMENT_STATUSES: readonly AssignmentStatus[] = ['offered', 'accepted'];
 
 export interface AssignmentDocument {
   assignmentId: string;

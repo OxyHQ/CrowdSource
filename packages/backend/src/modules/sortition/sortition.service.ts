@@ -25,11 +25,11 @@ import { assignments, type AssignmentDocument } from './assignment.collection';
 import { mintAssignmentToken } from './assignmentToken';
 import { gatherExposure } from './exposure';
 import { sampleCandidates } from './candidatePool';
+import { type DrawKind } from '../../db/postgres/schema/sortition';
 import {
   sortitionDraws,
   SORTITION_RULES_VERSION,
   type DrawCandidate,
-  type DrawKind,
   type DrawRejection,
   type DrawSeat,
 } from './draw.collection';
