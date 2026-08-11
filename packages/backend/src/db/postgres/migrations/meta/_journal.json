@@ -36,6 +36,13 @@
       "when": 1786405072115,
       "tag": "0004_simple_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786407759550,
+      "tag": "0005_fluffy_chronomancer",
+      "breakpoints": true
     }
   ]
 }

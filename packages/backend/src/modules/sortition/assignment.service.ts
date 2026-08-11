@@ -8,11 +8,8 @@ import { logger } from '../../utils/logger';
 import { cases } from '../cases/case.collection';
 import { appendOutboxEvent, OUTBOX_EVENT_TYPES } from '../outbox/outbox.collection';
 import { declareReviewerRelation } from '../reviewer/reviewer.service';
-import {
-  assignments,
-  OPEN_ASSIGNMENT_STATUSES,
-  type AssignmentDocument,
-} from './assignment.collection';
+import { OPEN_ASSIGNMENT_STATUSES } from '../../db/postgres/schema/sortition';
+import { assignments, type AssignmentDocument } from './assignment.collection';
 import { assignmentTokenMatches, mintAssignmentToken } from './assignmentToken';
 
 /**

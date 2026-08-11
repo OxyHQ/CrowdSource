@@ -1,6 +1,12 @@
 import { Schema } from 'mongoose';
 
 import { defineUnscopedCollection } from '../../db/collections';
+import {
+  DRAW_KINDS,
+  DRAW_STATUSES,
+  type DrawKind,
+  type DrawStatus,
+} from '../../db/postgres/schema/sortition';
 import { REVIEW_POOLS, type ReviewPool } from '../triage/triage';
 import type { EligibilityRejection } from '../reviewer/eligibility';
 import type { ExclusionReason } from './exclusions';
@@ -69,12 +75,12 @@ export interface DrawSeat {
   readonly assignmentId: string;
 }
 
-export const DRAW_STATUSES = ['drawn', 'refused'] as const;
-export type DrawStatus = (typeof DRAW_STATUSES)[number];
-
-/** Why a draw ran at all: the first panel, a replacement, or an escalation. */
-export const DRAW_KINDS = ['initial', 'replacement', 'expansion'] as const;
-export type DrawKind = (typeof DRAW_KINDS)[number];
+/**
+ * `DRAW_STATUSES` and `DRAW_KINDS` now live in
+ * `db/postgres/schema/sortition.ts` and are imported above, for the reason given
+ * there: this file goes away at the switch, and the CHECK constraints restoring
+ * both value sets are rendered from the same tuples the `enum`s below validate.
+ */
 
 export interface SortitionDrawDocument {
   drawId: string;

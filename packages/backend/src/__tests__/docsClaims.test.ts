@@ -52,7 +52,8 @@ import {
   BASELINE_POLICY_VERSION,
 } from '../modules/policy/policyBaseline';
 import { ELIGIBILITY_REJECTIONS } from '../modules/reviewer/eligibility';
-import { DRAW_KINDS, DRAW_STATUSES, SORTITION_RULES_VERSION } from '../modules/sortition/draw.collection';
+import { DRAW_KINDS, DRAW_STATUSES } from '../db/postgres/schema/sortition';
+import { SORTITION_RULES_VERSION } from '../modules/sortition/draw.collection';
 import { EXCLUSION_REASONS } from '../modules/sortition/exclusions';
 import { SLOT_TYPES, panelSpecFor } from '../modules/sortition/panelSpec';
 import { PANEL_REFUSAL_REASONS } from '../modules/sortition/weightedSampling';

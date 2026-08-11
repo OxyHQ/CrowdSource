@@ -21,11 +21,8 @@ import { policyVersionOfToken } from '../cases/caseDedupKey';
 import { reviewerProfiles, type ReviewerProfileDocument } from '../reviewer/reviewer.collection';
 import { categoryReliability } from '../reviewer/reliability';
 import { reviews, type ReviewDocument } from '../review/review.collection';
-import {
-  assignments,
-  OPEN_ASSIGNMENT_STATUSES,
-  type AssignmentDocument,
-} from '../sortition/assignment.collection';
+import { OPEN_ASSIGNMENT_STATUSES } from '../../db/postgres/schema/sortition';
+import { assignments, type AssignmentDocument } from '../sortition/assignment.collection';
 import { MAX_PANEL_ROUND, panelRoundFor } from '../sortition/panelSpec';
 import { openPanel } from '../sortition/sortition.service';
 import {

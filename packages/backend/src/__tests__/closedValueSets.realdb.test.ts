@@ -181,6 +181,56 @@ const MAPPED: Readonly<
     column: 'source',
     constraint: 'reviewer_relations_source_check',
   },
+
+  /**
+   * The two sortition tables, closed by migration 0005.
+   *
+   * `slotType` and `filledAs` render from the SAME tuple (`SLOT_TYPES`) and are
+   * still two constraints, because they are two facts: §8.3's fallback means the
+   * class that filled a seat need not be the class the seat asked for.
+   */
+  'Assignment.status': {
+    table: 'assignments',
+    column: 'status',
+    constraint: 'assignments_status_check',
+  },
+  'Assignment.slotType': {
+    table: 'assignments',
+    column: 'slot_type',
+    constraint: 'assignments_slot_type_check',
+  },
+  'Assignment.filledAs': {
+    table: 'assignments',
+    column: 'filled_as',
+    constraint: 'assignments_filled_as_check',
+  },
+  'SortitionDraw.status': {
+    table: 'sortition_draws',
+    column: 'status',
+    constraint: 'sortition_draws_status_check',
+  },
+  'SortitionDraw.kind': {
+    table: 'sortition_draws',
+    column: 'kind',
+    constraint: 'sortition_draws_kind_check',
+  },
+  'SortitionDraw.pool': {
+    table: 'sortition_draws',
+    column: 'pool',
+    constraint: 'sortition_draws_pool_check',
+  },
+  /**
+   * `requested_slots` is `text[]`, so its constraint is CONTAINMENT (`<@`) rather
+   * than `in (...)` — Mongo put the `enum` on the caster, constraining each
+   * element. It is mapped here like any other member check; the separate
+   * cardinality constraint on the same column is NOT a value set and is asserted
+   * in `sortitionRepositories.realdb.test.ts` instead.
+   */
+  'SortitionDraw.requestedSlots': {
+    table: 'sortition_draws',
+    column: 'requested_slots',
+    constraint: 'sortition_draws_requested_slots_check',
+  },
 };
 
 /**
@@ -280,6 +330,11 @@ const ENUMS_WITHOUT_CHECK_AT_FREEZE: readonly EnumKey[] = [
  * migration, not a line — a line will not work, by construction. If you are here
  * to REMOVE a line because you wrote that migration, move the entry into `MAPPED`
  * and drop `KNOWN_GAP_COUNT` by one, leaving the record above untouched.
+ *
+ * It stands at 28. Migration 0005 closed the seven belonging to `assignments` and
+ * `sortition_draws` — the first time it has moved from the 35 it froze at — and
+ * those seven stay in `ENUMS_WITHOUT_CHECK_AT_FREEZE` above, because that list
+ * records what was true on 2026-08-11 and closing a gap does not change the past.
  */
 const KNOWN_GAPS: readonly EnumKey[] = [
   'Appeal.reason',
@@ -287,9 +342,6 @@ const KNOWN_GAPS: readonly EnumKey[] = [
   'ApplicationCredential.status',
   'ApplicationTrust.lastStandingReason',
   'ApplicationTrust.standing',
-  'Assignment.filledAs',
-  'Assignment.slotType',
-  'Assignment.status',
   'AuditEvent.action',
   'AuditEvent.reason',
   'Case.status',
@@ -303,10 +355,6 @@ const KNOWN_GAPS: readonly EnumKey[] = [
   'Report.status',
   'Review.contextSufficiency',
   'Review.outcome',
-  'SortitionDraw.kind',
-  'SortitionDraw.pool',
-  'SortitionDraw.requestedSlots',
-  'SortitionDraw.status',
   'StaffAuditEvent.action',
   'StaffAuditEvent.roles',
   'TrustSafetyStaff.roles',
@@ -319,8 +367,8 @@ const KNOWN_GAPS: readonly EnumKey[] = [
   'WebhookEndpoint.status',
 ];
 
-/** Frozen. Lower it when you write a migration; never raise it. */
-const KNOWN_GAP_COUNT = 35;
+/** Frozen. Lower it when you write a migration; never raise it. Was 35. */
+const KNOWN_GAP_COUNT = 28;
 
 interface CheckConstraint {
   readonly table_name: string;
@@ -592,6 +640,13 @@ describe('every mapped value set is enforced by the database', () => {
    * PostgreSQL 17 files NOT NULL under `contype = 'n'`; if that filter were ever
    * loosened, this count would jump by roughly the number of NOT NULL columns in
    * the schema, which is in the hundreds.
+   *
+   * The count is of ROWS, not of constraints, and after 0005 the two differ: the
+   * query joins `unnest(con.conkey)`, so a CHECK spanning two columns yields two
+   * rows. `sortition_draws_requested_slots_cardinality_check` names both `status`
+   * and `requested_slots`, which is why eleven constraints read as twelve rows.
+   * Said explicitly because "eleven" is the number a reader counts in the
+   * migrations, and finding twelve here would otherwise look like a bug.
    */
   it('reads CHECK constraints specifically, not every constraint in the catalogue', async () => {
     const constraints = await checkConstraints();
@@ -599,10 +654,11 @@ describe('every mapped value set is enforced by the database', () => {
     expect(constraints.length).toBeGreaterThanOrEqual(Object.keys(MAPPED).length);
     expect(
       constraints.length,
-      `${constraints.length} CHECK constraints found. The schema has three; a ` +
-        'number in the hundreds means the contype filter stopped selecting CHECK ' +
-        'constraints specifically and is now counting NOT NULL, which PostgreSQL ' +
-        '17 also records here.',
+      `${constraints.length} constrained-column rows found, from eleven CHECK ` +
+        'constraints across migrations 0003, 0004 and 0005. A number in the ' +
+        'hundreds means the contype filter stopped selecting CHECK constraints ' +
+        'specifically and is now counting NOT NULL, which PostgreSQL 17 also ' +
+        'records here.',
     ).toBeLessThan(50);
   });
 });
