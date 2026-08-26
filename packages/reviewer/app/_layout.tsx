@@ -1,6 +1,6 @@
 // Import Reanimated early so it initializes before other modules.
 import 'react-native-reanimated';
-import { Outlet as PortalOutlet, Provider as PortalProvider } from '@oxyhq/bloom/portal';
+import { PortalOutlet, PortalProvider } from '@oxyhq/bloom/portal';
 import { BloomProvider } from '@oxyhq/bloom/provider';
 import { useAuth } from '@oxyhq/services/ui/client';
 import { Redirect, Slot, Stack, useSegments } from 'expo-router';

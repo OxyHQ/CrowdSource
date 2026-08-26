@@ -19,7 +19,7 @@
  * is written by this app and names the offending field path.
  */
 
-import { Loading } from '@oxyhq/bloom/loading';
+import * as Skeleton from '@oxyhq/bloom/skeleton';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
@@ -38,6 +38,9 @@ import {
   isConsoleApiUnreachable,
 } from '@/lib/console-api/errors';
 
+/** Text lines the placeholder draws per panel, matching a typical panel's body. */
+const PLACEHOLDER_LINES_PER_PANEL = 3;
+
 /**
  * The placeholder a screen shows while its content is on the way.
  *
@@ -53,7 +56,11 @@ export function LoadingPanel({ count = 2 }: { count?: number }) {
     <View className="gap-6" accessibilityRole="progressbar" accessibilityLabel={t('state.loading')}>
       {Array.from({ length: count }, (_, index) => (
         <Panel key={index}>
-          <Loading variant="skeleton" lines={3} />
+          <View className="gap-2">
+            {Array.from({ length: PLACEHOLDER_LINES_PER_PANEL }, (_, line) => (
+              <Skeleton.Box key={line} width="100%" height={16} borderRadius={4} />
+            ))}
+          </View>
         </Panel>
       ))}
     </View>

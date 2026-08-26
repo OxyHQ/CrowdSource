@@ -6,25 +6,28 @@
  * drawn as `no_violation`. This component only turns a tone into Bloom tokens, so
  * a palette change happens in one place and cannot merge two meanings by accident.
  *
- * Bloom's `Chip` is the primitive. Its `color` set (`default | primary | success |
- * warning | error`) is smaller than the console's six tones, so `unresolved` — the
- * absence of consensus — takes `default` with an outlined variant instead of a
+ * Bloom's `Chip` is the primitive. Its tone set (`default | primary | success |
+ * warning | error | info`) carries no member meaning "no answer", so `unresolved` —
+ * the absence of consensus — takes `default` with an outlined fill instead of a
  * colour: it is neither a good outcome nor a bad one, and any colour from that set
  * would claim it was one. That distinction is the reason this mapping is written
  * out rather than derived.
  */
 
-import { Chip, type ChipColor, type ChipVariant } from '@oxyhq/bloom/chip';
+import { Chip } from '@oxyhq/bloom/chip';
+import type { AccentFill, AccentTone } from '@oxyhq/bloom/theme';
 import React from 'react';
 
 import type { Tone } from '@/lib/console-api/presentation';
 
-const TONE_STYLE: Record<Tone, { color: ChipColor; variant: ChipVariant }> = {
-  neutral: { color: 'default', variant: 'soft' },
-  info: { color: 'primary', variant: 'soft' },
-  positive: { color: 'success', variant: 'soft' },
-  caution: { color: 'warning', variant: 'soft' },
-  danger: { color: 'error', variant: 'soft' },
+const TONE_STYLE: Record<Tone, { color: AccentTone; variant: AccentFill }> = {
+  neutral: { color: 'default', variant: 'subtle' },
+  // The console's `info` is its own accent, not Bloom's informational blue: it
+  // marks the state a reader should look at next, so it speaks in the app colour.
+  info: { color: 'primary', variant: 'subtle' },
+  positive: { color: 'success', variant: 'subtle' },
+  caution: { color: 'warning', variant: 'subtle' },
+  danger: { color: 'error', variant: 'subtle' },
   // Outlined, uncoloured: an unresolved case is not a warning and not a success.
   unresolved: { color: 'default', variant: 'outlined' },
 };

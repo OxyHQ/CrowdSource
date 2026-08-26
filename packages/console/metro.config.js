@@ -6,7 +6,6 @@ const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, '../..');
 const exactModuleAliases = new Map([
   ['@expo/vector-icons', path.join(projectRoot, 'shims/expo-vector-icons.ts')],
-  ['@oxyhq/bloom', path.join(projectRoot, 'shims/oxy-bloom.ts')],
 ]);
 const bloomFontDataShim = path.join(projectRoot, 'shims/bloom-font-data.web.ts');
 
