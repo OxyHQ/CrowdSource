@@ -46,8 +46,8 @@ jest.mock('@/lib/oxyServices', () => ({
 jest.mock('@oxyhq/bloom/icons', () => ({
   Growth_Stroke2_Corner0_Rounded: () => null,
 }));
-jest.mock('@oxyhq/bloom/loading', () => ({
-  Loading: () => null,
+jest.mock('@oxyhq/bloom/skeleton', () => ({
+  Box: () => null,
 }));
 
 // `t` returns its own key, so an assertion names the STRING THE WIDGET CHOSE

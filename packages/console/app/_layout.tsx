@@ -1,7 +1,7 @@
 // Import Reanimated early so it initializes before other modules. The console
 // animates nothing itself, but Bloom's sheets and the SDK's account dialog do.
 import 'react-native-reanimated';
-import { Outlet as PortalOutlet, Provider as PortalProvider } from '@oxyhq/bloom/portal';
+import { PortalOutlet, PortalProvider } from '@oxyhq/bloom/portal';
 import { BloomProvider } from '@oxyhq/bloom/provider';
 import { useAuth } from '@oxyhq/services/ui/client';
 import { Redirect, Slot, useSegments } from 'expo-router';

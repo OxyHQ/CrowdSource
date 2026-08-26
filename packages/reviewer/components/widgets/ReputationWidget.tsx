@@ -25,7 +25,7 @@
  */
 
 import { Growth_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
-import { Loading } from '@oxyhq/bloom/loading';
+import * as Skeleton from '@oxyhq/bloom/skeleton';
 import { useAuth } from '@oxyhq/services/ui/client';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
@@ -76,7 +76,10 @@ export function ReputationWidget({ divider }: { divider?: boolean }) {
   if (balanceQuery.isPending) {
     return (
       <BaseWidget title={t('rightBar.reputation.title')} divider={divider}>
-        <Loading variant="skeleton" lines={2} />
+        <View className="gap-2">
+          <Skeleton.Box width="100%" height={16} borderRadius={4} />
+          <Skeleton.Box width="100%" height={16} borderRadius={4} />
+        </View>
       </BaseWidget>
     );
   }

@@ -31,7 +31,15 @@ import { join } from 'node:path';
 
 const PANEL_CHROME = readFileSync(join(__dirname, '..', 'shell', 'PanelChrome.tsx'), 'utf8');
 
-/** Bloom's own gutter inset, from the source the `react-native` condition selects. */
+/**
+ * Bloom's own gutter inset, from the source the `react-native` condition selects.
+ *
+ * That condition resolves to `src/content-panel/index.ts`, whose barrel re-exports the
+ * constant from `ContentPanel`; Metro then picks the `.web` half of that pair, because
+ * this console is a web-only export. So the declaration this app is pinned to lives in
+ * `ContentPanel.web.tsx` — the same file Metro compiles, which is the whole point of
+ * reading text instead of a number someone typed here.
+ */
 const BLOOM_CONTENT_PANEL = readFileSync(
   join(
     __dirname,
@@ -44,7 +52,7 @@ const BLOOM_CONTENT_PANEL = readFileSync(
     'bloom',
     'src',
     'content-panel',
-    'index.tsx',
+    'ContentPanel.web.tsx',
   ),
   'utf8',
 );
