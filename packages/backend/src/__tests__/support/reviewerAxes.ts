@@ -138,6 +138,10 @@ const AXES_BY_TEST_FILE: Readonly<Record<string, ReviewerAxisSlots>> = {
     revision: { family: 'integrity', language: 'eu' },
   },
 
+  'postgresCollectionAdapter.realdb.test.ts': {
+    adapter: { family: 'harassment', language: 'gd' },
+  },
+
   /**
    * `mwl` replaced `ast`, which this file and `appeals` both claimed. Mirandese
    * is not chosen for flavour: `eligibility.ts` matches `languages` as an exact
