@@ -42,9 +42,8 @@ export type ModerationPgHandle = PgDatabase<
  * a retry loop for no benefit.
  *
  * What it deliberately does NOT promise: intake's duplicate-check-then-insert is
- * not serialized by either backend. Mongo's snapshot isolation does not prevent
- * that phantom either, and the "one report per reporter per object" unique index
- * is explicitly the application's. The two backends are equally advisory here.
+ * not serialized at READ COMMITTED, and the "one report per reporter per object"
+ * unique index is explicitly the application's responsibility.
  *
  * The failure this runner exists to make impossible is subtler than Mongo's. A
  * store call given `db` instead of `tx` inside the callback runs on a DIFFERENT

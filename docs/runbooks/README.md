@@ -6,6 +6,7 @@
 | [`outbox-backlog.md`](./outbox-backlog.md) | Reports are accepted and nothing happens to them. |
 | [`case-cannot-empanel.md`](./case-cannot-empanel.md) | Cases sit without a jury. |
 | [`audit-trails.md`](./audit-trails.md) | Reconstructing who did what. There are **two** trails. |
+| [`crowdsource-app-postgres-cutover.md`](./crowdsource-app-postgres-cutover.md) | Moving an adopter from `@oxyhq/crowdsource-app` 0.6.x to the PostgreSQL-only package. |
 
 AWS account, region, role and infrastructure facts are **not** duplicated here —
 `~/Oxy/oxy-infra` owns them.

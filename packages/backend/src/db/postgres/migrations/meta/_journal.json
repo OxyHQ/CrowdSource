@@ -57,6 +57,20 @@
       "when": 1786412440659,
       "tag": "0007_wooden_peter_parker",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788356938227,
+      "tag": "0008_dear_microchip",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788356953387,
+      "tag": "0009_nasty_firedrake",
+      "breakpoints": true
     }
   ]
 }

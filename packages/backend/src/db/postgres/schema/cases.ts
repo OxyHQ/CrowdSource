@@ -1,4 +1,15 @@
-import { index, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  boolean,
+  check,
+  doublePrecision,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 
 import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
 
@@ -35,85 +46,57 @@ export const cases = pgTable(
     applicationId: text('application_id').notNull(),
 
     /** The subject under moderation, in the reporting application's own id space. */
-    subjectExternalId: text('subject_external_id').notNull(),
+    externalSubjectId: text('subject_external_id').notNull(),
+    contentHash: text('content_hash').notNull(),
+    policyVersion: text('policy_version').notNull(),
+    caseDedupKey: text('case_dedup_key').notNull(),
+
+    subjectType: text('subject_type').notNull(),
+    primaryResourceId: text('primary_resource_id').notNull(),
+    policySetId: text('policy_set_id').notNull(),
+    taxonomyVersion: text('taxonomy_version').notNull(),
+    contentSnapshot: jsonb('content_snapshot').notNull(),
 
     status: text('status').notNull(),
 
-    /**
-     * No name argument, unlike every column above it. `@oxyhq/db`'s `timestamptz`
-     * takes none by design and derives `opened_at` through the one shared
-     * `DATABASE_CASING`, which is what keeps the runtime's column reference and
-     * the generated DDL from disagreeing.
-     */
-    openedAt: timestamptz().notNull(),
+    allegationCodes: text('allegation_codes').array().notNull(),
+    reportCount: integer('report_count').notNull(),
+    reporterFingerprints: text('reporter_fingerprints').array().notNull(),
+
+    reach: integer('reach').notNull(),
+    activeDistribution: boolean('active_distribution').notNull(),
+    allowCommunityReview: boolean('allow_community_review').notNull(),
+    containsPersonalData: boolean('contains_personal_data').notNull(),
+    retentionDays: integer('retention_days').notNull(),
+
+    priorityScore: doublePrecision('priority_score').notNull(),
+    sensitivityClass: text('sensitivity_class'),
+    reviewPool: text('review_pool'),
+    requiresRedaction: boolean('requires_redaction').notNull(),
+    escalated: boolean('escalated').notNull(),
+    triagedAt: timestamptz(),
+
+    currentRevision: integer('current_revision').notNull(),
+    decidedRevision: integer('decided_revision').notNull(),
+    incidentId: text('incident_id'),
+
+    firstReportedAt: timestamptz().notNull(),
+    lastReportedAt: timestamptz().notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (table) => [
     /**
-     * ONE CASE PER SUBJECT — WHICH IS **NOT** §7.3's DEDUPLICATION RULE.
-     *
-     * ## Read this before writing the upsert
-     *
-     * This constraint is two columns. Mongo's is four:
-     * `case.collection.ts:181` declares
-     * `{applicationId, externalSubjectId, contentHash, policyVersion}` unique,
-     * commented "§12.7's case dedup constraint, and the thing that actually
-     * enforces §7.3. The four fields are the plan's, verbatim."
-     *
-     * **The difference is not a narrowing. It is a different rule, pointing the
-     * other way.** `(application_id, subject_external_id)` says one case per
-     * subject FOREVER. §7.3 deliberately opens a NEW case when the content hash
-     * changes (the material was edited) or the policy version changes (it is being
-     * judged under different rules) — so under Mongo a second report about edited
-     * content is a second case, and under this constraint it is not.
-     *
-     * **Which way it breaks depends on how the switch spells the write, and both
-     * ways are wrong.** An upsert keyed on these two columns silently MERGES an
-     * edited-content report into the old case — `case.service.ts` documents that
-     * the loser of the race merges, so nothing errors and nothing logs. A plain
-     * insert instead COLLIDES on this unique. Neither is §7.3, neither names its
-     * cause, and neither is what the previous version of this comment promised.
-     *
-     * ## Latent today, and this is the moment it is cheap
-     *
-     * `case.service.ts:157` still upserts on the four-field key against Mongo, and
-     * `repositories/scoped/cases.ts` has a plain `insertCase` with no upsert path
-     * at all — so nothing reaches this constraint yet. It becomes live the moment
-     * the ingestion switch is written, which is why the decision is recorded here
-     * rather than left to whoever writes it.
-     *
-     * ## The decision: four columns, restored before the switch
-     *
-     * `content_hash` and `policy_version` DO NOT EXIST as columns on this table —
-     * it has 8 against the Mongoose model's 40 — so this is three columns plus an
-     * upsert, not an index change, and it belongs to the `cases` slice rather than
-     * to a schema tidy.
-     *
-     * The tempting alternative was rejected deliberately: `caseDedupKey` is a
-     * sha256 of exactly those four inputs, already computed by
-     * `attachReportToCase` and already stored in Mongo, so `unique(application_id,
-     * case_dedup_key)` would be one column instead of three. It is not taken
-     * because **Mongo has both and gives them different jobs** — the four-field
-     * unique is the arbiter, and `{applicationId, caseDedupKey}` is NON-unique and
-     * described as "for lookup and for future cross-application correlation".
-     * Promoting a lookup key to arbiter is a design change, not a port, and it
-     * makes every non-equality question ("which cases are on policy version N")
-     * unanswerable without recomputation.
-     *
-     * The Mongo lookup index is NOT ported either, and that is measured rather
-     * than assumed: `case_dedup_key` has **no reader anywhere** — it is written at
-     * insert and returned to the caller, and nothing queries by it. An index
-     * nobody reads is a guess at an access path.
-     *
-     * Scoped by APPLICATION, not by organization — one customer's staging and
-     * production products must be able to report the same subject id
-     * independently, exactly as two unrelated customers can. That part of the
-     * original reasoning survives and applies to the four-column form too.
+     * §7.3's exact identity. Edited content or a new policy version opens a new
+     * case; concurrent reports for the same four values merge through
+     * `upsertCaseForReport`. The tenant prefix is the application because sibling
+     * products of one organization have independent subject-id namespaces.
      */
-    uniqueIndex('cases_application_subject_key').on(
+    uniqueIndex('cases_application_subject_content_policy_key').on(
       table.applicationId,
-      table.subjectExternalId,
+      table.externalSubjectId,
+      table.contentHash,
+      table.policyVersion,
     ),
 
     /**
@@ -126,6 +109,24 @@ export const cases = pgTable(
       table.organizationId,
       table.applicationId,
       table.status,
+    ),
+    index('cases_application_dedup_idx').on(table.applicationId, table.caseDedupKey),
+    index('cases_status_priority_created_idx').on(
+      table.status,
+      table.priorityScore.desc(),
+      table.createdAt,
+    ),
+    check(
+      'cases_status_check',
+      sql`${table.status} in ('received', 'triaged', 'awaiting_review', 'under_review', 'awaiting_consensus', 'decided', 'escalated', 'appealed', 'superseded', 'closed')`,
+    ),
+    check('cases_report_count_check', sql`${table.reportCount} >= 0`),
+    check('cases_reach_check', sql`${table.reach} >= 0`),
+    check('cases_retention_days_check', sql`${table.retentionDays} > 0`),
+    check('cases_current_revision_check', sql`${table.currentRevision} >= 1`),
+    check(
+      'cases_decided_revision_check',
+      sql`${table.decidedRevision} >= 0 and ${table.decidedRevision} <= ${table.currentRevision}`,
     ),
   ],
 );

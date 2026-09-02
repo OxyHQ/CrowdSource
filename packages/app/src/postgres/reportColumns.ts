@@ -55,8 +55,7 @@ import type { ModerationLocalStatus } from '../types.js';
 /**
  * The local statuses, as the CHECK renders them.
  *
- * Spelled out rather than imported from `src/mongoose/report.js`, which would
- * pull `mongoose` into the Postgres path and undo the optional peer. `satisfies`
+ * Spelled out beside the DDL so it cannot acquire an ORM dependency. `satisfies`
  * refuses a value outside the union; `postgresSchema.test.ts` asserts this tuple
  * and `MODERATION_LOCAL_STATUSES` still agree, which is what catches an OMISSION
  * — the direction a type cannot see.

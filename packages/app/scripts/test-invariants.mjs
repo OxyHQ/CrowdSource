@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * The two invariants are guarded by tests that can actually fail.
+ * The storage and delivery invariants are guarded by tests that can actually fail.
  *
  * A test that cannot distinguish success from failure is worse than no test,
  * and both invariants here are exactly the shape that produces one: the happy
@@ -24,30 +24,21 @@
  *
  * ## The backend axis
  *
- * Each mutation declares which storage it attacks. A `shared` one lives in the
- * backend-free half and runs the suite as it stands; a `mongoose` or `postgres`
- * one narrows the run with `CROWDSOURCE_APP_TEST_BACKEND`, because a guard in one
- * store cannot be proven by a test the other store answered.
+ * Each mutation declares whether it attacks shared pipeline code or the
+ * PostgreSQL store. Store mutations narrow the run with
+ * `CROWDSOURCE_APP_TEST_BACKEND`.
  *
  * The floor is per BUCKET rather than a total, and that is the point: a total of
- * eighteen is satisfied by a run where the Postgres bucket was zero and six
- * shared mutations happened to be counted twice. Each bucket is asserted on its
- * own, so a backend that silently stopped running fails by name.
- *
- * ## Mutation 3 has no Postgres twin, and that is information rather than a gap
- *
- * Its failure is a Mongoose-specific update-operator conflict — `$set` and
- * `$setOnInsert` naming one path, `ConflictingUpdateOperators`, code 40 — and
- * nothing in the Postgres path can produce it. `ON CONFLICT DO NOTHING` has no
- * operator to conflict with. Its sibling 4 DOES have a twin (13), because
- * "a repeated enqueue must not write" is a property both backends can break.
+ * thirteen is satisfied by a run where the Postgres bucket was zero and shared
+ * mutations happened to be counted twice. Each bucket is asserted on its own,
+ * so the storage-specific guards cannot silently stop running.
  *
  * ## What CANNOT be mutated, said here so the absence does not read as a gap
  *
  * The Postgres event store's claim has no catch block: `ON CONFLICT DO NOTHING`
  * plus `RETURNING` makes a duplicate a row COUNT rather than an exception, so
  * there is no predicate to widen and nothing on the insert side to delete. The
- * attackable surface is the READ, which is what 18 removes.
+ * attackable surface is the READ, which the corresponding mutation removes.
  */
 
 import { createHash } from 'node:crypto';
@@ -60,7 +51,7 @@ const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
  * @type {{
- *   backend: 'shared' | 'mongoose' | 'postgres',
+ *   backend: 'shared' | 'postgres',
  *   name: string,
  *   file: string,
  *   edits: {find: string, replace: string}[],
@@ -70,41 +61,6 @@ const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
  * }[]}
  */
 const MUTATIONS = [
-  {
-    backend: 'mongoose',
-    name: 'the outbox may be written outside a transaction',
-    // The guard is the STORE's: only a backend knows what an open transaction
-    // looks like. The error it throws still belongs to the shared half, so both
-    // backends refuse the same mistake the same way.
-    file: 'src/mongoose/store/outbox.ts',
-    edits: [
-      {
-        find: `      if (!session.inTransaction()) {
-        throw new ModerationOutboxTransactionError(event.eventId);
-      }
-`,
-        replace: '',
-      },
-      /**
-       * The import goes with it. Now that the error is DECLARED in the shared
-       * half and IMPORTED by each store, deleting the guard alone leaves an
-       * unused import and `noUnusedLocals` fails the mutated tree — which this
-       * script correctly refuses to read as evidence about the guard. Deleting
-       * both is also what removing the guard actually looks like.
-       */
-      {
-        find: `import { ModerationOutboxTransactionError } from '../../outbox/service.js';\n`,
-        replace: '',
-      },
-    ],
-    absent: 'session.inTransaction()',
-    test: 'src/__tests__/outboxTransactionCoupling.test.ts',
-    // Renamed with the harness façade: the fixture hands out a bound enqueue
-    // rather than a mongoose session, and the test title must not name a driver
-    // once a second backend runs it. The script matches on this string, so a
-    // stale one reports "the guard is still unproven" rather than passing.
-    expects: 'throws ModerationOutboxTransactionError for a handle with no transaction open',
-  },
   {
     backend: 'shared',
     name: 'the webhook router is mounted behind express.json()',
@@ -118,45 +74,6 @@ const MUTATIONS = [
     absent: `options.jsonParser === 'before'`,
     test: 'src/__tests__/webhookRawBody.test.ts',
     expects: 'reaches the moderation router with req.body still undefined',
-  },
-  {
-    /**
-     * The bug that actually shipped in the reference implementation: explicit
-     * timestamps AND Mongoose's own, so one path arrives under two operators and
-     * the server refuses the write. Intake's transaction aborts with it, so this
-     * is not a degradation — no report can be filed at all.
-     */
-    backend: 'mongoose',
-    name: 'the enqueue lets Mongoose add its timestamps on top of the explicit ones',
-    file: 'src/mongoose/store/outbox.ts',
-    edits: [{ find: `{ upsert: true, session, timestamps: false }`, replace: `{ upsert: true, session }` }],
-    // The full options literal, not the bare flag: the flag also appears in the
-    // doc comment above, so a substring marker would report "still present" for
-    // a mutation that applied perfectly.
-    absent: '{ upsert: true, session, timestamps: false }',
-    test: 'src/__tests__/outboxTransactionCoupling.test.ts',
-    expects: 'stores both when the reported type has a subject provider',
-  },
-  {
-    /**
-     * The subtler half, and the reason the fix is `timestamps: false` rather
-     * than dropping the explicit fields. Letting Mongoose own the timestamps
-     * type-checks, passes every happy path, and quietly turns a repeated enqueue
-     * into a real write that conflicts with a live lease.
-     */
-    backend: 'mongoose',
-    name: 'the enqueue writes on a repeated event instead of being a no-op',
-    file: 'src/mongoose/store/outbox.ts',
-    edits: [
-      { find: `            createdAt: event.now,\n            updatedAt: event.now,\n`, replace: '' },
-      { find: `{ upsert: true, session, timestamps: false }`, replace: `{ upsert: true, session }` },
-    ],
-    // The full options literal, not the bare flag: the flag also appears in the
-    // doc comment above, so a substring marker would report "still present" for
-    // a mutation that applied perfectly.
-    absent: '{ upsert: true, session, timestamps: false }',
-    test: 'src/__tests__/outboxTransactionCoupling.test.ts',
-    expects: 'leaves an existing row completely untouched on a repeated enqueue',
   },
   {
     /**
@@ -186,28 +103,6 @@ const MUTATIONS = [
   },
   {
     /**
-     * The reversal lookup reading a row whose effect never happened. The obvious
-     * test of this cannot fail — see the file's own comment — so the mutation is
-     * the only thing that proves the arrangement in it is load-bearing.
-     */
-    backend: 'mongoose',
-    name: 'a reversal reads the newest row instead of the newest APPLIED row',
-    file: 'src/mongoose/store/enforcement.ts',
-    edits: [
-      {
-        find: `          action: { $in: [...actions] },
-          applied: true,
-        })`,
-        replace: `          action: { $in: [...actions] },
-        })`,
-      },
-    ],
-    absent: `          action: { $in: [...actions] },\n          applied: true,`,
-    test: 'src/__tests__/enforcementReversal.test.ts',
-    expects: 'reads the applied row, not the newer recorded-only one',
-  },
-  {
-    /**
      * The report falling back to the PLANNED action instead of the effective
      * one. Silent by construction: the plan is subject-blind, so the label is
      * wrong only for subjects no lever can act on — which for some applications
@@ -225,22 +120,6 @@ const MUTATIONS = [
     absent: 'outcomes.map(effectiveAction)',
     test: 'src/__tests__/fullLoop.test.ts',
     expects: 'uses the effective action for a subject no lever can act on',
-  },
-  {
-    /**
-     * A reversal that declares several actions but queries only one. Silent for
-     * any application whose levers are exercised one at a time, and wrong
-     * exactly when two of them applied — which is when a reversal matters most.
-     */
-    backend: 'mongoose',
-    name: 'a multi-action reversal reads only the first declared action',
-    file: 'src/mongoose/store/enforcement.ts',
-    edits: [
-      { find: '          action: { $in: [...actions] },', replace: '          action: actions[0],' },
-    ],
-    absent: '$in: [...actions]',
-    test: 'src/__tests__/enforcementReversal.test.ts',
-    expects: 'reads the most recent applied row across the whole declared set',
   },
   {
     /**
@@ -316,8 +195,8 @@ const MUTATIONS = [
      * Mutation 1's twin. Both handles are a `ModerationPgHandle`, so handing the
      * enqueue the POOL type-checks perfectly — and the row then commits on its own
      * connection, independently of the domain write it was meant to be atomic
-     * with. Same lost guarantee as a Mongo session nobody opened a transaction on,
-     * reached by a different route.
+     * with. The row would commit on its own connection, reached by a different
+     * route.
      *
      * The two import lines go with the guard: without them the mutated tree fails
      * `noUnusedLocals`, and a red test would prove nothing about the guard.
@@ -346,8 +225,7 @@ const MUTATIONS = [
   {
     /**
      * Mutation 4's twin: the repeated enqueue that WRITES. `DO UPDATE` is the
-     * Postgres spelling of letting Mongoose own the timestamps — a repeat becomes a
-     * real write, which conflicts with a live lease and aborts the enclosing
+     * A repeat becomes a real write, which conflicts with a live lease and aborts the enclosing
      * transaction. The replacement touches `updated_at` and `payload` because
      * those are what the test observes.
      */
@@ -447,9 +325,8 @@ const MUTATIONS = [
      * The event store's claim answering `true` for everybody. There is nothing to
      * delete on its insert side — `ON CONFLICT DO NOTHING` plus `RETURNING` is a
      * row count rather than a catch block — so the READ is the only attackable
-     * surface, and this is what a widened `catch { return false }` would amount to
-     * on the Mongo side: two instances behind one load balancer each believing
-     * they took the claim.
+     * surface: two instances behind one load balancer must not both believe they
+     * took the claim.
      *
      * `void rows;` goes with it: the binding would otherwise be unused.
      */
@@ -478,9 +355,8 @@ function run(argv, extraEnv = {}) {
   return spawnSync(argv[0], argv.slice(1), {
     cwd: packageRoot,
     encoding: 'utf8',
-    // SPREAD rather than replaced: the Mongo URI and the Postgres URL both live in
-    // the inherited environment, and a replaced env loses both — the suite would
-    // then fail to start and every mutation would look caught.
+    // SPREAD rather than replaced: the Postgres URL lives in the inherited
+    // environment, and replacing env would make every mutation look caught.
     env: { ...process.env, ...extraEnv },
   });
 }
@@ -488,11 +364,11 @@ function run(argv, extraEnv = {}) {
 /**
  * The floor, per bucket.
  *
- * A total of eighteen is satisfied by a run where the Postgres bucket was zero and
- * six shared mutations were somehow counted twice. Each bucket is asserted on its
- * own so a backend that stopped running fails BY NAME.
+ * A total of thirteen is satisfied by a run where the Postgres bucket was zero
+ * and shared mutations were somehow counted twice. Each bucket is asserted on
+ * its own so a storage-specific guard that stopped running fails BY NAME.
  */
-const EXPECTED_BY_BACKEND = { shared: 6, mongoose: 5, postgres: 7 };
+const EXPECTED_BY_BACKEND = { shared: 6, postgres: 7 };
 
 const originals = new Map();
 function restoreAll() {
@@ -516,7 +392,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 const failures = [];
 let checked = 0;
 /** @type {Record<string, number>} */
-const checkedByBackend = { shared: 0, mongoose: 0, postgres: 0 };
+const checkedByBackend = { shared: 0, postgres: 0 };
 
 /**
  * Pre-flight, before anything is mutated: every mutation must name a test that

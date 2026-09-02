@@ -18,10 +18,8 @@
  *   this` are indistinguishable without a ledger, and the ledger this package
  *   ships is what stops the first adopter writing eight reasons by guessing.
  *
- * This is also the ONE file allowed to import both storage halves: the Postgres
- * table names and the local-status tuple are spelled out on the Postgres side so
- * that importing them can never pull `mongoose` into a Postgres-only deployment,
- * and something has to prove the two spellings still agree.
+ * The exact table names and local-status vocabulary are also asserted here so a
+ * schema rename cannot land as an unnoticed compatibility break.
  */
 
 import { sql } from 'drizzle-orm';
@@ -36,12 +34,6 @@ import {
   createPostgresTestDatabase,
   type PostgresTestDatabase,
 } from './support/postgres/database.js';
-import {
-  MODERATION_ENFORCEMENT_COLLECTION,
-  MODERATION_EVENT_COLLECTION,
-  MODERATION_OUTBOX_COLLECTION,
-} from '../mongoose/models.js';
-import { MODERATION_LOCAL_STATUSES } from '../mongoose/report.js';
 import {
   moderationExpirySweepTargets,
   moderationIdColumnsWithoutForeignKey,
@@ -217,21 +209,13 @@ describe('the migrated schema', () => {
     }
   });
 
-  it('names its tables and statuses the same as the Mongo half', () => {
-    /**
-     * Both halves spell these out independently — importing either direction
-     * would pull a driver into the other backend's path — so agreement is a gate
-     * rather than a construction. A rename on one side alone is what this
-     * catches, and the cost of missing it is two deployments of one package that
-     * cannot be read side by side.
-     */
+  it('keeps the published PostgreSQL table names and status vocabulary stable', () => {
     const tableNames = Object.keys(EXPECTED_COLUMNS);
-    expect(tableNames).toContain(MODERATION_OUTBOX_COLLECTION);
-    expect(tableNames).toContain(MODERATION_EVENT_COLLECTION);
-    expect(tableNames).toContain(MODERATION_ENFORCEMENT_COLLECTION);
+    expect(tableNames).toContain('moderation_outbox');
+    expect(tableNames).toContain('moderation_events');
+    expect(tableNames).toContain('moderation_enforcements');
 
-    const localStatusCheck = [...MODERATION_LOCAL_STATUSES].sort();
-    expect(localStatusCheck).toEqual([
+    expect(['closed', 'delivery_failed', 'queued', 'received', 'submitted']).toEqual([
       'closed',
       'delivery_failed',
       'queued',

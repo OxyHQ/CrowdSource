@@ -503,8 +503,8 @@ export interface ModerationReportFields {
    * key, because the core needs it in exactly one shape and in several places:
    * the delivery event's payload carries it, the deterministic event id is
    * derived from it, and reconciliation re-derives that id from the report. A
-   * `String(document._id)` at each of those call sites is how two backends end
-   * up disagreeing about what a report id looks like.
+   * Re-deriving it from an ORM-specific record at each call site is how an
+   * application ends up disagreeing with itself about the report id.
    */
   id: string;
 
@@ -615,15 +615,10 @@ export interface ModerationIntegrationConfig<
   /**
    * Where everything this package writes goes.
    *
-   * Built by the factory of the backend this application chose —
-   * `mongooseModerationStore` from `@oxyhq/crowdsource-app/mongoose` — and
-   * passed in whole rather than assembled here, which is what makes storage one
-   * decision instead of one per collection. A store built over two connections
-   * would type-check and quietly put a report and its outbox row in different
-   * transactions.
-   *
-   * On Mongo, transactions require a replica set: a standalone fails on the
-   * first intake rather than at boot, so assert the topology yourself.
+   * Built by `postgresModerationStore` from
+   * `@oxyhq/crowdsource-app/postgres` and passed in whole rather than assembled
+   * here. A store built over two connections would type-check and quietly put a
+   * report and its outbox row in different transactions.
    */
   readonly store: ModerationStore<TReport, TTx>;
   readonly crowdSource: CrowdSourceConnectionConfig;

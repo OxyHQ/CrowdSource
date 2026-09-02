@@ -40,16 +40,59 @@ const beta: TenantContext = createTenantContext('org_beta', 'app_beta_one');
 
 const OPENED_AT = new Date('2026-08-10T00:00:00.000Z');
 
+function storedCase(
+  context: TenantContext,
+  caseId: string,
+  externalSubjectId: string,
+  at: Date = OPENED_AT,
+): caseRepository.NewCase {
+  return {
+    caseId,
+    organizationId: context.organizationId,
+    applicationId: context.applicationId,
+    externalSubjectId,
+    contentHash: `hash_${caseId}`,
+    policyVersion: 'baseline@1',
+    caseDedupKey: `dedup_${caseId}`,
+    subjectType: 'post',
+    primaryResourceId: `resource_${caseId}`,
+    policySetId: 'baseline',
+    taxonomyVersion: '2026.08',
+    contentSnapshot: { text: `snapshot ${caseId}` },
+    status: 'received',
+    allegationCodes: ['integrity.spam'],
+    reportCount: 1,
+    reporterFingerprints: [`reporter_${caseId}`],
+    reach: 1,
+    activeDistribution: false,
+    allowCommunityReview: true,
+    containsPersonalData: false,
+    retentionDays: 30,
+    priorityScore: 0,
+    sensitivityClass: null,
+    reviewPool: null,
+    requiresRedaction: false,
+    escalated: false,
+    triagedAt: null,
+    currentRevision: 1,
+    decidedRevision: 0,
+    incidentId: null,
+    firstReportedAt: at,
+    lastReportedAt: at,
+    createdAt: at,
+    updatedAt: at,
+  };
+}
+
 /** Seeds one case per tenant AS THE MIGRATOR, so their presence is not in doubt. */
 async function seedSiblingCases(): Promise<void> {
   for (const [context, caseId] of [
     [alphaSibling, 'case_alpha_sibling'],
     [beta, 'case_beta'],
   ] as const) {
-    await database.asMigrator`
-      INSERT INTO cases (case_id, organization_id, application_id, subject_external_id, status, opened_at)
-      VALUES (${caseId}, ${context.organizationId}, ${context.applicationId}, 'subject', 'received', ${OPENED_AT})
-    `;
+    await withTenant(database.db, context, (tx) =>
+      caseRepository.insertCase(tx, storedCase(context, caseId, 'subject')),
+    );
   }
 
   // The control: all three rows really are in the table.
@@ -69,20 +112,13 @@ afterAll(async () => {
 describe('the scoped repository sees its own tenant and no other', () => {
   it('inserts and reads back under a tenant', async () => {
     await withTenant(database.db, alpha, async (tx) => {
-      await caseRepository.insertCase(tx, {
-        caseId: 'case_alpha',
-        organizationId: alpha.organizationId,
-        applicationId: alpha.applicationId,
-        subjectExternalId: 'subject_alpha',
-        status: 'received',
-        openedAt: OPENED_AT,
-      });
+      await caseRepository.insertCase(tx, storedCase(alpha, 'case_alpha', 'subject_alpha'));
     });
 
     const found = await withTenant(database.db, alpha, async (tx) =>
       caseRepository.findCaseById(tx, 'case_alpha'),
     );
-    expect(found?.subjectExternalId).toBe('subject_alpha');
+    expect(found?.externalSubjectId).toBe('subject_alpha');
   });
 
   /**
@@ -197,10 +233,9 @@ describe('keyset pagination, which nothing exercised until the coverage gate sai
    * Both were mistakes on the first attempt and both were caught by the real
    * server rather than by review. Seeding into `alpha` broke a later test that
    * asserts an exact `countCasesSince` — shared fixture state read by an exact
-   * count is order-dependent by construction. And reusing one
-   * `subject_external_id` hit `cases_application_subject_key`, which is the
-   * deduplication unique doing exactly its job: one subject per application is one
-   * case, so two cases sharing a subject is the thing the schema forbids.
+   * count is order-dependent by construction. Reusing the full
+   * subject/content/policy identity hits the deduplication
+   * unique doing exactly its job, so the fixture varies the subject explicitly.
    */
   const pager: TenantContext = createTenantContext('org_alpha', 'app_alpha_pager');
 
@@ -208,14 +243,10 @@ describe('keyset pagination, which nothing exercised until the coverage gate sai
     const sameInstant = new Date('2026-08-10T05:00:00.000Z');
     for (const suffix of ['b', 'a']) {
       await withTenant(database.db, pager, async (tx) => {
-        await caseRepository.insertCase(tx, {
-          caseId: `case_page_${suffix}`,
-          organizationId: pager.organizationId,
-          applicationId: pager.applicationId,
-          subjectExternalId: `subject_${suffix}`,
-          status: 'received',
-          openedAt: sameInstant,
-        });
+        await caseRepository.insertCase(
+          tx,
+          storedCase(pager, `case_page_${suffix}`, `subject_${suffix}`, sameInstant),
+        );
       });
       await database.asMigrator`
         UPDATE cases SET created_at = ${sameInstant} WHERE case_id = ${`case_page_${suffix}`}
@@ -259,6 +290,94 @@ describe('the not-found paths', () => {
 
     expect(readings.byId).toBeNull();
     expect(readings.many).toEqual([]);
+  });
+});
+
+describe('the four-part case identity is the concurrency arbiter', () => {
+  const mergeTenant = createTenantContext('org_merge', 'app_merge');
+
+  it('keeps one case id and merges every report signal atomically', async () => {
+    const identity = {
+      externalSubjectId: 'subject_shared',
+      contentHash: 'hash_shared',
+      policyVersion: 'policy@7',
+      caseDedupKey: 'dedup_shared',
+    };
+    const candidates = [
+      {
+        ...storedCase(mergeTenant, 'case_merge_a', identity.externalSubjectId),
+        ...identity,
+        allegationCodes: ['integrity.spam', 'integrity.spam'],
+        reporterFingerprints: ['reporter_a', 'reporter_a'],
+        reach: 2,
+        retentionDays: 30,
+      },
+      {
+        ...storedCase(mergeTenant, 'case_merge_b', identity.externalSubjectId),
+        ...identity,
+        allegationCodes: ['harassment.insult'],
+        reporterFingerprints: ['reporter_b'],
+        reach: 90,
+        retentionDays: 60,
+        activeDistribution: true,
+        allowCommunityReview: false,
+      },
+      {
+        ...storedCase(mergeTenant, 'case_merge_c', identity.externalSubjectId),
+        ...identity,
+        allegationCodes: ['integrity.spam'],
+        reporterFingerprints: ['reporter_a'],
+        containsPersonalData: true,
+      },
+    ];
+
+    const rows = await Promise.all(
+      candidates.map((candidate) =>
+        withTenant(database.db, mergeTenant, (tx) =>
+          caseRepository.upsertCaseForReport(tx, candidate),
+        ),
+      ),
+    );
+
+    expect(new Set(rows.map((row) => row.caseId)).size).toBe(1);
+    const stored = await withTenant(database.db, mergeTenant, (tx) =>
+      caseRepository.findCaseById(tx, rows[0].caseId),
+    );
+    expect(stored).toMatchObject({
+      reportCount: 3,
+      reach: 90,
+      retentionDays: 60,
+      activeDistribution: true,
+      allowCommunityReview: false,
+      containsPersonalData: true,
+    });
+    expect([...(stored?.allegationCodes ?? [])].sort()).toEqual([
+      'harassment.insult',
+      'integrity.spam',
+    ]);
+    expect([...(stored?.reporterFingerprints ?? [])].sort()).toEqual([
+      'reporter_a',
+      'reporter_b',
+    ]);
+  });
+
+  it('opens a different case when content or policy changes', async () => {
+    const base = storedCase(mergeTenant, 'case_version_a', 'subject_versioned');
+    const changedContent = {
+      ...storedCase(mergeTenant, 'case_version_b', 'subject_versioned'),
+      contentHash: 'changed_content',
+    };
+
+    const [first, second] = await Promise.all([
+      withTenant(database.db, mergeTenant, (tx) =>
+        caseRepository.upsertCaseForReport(tx, base),
+      ),
+      withTenant(database.db, mergeTenant, (tx) =>
+        caseRepository.upsertCaseForReport(tx, changedContent),
+      ),
+    ]);
+
+    expect(first.caseId).not.toBe(second.caseId);
   });
 });
 
@@ -312,4 +431,3 @@ describe('the suite exercises the whole module', () => {
     expect(unexercised).toEqual([]);
   });
 });
-

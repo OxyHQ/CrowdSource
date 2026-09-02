@@ -18,7 +18,6 @@
  * as the consumer's mistake.
  */
 
-import mongoose, { Schema } from 'mongoose';
 import postgres from 'postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import { DATABASE_CASING } from '@oxyhq/db';
@@ -30,8 +29,6 @@ import {
   planEnforcement,
 } from '../enforcement/planner.js';
 import { createModerationIntegration } from '../integration.js';
-import { moderationReportSchemaFields } from '../mongoose/report.js';
-import { mongooseModerationStore } from '../mongoose/store/index.js';
 import {
   moderationReportColumns,
   moderationReportTableExtras,
@@ -41,7 +38,6 @@ import { moderationTables } from '../postgres/tables.js';
 import { decision } from './support/decisions.js';
 import type {
   ModerationEnforcementConfig,
-  ModerationReportFields,
 } from '../types.js';
 
 type CommerceAction = 'delist' | 'relist' | 'flag' | 'unflag' | 'review' | 'none';
@@ -190,49 +186,12 @@ describe('an inverted restoreAction is refused at construction', () => {
  * explicit type arguments — so a caller who has to name one has to name all
  * three, including a transaction type they should never have to think about.
  */
-type CommerceReport = ModerationReportFields;
-
-describe('the documented wiring', () => {
-  it('compiles and constructs with no type arguments and no annotations', async () => {
-    // Never connected: this constructs the integration and does no I/O, which is
-    // the whole surface being asserted.
-    const connection = mongoose.createConnection();
-    const reportModel = connection.model<CommerceReport>(
-      'DocumentedReport',
-      new Schema<CommerceReport>({ ...moderationReportSchemaFields() }, { timestamps: true }),
-    );
-
-    const store = mongooseModerationStore({
-      connection,
-      reportModel,
-      enforcementActions: commerce.actions,
-    });
-
-    const moderation = createModerationIntegration({
-      store,
-      crowdSource: { enabled: true, enforcementMode: 'observe' },
-      subjects: [],
-      taxonomy: { version: '2026.07', allegationsFor: () => ['other.unclassifiable'] },
-      enforcement: commerce,
-      logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
-    });
-
-    expect(typeof moderation.createReport).toBe('function');
-    expect(moderation.deliverableTypes()).toEqual([]);
-    // `ensureSchema()` is the one call in the example that needs a server, so it
-    // is documented rather than run here.
-    expect(typeof store.ensureSchema).toBe('function');
-
-    await connection.close();
-  });
-});
-
-describe('the documented Postgres wiring', () => {
+describe('the documented PostgreSQL wiring', () => {
   it('compiles and constructs with no type arguments and no annotations', async () => {
     /**
      * The README's PostgreSQL example, as code the compiler reads — the same
-     * argument as the Mongo case above, and the reason it exists is a defect that
-     * example already produced once: it called `moderation.store.ensureSchema()`
+     * It exists because the example already produced a real defect once: it
+     * called `moderation.store.ensureSchema()`
      * against an integration that deliberately exposes no store, and only being
      * executable caught it.
      *

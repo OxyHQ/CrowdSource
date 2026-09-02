@@ -3,6 +3,11 @@
 Architecture decision records, the threat model, and the module boundaries of the
 backend's modular monolith.
 
+The live checklist for the unfinished service database cut is
+[`postgres-runtime-remaining.md`](./postgres-runtime-remaining.md). It prevents
+the PostgreSQL-only application package from being mistaken for a completed
+backend or production cutover.
+
 | Document | Settles |
 | --- | --- |
 | [ADR 0001](0001-divergence-from-the-plan.md) | Where CrowdSource diverges from the plan's infrastructure, and what each divergence costs. |

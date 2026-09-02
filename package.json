@@ -21,9 +21,10 @@
     "audit:security": "bun ./scripts/audit-security.mjs",
     "check:tests-typechecked": "bun ./.github/scripts/assert-tests-typechecked.mjs",
     "check:lockfile": "bun ./scripts/check-lockfile-sync.mjs",
+    "check:app-postgres-only": "bun ./scripts/assert-app-postgres-only.mjs && bun ./scripts/test-assert-app-postgres-only.mjs && bun ./scripts/test-verify-cutover-manifest.mjs",
     "check:injection-sinks": "bun ./scripts/check-injection-sinks.mjs --min-files=200",
     "doctor": "bun ./scripts/doctor.mjs",
-    "check": "bun run doctor && bun run validate:workflows && bun run validate:agents-md && bun run audit:security && bun run check:injection-sinks && bun run check:peers && bun run build && bun run check:dist && bun run check:migrations && bun run check:schemas && bun run check:module-format && bun run --cwd packages/reviewer typecheck && bun run --cwd packages/console typecheck && bun run lint",
+    "check": "bun run doctor && bun run validate:workflows && bun run validate:agents-md && bun run audit:security && bun run check:injection-sinks && bun run check:peers && bun run check:app-postgres-only && bun run build && bun run check:dist && bun run check:migrations && bun run check:schemas && bun run check:module-format && bun run --cwd packages/reviewer typecheck && bun run --cwd packages/console typecheck && bun run lint",
     "test": "bun run test:contracts && bun run test:backend && bun run test:sdk && bun run test:testing && bun run test:sdk-express && bun run test:app && bun run test:reviewer && bun run test:console",
     "test:contracts": "bun run --cwd packages/contracts test",
     "test:backend": "bun run --cwd packages/backend test",
@@ -87,6 +88,7 @@
     "postcss": "8.5.18",
     "lightningcss": "1.30.1",
     "lightningcss-linux-x64-gnu": "1.30.1",
-    "lightningcss-linux-x64-musl": "1.30.1"
+    "lightningcss-linux-x64-musl": "1.30.1",
+    "browserslist": "4.28.8"
   }
 }

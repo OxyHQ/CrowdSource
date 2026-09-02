@@ -94,6 +94,9 @@ touched. It reads exactly like someone else's broken commit.
   enqueues. **Never enqueue work that is not already recorded in the outbox** — a
   dropped job must be a delay, never lost moderation work. Nothing in
   infrastructure enforces this; it holds by review alone.
+- **`@oxyhq/crowdsource-app` is PostgreSQL-only.** Do not restore a Mongoose
+  export, dependency or runtime path. Adopter migrations preserve exact ids and
+  reconcile counts plus canonical SHA-256 digests against an empty target.
 - **Isolation is a property of this codebase and nothing else enforces it.** A
   `TenantContext` is built ONLY by `createTenantContext`, from the authenticated
   service credential — never from a body, path, query or header. Every read and

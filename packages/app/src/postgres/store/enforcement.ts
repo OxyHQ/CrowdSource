@@ -28,8 +28,7 @@ import type { ModerationPgHandle } from './transaction.js';
  * ## Addressed by the key, never by a record id
  *
  * Every write after the claim addresses the row by the same three values the
- * claim used. That is what lets the two backends reach the same row — Mongo
- * through its unique index, Postgres through the primary key — and it is why no
+ * claim used. PostgreSQL reaches it through the composite primary key, so no
  * opaque record id crosses the port.
  */
 export function postgresEnforcementStore(input: {

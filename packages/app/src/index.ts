@@ -12,17 +12,11 @@
  *
  * So all of it is here, and an application supplies four things: its subjects,
  * its category mapping, its enforcement tables, and a STORE built by the
- * factory of whichever backend it keeps its reports in.
+ * PostgreSQL store factory.
  *
  * ```ts
  * import { createModerationIntegration } from '@oxyhq/crowdsource-app';
- * import { mongooseModerationStore } from '@oxyhq/crowdsource-app/mongoose';
- *
- * const store = mongooseModerationStore({
- *   connection,
- *   reportModel,
- *   enforcementActions: commerceEnforcement.actions,
- * });
+ * import { postgresModerationStore } from '@oxyhq/crowdsource-app/postgres';
  *
  * const moderation = createModerationIntegration({
  *   store,
@@ -63,8 +57,8 @@ export { createModerationIntegration } from './integration.js';
 export type { ModerationIntegration } from './integration.js';
 
 /**
- * The retention windows are policy both backends share, so they stay here while
- * everything Mongoose-shaped lives behind `@oxyhq/crowdsource-app/mongoose`.
+ * The retention windows are storage-independent policy, so they stay here while
+ * PostgreSQL-specific tables and stores live behind the `/postgres` subpath.
  */
 export {
   MODERATION_EVENT_RETENTION_SECONDS,

@@ -1,4 +1,3 @@
-import { mongooseBackend } from './harness.js';
 import { postgresBackend } from './postgresHarness.js';
 import type { ModerationBackend } from './backend.js';
 
@@ -18,7 +17,7 @@ import type { ModerationBackend } from './backend.js';
  * whole suite passing — and the mutation script would read it as every guard
  * holding.
  */
-const ALL: readonly ModerationBackend[] = [mongooseBackend, postgresBackend];
+const ALL: readonly ModerationBackend[] = [postgresBackend];
 
 function selected(): readonly ModerationBackend[] {
   const requested = process.env.CROWDSOURCE_APP_TEST_BACKEND;

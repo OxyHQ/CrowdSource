@@ -3,6 +3,15 @@ import { and, desc, eq, gte, inArray, lt, or, sql } from 'drizzle-orm';
 import { cases } from '../../schema/cases';
 import type { TenantScopedHandle } from '../../withTenant';
 
+function textArray(values: readonly string[]) {
+  if (values.length === 0) return sql`array[]::text[]`;
+  return sql`array[${sql.join(values.map((value) => sql`${value}`), sql`, `)}]::text[]`;
+}
+
+function uniqueTextValues(values: readonly string[]) {
+  return [...new Set(values)];
+}
+
 /**
  * The moderation case, as a TENANT-SCOPED repository.
  *
@@ -27,9 +36,37 @@ export interface NewCase {
   readonly caseId: string;
   readonly organizationId: string;
   readonly applicationId: string;
-  readonly subjectExternalId: string;
+  readonly externalSubjectId: string;
+  readonly contentHash: string;
+  readonly policyVersion: string;
+  readonly caseDedupKey: string;
+  readonly subjectType: string;
+  readonly primaryResourceId: string;
+  readonly policySetId: string;
+  readonly taxonomyVersion: string;
+  readonly contentSnapshot: unknown;
   readonly status: string;
-  readonly openedAt: Date;
+  readonly allegationCodes: readonly string[];
+  readonly reportCount: number;
+  readonly reporterFingerprints: readonly string[];
+  readonly reach: number;
+  readonly activeDistribution: boolean;
+  readonly allowCommunityReview: boolean;
+  readonly containsPersonalData: boolean;
+  readonly retentionDays: number;
+  readonly priorityScore: number;
+  readonly sensitivityClass: string | null;
+  readonly reviewPool: string | null;
+  readonly requiresRedaction: boolean;
+  readonly escalated: boolean;
+  readonly triagedAt: Date | null;
+  readonly currentRevision: number;
+  readonly decidedRevision: number;
+  readonly incidentId: string | null;
+  readonly firstReportedAt: Date;
+  readonly lastReportedAt: Date;
+  readonly createdAt?: Date;
+  readonly updatedAt?: Date;
 }
 
 /**
@@ -43,7 +80,68 @@ export interface NewCase {
  * always agree with the session and lose that check.
  */
 export async function insertCase(db: TenantScopedHandle, next: NewCase): Promise<void> {
-  await db.insert(cases).values(next);
+  await db.insert(cases).values({
+    ...next,
+    allegationCodes: [...next.allegationCodes],
+    reporterFingerprints: [...next.reporterFingerprints],
+  });
+}
+
+/**
+ * Creates the case for a report or atomically merges the report's signals into
+ * the existing case selected by the four-part §7.3 identity.
+ */
+export async function upsertCaseForReport(
+  db: TenantScopedHandle,
+  next: NewCase,
+) {
+  const allegationCodes = uniqueTextValues(next.allegationCodes);
+  const reporterFingerprints = uniqueTextValues(next.reporterFingerprints);
+  const [row] = await db
+    .insert(cases)
+    .values({
+      ...next,
+      allegationCodes,
+      reporterFingerprints,
+    })
+    .onConflictDoUpdate({
+      target: [
+        cases.applicationId,
+        cases.externalSubjectId,
+        cases.contentHash,
+        cases.policyVersion,
+      ],
+      set: {
+        lastReportedAt: next.lastReportedAt,
+        updatedAt: next.updatedAt ?? next.lastReportedAt,
+        reportCount: sql`${cases.reportCount} + 1`,
+        reach: sql`greatest(${cases.reach}, ${next.reach})`,
+        retentionDays: sql`greatest(${cases.retentionDays}, ${next.retentionDays})`,
+        activeDistribution: sql`${cases.activeDistribution} or ${next.activeDistribution}`,
+        allowCommunityReview: sql`${cases.allowCommunityReview} and ${next.allowCommunityReview}`,
+        containsPersonalData: sql`${cases.containsPersonalData} or ${next.containsPersonalData}`,
+        allegationCodes: sql`(
+          ${cases.allegationCodes} || array(
+            select incoming
+            from unnest(${textArray(allegationCodes)}) as incoming
+            where not (incoming = any(${cases.allegationCodes}))
+          )
+        )`,
+        reporterFingerprints: sql`(
+          ${cases.reporterFingerprints} || array(
+            select incoming
+            from unnest(${textArray(reporterFingerprints)}) as incoming
+            where not (incoming = any(${cases.reporterFingerprints}))
+          )
+        )`,
+      },
+    })
+    .returning();
+
+  if (row === undefined) {
+    throw new Error('The case upsert returned no row.');
+  }
+  return row;
 }
 
 export async function findCaseById(db: TenantScopedHandle, caseId: string) {

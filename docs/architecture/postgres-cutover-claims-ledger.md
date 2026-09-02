@@ -14,8 +14,8 @@ had contributors install MongoDB against a backend that exits without
 and correctly — a ledger is what covers them instead.
 
 **Scope note, because the repository is already split.** `@oxyhq/crowdsource-app`
-(`packages/app`) ALREADY ships both stores — `src/mongoose/` and `src/postgres/`
-— since #79, and `AGENTS.md` is current on that. This ledger is about
+(`packages/app`) is PostgreSQL-only from 0.7.0; its former Mongoose subpath was
+removed with an adopter-owned, manifest-gated cutover runbook. This ledger is about
 `@crowdsource/backend` (`packages/backend`), the ECS service, which is still
 Mongo-only: task definition `oxy-crowdsource:26` carries `MONGODB_URI` and no
 `DATABASE_URL`, and `package.json` declares `mongoose`.
@@ -98,12 +98,14 @@ next service can find it.
 
 ## 4. Facts that are already settled and should not be re-litigated
 
-- **There is no data migration, and the production database is why.** It holds
-  **2 documents**, both `reviewer_profiles` (measured 2026-08-09). The specs
-  already decided this — `docs/superpowers/specs/2026-08-06-crowdsource-app-postgres-design.md`
-  and the scoping report both say do not build one. The cutover starts empty.
-  Anything later implying a backfill is wrong; keep the measurement beside the
-  decision so nobody re-opens it from first principles.
+- **The 2026-08-09 measurement is historical evidence, not current cutover
+  authority.** That inspection found **2 documents**, both
+  `reviewer_profiles`, and the original package-only specs therefore proposed
+  an empty start. It does not prove the source is still unchanged and cannot
+  authorise dropping or omitting current data. The backend cutover requires a
+  fresh read-only inventory, frozen writes, an empty separately identified
+  target, and per-dataset source/target ID, count and SHA-256 reconciliation.
+  No phase may substitute the old count or a guessed identity for that evidence.
 - **`WEBHOOK_SECRET_ENCRYPTION_KEY`'s provenance is correctly documented here** —
   `deploy-aws.yml` carries it in `SSM_SECRET_ALLOWLIST` and the task definition
   maps it to `/oxy/crowdsource/WEBHOOK_SECRET_ENCRYPTION_KEY`. It was live in
