@@ -4,7 +4,7 @@ Architecture decision records, the threat model, and the module boundaries of th
 backend's modular monolith.
 
 The live checklist for the unfinished service database cut is
-[`postgres-runtime-remaining.md`](./postgres-runtime-remaining.md). It prevents
+[`postgres-runtime-cut.md`](./postgres-runtime-cut.md). It records
 the PostgreSQL-only application package from being mistaken for a completed
 backend or production cutover.
 

@@ -48,35 +48,6 @@ describe('config', () => {
     );
   });
 
-  it('treats a blank MONGODB_URI as absent rather than as an empty string', async () => {
-    const { config } = await loadConfigModule({ NODE_ENV: 'test', MONGODB_URI: '   ' });
-
-    expect(config.mongoUri).toBeUndefined();
-  });
-
-  it('rejects a connection pool whose minimum exceeds its maximum', async () => {
-    await expect(
-      loadConfigModule({
-        NODE_ENV: 'test',
-        MONGODB_MAX_POOL_SIZE: '5',
-        MONGODB_MIN_POOL_SIZE: '10',
-      }),
-    ).rejects.toThrow(/MONGODB_MIN_POOL_SIZE must not exceed MONGODB_MAX_POOL_SIZE/);
-  });
-
-  it('reads Mongo tuning values', async () => {
-    const { config } = await loadConfigModule({
-      NODE_ENV: 'test',
-      MONGODB_URI: 'mongodb://localhost:27017/ignored',
-      MONGODB_MAX_POOL_SIZE: '20',
-      MONGODB_MAX_RETRIES: '2',
-    });
-
-    expect(config.mongoUri).toBe('mongodb://localhost:27017/ignored');
-    expect(config.db.maxPoolSize).toBe(20);
-    expect(config.db.maxRetries).toBe(2);
-  });
-
   it('reads DATABASE_URL', async () => {
     const { config } = await loadConfigModule({
       NODE_ENV: 'test',

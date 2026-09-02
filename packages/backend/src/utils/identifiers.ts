@@ -17,6 +17,8 @@ import { randomUUID } from 'node:crypto';
 /** One prefix per public identifier kind. */
 export const ID_PREFIX = {
   organization: 'org',
+  /** New console seats need a key; cutover seats preserve their source document id. */
+  membership: 'mem',
   application: 'app',
   /** Credential ids are the lookup half of a service token, hence a key prefix. */
   credential: 'csk',

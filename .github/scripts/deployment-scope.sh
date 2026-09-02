@@ -45,7 +45,6 @@ for path in "${changed_paths[@]}"; do
     backend:.github/scripts/audit-runtime-image.sh | \
     backend:.github/scripts/require-current-main.sh | \
     backend:.github/scripts/smoke-crowdsource.sh | \
-    backend:.github/scripts/assert-own-database.sh | \
     frontend:packages/reviewer/* | \
     frontend:packages/contracts/* | \
     frontend:.github/scripts/require-current-main.sh | \

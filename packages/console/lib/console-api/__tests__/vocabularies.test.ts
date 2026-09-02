@@ -11,10 +11,9 @@
  * CI, long before it is a rejected payload in an operator's browser.
  *
  * The backend is read as TEXT rather than imported. The precedent is the repository's
- * own `sdk/src/__tests__/defaults.test.ts`, and the reason is the same: the backend is a
- * Node/CommonJS package with Mongoose and Zod at module scope, and importing it into a
- * jest-expo runtime to read a string array would be a much larger coupling than a regex
- * over one declaration. Every extraction below asserts it found something first, so a
+ * own `sdk/src/__tests__/defaults.test.ts`, and the reason is the same: importing the
+ * backend package into a jest-expo runtime just to read a string array would be a much
+ * larger coupling than a regex over its storage-independent vocabulary file. Every extraction below asserts it found something first, so a
  * moved file or a renamed constant fails loudly instead of comparing against nothing.
  */
 
@@ -37,6 +36,7 @@ import {
 
 const BACKEND = join(__dirname, '..', '..', '..', '..', 'backend', 'src');
 const CONTRACTS = join(__dirname, '..', '..', '..', '..', 'contracts', 'src');
+const CLOSED_VALUES = join(BACKEND, 'domain', 'closedValues.ts');
 
 /**
  * The string literals of an `export const NAME = [...] as const;` declaration.
@@ -61,10 +61,7 @@ function readStringArray(file: string, name: string): string[] {
 
 describe('the vocabularies this console validates against', () => {
   it('matches the backend case statuses', () => {
-    const server = readStringArray(
-      join(BACKEND, 'modules', 'cases', 'case.collection.ts'),
-      'CASE_STATUSES',
-    );
+    const server = readStringArray(CLOSED_VALUES, 'CASE_STATUSES');
     expect(server.length).toBeGreaterThan(5);
     expect([...CASE_STATUSES]).toEqual(server);
   });
@@ -102,44 +99,31 @@ describe('the vocabularies this console validates against', () => {
   it('matches the console roles and their order', () => {
     // The ORDER is load-bearing: `roleAtLeast` derives the hierarchy from the index in
     // this array rather than from a second table of ranks.
-    const server = readStringArray(
-      join(BACKEND, 'modules', 'console', 'console.collections.ts'),
-      'CONSOLE_ROLES',
-    );
+    const server = readStringArray(CLOSED_VALUES, 'CONSOLE_ROLES');
     expect(server).toEqual(['owner', 'admin', 'developer', 'viewer']);
     expect([...CONSOLE_ROLES]).toEqual(server);
   });
 
   it('matches the member statuses', () => {
-    const server = readStringArray(
-      join(BACKEND, 'modules', 'console', 'console.collections.ts'),
-      'MEMBER_STATUSES',
-    );
+    const server = readStringArray(CLOSED_VALUES, 'MEMBER_STATUSES');
     expect([...MEMBER_STATUSES]).toEqual(server);
   });
 
   it('matches the organization and application statuses', () => {
-    // These two are declared inline in the Mongoose schema rather than as exported
-    // arrays, so they are read from the schema's own `enum` — the value the database
-    // actually enforces.
-    const source = readFileSync(
-      join(BACKEND, 'modules', 'tenancy', 'tenancy.collections.ts'),
-      'utf8',
+    expect([...ORGANIZATION_STATUSES]).toEqual(
+      readStringArray(CLOSED_VALUES, 'ORGANIZATION_STATUSES'),
     );
-    const enums = [...source.matchAll(/status: \{[^}]*enum: \[([^\]]+)\]/g)].map((match) =>
-      [...match[1].matchAll(/'([^']+)'/g)].map((inner) => inner[1]),
+    expect([...APPLICATION_STATUSES]).toEqual(
+      readStringArray(CLOSED_VALUES, 'APPLICATION_STATUSES'),
     );
-    // organizations, applications, credentials — in declaration order.
-    expect(enums.length).toBe(3);
-    expect([...ORGANIZATION_STATUSES]).toEqual(enums[0]);
-    expect([...APPLICATION_STATUSES]).toEqual(enums[1]);
-    expect([...CREDENTIAL_STATUSES]).toEqual(enums[2]);
+    expect([...CREDENTIAL_STATUSES]).toEqual(
+      readStringArray(CLOSED_VALUES, 'CREDENTIAL_STATUSES'),
+    );
   });
 
   it('matches the application standings and standing reasons', () => {
-    const trustCollection = join(BACKEND, 'modules', 'trust', 'applicationTrust.collection.ts');
-    const standings = readStringArray(trustCollection, 'APPLICATION_STANDINGS');
-    const reasons = readStringArray(trustCollection, 'STANDING_REASONS');
+    const standings = readStringArray(CLOSED_VALUES, 'APPLICATION_STANDINGS');
+    const reasons = readStringArray(CLOSED_VALUES, 'STANDING_REASONS');
     expect(standings.length).toBe(3);
     expect(reasons.length).toBeGreaterThan(3);
     expect([...APPLICATION_STANDINGS]).toEqual(standings);

@@ -1,4 +1,13 @@
-import mongoose, { type ClientSession } from 'mongoose';
+import {
+  DEADLOCK_DETECTED,
+  SERIALIZATION_FAILURE,
+  constraintNameOf,
+  isUniqueViolation,
+  sqlStateOf,
+} from '@oxyhq/db';
+
+import { getPostgresDatabase } from './postgres/database';
+import type { PgTransactionHandle } from './postgres/withTenant';
 
 /**
  * Transactions, and the one duplicate-key error the domain treats as an answer
@@ -18,17 +27,24 @@ import mongoose, { type ClientSession } from 'mongoose';
 
 /** Runs `operation` inside a transaction and returns its result. */
 export async function withTransaction<T>(
-  operation: (session: ClientSession) => Promise<T>,
+  operation: (session: PgTransactionHandle) => Promise<T>,
 ): Promise<T> {
-  const session = await mongoose.startSession();
-  try {
-    // The driver's own implementation, deliberately: it is what knows to retry
-    // a `TransientTransactionError` and to re-commit on an
-    // `UnknownTransactionCommitResult`. A hand-rolled loop gets one of those
-    // two wrong and loses a committed write or duplicates one.
-    return await session.withTransaction<T>(async () => operation(session));
-  } finally {
-    await session.endSession();
+  const db = getPostgresDatabase();
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await db.transaction(async (tx) => operation(tx));
+    } catch (error: unknown) {
+      const state = sqlStateOf(error);
+      if (
+        attempt >= 3 ||
+        (state !== SERIALIZATION_FAILURE && state !== DEADLOCK_DETECTED)
+      ) {
+        throw error;
+      }
+      // A PostgreSQL serialization/deadlock failure aborts the whole
+      // transaction. Retrying here starts a fresh one; retrying inside the
+      // callback would only produce `25P02` from the already-aborted handle.
+    }
   }
 }
 
@@ -47,18 +63,24 @@ export interface DuplicateKeyViolation {
  * interpreting the collision cannot race, because the index is the arbiter.
  */
 export function duplicateKeyViolation(error: unknown): DuplicateKeyViolation | null {
-  if (typeof error !== 'object' || error === null) return null;
-  if (!('code' in error) || error.code !== 11000) return null;
+  if (!isUniqueViolation(error)) return null;
 
-  if ('keyPattern' in error) {
-    const keyPattern = error.keyPattern;
-    if (typeof keyPattern === 'object' && keyPattern !== null) {
-      return { indexFields: Object.keys(keyPattern) };
-    }
-  }
+  const constraint = constraintNameOf(error);
+  const fieldsByConstraint: Readonly<Record<string, readonly string[]>> = {
+    reports_application_external_key: ['applicationId', 'externalReportId'],
+    reports_application_idempotency_key: ['applicationId', 'idempotencyKey'],
+    cases_application_subject_content_policy_key: [
+      'applicationId',
+      'externalSubjectId',
+      'contentHash',
+      'policyVersion',
+    ],
+    appeals_application_idempotency_key: ['applicationId', 'idempotencyKey'],
+    appeals_application_case_revision_key: ['applicationId', 'caseId', 'supersededRevision'],
+  };
 
-  // A duplicate key without a usable key pattern is still a duplicate key; the
-  // caller has to decide what to do with an unattributable one rather than
-  // mistake it for an ordinary write failure.
-  return { indexFields: [] };
+  return {
+    indexFields:
+      typeof constraint === 'string' ? (fieldsByConstraint[constraint] ?? []) : [],
+  };
 }

@@ -65,12 +65,6 @@ jobs:
       - name: Verify current main before building
         run: bash .github/scripts/require-current-main.sh
 
-      # Runs before any AWS credential is issued. The database this release is
-      # allowed to reach is declared in application source, so this is the
-      # earliest point the target can be checked — long before a task starts.
-      - name: Verify this release targets its own database
-        run: bash .github/scripts/assert-own-database.sh
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6
         with:
@@ -151,12 +145,6 @@ jobs:
               continue
             fi
 
-            # MONGODB_URI is no longer synced (the shared instance was retired
-            # on 2026-08-10 — oxy-infra runbook 31), so the note that used to sit
-            # here about not checking its database component no longer applies.
-            # assert-own-database.sh still runs above against source; it guards a
-            # shared-instance hazard that no longer exists and is left for the
-            # Postgres port to retire deliberately rather than as a side effect.
             aws ssm put-parameter \
               --name "/oxy/$APP/$key" \
               --value "$value" \

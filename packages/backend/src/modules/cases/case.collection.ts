@@ -1,8 +1,8 @@
-import { Schema } from 'mongoose';
 import type { TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 
 import { defineTenantCollection } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
+import { CASE_STATUSES } from '../../domain/closedValues';
 import type { ContentSnapshot } from '../evidence/contentSnapshot';
 import type { ReviewPool, SensitivityClass } from '../triage/triage';
 
@@ -16,18 +16,7 @@ import type { ReviewPool, SensitivityClass } from '../triage/triage';
  */
 
 /** §3.2 case states. */
-export const CASE_STATUSES = [
-  'received',
-  'triaged',
-  'awaiting_review',
-  'under_review',
-  'awaiting_consensus',
-  'decided',
-  'escalated',
-  'appealed',
-  'superseded',
-  'closed',
-] as const;
+export { CASE_STATUSES } from '../../domain/closedValues';
 export type CaseStatus = (typeof CASE_STATUSES)[number];
 
 export interface CaseDocument extends TenantContext {
@@ -99,7 +88,7 @@ export interface CaseDocument extends TenantContext {
    *
    * §12.11's compare-and-swap, in the form the swap needs. Two consensus workers
    * evaluating the same case at the same instant both try to move this from
-   * `< R` to `R`; MongoDB lets exactly one of them, and the loser's transaction
+   * `< R` to `R`; PostgreSQL lets exactly one of them, and the loser's transaction
    * retries, finds the filter no longer matches, and publishes nothing.
    *
    * A separate number rather than a check on `status` because `status` has three
@@ -122,78 +111,7 @@ export interface CaseDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const caseSchema = new Schema<CaseDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    caseId: { type: String, required: true, unique: true },
-
-    externalSubjectId: { type: String, required: true },
-    contentHash: { type: String, required: true },
-    policyVersion: { type: String, required: true },
-    caseDedupKey: { type: String, required: true },
-
-    subjectType: { type: String, required: true },
-    primaryResourceId: { type: String, required: true },
-    policySetId: { type: String, required: true },
-    taxonomyVersion: { type: String, required: true },
-
-    contentSnapshot: { type: Schema.Types.Mixed, required: true },
-
-    status: { type: String, required: true, enum: CASE_STATUSES, default: 'received' },
-
-    allegationCodes: { type: [String], required: true, default: [] },
-    reportCount: { type: Number, required: true, default: 0 },
-    reporterFingerprints: { type: [String], required: true, default: [] },
-
-    reach: { type: Number, required: true, default: 0 },
-    activeDistribution: { type: Boolean, required: true, default: false },
-    allowCommunityReview: { type: Boolean, required: true, default: true },
-    containsPersonalData: { type: Boolean, required: true, default: false },
-    retentionDays: { type: Number, required: true },
-
-    priorityScore: { type: Number, required: true, default: 0 },
-    sensitivityClass: { type: String, default: null },
-    reviewPool: { type: String, default: null },
-    requiresRedaction: { type: Boolean, required: true, default: false },
-    escalated: { type: Boolean, required: true, default: false },
-    triagedAt: { type: Date, default: null },
-
-    currentRevision: { type: Number, required: true, default: 1 },
-    decidedRevision: { type: Number, required: true, default: 0 },
-    incidentId: { type: String, default: null },
-
-    firstReportedAt: { type: Date, required: true },
-    lastReportedAt: { type: Date, required: true },
-  },
-  { timestamps: true, collection: 'cases' },
-);
-
-/**
- * §12.7's case dedup constraint, and the thing that actually enforces §7.3.
- *
- * The four fields are the plan's, verbatim. It is a unique INDEX and not a
- * lookup because a lookup races: two people reporting the same post within the
- * same instant both find no case and both create one, which is two cases, two
- * juries and two consequences for one incident. With the index the second
- * insert loses and the loser merges — see `case.service.ts`.
- */
-caseSchema.index(
-  { applicationId: 1, externalSubjectId: 1, contentHash: 1, policyVersion: 1 },
-  { unique: true },
-);
-
-/** §7.3's derived key, for lookup and for future cross-application correlation. */
-caseSchema.index({ applicationId: 1, caseDedupKey: 1 });
-
-/**
- * §12.7's operational queue index. Deliberately NOT prefixed by the tenant: a
- * reviewer is drawn for whichever case is next across every application, so the
- * queue this serves is the one query in the system that is not tenant-scoped.
- */
-caseSchema.index({ status: 1, priorityScore: -1, createdAt: 1 });
-
-export const cases = defineTenantCollection('Case', caseSchema);
+export const cases = defineTenantCollection<CaseDocument>('Case');
 
 /**
  * The join between a report and the case it was merged into (§12.6
@@ -217,22 +135,4 @@ export interface CaseReportDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const caseReportSchema = new Schema<CaseReportDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    caseId: { type: String, required: true },
-    reportId: { type: String, required: true },
-    externalReportId: { type: String, required: true },
-    allegationCodes: { type: [String], required: true, default: [] },
-    merged: { type: Boolean, required: true, default: false },
-    linkedAt: { type: Date, required: true },
-  },
-  { timestamps: true, collection: 'case_reports' },
-);
-
-/** One report belongs to exactly one case. */
-caseReportSchema.index({ applicationId: 1, reportId: 1 }, { unique: true });
-caseReportSchema.index({ applicationId: 1, caseId: 1 });
-
-export const caseReports = defineTenantCollection('CaseReport', caseReportSchema);
+export const caseReports = defineTenantCollection<CaseReportDocument>('CaseReport');

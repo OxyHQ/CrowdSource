@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import { postgresControl } from './support/postgresControl';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -179,7 +179,7 @@ describe('§15.4: a standard case selects three eligible reviewers', () => {
   });
 
   it('moves the case to awaiting_review and nowhere further', async () => {
-    const stored = await mongoose.connection.collection('cases').findOne({ caseId });
+    const stored = await postgresControl.collection('cases').findOne({ caseId });
     expect(stored?.status).toBe('awaiting_review');
   });
 });
@@ -597,7 +597,7 @@ describe('§8.7: a recusal is not a vote, and it creates a replacement', () => {
     expect(profile?.available).toBe(true);
     expect(profile?.reliabilityByCategory).toEqual(reliabilityBefore);
 
-    const relations = await mongoose.connection
+    const relations = await postgresControl
       .collection('reviewer_relations')
       .find({ reviewerId: recusedReviewerId })
       .toArray();
@@ -1068,7 +1068,7 @@ describe('§8.8: an undersized pool refuses rather than opening', () => {
   });
 
   it('leaves the case where it was, rather than in a state nobody can resolve', async () => {
-    const stored = await mongoose.connection.collection('cases').findOne({ caseId: starvedCaseId });
+    const stored = await postgresControl.collection('cases').findOne({ caseId: starvedCaseId });
     expect(stored?.status).toBe('triaged');
   });
 
@@ -1087,7 +1087,7 @@ describe('§8.8: an undersized pool refuses rather than opening', () => {
   });
 
   it('does not dead-letter the event: an empty pool is a state, not a fault', async () => {
-    const rows = await mongoose.connection
+    const rows = await postgresControl
       .collection('outbox_events')
       .find({ 'payload.caseId': starvedCaseId, type: 'case.ready_for_review' })
       .toArray();

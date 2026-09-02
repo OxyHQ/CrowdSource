@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import { postgresControl } from './support/postgresControl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { reports } from '../modules/ingestion/report.collection';
@@ -93,7 +93,7 @@ describe('a report and its outbox event commit together', () => {
 
     expect(await reports.findOne(tenant.tenant, { externalReportId })).not.toBeNull();
     expect(
-      await mongoose.connection
+      await postgresControl
         .collection('outbox_events')
         .countDocuments({ 'payload.reportId': delivered.reportId }),
     ).toBe(1);
@@ -105,7 +105,7 @@ describe('a report and its outbox event commit together', () => {
      * against the replica set. What must be exact is what committed.
      */
     expect(
-      await mongoose.connection
+      await postgresControl
         .collection('outbox_events')
         .countDocuments({ type: 'case.ready_for_triage', 'payload.caseId': delivered.caseId }),
     ).toBe(1);
@@ -123,7 +123,7 @@ describe('a report and its outbox event commit together', () => {
     // a report nothing will ever triage.
     expect(await reports.findOne(tenant.tenant, { externalReportId })).toBeNull();
     expect(
-      await mongoose.connection.collection('reports').countDocuments({ externalReportId }),
+      await postgresControl.collection('reports').countDocuments({ externalReportId }),
     ).toBe(0);
 
     /**
@@ -133,7 +133,7 @@ describe('a report and its outbox event commit together', () => {
      * nobody actually reported.
      */
     expect(
-      await mongoose.connection
+      await postgresControl
         .collection('cases')
         .countDocuments({ externalSubjectId: `post_${externalReportId}` }),
     ).toBe(0);
@@ -141,7 +141,7 @@ describe('a report and its outbox event commit together', () => {
     // The audit row is part of the same transaction and rolls back with it: a
     // trail claiming an accepted ingress that never happened is worse than none.
     expect(
-      await mongoose.connection
+      await postgresControl
         .collection('audit_events')
         .countDocuments({ externalReportId, action: 'report.ingress.accepted' }),
     ).toBe(0);
@@ -170,7 +170,7 @@ describe('a report and its outbox event commit together', () => {
      * transaction produces measures what this test is actually about.
      */
     const ingressTypes = { $in: ['report.received', 'case.ready_for_triage'] };
-    const rowsBefore = await mongoose.connection
+    const rowsBefore = await postgresControl
       .collection('outbox_events')
       .countDocuments({ applicationId: tenant.applicationId, type: ingressTypes });
 
@@ -194,7 +194,7 @@ describe('a report and its outbox event commit together', () => {
     // commit, so nothing of them may survive.
     expect(appendOutboxEvent).toHaveBeenCalled();
     expect(
-      await mongoose.connection
+      await postgresControl
         .collection('outbox_events')
         .countDocuments({ applicationId: tenant.applicationId, type: ingressTypes }),
     ).toBe(rowsBefore);

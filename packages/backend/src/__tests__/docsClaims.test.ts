@@ -829,18 +829,22 @@ describe('docs/runbooks/audit-trails.md', () => {
     expect(sorted(claims.list('console-seats'))).toEqual(sorted(CONSOLE_ROLES));
   });
 
-  it('names the two collections correctly, and they are two', () => {
-    const tenantTrail = readFileSync(
-      path.resolve(__dirname, '../modules/audit/audit.collection.ts'),
+  it('names the two PostgreSQL tables correctly, and they are two', () => {
+    const tenantTrailSchema = readFileSync(
+      path.resolve(__dirname, '../db/postgres/schema/governance.ts'),
       'utf8',
     );
-    const staffTrail = readFileSync(
-      path.resolve(__dirname, '../modules/console/staffAudit.collection.ts'),
+    const staffTrailSchema = readFileSync(
+      path.resolve(__dirname, '../db/postgres/schema/console.ts'),
       'utf8',
     );
 
-    expect(tenantTrail).toContain(`collection: '${claims.one('audit-collection')}'`);
-    expect(staffTrail).toContain(`collection: '${claims.one('staff-audit-collection')}'`);
+    expect(tenantTrailSchema).toMatch(
+      new RegExp(`pgTable\\(\\s*'${claims.one('audit-collection')}'`),
+    );
+    expect(staffTrailSchema).toMatch(
+      new RegExp(`pgTable\\(\\s*'${claims.one('staff-audit-collection')}'`),
+    );
     expect(claims.one('audit-collection')).not.toBe(claims.one('staff-audit-collection'));
   });
 

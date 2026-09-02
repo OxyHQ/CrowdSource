@@ -13,9 +13,9 @@ import { requireTransaction, type PgHandle, type PgTransactionHandle } from '../
  * who belongs to none, and the caller writing it presents an Oxy session carrying
  * no tenant to scope by.
  *
- * NOTHING CALLS THIS IN PRODUCTION YET. `reviewsRepository.realdb.test.ts` is what
- * makes these statements ones that have genuinely run against the real schema, the
- * real uniques and the real unprivileged role.
+ * Runtime services use these paths, and `reviewsRepository.realdb.test.ts`
+ * additionally exercises them against the real schema, unique constraints and
+ * unprivileged role.
  */
 
 export type ReviewRow = typeof reviews.$inferSelect;

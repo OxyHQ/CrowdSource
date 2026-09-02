@@ -26,7 +26,7 @@ import { safeFetchTransport, type WebhookTransport } from './transport';
 /**
  * The delivery worker (§10.8, §10.9).
  *
- * ## Why this polls MongoDB instead of consuming a queue
+ * ## Why this polls PostgreSQL instead of consuming a queue
  *
  * The same reason `outbox.dispatcher.ts` gives, taken one step further. The
  * Valkey a BullMQ queue would run on is a single `cache.t4g.micro` node with no

@@ -19,9 +19,8 @@ import { newPublicId } from '../../../utils/identifiers';
  * reflect: `PgHandle` for the dispatcher's three, because it runs outside any
  * tenant, and a TRANSACTION for the append, for the reason below.
  *
- * NOTHING CALLS THIS IN PRODUCTION YET. `outboxRepository.realdb.test.ts` is what
- * makes these statements ones that have genuinely run rather than ones whose first
- * execution is in production.
+ * Domain services and the dispatcher call these paths. The real-database suite
+ * additionally proves their transaction and concurrent-claim semantics.
  *
  * ## Why the append takes a transaction and the other three do not
  *
@@ -32,8 +31,8 @@ import { newPublicId } from '../../../utils/identifiers';
  * rows. A row written OUTSIDE that transaction is lost moderation work with no
  * trace, and it fails silently until the day a node is replaced.
  *
- * On Mongo the enforcement was a required `ClientSession` parameter. Here it is
- * two layers, and the second is not redundant:
+ * PostgreSQL enforces that requirement in two layers, and the second is not
+ * redundant:
  *
  *  1. `PgTransactionHandle` — drizzle's own `PgTransaction` type, which the pool
  *     is not assignable to. Passing the pool is a `tsc` error at every call site
@@ -42,14 +41,14 @@ import { newPublicId } from '../../../utils/identifiers';
  *     with no cast.
  *  2. `requireTransaction` — the runtime half, for a handle that arrives through
  *     a cast, an `any` or a generic boundary, which is precisely the case the
- *     Mongo guard was written for.
+ *     runtime guard exists for.
  *
  * ## What NEITHER layer covers, said here so they are not read as sufficient
  *
  * Both prove the handle is A transaction. Neither proves it is THE SAME
  * transaction as the domain write it records — a caller holding two open
  * transactions and passing the wrong one satisfies both. No type closes that, in
- * either store, and the Mongo side had the identical gap.
+ * and the invariant is therefore also covered by the real-database rollback test.
  *
  * What closes it is a test, and only in one direction. A test that makes the
  * OUTBOX write fail and finds the domain write rolled back passes whether or not
@@ -62,10 +61,8 @@ import { newPublicId } from '../../../utils/identifiers';
  * ## Where the event vocabulary lives
  *
  * `OUTBOX_EVENT_TYPES`, `OUTBOX_STATUSES` and `OutboxEventPayload` are imported
- * from the Mongo collection file rather than restated here. They are domain
- * vocabulary that happens to sit beside a Mongoose schema, and two copies of a
- * closed value set is how they drift. At the switch that file loses its schema
- * and keeps the constants, which is a shrink rather than a move.
+ * from the domain collection module rather than restated here. That module now
+ * contains types/constants only, and two copies of a closed value set would drift.
  */
 
 /**

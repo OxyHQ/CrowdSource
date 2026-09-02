@@ -68,7 +68,11 @@ describe('creating the sandbox default', () => {
      */
     await appTrust.insertSandboxDefaultIfAbsent(
       database.db,
-      trustRow({ applicationId: 'app_new', standing: 'restricted', lastStandingReason: 'abuse' }),
+      trustRow({
+        applicationId: 'app_new',
+        standing: 'restricted',
+        lastStandingReason: 'suspected_abuse',
+      }),
     );
 
     const row = await appTrust.findByApplicationId(database.db, 'app_new');
@@ -132,7 +136,7 @@ describe('moving a standing', () => {
     const updated = await appTrust.updateStanding(database.db, 'app_move', {
       standing: 'trusted',
       globalReputationEffectsAllowed: true,
-      lastStandingReason: 'manual_review',
+      lastStandingReason: 'promotion_review_passed',
       standingChangedAt: now,
       standingChangedByOxyUserId: 'oxy_staff_1',
     });
@@ -140,7 +144,7 @@ describe('moving a standing', () => {
     /** The post-image, not the pre-image — the caller returns this to the operator. */
     expect(updated?.standing).toBe('trusted');
     expect(updated?.globalReputationEffectsAllowed).toBe(true);
-    expect(updated?.lastStandingReason).toBe('manual_review');
+    expect(updated?.lastStandingReason).toBe('promotion_review_passed');
     expect(updated?.standingChangedAt?.getTime()).toBe(now.getTime());
     expect(updated?.standingChangedByOxyUserId).toBe('oxy_staff_1');
   });
@@ -149,7 +153,7 @@ describe('moving a standing', () => {
     const updated = await appTrust.updateStanding(database.db, 'app_absent', {
       standing: 'trusted',
       globalReputationEffectsAllowed: true,
-      lastStandingReason: 'manual_review',
+      lastStandingReason: 'promotion_review_passed',
       standingChangedAt: new Date(),
       standingChangedByOxyUserId: null,
     });
@@ -235,23 +239,10 @@ describe('counts by standing', () => {
     expect(counts.trusted + 1, 'the count concatenated instead of adding').toBe(3);
   });
 
-  /**
-   * A standing the caller did not ask about is dropped rather than added.
-   *
-   * Otherwise the returned record grows a key the caller's type does not have —
-   * which TypeScript cannot catch on a `Record<string, number>` and which reaches
-   * the dashboard as an unlabelled column.
-   */
-  it('does not report a standing outside the requested set', async () => {
-    await seed([
-      trustRow({ applicationId: 'app_known', standing: 'sandbox' }),
-      trustRow({ applicationId: 'app_unknown', standing: 'quarantined' }),
-    ]);
-
-    const counts = await appTrust.countByStanding(database.db, STANDINGS);
-
-    expect(Object.keys(counts).sort()).toEqual(['restricted', 'sandbox', 'trusted']);
-    expect(counts.sandbox).toBe(1);
+  it('refuses a standing outside the closed database vocabulary', async () => {
+    await expect(
+      seed([trustRow({ applicationId: 'app_unknown', standing: 'quarantined' })]),
+    ).rejects.toMatchObject({ cause: { code: '23514' } });
   });
 });
 

@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import { postgresControl } from './support/postgresControl';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -79,7 +79,7 @@ describe('a credential from one tenant cannot reach another tenant', () => {
    * test says so instead of letting them pass quietly.
    */
   it('control: the document exists and is reachable when the tenant filter is absent', async () => {
-    const unfiltered = await mongoose.connection
+    const unfiltered = await postgresControl
       .collection('reports')
       .findOne({ reportId: alphaReportId });
 
@@ -156,7 +156,7 @@ describe('applicationId comes from the credential', () => {
 
     expect(response.status).toBe(422);
     expect(
-      await mongoose.connection.collection('reports').countDocuments({ externalReportId }),
+      await postgresControl.collection('reports').countDocuments({ externalReportId }),
     ).toBe(0);
   });
 
@@ -182,7 +182,7 @@ describe('applicationId comes from the credential', () => {
 
     expect(response.status).toBe(202);
 
-    const stored = await mongoose.connection
+    const stored = await postgresControl
       .collection('reports')
       .findOne({ reportId: response.body.reportId });
 
@@ -194,7 +194,7 @@ describe('applicationId comes from the credential', () => {
     // The case it created is beta's too — a case is tenant-owned data like any
     // other, and it is created on the ingress path where a forgotten filter
     // would be least visible.
-    const storedCase = await mongoose.connection
+    const storedCase = await postgresControl
       .collection('cases')
       .findOne({ caseId: response.body.caseId });
     expect(storedCase?.applicationId).toBe(beta.applicationId);

@@ -1,8 +1,9 @@
-import mongoose from 'mongoose';
+import { postgresControl } from './support/postgresControl';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../app';
+import * as caseRepository from '../db/postgres/repositories/scoped/cases';
 import { reports } from '../modules/ingestion/report.collection';
 import { issueApplicationCredential } from '../modules/tenancy/provisioning.service';
 import {
@@ -22,7 +23,7 @@ import {
  *    and an idempotent universal report. A second delivery with the same
  *    Idempotency-Key returns the same reportId."
  *
- * Against a real replica set, so the unique indexes of §12.7 and the transaction
+ * Against real PostgreSQL, so the unique indexes of §12.7 and the transaction
  * around the report, its case and their outbox rows are the things actually
  * being tested.
  *
@@ -105,7 +106,7 @@ describe('POST /v1/reports', () => {
       deliveryBody(tenant, externalReportId, { subjectExternalId: `post_${externalReportId}` }),
     );
 
-    const events = await mongoose.connection
+    const events = await postgresControl
       .collection('outbox_events')
       .find({ 'payload.reportId': first.body.reportId })
       .toArray();
@@ -118,14 +119,14 @@ describe('POST /v1/reports', () => {
     });
 
     // The case's own trigger, written in the same transaction as the report.
-    const triageEvents = await mongoose.connection
+    const triageEvents = await postgresControl
       .collection('outbox_events')
       .find({ type: 'case.ready_for_triage', 'payload.caseId': first.body.caseId })
       .toArray();
     expect(triageEvents).toHaveLength(1);
 
     // §15.3 asks for an audit trail of ingress. One accepted report, one row.
-    const audits = await mongoose.connection
+    const audits = await postgresControl
       .collection('audit_events')
       .find({ reportId: first.body.reportId, action: 'report.ingress.accepted' })
       .toArray();
@@ -179,7 +180,7 @@ describe('POST /v1/reports', () => {
     expect(stored?.envelope).toMatchObject(original.envelope);
 
     // And the refusal is on the record (§15.3).
-    const refusals = await mongoose.connection
+    const refusals = await postgresControl
       .collection('audit_events')
       .find({ externalReportId, action: 'report.ingress.rejected' })
       .toArray();
@@ -278,7 +279,7 @@ describe('POST /v1/reports', () => {
     expect(response.body.error.message).toContain('reserved');
     expect(await reports.countDocuments(tenant.tenant, { externalReportId })).toBe(0);
 
-    const refusals = await mongoose.connection
+    const refusals = await postgresControl
       .collection('audit_events')
       .find({ externalReportId, action: 'report.ingress.rejected' })
       .toArray();
@@ -304,7 +305,7 @@ describe('POST /v1/reports', () => {
     expect(response.body.error.code).toBe('forbidden');
     expect(await reports.countDocuments(tenant.tenant, { externalReportId })).toBe(0);
 
-    const refusals = await mongoose.connection
+    const refusals = await postgresControl
       .collection('audit_events')
       .find({ externalReportId, action: 'report.ingress.rejected' })
       .toArray();
@@ -380,7 +381,7 @@ describe('GET /v1/reports/:reportId', () => {
     // The application API is not a route back to the evidence it delivered.
     expect(JSON.stringify(response.body)).not.toContain('sensitive reported text');
 
-    const accesses = await mongoose.connection
+    const accesses = await postgresControl
       .collection('audit_events')
       .find({ reportId: created.body.reportId, action: 'report.receipt.read' })
       .toArray();
@@ -440,16 +441,10 @@ describe('duplicate deliveries that cannot be resolved', () => {
    * would succeed.
    */
   it('answers 503 when the case dedup index keeps rejecting the delivery', async () => {
-    const { cases } = await import('../modules/cases/case.collection');
-    vi.spyOn(cases, 'upsertOne').mockRejectedValue(
-      Object.assign(new Error('E11000 duplicate key error'), {
-        code: 11000,
-        keyPattern: {
-          applicationId: 1,
-          externalSubjectId: 1,
-          contentHash: 1,
-          policyVersion: 1,
-        },
+    vi.spyOn(caseRepository, 'upsertCaseForReport').mockRejectedValue(
+      Object.assign(new Error('unique violation'), {
+        code: '23505',
+        constraint_name: 'cases_application_subject_content_policy_key',
       }),
     );
 
@@ -466,9 +461,9 @@ describe('duplicate deliveries that cannot be resolved', () => {
 
   it('re-raises a collision on an index it cannot interpret', async () => {
     vi.spyOn(reports, 'insertOne').mockRejectedValueOnce(
-      Object.assign(new Error('E11000 duplicate key error'), {
-        code: 11000,
-        keyPattern: { someFutureIndex: 1 },
+      Object.assign(new Error('unique violation'), {
+        code: '23505',
+        constraint_name: 'some_future_index',
       }),
     );
 

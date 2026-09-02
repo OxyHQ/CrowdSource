@@ -32,11 +32,11 @@ The plan specified SQS: replicated, durable, with DLQs. What CrowdSource actuall
 
 That is survivable ONLY because of the outbox, so with this queue the outbox is load-bearing rather than good practice:
 
-- A domain write and its outbox document commit in **ONE MongoDB transaction**. The dispatcher then reads the outbox and enqueues.
+- A domain write and its outbox row commit in **ONE PostgreSQL transaction**. The dispatcher then reads the durable row and may enqueue a wake-up hint.
 - **Never enqueue work that is not already recorded in the outbox.** A job is a hint that work is pending, never the only evidence that it exists. If the queue is wiped, every pending job must be re-derivable by re-reading the outbox.
 - A dropped job is therefore a delay. Work enqueued without its outbox row is lost moderation work with no trace — and it fails silently until the day a node is replaced.
 - **Nothing in infrastructure enforces this.** It holds only by review, exactly like the tenant-isolation rule above.
-- Transactions require a replica set or a sharded cluster. `src/utils/mongoTopology.ts` asserts this at boot and refuses to start on a standalone, because otherwise the first transactional write is where you find out.
+- Boot reaches PostgreSQL before listening. Tenant-owned transactions enter through `withTenantTransaction`, so their RLS parameters and domain/outbox writes share one connection and one commit.
 
 BullMQ mechanics on the shared Valkey: queue names and custom job ids cannot contain `:`; connections need `maxRetriesPerRequest: null`; `REDIS_URL` must carry an explicit non-zero database index, or two Oxy backends elect one leader between them and consume each other's jobs — restore that guard in `deploy-aws.yml` with the first queue. Any module-level `setInterval` singleton calls `.unref?.()`.
 
@@ -46,38 +46,36 @@ BullMQ mechanics on the shared Valkey: queue names and custom job ids cannot con
 
 | Plan § | Plan says | CrowdSource does |
 | --- | --- | --- |
-| 12.3 | RDS PostgreSQL | MongoDB + Mongoose, own database in the shared instance |
+| 12.3 | RDS PostgreSQL | PostgreSQL + Drizzle, separately named database and two roles |
 | 12.3 | SQS + DLQ | BullMQ over the existing Valkey |
 | 12.3 | S3 + KMS evidence bucket | `cloud.oxy.so` via `oxyServices.getFileDownloadUrl` |
 | 12.4 | sandbox + staging + production | production only, like every other Oxy app |
-| 12.7 | Row Level Security | code discipline — the access layer forces the tenant filter |
-| 12.7 | relational constraints | unique compound indexes |
+| 12.7 | Row Level Security | enabled and forced on every tenant-owned table |
+| 12.7 | relational constraints | PostgreSQL primary, unique and check constraints |
 
 Apply the same rule beyond this table. Anything the ecosystem already solves once — session handling, device-first cold boot, media resolution — is consumed from the shared SDK, never reimplemented here, and a bug in `@oxyhq/*` or Bloom is fixed upstream, never patched locally.
 
 ### Persistence
 
-**MongoDB is the system of record** for `packages/backend`, the ECS service; files go through the Oxy media chokepoint. Valkey holds nothing that must survive (see the BullMQ invariant above).
+`@oxyhq/crowdsource-app` (`packages/app`) and `@crowdsource/backend` are PostgreSQL-only in the current source tree. Neither package installs or boots a Mongo driver. Files still go through the Oxy media chokepoint, and Valkey holds nothing that must survive. Historical plans below this directory may describe the state before the cut; treat them as evidence, not runtime documentation.
 
-`@oxyhq/crowdsource-app` (`packages/app`) is PostgreSQL-only from the 0.7 source line. Its former Mongoose subpath is a breaking, manifest-gated adopter migration; the package no longer installs or publishes that driver. "CrowdSource is on Mongo" remains true of the backend service until its separate cutover and false of the application package; say which one you mean.
+**The backend runtime cut is recorded in [`postgres-runtime-cut.md`](./postgres-runtime-cut.md); production data cutover is a separate, still-blocked operation.** It requires the two-role/RLS provisioning and the freeze/export/import/reconcile runbook. The retired `databaseIdentity.ts` Mongo override must not return under another name.
 
-**A Postgres cutover for the service is planned, and everything it falsifies is listed in [`docs/architecture/postgres-cutover-claims-ledger.md`](docs/architecture/postgres-cutover-claims-ledger.md).** Work through it in the cutover rather than rediscovering it afterwards — including the two things nothing else in Oxy has (a second database role, and RLS), and the `databaseIdentity.ts` guard, whose failure mode is a Mongo-only `dbName` override and therefore RETIRES rather than porting.
-
-`packages/backend/src/config/databaseIdentity.ts` declares the database name. This is a source constant and NOT configuration on purpose: `mongoose.connect(uri, { dbName })` hands `dbName` to the driver, which does `dbName != null ? client.db(dbName) : client.db()` — it **overrides** the database named in `MONGODB_URI`. A wrong value does not fail to connect; it silently reads and writes another Oxy product's live data. Four things move together, always in the same change: that declaration, `.github/scripts/assert-own-database.sh` (reads it before a release is built), `.github/scripts/test-assert-own-database.sh` (mutation-tests the guard), and `src/__tests__/databaseIdentity.test.ts` (asserts the connection actually uses the declared value, so the guard cannot pass while the runtime ignores it).
+Database identity comes from the PostgreSQL URL and every migration also requires an explicit `--target-database=<name>`. The runtime receives only the non-owner application credential; the serving task must never carry the migrator credential.
 
 ### Multi-tenancy — the invariant most likely to be broken
 
-Postgres would have made isolation a property of the database. Mongo does not, so **isolation is a property of this codebase and nothing else enforces it**. `packages/backend/src/db/tenantScope.ts` is that boundary:
+PostgreSQL makes isolation a database property here: tenant-owned tables have RLS enabled and forced, and the non-owner application role cannot bypass it. `packages/backend/src/db/tenantScope.ts` creates authenticated contexts; `withTenant` / `withTenantTransaction` install them with `SET LOCAL`:
 
 - A `TenantContext` is built ONLY by `createTenantContext`, from the authenticated service credential — never from a request body, path parameter, query string or header. A tenant id the caller can choose is not isolation, it is an IDOR.
-- Every read and write on a tenant-owned collection goes through `tenantScopedFilter` / `tenantScopedDocument`. No module reaches the Mongoose driver around this layer.
+- Every read and write on a tenant-owned table goes through an explicitly scoped repository under `withTenant` / `withTenantTransaction`. Routes and services never install RLS variables themselves.
 - Supplying a tenant key yourself is rejected with a throw, not silently corrected — the belief that a caller picks the tenant is the bug, and it has to surface in tests.
 - Cross-tenant correlation happens ONLY through `Incident`, in a privileged module that never returns another tenant's data to an application-API caller.
 - Public ids are ULID or UUID, never sequential.
 
 ### Idempotency lives in unique compound indexes
 
-The plan lists these as relational constraints (§12.7); in Mongo they are unique compound indexes, and they are **required** — every one of them is what makes a retry safe rather than duplicating a case, a review or a penalty. Create each with the collection that owns it:
+These PostgreSQL unique indexes/constraints are **required** — every one of them is what makes a retry safe rather than duplicating a case, a review or a penalty. Create each with the table that owns it:
 
 - `applicationId + externalReportId` — a report is delivered once.
 - `applicationId + idempotencyKey` — a retry returns the same `reportId`.
@@ -89,7 +87,7 @@ The plan lists these as relational constraints (§12.7); in Mongo they are uniqu
 
 ### Reviewer test isolation is a registry, not a convention
 
-A case belongs to a tenant; a reviewer belongs to none — `candidatePool.ts` has no tenant filter, deliberately, because juries are cross-tenant by design. `fileParallelism: false` in `vitest.config.ts` runs every integration test file one at a time, but all of them share ONE `mongodb-memory-server` replica set for the whole run, so a reviewer profile an earlier file created is still there when a later file draws a panel. The only thing that keeps two files apart is §8.2's eligibility rule: a reviewer must hold BOTH a case's taxonomy family and its language. That used to be a convention stated in a comment. `reviewerAppContract.integration.test.ts` and `appeals.integration.test.ts` each privately claimed `(harassment, ast)`, each comment asserting the pair was unique, and the collision surfaced only as an order-dependent flake once a later file shifted execution order.
+A case belongs to a tenant; a reviewer belongs to none — `candidatePool.ts` deliberately draws across tenants. `fileParallelism: false` runs integration files sequentially against one disposable PostgreSQL database, so a reviewer profile an earlier file created is still there when a later file draws a panel. The only thing that keeps two files apart is §8.2's eligibility rule: a reviewer must hold BOTH a case's taxonomy family and its language. That used to be a convention stated in a comment. `reviewerAppContract.integration.test.ts` and `appeals.integration.test.ts` each privately claimed `(harassment, ast)`, and the collision surfaced as an order-dependent flake.
 
 It is now `packages/backend/src/__tests__/support/reviewerAxes.ts`: a registry mapping test-file basename → named `(family, language)` cells, gated by `reviewerAxes.test.ts`, which asserts both distinctness AND completeness (every file that seeds reviewer profiles has an entry, behind a minimum-file-count floor). Distinctness alone is nearly worthless — it's trivially satisfied by a registry that forgot a file; completeness is what makes distinctness mean anything. **Take a cell from the registry; never declare a family/language pair inline.**
 

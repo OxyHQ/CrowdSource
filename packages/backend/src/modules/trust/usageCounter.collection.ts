@@ -1,7 +1,13 @@
-import { Schema, type ClientSession } from 'mongoose';
 
-import { defineTenantCollection } from '../../db/collections';
+import {
+  defineTenantCollection,
+  type TransactionSession,
+} from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
+import {
+  incrementUsageCounter,
+} from '../../db/postgres/repositories/scoped/governance';
+import { withTenantTransaction } from '../../db/postgres/withTenant';
 
 /**
  * Usage metering (§15.10: "cuotas, usage metering y billing hooks"; §16.4's
@@ -29,25 +35,7 @@ export interface UsageCounterDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const usageCounterSchema = new Schema<UsageCounterDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    day: { type: String, required: true },
-    reportsReceived: { type: Number, required: true, default: 0 },
-  },
-  { timestamps: true, collection: 'usage_counters' },
-);
-
-/**
- * One row per application per day, and the reason it is unique rather than merely
- * indexed: the write is an upsert, and two concurrent first reports of the day
- * would otherwise both insert, leaving two rows whose counts each understate the
- * truth and a quota check that reads whichever it finds.
- */
-usageCounterSchema.index({ applicationId: 1, day: 1 }, { unique: true });
-
-export const usageCounters = defineTenantCollection('UsageCounter', usageCounterSchema);
+export const usageCounters = defineTenantCollection<UsageCounterDocument>('UsageCounter');
 
 /**
  * The day key, in UTC.
@@ -71,20 +59,15 @@ export function utcDayKey(at: Date): string {
  */
 export async function recordReportUsage(
   context: TenantContext,
-  session: ClientSession,
+  session: TransactionSession,
   at: Date,
 ): Promise<void> {
   /**
-   * `updatedAt` goes in `set` and `createdAt` in `setOnInsert`, matching the operators
-   * Mongoose's own `timestamps` plugin uses. Putting `updatedAt` in `setOnInsert`
-   * instead makes MongoDB reject the whole update with `ConflictingUpdateOperators` —
-   * the same path cannot be written by two operators in one document.
+   * `updatedAt` changes on every increment while `createdAt` is fixed on insert.
+   * The dedicated PostgreSQL upsert repository preserves that split atomically.
    */
-  await usageCounters.upsertOne(
-    context,
-    { day: utcDayKey(at) },
-    { inc: { reportsReceived: 1 }, set: { updatedAt: at }, setOnInsert: { createdAt: at } },
-    session,
+  await withTenantTransaction(session, context, async (tx) =>
+    incrementUsageCounter(tx, context, utcDayKey(at)),
   );
 }
 

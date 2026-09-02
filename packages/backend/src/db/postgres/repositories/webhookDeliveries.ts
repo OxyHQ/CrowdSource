@@ -9,12 +9,12 @@ import { type PgHandle } from '../withTenant';
  * Fifteen call sites, all in `delivery.service.ts`, and this file is nine
  * functions because the eight `countDocuments` calls are two grouped queries.
  *
- * NOTHING CALLS THIS IN PRODUCTION YET. `webhookDeliveryRepository.realdb.test.ts`
- * is what makes these statements ones that have genuinely run — and it matters
- * more here than for the other tables in this port, because two of the functions
- * below have no mocked equivalent at all: `SELECT … FOR UPDATE SKIP LOCKED` and
+ * Runtime delivery services use these paths, and
+ * `webhookDeliveryRepository.realdb.test.ts` verifies them directly. That matters
+ * especially because two functions below have no mocked equivalent:
+ * `SELECT … FOR UPDATE SKIP LOCKED` and
  * `ON CONFLICT … DO NOTHING RETURNING` are behaviours of the server, and a mock
- * agrees with whatever you assert about them.
+ * agree only with the real server.
  *
  * The table is UNSCOPED by design — the delivery worker claims across every
  * tenant — so the reads that serve a caller state the tenant pair explicitly.

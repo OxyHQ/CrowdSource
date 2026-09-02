@@ -1,22 +1,16 @@
-import mongoose from 'mongoose';
+import { asc, desc, eq, or, sql } from 'drizzle-orm';
 import { DECISION_OUTCOMES, type DecisionOutcome } from '@oxyhq/crowdsource-contracts';
 
-import { CASE_STATUSES, type CaseDocument, type CaseStatus } from '../cases/case.collection';
-import type { DecisionDocument } from '../decision/decision.collection';
-import type { ReviewDocument } from '../review/review.collection';
+import { getPostgresDatabase } from '../../db/postgres/database';
+import {
+  applications as applicationRows,
+  cases as caseRows,
+  decisions as decisionRows,
+  reviews as reviewRows,
+} from '../../db/postgres/schema';
+import { withTenant } from '../../db/postgres/withTenant';
+import { CASE_STATUSES, type CaseStatus } from '../cases/case.collection';
 import type { SensitivityClass, ReviewPool } from '../triage/triage';
-/**
- * Imported for their SIDE EFFECT, and the two lines are load-bearing.
- *
- * The type imports above are erased at compile time, so nothing here would register the
- * `Decision` and `Review` models — and `mongoose.model('Decision')` on an unregistered name
- * throws `MissingSchemaError`. Today those modules happen to be loaded because other routes
- * pull them in through `app.ts`, which means this file works by accident: the day a module
- * is reorganised, a Trust & Safety route starts answering 500 and the cause is nowhere near
- * the change. `Case` needs no line of its own because `CASE_STATUSES` above is a value.
- */
-import '../decision/decision.collection';
-import '../review/review.collection';
 
 /**
  * The privileged cross-tenant reads (§4.3, §12.9).
@@ -40,12 +34,10 @@ import '../review/review.collection';
  *  3. **Metrics return scalars.** An aggregate that never returns a document cannot leak
  *     one, and it is far cheaper to keep honest than a projected read.
  *
- * This file reaches the model registry directly, which is why it is named in
- * `DRIVER_ACCESS_ALLOWED` — the tenant-scoped wrapper has no unscoped read by design,
- * and it must not gain one. The allowlist is pinned in `collectionBoundary.test.ts`, and
- * `crossTenantReads.test.ts` additionally pins WHICH modules may import this file: the
- * driver scanner cannot see a caller that reaches these functions by import rather than
- * by touching the driver itself.
+ * This file does not bypass RLS. It enumerates the unscoped tenant-defining
+ * application rows, enters each application through `withTenant`, and combines
+ * only the fixed projections/scalars here. `crossTenantReads.test.ts` pins which
+ * modules may import it and the fields those projections may expose.
  */
 
 /**
@@ -122,8 +114,34 @@ export interface EscalatedCaseRow {
 /** How many rows one queue read may return, so a slow query cannot become an export. */
 const QUEUE_LIMIT = 200;
 
-function caseModel(): mongoose.Model<CaseDocument> {
-  return mongoose.model<CaseDocument>('Case');
+/**
+ * Enumerate the tenants from the table that defines them, then enter each
+ * tenant through the same RLS-setting transaction used by request paths.
+ *
+ * The application role deliberately has no BYPASSRLS credential and this
+ * service never carries a migrator URL. Trust & Safety therefore crosses the
+ * tenant boundary by controlled fan-out, not by weakening PostgreSQL policy or
+ * inventing a second runtime secret. Each callback can see exactly one
+ * application; only this module may combine its fixed projection/scalars.
+ */
+async function forEveryTenant<T>(
+  read: Parameters<typeof withTenant<T>>[2],
+): Promise<T[]> {
+  const db = getPostgresDatabase();
+  const tenants = await db
+    .select({
+      organizationId: applicationRows.organizationId,
+      applicationId: applicationRows.applicationId,
+    })
+    .from(applicationRows);
+
+  // Sequential by design: a staff metrics request must not consume the entire
+  // service pool and starve moderation traffic when the application count grows.
+  const results: T[] = [];
+  for (const tenant of tenants) {
+    results.push(await withTenant(db, tenant, read));
+  }
+  return results;
 }
 
 /**
@@ -135,25 +153,43 @@ function caseModel(): mongoose.Model<CaseDocument> {
  * that was never flagged.
  */
 export async function findEscalatedCasesAcrossTenants(): Promise<readonly EscalatedCaseRow[]> {
-  const rows = await caseModel()
-    .find({ $or: [{ escalated: true }, { status: 'escalated' }] })
-    // The projection, as a Mongo projection AND as the shape below. Doing it in the
-    // query means the forbidden fields never enter this process's memory, so a later
-    // `JSON.stringify` of an intermediate value cannot leak what was never loaded.
-    .select(ESCALATED_QUEUE_FIELDS.join(' '))
-    .sort({ priorityScore: -1, createdAt: 1 })
-    .limit(QUEUE_LIMIT)
-    .lean<CaseDocument[]>()
-    .exec();
+  const perTenant = await forEveryTenant((tx) =>
+    tx
+      .select({
+        caseId: caseRows.caseId,
+        organizationId: caseRows.organizationId,
+        applicationId: caseRows.applicationId,
+        status: caseRows.status,
+        allegationCodes: caseRows.allegationCodes,
+        sensitivityClass: caseRows.sensitivityClass,
+        reviewPool: caseRows.reviewPool,
+        priorityScore: caseRows.priorityScore,
+        triagedAt: caseRows.triagedAt,
+        createdAt: caseRows.createdAt,
+        updatedAt: caseRows.updatedAt,
+      })
+      .from(caseRows)
+      .where(or(eq(caseRows.escalated, true), eq(caseRows.status, 'escalated')))
+      .orderBy(desc(caseRows.priorityScore), asc(caseRows.createdAt))
+      .limit(QUEUE_LIMIT),
+  );
+  const rows = perTenant
+    .flat()
+    .sort(
+      (left, right) =>
+        right.priorityScore - left.priorityScore ||
+        left.createdAt.getTime() - right.createdAt.getTime(),
+    )
+    .slice(0, QUEUE_LIMIT);
 
   return rows.map((stored) => ({
     caseId: stored.caseId,
     organizationId: stored.organizationId,
     applicationId: stored.applicationId,
-    status: stored.status,
+    status: stored.status as CaseStatus,
     allegationCodes: stored.allegationCodes,
-    sensitivityClass: stored.sensitivityClass,
-    reviewPool: stored.reviewPool,
+    sensitivityClass: stored.sensitivityClass as SensitivityClass | null,
+    reviewPool: stored.reviewPool as ReviewPool | null,
     priorityScore: stored.priorityScore,
     triagedAt: stored.triagedAt?.toISOString() ?? null,
     createdAt: stored.createdAt.toISOString(),
@@ -172,28 +208,42 @@ export async function findEscalatedCasesAcrossTenants(): Promise<readonly Escala
 export async function countDecisionsByOutcomeAcrossTenants(): Promise<
   Readonly<Record<DecisionOutcome, number>>
 > {
-  const model = mongoose.model<DecisionDocument>('Decision');
-  const counts = await Promise.all(
-    DECISION_OUTCOMES.map(async (outcome) => [
-      outcome,
-      await model.countDocuments({ outcome }).exec(),
-    ] as const),
-  );
-  return Object.fromEntries(counts) as Record<DecisionOutcome, number>;
+  const grouped = (
+    await forEveryTenant((tx) =>
+      tx
+        .select({ outcome: decisionRows.outcome, count: sql<number>`count(*)::integer` })
+        .from(decisionRows)
+        .groupBy(decisionRows.outcome),
+    )
+  ).flat();
+  const result = Object.fromEntries(DECISION_OUTCOMES.map((outcome) => [outcome, 0])) as Record<DecisionOutcome, number>;
+  for (const row of grouped) {
+    if (DECISION_OUTCOMES.some((outcome) => outcome === row.outcome)) {
+      result[row.outcome as DecisionOutcome] += row.count;
+    }
+  }
+  return result;
 }
 
 /** §16.4's case queue depth, as scalars: one count per lifecycle state. */
 export async function countCasesByStatusAcrossTenants(): Promise<
   Readonly<Record<CaseStatus, number>>
 > {
-  const model = caseModel();
-  const counts = await Promise.all(
-    CASE_STATUSES.map(async (status) => [
-      status,
-      await model.countDocuments({ status }).exec(),
-    ] as const),
-  );
-  return Object.fromEntries(counts) as Record<CaseStatus, number>;
+  const grouped = (
+    await forEveryTenant((tx) =>
+      tx
+        .select({ status: caseRows.status, count: sql<number>`count(*)::integer` })
+        .from(caseRows)
+        .groupBy(caseRows.status),
+    )
+  ).flat();
+  const result = Object.fromEntries(CASE_STATUSES.map((status) => [status, 0])) as Record<CaseStatus, number>;
+  for (const row of grouped) {
+    if (CASE_STATUSES.some((status) => status === row.status)) {
+      result[row.status as CaseStatus] += row.count;
+    }
+  }
+  return result;
 }
 
 /**
@@ -220,20 +270,15 @@ export interface ReviewActivitySummary {
 }
 
 export async function summariseReviewActivityAcrossTenants(): Promise<ReviewActivitySummary> {
-  const model = mongoose.model<ReviewDocument>('Review');
-  const reviewsSubmitted = await model.countDocuments({}).exec();
-
-  /**
-   * `distinct` on the OUTCOME and a count per value, rather than an aggregation that
-   * groups by reviewer. The distinction matters: a group-by-reviewer pipeline returns one
-   * row per person and is one field away from naming them, while this cannot name anybody
-   * whatever is added to it.
-   */
-  const outcomes = await model.distinct('outcome').exec();
+  const grouped = await getPostgresDatabase()
+    .select({ outcome: reviewRows.outcome, count: sql<number>`count(*)::integer` })
+    .from(reviewRows)
+    .groupBy(reviewRows.outcome);
   const byOutcome: Record<string, number> = {};
-  for (const outcome of outcomes) {
-    if (typeof outcome !== 'string') continue;
-    byOutcome[outcome] = await model.countDocuments({ outcome }).exec();
+  let reviewsSubmitted = 0;
+  for (const row of grouped) {
+    byOutcome[row.outcome] = row.count;
+    reviewsSubmitted += row.count;
   }
 
   return { reviewsSubmitted, byOutcome };

@@ -703,9 +703,9 @@ describe('the expiry sweep keeps going when one row cannot be handled', () => {
   it('logs the one it cannot process and expires the others anyway', async () => {
     // A row whose tenant keys are unusable: `createTenantContext` refuses an
     // empty organization, so writing its outbox event throws.
-    // Whitespace rather than empty: an empty string fails Mongoose's own
-    // `required` check, while whitespace reaches `createTenantContext`, which is
-    // the guard whose refusal this test is about.
+    // Whitespace rather than empty: the retired document validator rejected an
+    // empty string, while whitespace reaches `createTenantContext`, which is the
+    // guard whose refusal this test is about.
     const broken = await overdueAssignment({ applicationId: ' ' });
     const sound = await overdueAssignment({});
 

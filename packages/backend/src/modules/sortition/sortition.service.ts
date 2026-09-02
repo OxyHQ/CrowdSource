@@ -1,8 +1,20 @@
-import type { ClientSession } from 'mongoose';
+import type { TransactionSession } from '../../db/collections';
 import { taxonomyFamilyOf, type TaxonomyCode, type TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
 
 import { withTransaction } from '../../db/transaction';
 import type { TenantContext } from '../../db/tenantScope';
+import { getPostgresDatabase } from '../../db/postgres/database';
+import {
+  findAffinitiesAboveThreshold,
+  findReviewerProfilesLinkedToPrincipals,
+  findReviewerRelationsForPrincipals,
+  recordCoService,
+} from '../../db/postgres/repositories/reviewers';
+import {
+  findAssignmentsForCase,
+  findAssignmentsForCaseRevision,
+  findAssignmentsForIncident,
+} from '../../db/postgres/repositories/sortition';
 import { logger } from '../../utils/logger';
 import { newPublicId } from '../../utils/identifiers';
 import { cases, type CaseDocument } from '../cases/case.collection';
@@ -16,9 +28,7 @@ import { calibrationRecency } from '../reviewer/calibration';
 import type { ReviewPool } from '../triage/triage';
 import {
   affinityPairKey,
-  reviewerAffinities,
   reviewerProfiles,
-  reviewerRelations,
   type ReviewerProfileDocument,
 } from '../reviewer/reviewer.collection';
 import { assignments, type AssignmentDocument } from './assignment.collection';
@@ -174,7 +184,11 @@ async function panelAssignments(
   caseId: string,
   caseRevision: number,
 ): Promise<AssignmentDocument[]> {
-  return assignments.find({ caseId, caseRevision });
+  return (await findAssignmentsForCaseRevision(
+    getPostgresDatabase(),
+    caseId,
+    caseRevision,
+  )) as AssignmentDocument[];
 }
 
 /**
@@ -195,26 +209,27 @@ async function gatherParties(stored: CaseDocument): Promise<CaseParties> {
   const principalIds = [...subjectPrincipalIds];
 
   const [onThisCase, onThisIncident, relations, participants] = await Promise.all([
-    assignments.find({ caseId: stored.caseId }),
+    findAssignmentsForCase(getPostgresDatabase(), stored.caseId) as Promise<AssignmentDocument[]>,
     stored.incidentId === null
       ? Promise.resolve<AssignmentDocument[]>([])
-      : assignments.find({ incidentId: stored.incidentId }),
+      : findAssignmentsForIncident(
+          getPostgresDatabase(),
+          stored.incidentId,
+        ) as Promise<AssignmentDocument[]>,
     principalIds.length === 0
       ? Promise.resolve([])
-      : reviewerRelations.find({
-          applicationId: stored.applicationId,
-          externalPrincipalId: { $in: principalIds },
-        }),
+      : findReviewerRelationsForPrincipals(
+          getPostgresDatabase(),
+          stored.applicationId,
+          principalIds,
+        ),
     principalIds.length === 0
       ? Promise.resolve<ReviewerProfileDocument[]>([])
-      : reviewerProfiles.find({
-          principalLinks: {
-            $elemMatch: {
-              applicationId: stored.applicationId,
-              externalPrincipalId: { $in: principalIds },
-            },
-          },
-        }),
+      : findReviewerProfilesLinkedToPrincipals(
+          getPostgresDatabase(),
+          stored.applicationId,
+          principalIds,
+        ) as Promise<ReviewerProfileDocument[]>,
   ]);
 
   return {
@@ -246,12 +261,11 @@ async function gatherAffinity(
   const blocked = new Map<string, Set<string>>();
   if (reviewerIds.length < 2) return blocked;
 
-  const ids = [...reviewerIds];
-  const pairs = await reviewerAffinities.find({
-    reviewerIdA: { $in: ids },
-    reviewerIdB: { $in: ids },
-    coServedCount: { $gte: MAX_CO_SERVICE },
-  });
+  const pairs = await findAffinitiesAboveThreshold(
+    getPostgresDatabase(),
+    reviewerIds,
+    MAX_CO_SERVICE,
+  );
 
   const link = (from: string, to: string): void => {
     const set = blocked.get(from) ?? new Set<string>();
@@ -691,25 +705,18 @@ function slotsStillToFill(
 async function bumpAffinities(
   seats: readonly SeatedReviewer[],
   now: Date,
-  session: ClientSession,
+  session: TransactionSession,
 ): Promise<void> {
   for (let left = 0; left < seats.length; left += 1) {
     for (let right = left + 1; right < seats.length; right += 1) {
       const a = seats[left].reviewerId;
       const b = seats[right].reviewerId;
-      await reviewerAffinities.findOneAndUpdate(
-        { pairKey: affinityPairKey(a, b) },
-        {
-          $setOnInsert: {
-            pairKey: affinityPairKey(a, b),
-            reviewerIdA: a < b ? a : b,
-            reviewerIdB: a < b ? b : a,
-          },
-          $inc: { coServedCount: 1 },
-          $set: { lastServedAt: now },
-        },
-        { upsert: true },
+      await recordCoService(
         session,
+        affinityPairKey(a, b),
+        a < b ? a : b,
+        a < b ? b : a,
+        now,
       );
     }
   }

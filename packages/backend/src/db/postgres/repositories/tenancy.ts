@@ -18,11 +18,9 @@ import type { PgHandle } from '../withTenant';
  * where a transaction belongs type-checks and runs on a different connection. The
  * type cannot catch it; only the call site can.
  *
- * NOTHING CALLS THIS IN PRODUCTION YET, and that is the reason
- * `tenancyRepositories.realdb.test.ts` exercises every exported function against a
- * real server. A repository that only type-checks is a set of statements whose
- * first execution is in production; the suite is what makes them statements that
- * have actually run.
+ * Runtime tenant services use these paths. `tenancyRepositories.realdb.test.ts`
+ * also exercises every exported function against a real server so the
+ * unscoped-table and return-count assumptions are verified directly.
  *
  * These three carry no row-security policy, and the suite reads them with NO
  * tenant parameters set on purpose — that is the empirical form of the

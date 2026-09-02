@@ -1,6 +1,8 @@
-import { boolean, index, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { boolean, check, index, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
-import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
+import { REPORT_STATUSES } from '@oxyhq/crowdsource-contracts';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
 
 /**
  * A report as delivered by an application, and its link to the case it joined.
@@ -58,6 +60,10 @@ export const reports = pgTable(
     uniqueIndex('reports_application_idempotency_key').on(
       table.applicationId,
       table.idempotencyKey,
+    ),
+    check(
+      'reports_status_check',
+      sql`${table.status} in (${sql.raw(inList(REPORT_STATUSES))})`,
     ),
   ],
 );

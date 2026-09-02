@@ -1,7 +1,17 @@
-import type { ClientSession } from 'mongoose';
+import type { TransactionSession } from '../../db/collections';
 import type { RecusalReason } from '@oxyhq/crowdsource-contracts';
 
 import { createTenantContext } from '../../db/tenantScope';
+import { getPostgresDatabase } from '../../db/postgres/database';
+import {
+  consumeAssignmentForReview as consumeAssignmentRow,
+  expireAssignment as expireAssignmentRow,
+  findAssignmentById,
+  findDueAssignments,
+  findNextOpenAssignment,
+  openAssignment as openAssignmentRow,
+  recuseAssignment as recuseAssignmentRow,
+} from '../../db/postgres/repositories/sortition';
 import { withTransaction } from '../../db/transaction';
 import { ApiError } from '../../http/apiError';
 import { logger } from '../../utils/logger';
@@ -9,7 +19,7 @@ import { cases } from '../cases/case.collection';
 import { appendOutboxEvent, OUTBOX_EVENT_TYPES } from '../outbox/outbox.collection';
 import { declareReviewerRelation } from '../reviewer/reviewer.service';
 import { OPEN_ASSIGNMENT_STATUSES } from '../../db/postgres/schema/sortition';
-import { assignments, type AssignmentDocument } from './assignment.collection';
+import type { AssignmentDocument } from './assignment.collection';
 import { assignmentTokenMatches, mintAssignmentToken } from './assignmentToken';
 
 /**
@@ -72,16 +82,11 @@ export async function nextAssignment(
   reviewerId: string,
   now: Date = new Date(),
 ): Promise<IssuedAssignment | null> {
-  const open = await assignments.find(
-    {
-      reviewerId,
-      status: { $in: [...OPEN_ASSIGNMENT_STATUSES] },
-      expiresAt: { $gt: now },
-    },
-    { sort: { offeredAt: 1 }, limit: 1 },
-  );
-
-  const assignment = open[0];
+  const assignment = (await findNextOpenAssignment(
+    getPostgresDatabase(),
+    reviewerId,
+    now,
+  )) as AssignmentDocument | null;
   if (!assignment) return null;
 
   return openAssignment(assignment, now);
@@ -94,17 +99,10 @@ async function openAssignment(
 ): Promise<IssuedAssignment> {
   const minted = mintAssignmentToken();
 
-  const updated = await assignments.findOneAndUpdate(
-    { assignmentId: assignment.assignmentId, status: { $in: [...OPEN_ASSIGNMENT_STATUSES] } },
-    {
-      $set: {
-        status: 'accepted',
-        tokenHash: minted.tokenHash,
-        acceptedAt: assignment.acceptedAt ?? now,
-        updatedAt: now,
-      },
-    },
-  );
+  const updated = (await openAssignmentRow(getPostgresDatabase(), assignment.assignmentId, {
+    tokenHash: minted.tokenHash,
+    acceptedAt: assignment.acceptedAt ?? now,
+  })) as AssignmentDocument | null;
 
   if (!updated) {
     // Somebody expired or completed it between the read and this write.
@@ -150,7 +148,10 @@ export async function authorizeAssignment(
 ): Promise<AssignmentDocument> {
   const notFound = new ApiError('not_found', 'No such assignment.');
 
-  const assignment = await assignments.findOne({ assignmentId });
+  const assignment = (await findAssignmentById(
+    getPostgresDatabase(),
+    assignmentId,
+  )) as AssignmentDocument | null;
   if (!assignment) {
     // Still spend the comparison, so a nonexistent id is not measurably cheaper
     // to reject than a real one with a wrong token.
@@ -180,15 +181,14 @@ export async function authorizeAssignment(
  */
 export async function consumeAssignmentForReview(
   assignmentId: string,
-  session: ClientSession,
+  session: TransactionSession,
   now: Date = new Date(),
 ): Promise<AssignmentDocument> {
-  const consumed = await assignments.findOneAndUpdate(
-    { assignmentId, status: 'accepted', expiresAt: { $gt: now } },
-    { $set: { status: 'submitted', completedAt: now, updatedAt: now } },
-    {},
+  const consumed = (await consumeAssignmentRow(
     session,
-  );
+    assignmentId,
+    now,
+  )) as AssignmentDocument | null;
 
   if (!consumed) {
     throw new ApiError('conflict', 'This assignment has already been used or is no longer open.');
@@ -226,19 +226,11 @@ export async function recuseAssignment(
   const assignment = await authorizeAssignment(reviewerId, assignmentId, token, now);
 
   await withTransaction(async (session) => {
-    const recused = await assignments.findOneAndUpdate(
-      { assignmentId, status: { $in: [...OPEN_ASSIGNMENT_STATUSES] } },
-      {
-        $set: {
-          status: 'recused',
-          recusalReason: reason,
-          completedAt: null,
-          updatedAt: now,
-        },
-      },
-      {},
+    const recused = (await recuseAssignmentRow(
       session,
-    );
+      assignmentId,
+      reason,
+    )) as AssignmentDocument | null;
 
     if (!recused) {
       throw new ApiError('conflict', 'This assignment is no longer open.');
@@ -293,21 +285,17 @@ export async function expireDueAssignments(
   now: Date = new Date(),
   limit = 100,
 ): Promise<number> {
-  const due = await assignments.find(
-    { status: { $in: [...OPEN_ASSIGNMENT_STATUSES] }, expiresAt: { $lte: now } },
-    { sort: { expiresAt: 1 }, limit },
-  );
+  const due = (await findDueAssignments(
+    getPostgresDatabase(),
+    now,
+    limit,
+  )) as AssignmentDocument[];
 
   let expired = 0;
   for (const assignment of due) {
     try {
       await withTransaction(async (session) => {
-        const updated = await assignments.findOneAndUpdate(
-          { assignmentId: assignment.assignmentId, status: { $in: [...OPEN_ASSIGNMENT_STATUSES] } },
-          { $set: { status: 'expired', updatedAt: now } },
-          {},
-          session,
-        );
+        const updated = await expireAssignmentRow(session, assignment.assignmentId);
         if (!updated) return;
 
         await appendOutboxEvent(

@@ -278,6 +278,8 @@ export const sortitionDraws = pgTable(
       table.caseRevision,
       table.drawnAt,
     ),
+    /** The operator query for recent refusals across every case. */
+    index('sortition_draws_status_drawn_at_idx').on(table.status, table.drawnAt),
 
     /** The three scalar value sets, restored from their tuples. */
     check('sortition_draws_status_check', sql`${table.status} in (${sql.raw(inList(DRAW_STATUSES))})`),

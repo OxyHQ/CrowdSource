@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
-import type { ClientSession } from 'mongoose';
+import type { TransactionSession } from '../../db/collections';
 import type { CaseEnvelope, Decision, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
 
 import type { TenantContext } from '../../db/tenantScope';
+import { upsertCaseForReport } from '../../db/postgres/repositories/scoped/cases';
+import { withTenantTransaction } from '../../db/postgres/withTenant';
 import { newPublicId } from '../../utils/identifiers';
 import { currentDecision, decisionView } from '../decision/decision.service';
 import { contentHashOf, contentSnapshotOf } from '../evidence/contentSnapshot';
@@ -129,7 +131,7 @@ export interface AttachReportInput {
  */
 export async function attachReportToCase(
   context: TenantContext,
-  session: ClientSession,
+  session: TransactionSession,
   input: AttachReportInput,
 ): Promise<AttachedCase> {
   const { envelope, policy, receivedAt } = input;
@@ -154,70 +156,44 @@ export async function attachReportToCase(
   const allowCommunityReview = envelope.privacy.allowCommunityReview;
   const activeDistribution = envelope.urgency?.activeDistribution === true;
 
-  const stored: CaseDocument = await cases.upsertOne(
-    context,
-    {
+  const stored = (await withTenantTransaction(session, context, async (tx) =>
+    upsertCaseForReport(tx, {
+      organizationId: context.organizationId,
+      applicationId: context.applicationId,
+      caseId: candidateCaseId,
       externalSubjectId: envelope.subject.externalId,
       contentHash,
       policyVersion: policy.token,
-    },
-    {
-      setOnInsert: {
-        caseId: candidateCaseId,
-        caseDedupKey: dedupKey,
-        subjectType: envelope.subject.type,
-        primaryResourceId: envelope.subject.primaryResourceId,
-        policySetId: policy.policySetId,
-        taxonomyVersion: policy.taxonomyVersion,
-        contentSnapshot: snapshot,
-        status: 'received',
-        priorityScore: 0,
-        sensitivityClass: null,
-        reviewPool: null,
-        requiresRedaction: false,
-        escalated: false,
-        triagedAt: null,
-        currentRevision: 1,
-        decidedRevision: 0,
-        incidentId: null,
-        firstReportedAt: receivedAt,
-        createdAt: receivedAt,
-        /**
-         * Sticky in one direction only. A report that withholds community review
-         * binds the case; one that permits it must never re-open a case an
-         * earlier reporter closed, so the permissive value is only ever written
-         * at creation and the restrictive one is written on every merge below.
-         */
-        ...(allowCommunityReview ? { allowCommunityReview: true } : {}),
-        ...(activeDistribution ? {} : { activeDistribution: false }),
-        ...(envelope.privacy.containsPersonalData === true ? {} : { containsPersonalData: false }),
-      },
-      set: {
-        lastReportedAt: receivedAt,
-        updatedAt: receivedAt,
-        ...(allowCommunityReview ? {} : { allowCommunityReview: false }),
-        ...(activeDistribution ? { activeDistribution: true } : {}),
-        ...(envelope.privacy.containsPersonalData === true ? { containsPersonalData: true } : {}),
-      },
-      inc: { reportCount: 1 },
-      addToSet: {
-        allegationCodes: allegationCodes,
-        reporterFingerprints: fingerprints,
-      },
-      /**
-       * Retention is the LONGEST any reporter asked for. §13.6 measures it from
-       * the final decision, so a shorter value would delete the evidence of a
-       * case that is still open — and a case cannot be re-reviewed from evidence
-       * that has been erased. `$max` also creates the field on insert, which is
-       * why it is not repeated in `setOnInsert`.
-       */
-      max: {
-        retentionDays: envelope.privacy.retentionDays,
-        reach: envelope.urgency?.reach ?? 0,
-      },
-    },
-    session,
-  );
+      caseDedupKey: dedupKey,
+      subjectType: envelope.subject.type,
+      primaryResourceId: envelope.subject.primaryResourceId,
+      policySetId: policy.policySetId,
+      taxonomyVersion: policy.taxonomyVersion,
+      contentSnapshot: snapshot,
+      status: 'received',
+      allegationCodes,
+      reportCount: 1,
+      reporterFingerprints: fingerprints,
+      reach: envelope.urgency?.reach ?? 0,
+      activeDistribution,
+      allowCommunityReview,
+      containsPersonalData: envelope.privacy.containsPersonalData === true,
+      retentionDays: envelope.privacy.retentionDays,
+      priorityScore: 0,
+      sensitivityClass: null,
+      reviewPool: null,
+      requiresRedaction: false,
+      escalated: false,
+      triagedAt: null,
+      currentRevision: 1,
+      decidedRevision: 0,
+      incidentId: null,
+      firstReportedAt: receivedAt,
+      lastReportedAt: receivedAt,
+      createdAt: receivedAt,
+      updatedAt: receivedAt,
+    }),
+  )) as CaseDocument;
 
   const merged = stored.caseId !== candidateCaseId;
 

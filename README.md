@@ -63,7 +63,7 @@ These come from the approved product specification. They are not preferences. A 
 | Package | Path | What it holds |
 |---|---|---|
 | [`@oxyhq/crowdsource-contracts`](https://www.npmjs.com/package/@oxyhq/crowdsource-contracts) | [`packages/contracts`](./packages/contracts) | The versioned contracts every surface agrees on, as Zod schemas and JSON Schema: case envelope, resources, taxonomy, policies, reviews, decisions, webhooks, reputation events |
-| `@crowdsource/backend` | [`packages/backend`](./packages/backend) | Express 5 modular monolith over MongoDB: tenancy, ingestion, evidence, cases, sortition, review, consensus, decisions and webhook delivery |
+| `@crowdsource/backend` | [`packages/backend`](./packages/backend) | PostgreSQL/Drizzle Express 5 modular monolith: RLS-scoped tenancy, ingestion, evidence, cases, sortition, review, consensus, decisions and webhook delivery |
 | `@crowdsource/reviewer` | [`packages/reviewer`](./packages/reviewer) | The reviewer app, Expo Router and React Native Web from one codebase |
 | `@crowdsource/console` | [`packages/console`](./packages/console) | Developer and Trust and Safety console, Expo Router on the web only |
 | [`@oxyhq/crowdsource`](https://www.npmjs.com/package/@oxyhq/crowdsource) | [`packages/sdk`](./packages/sdk) | TypeScript client for integrators: reports, uploads, cases, decisions |

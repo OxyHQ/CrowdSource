@@ -3,6 +3,13 @@ import { check, index, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/p
 
 import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
 
+import {
+  WEBHOOK_ATTEMPT_OUTCOMES,
+  WEBHOOK_DISABLED_REASONS,
+  WEBHOOK_ENDPOINT_STATUSES,
+  WEBHOOK_FAILURE_KINDS,
+} from '../../../domain/closedValues';
+
 /**
  * A LOGICAL delivery: one event to one endpoint, however many attempts it takes
  * (§12.7, App. D).
@@ -93,6 +100,14 @@ export const webhookEndpoints = pgTable(
      */
     index('webhook_endpoints_event_types_idx').using('gin', table.eventTypes),
     index('webhook_endpoints_application_status_idx').on(table.applicationId, table.status),
+    check(
+      'webhook_endpoints_status_check',
+      sql`${table.status} in (${sql.raw(inList(WEBHOOK_ENDPOINT_STATUSES))})`,
+    ),
+    check(
+      'webhook_endpoints_disabled_reason_check',
+      sql`${table.disabledReason} is null or ${table.disabledReason} in (${sql.raw(inList(WEBHOOK_DISABLED_REASONS))})`,
+    ),
   ],
 );
 
@@ -197,6 +212,14 @@ export const webhookAttempts = pgTable(
     ),
     /** The sweep's index. Without it the reaper degrades to a full scan. */
     index('webhook_attempts_attempted_at_idx').on(table.attemptedAt),
+    check(
+      'webhook_attempts_outcome_check',
+      sql`${table.outcome} in (${sql.raw(inList(WEBHOOK_ATTEMPT_OUTCOMES))})`,
+    ),
+    check(
+      'webhook_attempts_failure_kind_check',
+      sql`${table.failureKind} is null or ${table.failureKind} in (${sql.raw(inList(WEBHOOK_FAILURE_KINDS))})`,
+    ),
   ],
 );
 

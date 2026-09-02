@@ -10,8 +10,8 @@ import { type PgHandle } from '../withTenant';
  * `findByApplicationId` serves four of them, and the three `countDocuments` calls
  * are one `GROUP BY`.
  *
- * NOTHING CALLS THIS IN PRODUCTION YET. `appTrustRepository.realdb.test.ts` is
- * what makes these statements ones that have genuinely run.
+ * Runtime trust services use these paths, and `appTrustRepository.realdb.test.ts`
+ * verifies them against PostgreSQL directly.
  *
  * The table is exempt from the tenant filter because Trust & Safety reads across
  * every application — which is exactly why the tenant-serving read below states

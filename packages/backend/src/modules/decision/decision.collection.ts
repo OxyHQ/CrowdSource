@@ -1,14 +1,10 @@
-import { Schema } from 'mongoose';
-import {
-  CONTEXT_SUFFICIENCIES,
-  DECISION_OUTCOMES,
-  DECISION_STATUSES,
-  type ContextSufficiency,
-  type DecisionFinding,
-  type DecisionOutcome,
-  type DecisionPolicyVersions,
-  type DecisionRecommendedAction,
-  type DecisionStatus,
+import type {
+  ContextSufficiency,
+  DecisionFinding,
+  DecisionOutcome,
+  DecisionPolicyVersions,
+  DecisionRecommendedAction,
+  DecisionStatus,
 } from '@oxyhq/crowdsource-contracts';
 
 import { defineTenantCollection } from '../../db/collections';
@@ -124,87 +120,4 @@ export interface DecisionDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const decisionFindingSchema = new Schema<DecisionFinding>(
-  {
-    code: { type: String, required: true },
-    resourceIds: { type: [String], required: true },
-    severity: { type: String, required: true },
-    context: { type: String, default: undefined },
-    scope: { type: String, required: true },
-    attribution: { type: String, default: undefined },
-    policyRuleIds: { type: [String], default: undefined },
-  },
-  { _id: false },
-);
-
-const decisionActionSchema = new Schema<DecisionRecommendedAction>(
-  {
-    action: { type: String, required: true },
-    targetResourceIds: { type: [String], default: undefined },
-  },
-  { _id: false },
-);
-
-const decisionJurySchema = new Schema<DecisionJurySummary>(
-  {
-    size: { type: Number, required: true },
-    decisiveVotes: { type: Number, required: true },
-    winningVotes: { type: Number, required: true },
-    agreement: { type: Number, required: true },
-    specialistPresent: { type: Boolean, required: true },
-  },
-  { _id: false },
-);
-
-const decisionPolicyVersionsSchema = new Schema<DecisionPolicyVersions>(
-  {
-    taxonomy: { type: String, required: true },
-    application: { type: String, required: true },
-    oxyConduct: { type: String, required: true },
-  },
-  { _id: false },
-);
-
-const decisionSchema = new Schema<DecisionDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-
-    decisionId: { type: String, required: true, unique: true },
-    caseId: { type: String, required: true },
-    revision: { type: Number, required: true },
-
-    status: { type: String, required: true, enum: DECISION_STATUSES },
-    outcome: { type: String, required: true, enum: DECISION_OUTCOMES },
-    contextSufficiency: { type: String, required: true, enum: CONTEXT_SUFFICIENCIES },
-    confidence: { type: Number, required: true },
-
-    findings: { type: [decisionFindingSchema], required: true, default: [] },
-    recommendedActions: { type: [decisionActionSchema], required: true, default: [] },
-    jury: { type: decisionJurySchema, required: true },
-    policyVersions: { type: decisionPolicyVersionsSchema, required: true },
-
-    supersedesDecisionId: { type: String, default: null },
-    agreeingReviewerIds: { type: [String], required: true, default: [] },
-
-    publishedAt: { type: Date, required: true },
-  },
-  { timestamps: true, collection: 'decisions' },
-);
-
-/**
- * One decision per case revision, enforced by the database.
- *
- * §12.11 asks for a compare-and-swap on the case revision so the consensus
- * worker "puede ejecutarse varias veces sin duplicar decisiones". This index is
- * the second lock and the one that does not depend on anybody remembering the
- * first: the swap decides who is allowed to publish, and if a future caller ever
- * publishes without it, the insert fails rather than producing a case with two
- * revision-1 decisions and two conflicting webhooks already delivered.
- */
-decisionSchema.index({ caseId: 1, revision: 1 }, { unique: true });
-
-/** §9.9's history view: every revision of one case, newest first. */
-decisionSchema.index({ applicationId: 1, caseId: 1, revision: -1 });
-
-export const decisions = defineTenantCollection('Decision', decisionSchema);
+export const decisions = defineTenantCollection<DecisionDocument>('Decision');

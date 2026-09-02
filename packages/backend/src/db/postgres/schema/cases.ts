@@ -11,7 +11,9 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+
+import { CASE_STATUSES } from '../../../domain/closedValues';
 
 /**
  * A moderation case: the unit a jury decides.
@@ -118,7 +120,7 @@ export const cases = pgTable(
     ),
     check(
       'cases_status_check',
-      sql`${table.status} in ('received', 'triaged', 'awaiting_review', 'under_review', 'awaiting_consensus', 'decided', 'escalated', 'appealed', 'superseded', 'closed')`,
+      sql`${table.status} in (${sql.raw(inList(CASE_STATUSES))})`,
     ),
     check('cases_report_count_check', sql`${table.reportCount} >= 0`),
     check('cases_reach_check', sql`${table.reach} >= 0`),

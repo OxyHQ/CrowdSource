@@ -8,9 +8,8 @@ import type { PgHandle } from '../withTenant';
  *
  * Same convention as `tenancy.ts` and for the same reason: a `PgHandle` first, so
  * the tenant-scoped slice passes a transaction to the same shape of function
- * rather than introducing a second one. Nothing calls these in production yet, and
- * `consoleRepositories.realdb.test.ts` is what makes them statements that have
- * genuinely run.
+ * rather than introducing a second one. The console services call these paths,
+ * while `consoleRepositories.realdb.test.ts` proves them against the real schema.
  *
  * Three tables, three different exemption kinds, and the repositories make the
  * difference visible rather than uniform:
@@ -32,6 +31,8 @@ export interface NewOrganizationMember {
   readonly oxyUserId: string;
   readonly roles: readonly string[];
   readonly status: string;
+  readonly invitedByOxyUserId?: string | null;
+  readonly revokedAt?: Date | null;
 }
 
 export async function insertOrganizationMember(
@@ -86,13 +87,22 @@ export async function updateOrganizationMember(
   db: PgHandle,
   organizationId: string,
   oxyUserId: string,
-  patch: { readonly roles?: readonly string[]; readonly status?: string },
+  patch: {
+    readonly roles?: readonly string[];
+    readonly status?: string;
+    readonly invitedByOxyUserId?: string | null;
+    readonly revokedAt?: Date | null;
+  },
 ): Promise<number> {
   const rows = await db
     .update(organizationMembers)
     .set({
       ...(patch.roles === undefined ? {} : { roles: [...patch.roles] }),
       ...(patch.status === undefined ? {} : { status: patch.status }),
+      ...(patch.invitedByOxyUserId === undefined
+        ? {}
+        : { invitedByOxyUserId: patch.invitedByOxyUserId }),
+      ...(patch.revokedAt === undefined ? {} : { revokedAt: patch.revokedAt }),
     })
     .where(
       and(

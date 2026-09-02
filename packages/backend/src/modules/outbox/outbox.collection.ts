@@ -1,10 +1,6 @@
-import { Schema, type ClientSession } from 'mongoose';
 
-import { defineUnscopedCollection } from '../../db/collections';
-import {
-  OUTBOX_STATUSES,
-  type OutboxStatus,
-} from '../../db/postgres/schema/infrastructure';
+import { defineUnscopedCollection, type TransactionSession } from '../../db/collections';
+import type { OutboxStatus } from '../../db/postgres/schema/infrastructure';
 import { tenantScopedDocument, type TenantContext } from '../../db/tenantScope';
 import { newPublicId } from '../../utils/identifiers';
 
@@ -26,7 +22,7 @@ import { newPublicId } from '../../utils/identifiers';
  * is replaced.
  *
  * Nothing in the infrastructure enforces this. `appendOutboxEvent` requiring a
- * `ClientSession` is the enforcement: there is no way to write an event outside
+ * `TransactionSession` is the enforcement: there is no way to write an event outside
  * a transaction, so an event and the domain object it describes cannot come
  * apart.
  */
@@ -118,7 +114,7 @@ export interface OutboxEventPayload {
  * other way round: the CHECK constraint on `outbox_events.status` is rendered
  * from that tuple, so it is the column's property rather than this schema's, and
  * drizzle-kit loads the schema barrel at generate time — a dependency pointing
- * back at this file would pull mongoose in with it.
+ * back at the removed document schema would reintroduce the retired runtime.
  */
 
 export interface OutboxEventDocument {
@@ -137,31 +133,7 @@ export interface OutboxEventDocument {
   updatedAt: Date;
 }
 
-const outboxEventSchema = new Schema<OutboxEventDocument>(
-  {
-    eventId: { type: String, required: true, unique: true },
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    type: { type: String, required: true },
-    payload: { type: Schema.Types.Mixed, required: true, default: {} },
-    status: {
-      type: String,
-      required: true,
-      enum: OUTBOX_STATUSES,
-      default: 'pending',
-    },
-    attempts: { type: Number, required: true, default: 0 },
-    availableAt: { type: Date, required: true },
-    dispatchedAt: { type: Date, default: null },
-    lastError: { type: String, default: null },
-  },
-  { timestamps: true, collection: 'outbox_events' },
-);
-
-// The dispatcher's claim query: the oldest available pending row first.
-outboxEventSchema.index({ status: 1, availableAt: 1 });
-
-export const outboxEvents = defineUnscopedCollection('OutboxEvent', outboxEventSchema, {
+export const outboxEvents = defineUnscopedCollection<OutboxEventDocument>('OutboxEvent', {
   why: 'The dispatcher publishes across every tenant; rows are tenant-stamped on write.',
 });
 
@@ -175,7 +147,7 @@ export const outboxEvents = defineUnscopedCollection('OutboxEvent', outboxEventS
  */
 export async function appendOutboxEvent(
   context: TenantContext,
-  session: ClientSession,
+  session: TransactionSession,
   event: { type: OutboxEventType; payload: OutboxEventPayload },
 ): Promise<string> {
   const eventId = newPublicId('outboxEvent');

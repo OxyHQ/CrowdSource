@@ -1,7 +1,8 @@
-import mongoose from 'mongoose';
+import { postgresControl } from './support/postgresControl';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { withTransaction } from '../db/transaction';
+import * as outboxRepository from '../db/postgres/repositories/outbox';
 import {
   appendOutboxEvent,
   OUTBOX_EVENT_TYPES,
@@ -28,7 +29,7 @@ import {
 /**
  * The outbox dispatcher (§12.5).
  *
- * The reason this loop reads MongoDB rather than a queue is stated in the
+ * The reason this loop reads PostgreSQL rather than a queue is stated in the
  * dispatcher itself: the Valkey that would carry the jobs is a single node with
  * no replica, no failover and no snapshots, so a job is a hint and the row is
  * the record. These tests are about the properties that makes necessary — a
@@ -277,7 +278,7 @@ describe('a handler that fails', () => {
      * into permanently lost moderation work.
      */
     expect(
-      await mongoose.connection.collection('outbox_events').countDocuments({ eventId }),
+      await postgresControl.collection('outbox_events').countDocuments({ eventId }),
     ).toBe(1);
   });
 
@@ -323,7 +324,7 @@ describe('appendOutboxEvent', () => {
     ).rejects.toThrow('the domain write failed after the event');
 
     expect(
-      await mongoose.connection
+      await postgresControl
         .collection('outbox_events')
         .countDocuments({ 'payload.caseId': caseId }),
     ).toBe(0);
@@ -393,7 +394,7 @@ describe('the polling loop', () => {
   it('survives a pass that throws without stopping the loop', async () => {
     registerOutboxHandler(OUTBOX_EVENT_TYPES.reportReceived, async () => {});
     const failing = vi
-      .spyOn(outboxEvents, 'findOneAndUpdate')
+      .spyOn(outboxRepository, 'claimNextOutboxEvent')
       .mockRejectedValueOnce(new Error('the database blinked'));
 
     startOutboxDispatcher(5);

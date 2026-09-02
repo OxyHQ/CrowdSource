@@ -3,16 +3,17 @@ import { boolean, check, doublePrecision, index, integer, jsonb, pgTable, text }
 
 import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
 
+import { APPLICATION_STANDINGS, STANDING_REASONS } from '../../../domain/closedValues';
+
 /**
  * The lifecycle of an outbox row, and the ONE definition of it.
  *
- * It lives here rather than beside the Mongoose schema that used to own it,
- * because the closed set is a property of the COLUMN: the CHECK below is
+ * It lives with the PostgreSQL schema because the closed set is a property of
+ * the COLUMN: the CHECK below is
  * rendered from this tuple, so adding a member is a code change plus a migration
  * in the same PR rather than a silent divergence between a constraint and a type.
- * The dependency runs one way on purpose — the Mongo collection imports this, and
- * never the reverse, because drizzle-kit loads the schema barrel at generate time
- * and would pull mongoose in with it.
+ * Drizzle Kit loads this schema barrel directly, so the definition stays free of
+ * runtime module dependencies.
  *
  * `dispatching` is a LEASE, not a state a consumer reports: the dispatcher stamps
  * it with an expiry, and a row whose lease has run out is claimable again. That
@@ -161,5 +162,13 @@ export const appTrustSnapshots = pgTable(
     index('app_trust_snapshots_standing_updated_at_idx').on(table.standing, table.updatedAt),
     /** The console's per-organization view of its own applications' standing. */
     index('app_trust_snapshots_organization_id_idx').on(table.organizationId),
+    check(
+      'app_trust_snapshots_standing_check',
+      sql`${table.standing} in (${sql.raw(inList(APPLICATION_STANDINGS))})`,
+    ),
+    check(
+      'app_trust_snapshots_last_standing_reason_check',
+      sql`${table.lastStandingReason} in (${sql.raw(inList(STANDING_REASONS))})`,
+    ),
   ],
 );

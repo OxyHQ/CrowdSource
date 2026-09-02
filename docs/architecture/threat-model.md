@@ -102,20 +102,18 @@ forgot its filter.
 2. `createTenantContext` is the **only constructor** for a `TenantContext`
    (`packages/backend/src/db/tenantScope.ts`), so there is exactly one place to
    audit when asking "can a caller influence this?". Today it is called from
-   exactly one place — where the service credential is resolved — because nothing
-   in the tree maps an Oxy user to an organization. **Those are two separate
-   facts:** one constructor is the rule, and one caller is the current state. An
-   `organization_members` mapping is in flight that adds an Oxy session plus a
-   membership check as a second source of proof, still through the one
-   constructor. See ADR 0001 §5 *In flight*.
+   from two authenticated proofs: a service credential and an Oxy session whose
+   stored `organization_members` row authorizes the selected application. Both
+   sources still pass through the one constructor; neither accepts tenant keys
+   from a body, query or header.
 3. Supplying a tenant key yourself **throws** rather than being silently
    corrected. The belief that a caller picks the tenant is the bug and has to
    surface in a test.
-4. Tenant-owned collections have no unfiltered method to call
-   (`packages/backend/src/db/collections.ts`): the Mongoose model is a `#private`
-   field, and updates take a restricted operator spec rather than a raw
-   `UpdateQuery`, because a raw one accepts `$set: { applicationId }` and would
-   move a document between tenants.
+4. Tenant-owned PostgreSQL tables have RLS enabled and forced. The non-owner
+   application role enters them only through `withTenant` /
+   `withTenantTransaction`, which installs both tenant values with `SET LOCAL`.
+   The compatibility adapter in `packages/backend/src/db/collections.ts` has 26
+   explicit bindings and no derived/raw table escape.
 5. A cross-tenant read answers `404`, not `403`, and **writes no audit row in
    either tenant's trail**. Both are real, but they are two different kinds of
    claim and the difference matters if you are deciding what you may rely on:
@@ -696,8 +694,10 @@ middleware exists to remove the reasons for them.
 
 ### Cross-tenant leak
 
-See §2 above. **The plan's control list for this row names "RLS" and that control
-does not exist** (ADR 0001 §5).
+See §2 above. The plan's RLS control now exists on the tenant-owned PostgreSQL
+tables, is forced for the non-owner application role, and is verified from the
+live catalogue in the real-database suite. Privileged Trust & Safety reads fan
+out through one tenant context at a time rather than bypassing RLS.
 
 ### Insider abuse
 
@@ -708,15 +708,14 @@ What follows is the general privilege problem.
 written by `appendAuditEvent` with a closed action vocabulary and a closed refusal
 vocabulary — a free-text reason is where an envelope fragment ends up.
 
-**Gaps.** Almost everything this row needs: no RBAC, no roles, no just-in-time
-access, no step-up authentication, no dual review for exports, and no audit of any
-operator action (there is no operator surface to audit). The audit collection is
-append-only by convention — nothing exposes an update or delete for it — but it is
-an ordinary MongoDB collection, so "append-only" is a property of the code, not of
-the store.
+**Gaps.** The console has organization and Trust & Safety roles plus separate
+audit trails, but there is still no just-in-time access, step-up authentication
+or dual review for exports. Audit tables expose no update/delete through the
+runtime, yet PostgreSQL does not currently enforce append-only storage with a
+trigger or privilege split; that property still depends on repository reachability.
 
-**Residual.** Privileged personnel remain a risk, and today there is nothing
-between them and the data but the absence of a console.
+**Residual.** Privileged personnel remain a risk. RBAC and audit reduce the
+surface but do not replace just-in-time grants, step-up or dual control.
 
 ### Dangerous content and reviewer welfare
 

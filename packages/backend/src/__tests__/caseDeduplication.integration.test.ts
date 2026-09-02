@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import { postgresControl } from './support/postgresControl';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -124,7 +124,7 @@ describe('two people report the same version of a post', () => {
     // The key is unique for this tuple across the whole collection, read
     // straight off the driver so the tenant filter is not what is producing the
     // "one".
-    const withKey = await mongoose.connection
+    const withKey = await postgresControl
       .collection('cases')
       .countDocuments({ caseDedupKey: stored?.caseDedupKey });
     expect(withKey).toBe(1);
@@ -151,7 +151,7 @@ describe('two people report the same version of a post', () => {
   it('publishes case.ready_for_review — exactly once', async () => {
     await drainUntil(
       async () =>
-        (await mongoose.connection
+        (await postgresControl
           .collection('outbox_events')
           .countDocuments({
             type: 'case.ready_for_review',
@@ -161,7 +161,7 @@ describe('two people report the same version of a post', () => {
       'sortition consuming case.ready_for_review',
     );
 
-    const published = await mongoose.connection
+    const published = await postgresControl
       .collection('outbox_events')
       .find({ type: 'case.ready_for_review', 'payload.caseId': first.body.caseId })
       .toArray();
@@ -415,7 +415,7 @@ describe('merging a report into a case that already exists', () => {
       're-triage after the merge',
     );
 
-    const published = await mongoose.connection
+    const published = await postgresControl
       .collection('outbox_events')
       .find({ type: 'case.ready_for_review', 'payload.caseId': opened.body.caseId })
       .toArray();

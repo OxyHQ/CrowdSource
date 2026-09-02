@@ -19,14 +19,11 @@ import { newPublicId } from '../../../utils/identifiers';
  *
  * Four tables, none of them tenant-owned: a case belongs to a tenant, a reviewer
  * belongs to none, and `candidatePool.ts` has no tenant filter deliberately
- * because juries are cross-tenant (§8.2). So every signature here takes a plain
- * `PgHandle` unless the Mongo call site it replaces passed a `ClientSession`, and
- * the two that take a transaction say below why they cannot take less.
- *
- * NOTHING CALLS THIS IN PRODUCTION YET. `reviewerRepositories.realdb.test.ts` is
- * what makes these statements ones that have genuinely run against the real
- * schema, the real constraints and the real unprivileged role, rather than ones
- * whose first execution is in production.
+ * because juries are cross-tenant (§8.2). Read paths take a plain `PgHandle`;
+ * compound writes take a `PgTransactionHandle` where atomicity is required.
+ * Domain services use these repositories at runtime, and
+ * `reviewerRepositories.realdb.test.ts` exercises them against the real schema,
+ * constraints and unprivileged role.
  *
  * ## The one behaviour change in this file, and why it is deliberate
  *
@@ -226,6 +223,20 @@ export async function updateReviewerProfile(
   return row ?? null;
 }
 
+/** Increments the submitted-review counter inside the review transaction. */
+export async function incrementCompletedReviewCount(
+  tx: PgTransactionHandle,
+  reviewerId: string,
+): Promise<ReviewerProfileRow | null> {
+  requireTransaction(tx);
+  const [row] = await tx
+    .update(reviewerProfiles)
+    .set({ completedReviewCount: sql`${reviewerProfiles.completedReviewCount} + 1` })
+    .where(eq(reviewerProfiles.reviewerId, reviewerId))
+    .returning();
+  return row ?? null;
+}
+
 /**
  * Replaces one reviewer's principal links wholesale.
  *
@@ -279,7 +290,6 @@ export async function replaceReviewerPrincipalLinks(
 
   await tx.insert(reviewerPrincipalLinks).values(
     links.map((link) => ({
-      reviewerPrincipalLinkId: newPublicId('reviewerPrincipalLink'),
       reviewerId,
       applicationId: link.applicationId,
       externalPrincipalId: link.externalPrincipalId,

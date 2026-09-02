@@ -166,13 +166,13 @@ describe('reports and case reports', () => {
   it('updates a report status and lists recent reports', async () => {
     expect(
       await withTenant(database.db, alpha, async (tx) =>
-        reportRepository.updateReportStatus(tx, 'rep_alpha', 'accepted'),
+        reportRepository.updateReportStatus(tx, 'rep_alpha', 'merged'),
       ),
     ).toBe(1);
 
     expect(
       await withTenant(database.db, alpha, async (tx) =>
-        reportRepository.updateReportStatus(tx, 'rep_beta', 'accepted'),
+        reportRepository.updateReportStatus(tx, 'rep_beta', 'merged'),
       ),
     ).toBe(0);
 
@@ -195,8 +195,8 @@ describe('decisions and appeals', () => {
      * 0007 put a CHECK on the column and the insert began failing with 23514.
      * `published` is a POLICY SET status and was never a decision status —
      * `decision.service.ts` writes `final` and then `superseded`. The value was
-     * always wrong and nothing noticed, because the fixture writes straight to
-     * Postgres and so never met the Mongoose validator production goes through.
+     * always wrong and nothing noticed, because the fixture wrote straight to
+     * Postgres and so never met the retired document validator.
      */
     status: 'final',
     outcome: 'violation',
@@ -284,8 +284,8 @@ describe('decisions and appeals', () => {
          * A real member of `APPEAL_REASONS`. This fixture said 'new evidence'
          * until migration 0007 put a CHECK on the column and the insert started
          * failing with 23514 — the value was never legal, and nothing noticed
-         * because the fixture writes straight to Postgres and so never met the
-         * Mongoose validator that production writes go through.
+         * because the fixture wrote straight to Postgres and so never met the
+         * retired document validator.
          */
         reason: 'finding_incorrect',
         appellantExternalPrincipalId: 'principal_one',
@@ -358,7 +358,7 @@ describe('governance: policy sets, the tenant audit trail and the usage meter', 
         auditId: 'aud_alpha',
         organizationId: alpha.organizationId,
         applicationId: alpha.applicationId,
-        action: 'report.accepted',
+        action: 'report.ingress.accepted',
         actorCredentialId: 'cred_alpha',
         actorOxyUserId: null,
         reportId: 'rep_alpha',
@@ -504,7 +504,7 @@ describe('webhooks: endpoints, secrets and attempts', () => {
           attemptNumber,
           outcome: attemptNumber === 1 ? 'failed' : 'succeeded',
           responseStatus: attemptNumber === 1 ? 500 : 200,
-          failureKind: attemptNumber === 1 ? 'server_error' : null,
+          failureKind: attemptNumber === 1 ? 'http_status' : null,
           latencyMs: 12,
           // The empty string, not null — "succeeded, no body" must stay
           // distinguishable from "we failed to record one".
@@ -569,14 +569,14 @@ describe('the branches a happy path never reaches', () => {
 
     expect(
       await withTenant(database.db, alpha, async (tx) =>
-        governanceRepository.updatePolicySetStatus(tx, 'pol_alpha', '1', { status: 'archived' }),
+        governanceRepository.updatePolicySetStatus(tx, 'pol_alpha', '1', { status: 'draft' }),
       ),
     ).toBe(1);
 
     const after = await withTenant(database.db, alpha, async (tx) =>
       governanceRepository.findPolicySetVersion(tx, 'pol_alpha', '1'),
     );
-    expect(after?.status).toBe('archived');
+    expect(after?.status).toBe('draft');
     expect(after?.publishedAt?.getTime()).toBe(before?.publishedAt?.getTime());
   });
 

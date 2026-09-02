@@ -3,8 +3,7 @@ import type { TenantColumnShape } from './tableRegistry';
 /**
  * Deriving a table's ACTUAL tenant-column shape from the live catalogue.
  *
- * Split out of the gate for the reason `driverEscapes.ts` is split out of
- * `collectionBoundary.test.ts`: the comparison is the load-bearing part, and a
+ * Split out of the gate because the comparison is the load-bearing part, and a
  * predicate that lives inside the assertion it feeds can only be mutation-tested
  * by breaking the schema. Here it is a pure function over rows, so the cases that
  * matter — a column missing, a column nullable that should not be — can be

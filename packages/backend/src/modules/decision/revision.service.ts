@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose';
+import type { TransactionSession } from '../../db/collections';
 
 import { withTransaction } from '../../db/transaction';
 import type { TenantContext } from '../../db/tenantScope';
@@ -78,7 +78,7 @@ export async function openCaseRevision(
   context: TenantContext,
   caseId: string,
   now: Date = new Date(),
-  session?: ClientSession,
+  session?: TransactionSession,
 ): Promise<RevisionOutcome> {
   const stored = await cases.findOne(context, { caseId });
   if (!stored) {
@@ -88,7 +88,7 @@ export async function openCaseRevision(
   const superseded = stored.currentRevision;
   const next = superseded + 1;
 
-  const open = async (inSession: ClientSession): Promise<RevisionOutcome> => {
+  const open = async (inSession: TransactionSession): Promise<RevisionOutcome> => {
     const swapped = await cases.updateOne(
       context,
       { caseId, currentRevision: superseded, decidedRevision: superseded },

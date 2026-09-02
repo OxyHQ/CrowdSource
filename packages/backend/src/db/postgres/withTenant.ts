@@ -171,42 +171,59 @@ export async function withTenant<T>(
   context: TenantContext,
   operation: (tx: TenantScopedHandle) => Promise<T>,
 ): Promise<T> {
-  return await db.transaction(async (tx) => {
-    // `set_config(name, value, is_local => true)` rather than the `SET LOCAL`
-    // statement, because a parameter NAME cannot be a bind placeholder while
-    // `set_config`'s arguments can. The tenant values arrive from a credential
-    // rather than from a caller, but building DDL-shaped strings by
-    // interpolation is a habit that eventually meets a value that did come from
-    // one.
-    //
-    // The CTE is not decoration. `current_setting` is READ BACK in the same round
-    // trip to prove the parameters really took, and a plain SELECT list would not
-    // guarantee that the reads evaluate after the writes — a CTE does, because it
-    // is materialised first. This is the one thing the type above cannot see: a
-    // branded handle whose context was never actually set, which fails exactly as
-    // silently as the wrong handle would.
-    const [applied] = (await tx.execute(
-      sql`with applied as (
-            select set_config(${ORGANIZATION_GUC}, ${context.organizationId}, true) as organization_id,
-                   set_config(${APPLICATION_GUC}, ${context.applicationId}, true) as application_id
-          )
-          select current_setting(${ORGANIZATION_GUC}, true) as organization_id,
-                 current_setting(${APPLICATION_GUC}, true) as application_id
-          from applied`,
-    )) as unknown as { organization_id: string | null; application_id: string | null }[];
+  return await db.transaction(async (tx) =>
+    withTenantTransaction(tx, context, operation),
+  );
+}
 
-    if (
-      applied?.organization_id !== context.organizationId ||
-      applied?.application_id !== context.applicationId
-    ) {
-      // Fails CLOSED and LOUD. The alternative is every scoped statement in this
-      // transaction quietly matching nothing, which is indistinguishable from a
-      // tenant that owns no data.
-      throw new Error(
-        'withTenant could not set the tenant runtime parameters; refusing to run the operation unscoped.',
-      );
-    }
+/**
+ * Applies a tenant to an existing PostgreSQL transaction.
+ *
+ * Domain writes that also append an unscoped outbox row start one transaction
+ * before the tenant-owned repository is entered. Starting a nested transaction
+ * here would split those commits. This helper is therefore the transaction-aware
+ * half of `withTenant`: it sets the same LOCAL GUCs and mints the same branded
+ * handle, but never owns or commits the transaction it receives.
+ */
+export async function withTenantTransaction<T>(
+  tx: PgTransactionHandle,
+  context: TenantContext,
+  operation: (tx: TenantScopedHandle) => Promise<T>,
+): Promise<T> {
+  // `set_config(name, value, is_local => true)` rather than the `SET LOCAL`
+  // statement, because a parameter NAME cannot be a bind placeholder while
+  // `set_config`'s arguments can. The tenant values arrive from a credential
+  // rather than from a caller, but building DDL-shaped strings by
+  // interpolation is a habit that eventually meets a value that did come from
+  // one.
+  //
+  // The CTE is not decoration. `current_setting` is READ BACK in the same round
+  // trip to prove the parameters really took, and a plain SELECT list would not
+  // guarantee that the reads evaluate after the writes — a CTE does, because it
+  // is materialised first. This is the one thing the type above cannot see: a
+  // branded handle whose context was never actually set, which fails exactly as
+  // silently as the wrong handle would.
+  const [applied] = (await tx.execute(
+    sql`with applied as (
+          select set_config(${ORGANIZATION_GUC}, ${context.organizationId}, true) as organization_id,
+                 set_config(${APPLICATION_GUC}, ${context.applicationId}, true) as application_id
+        )
+        select current_setting(${ORGANIZATION_GUC}, true) as organization_id,
+               current_setting(${APPLICATION_GUC}, true) as application_id
+        from applied`,
+  )) as unknown as { organization_id: string | null; application_id: string | null }[];
 
-    return await operation(asTenantScoped(tx));
-  });
+  if (
+    applied?.organization_id !== context.organizationId ||
+    applied?.application_id !== context.applicationId
+  ) {
+    // Fails CLOSED and LOUD. The alternative is every scoped statement in this
+    // transaction quietly matching nothing, which is indistinguishable from a
+    // tenant that owns no data.
+    throw new Error(
+      'withTenant could not set the tenant runtime parameters; refusing to run the operation unscoped.',
+    );
+  }
+
+  return await operation(asTenantScoped(tx));
 }

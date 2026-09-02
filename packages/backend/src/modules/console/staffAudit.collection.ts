@@ -1,8 +1,7 @@
-import { Schema } from 'mongoose';
-
 import { defineUnscopedCollection } from '../../db/collections';
+import { STAFF_AUDIT_ACTIONS } from '../../domain/closedValues';
 import { newPublicId } from '../../utils/identifiers';
-import { STAFF_ROLES, type StaffRole } from './console.collections';
+import type { StaffRole } from './console.collections';
 
 /**
  * The Trust & Safety audit trail (§13.1's insider-abuse row: "RBAC, just-in-time access,
@@ -30,18 +29,7 @@ import { STAFF_ROLES, type StaffRole } from './console.collections';
  * Append-only by construction: nothing in this module updates or deletes.
  */
 
-export const STAFF_AUDIT_ACTIONS = [
-  /** Listed application standing across tenants. */
-  'staff.applications.read',
-  /** Read the escalated queue across tenants. */
-  'staff.escalated.read',
-  /** Read the platform metrics. */
-  'staff.metrics.read',
-  /** Read the dead-letter queue across tenants. */
-  'staff.deadletter.read',
-  /** Moved one application's standing — the most consequential write on the surface. */
-  'staff.standing.changed',
-] as const;
+export { STAFF_AUDIT_ACTIONS } from '../../domain/closedValues';
 export type StaffAuditAction = (typeof STAFF_AUDIT_ACTIONS)[number];
 
 export interface StaffAuditEventDocument {
@@ -63,26 +51,8 @@ export interface StaffAuditEventDocument {
   updatedAt: Date;
 }
 
-const staffAuditEventSchema = new Schema<StaffAuditEventDocument>(
-  {
-    staffAuditId: { type: String, required: true, unique: true },
-    action: { type: String, required: true, enum: STAFF_AUDIT_ACTIONS },
-    actorOxyUserId: { type: String, required: true },
-    roles: { type: [String], required: true, enum: STAFF_ROLES, default: [] },
-    applicationId: { type: String, default: null },
-    occurredAt: { type: Date, required: true },
-  },
-  { timestamps: true, collection: 'staff_audit_events' },
-);
-
-/** The investigator's question: what did this operator do, recently. */
-staffAuditEventSchema.index({ actorOxyUserId: 1, occurredAt: -1 });
-/** And its mirror: who has been looking at this application. */
-staffAuditEventSchema.index({ applicationId: 1, occurredAt: -1 });
-
-export const staffAuditEvents = defineUnscopedCollection(
+export const staffAuditEvents = defineUnscopedCollection<StaffAuditEventDocument>(
   'StaffAuditEvent',
-  staffAuditEventSchema,
   {
     why: 'Staff act across every tenant, so a trail of their activity has no tenant to be scoped by.',
   },

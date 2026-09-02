@@ -7,7 +7,7 @@ import {
 } from '@oxyhq/crowdsource-contracts';
 
 import { config } from '../../config';
-import { ensureIndexes } from '../../db/collections';
+import { pingPostgres } from '../../db/postgres/database';
 import type { TenantContext } from '../../db/tenantScope';
 import {
   BASELINE_POLICY_SET_ID,
@@ -20,31 +20,9 @@ import {
 } from '../../modules/tenancy/provisioning.service';
 import type { ApplicationScope } from '../../modules/tenancy/scopes';
 import { drainOutbox } from '../../modules/outbox/outbox.dispatcher';
-import { connectToDatabase, disconnectFromDatabase } from '../../utils/database';
-/**
- * Imported for their side effect. A collection is registered when the module
- * declaring it loads, so `ensureIndexes` below would silently create nothing for
- * a collection no test file happened to import first — and every idempotency
- * assertion in the suite would then pass by accepting duplicates.
- */
-import '../../modules/appeals/appeal.collection';
-import '../../modules/audit/audit.collection';
-import '../../modules/cases/case.collection';
-import '../../modules/console/console.collections';
-import '../../modules/console/staffAudit.collection';
-import '../../modules/ingestion/report.collection';
-import '../../modules/trust/applicationTrust.collection';
-import '../../modules/trust/usageCounter.collection';
-import '../../modules/outbox/outbox.collection';
-import '../../modules/policy/policySet.collection';
-import '../../modules/webhooks/webhook.collections';
-import '../../modules/review/review.collection';
-import '../../modules/reviewer/reviewer.collection';
-import '../../modules/sortition/assignment.collection';
-import '../../modules/sortition/draw.collection';
 
 /**
- * Support for the integration tests, against the real replica set.
+ * Support for the integration tests, against disposable real PostgreSQL.
  *
  * Every test provisions its OWN organization and application. Nothing wipes a
  * collection between tests, because a shared wipe makes two test files running
@@ -57,40 +35,31 @@ export async function startDatabase(): Promise<void> {
   /**
    * Gate the run on where it is about to write.
    *
-   * `vitest.setup.ts` falls back to `mongodb://127.0.0.1:27017` when the global
-   * setup did not run — and a developer machine usually HAS a replica set
-   * there, shared with the other Oxy products. Without this assertion, a global
-   * setup that silently stopped running would leave the whole integration suite
-   * passing against somebody's local database instead of the disposable one,
-   * and nothing would say so.
+   * The fallback URL deliberately names `unused-by-design`; reaching it means
+   * global setup did not provision the disposable database. Refuse before any
+   * test can write to a developer or shared database by accident.
    */
-  if (!config.mongoUri || config.mongoUri.includes('unused-by-design')) {
+  if (config.databaseUrl.includes('unused-by-design')) {
     throw new Error(
-      `The integration suite is pointed at '${config.mongoUri ?? '(unset)'}', which means ` +
-        'vitest.globalSetup.ts did not start the disposable replica set. Refusing to run.',
+      `The integration suite is pointed at '${config.databaseUrl}', which means ` +
+        'vitest.globalSetup.ts did not create the disposable PostgreSQL database. Refusing to run.',
     );
   }
 
-  await connectToDatabase();
-  // Without this the unique indexes of §12.7 do not exist, and every idempotency
-  // assertion below would pass by accepting duplicates instead of rejecting them.
-  await ensureIndexes();
+  await pingPostgres();
 }
 
 export async function stopDatabase(): Promise<void> {
-  await disconnectFromDatabase();
+  // The serial suite shares one disposable database. Global teardown owns it.
 }
 
 /**
  * Drives the outbox until an OUTCOME is true, rather than assuming one pass did
  * it.
  *
- * A single `drainOutbox()` is not enough and the reason is a property of the
- * design, not of the tests: the dispatcher is deliberately NOT tenant-scoped —
- * it publishes across every tenant — so another test file running against the
- * same replica set can claim this case's row, lease it for a minute, handle it
- * in its own process and leave this one with nothing to drain. The work still
- * happens; it just happens somewhere else, possibly after the assertion.
+ * A single `drainOutbox()` is not enough because one pass is intentionally
+ * bounded and can race a leased row. Waiting on the outcome asserts the domain
+ * result instead of depending on a particular worker pass.
  *
  * Waiting on the outcome makes the assertion about what the domain ended up
  * doing instead of about which process happened to do it. Ten seconds is far

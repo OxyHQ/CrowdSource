@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose';
+import type { TransactionSession } from '../../db/collections';
 import {
   TAXONOMY_FAMILIES,
   type ReviewerState,
@@ -6,8 +6,15 @@ import {
 } from '@oxyhq/crowdsource-contracts';
 
 import { ApiError } from '../../http/apiError';
+import { getPostgresDatabase } from '../../db/postgres/database';
+import {
+  declareReviewerRelation as declareReviewerRelationRow,
+  incrementCompletedReviewCount,
+  insertReviewerProfileIfAbsent,
+  replaceReviewerPrincipalLinks,
+  updateReviewerProfile,
+} from '../../db/postgres/repositories/reviewers';
 import type { ReviewerRelationSource } from '../../db/postgres/schema/reviewers';
-import { newPublicId } from '../../utils/identifiers';
 import type { SensitivityClass } from '../triage/triage';
 import {
   CALIBRATION_ITEMS,
@@ -23,7 +30,6 @@ import { requiresAdultReviewer } from './eligibility';
 import { personhoodConfidence, type PersonhoodSignals } from './personhood';
 import {
   reviewerProfiles,
-  reviewerRelations,
   sensitivityRank,
   type ReviewerPrincipalLink,
   type ReviewerProfileDocument,
@@ -184,21 +190,27 @@ async function mutateProfile(
   if (mutation.state !== undefined) assertTransition(current.state, mutation.state);
 
   const merged: ReviewerProfileDocument = { ...current, ...mutation };
-  const updated = await reviewerProfiles.findOneAndUpdate(
-    { reviewerId },
-    {
-      $set: {
-        ...mutation,
-        personhoodConfidence: personhoodConfidence(signalsOf(merged)),
-        updatedAt: new Date(),
-      },
-    },
-  );
+  const { principalLinks, ...profileMutation } = mutation;
+  const patch = {
+    ...profileMutation,
+    personhoodConfidence: personhoodConfidence(signalsOf(merged)),
+  };
+  const db = getPostgresDatabase();
+  const updated = principalLinks === undefined
+    ? await updateReviewerProfile(db, reviewerId, patch)
+    : await db.transaction(async (tx) => {
+        const row = await updateReviewerProfile(tx, reviewerId, patch);
+        if (row) await replaceReviewerPrincipalLinks(tx, reviewerId, principalLinks);
+        return row;
+      });
 
   if (!updated) {
     throw new Error(`Reviewer profile '${reviewerId}' vanished during a write.`);
   }
-  return updated;
+  return {
+    ...updated,
+    principalLinks: principalLinks === undefined ? current.principalLinks : [...principalLinks],
+  } as ReviewerProfileDocument;
 }
 
 /**
@@ -236,11 +248,9 @@ export async function ensureReviewerProfile(
    * would fail on the unique index — an error the reviewer would see as their
    * first interaction with the product.
    */
-  const created = await reviewerProfiles.findOneAndUpdate(
-    { oxyUserId: identity.oxyUserId },
+  const created = await insertReviewerProfileIfAbsent(
+    getPostgresDatabase(),
     {
-      $setOnInsert: {
-        reviewerId: newPublicId('reviewer'),
         oxyUserId: identity.oxyUserId,
         state: 'applicant',
         accountActive: true,
@@ -270,17 +280,14 @@ export async function ensureReviewerProfile(
         // a random window of; it must be drawn once and never recomputed, or a
         // profile would move under a scan already in progress.
         samplingKey: Math.random(),
-        principalLinks: [],
         suspendedUntil: null,
-      },
     },
-    { upsert: true },
   );
 
   if (!created) {
     throw new Error('Creating a reviewer profile returned no document.');
   }
-  return created;
+  return { ...created, principalLinks: [] } as ReviewerProfileDocument;
 }
 
 /**
@@ -550,29 +557,22 @@ function meanReliability(reliability: Record<string, number>): number {
  */
 export async function recordSubmittedReview(
   reviewerId: string,
-  session: ClientSession,
+  session: TransactionSession,
 ): Promise<void> {
-  const updated = await reviewerProfiles.findOneAndUpdate(
-    { reviewerId },
-    { $inc: { completedReviewCount: 1 }, $set: { updatedAt: new Date() } },
-    {},
-    session,
-  );
+  const updated = await incrementCompletedReviewCount(session, reviewerId);
   if (!updated) {
     throw new Error(`Reviewer profile '${reviewerId}' vanished while recording a review.`);
   }
 
-  const promotion = promotionFor(updated);
+  const promotion = promotionFor({ ...updated, principalLinks: [] } as ReviewerProfileDocument);
   if (promotion === null) return;
 
-  assertTransition(updated.state, promotion.state);
+  assertTransition(updated.state as ReviewerState, promotion.state);
 
-  await reviewerProfiles.findOneAndUpdate(
-    { reviewerId },
-    { $set: { ...promotion, updatedAt: new Date() } },
-    {},
-    session,
-  );
+  await updateReviewerProfile(session, reviewerId, {
+    ...promotion,
+    personhoodConfidence: updated.personhoodConfidence,
+  });
 }
 
 /**
@@ -651,14 +651,12 @@ export async function declareReviewerRelation(
   applicationId: string,
   externalPrincipalId: string,
   source: ReviewerRelationSource,
-  session?: ClientSession,
+  session?: TransactionSession,
 ): Promise<void> {
-  await reviewerRelations.findOneAndUpdate(
-    { reviewerId, applicationId, externalPrincipalId },
-    {
-      $setOnInsert: { reviewerId, applicationId, externalPrincipalId, source },
-    },
-    { upsert: true },
-    session,
-  );
+  await declareReviewerRelationRow(session ?? getPostgresDatabase(), {
+    reviewerId,
+    applicationId,
+    externalPrincipalId,
+    source,
+  });
 }

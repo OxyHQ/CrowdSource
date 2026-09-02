@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import { postgresControl } from './support/postgresControl';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -50,7 +50,7 @@ beforeAll(async () => {
   caseId = created.body.caseId;
   await drainUntil(
     async () =>
-      (await mongoose.connection.collection('cases').findOne({ caseId }))?.reviewPool !== null,
+      (await postgresControl.collection('cases').findOne({ caseId }))?.reviewPool !== null,
     'triage of the case under test',
   );
 });
@@ -77,7 +77,7 @@ describe('reading a case the application owns', () => {
     });
     expect(response.body.policy).toMatchObject({ policySetId: 'crowdsource.baseline' });
 
-    const accesses = await mongoose.connection
+    const accesses = await postgresControl
       .collection('audit_events')
       .find({ caseId, action: 'case.read' })
       .toArray();
@@ -103,7 +103,7 @@ describe('reading a case the application owns', () => {
 
     // Control: the withheld fields ARE on the stored document, so the assertions
     // above are the projection and not a case that was never triaged.
-    const stored = await mongoose.connection.collection('cases').findOne({ caseId });
+    const stored = await postgresControl.collection('cases').findOne({ caseId });
     expect(stored?.priorityScore).toBeGreaterThan(0);
     expect(stored?.reviewPool).toBe('community');
     expect(stored?.reporterFingerprints).toHaveLength(1);
@@ -141,7 +141,7 @@ describe('a case belongs to one application', () => {
      * rows generated purely by probing. What is worth recording is a successful
      * read.
      */
-    const rows = await mongoose.connection
+    const rows = await postgresControl
       .collection('audit_events')
       .find({ caseId, applicationId: other.applicationId })
       .toArray();

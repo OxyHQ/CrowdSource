@@ -2,7 +2,7 @@
 
 This runbook is for an application moving from `@oxyhq/crowdsource-app` 0.6.x
 to the PostgreSQL-only 0.7.x line. It does **not** cut over the CrowdSource ECS
-service; that backend still has a separate MongoDB-to-PostgreSQL program.
+service; use the separate backend cutover runbook for service-owned data.
 
 The application owns its report model and any extra fields. CrowdSource cannot
 infer those columns, primary keys or transformations, so this repository does

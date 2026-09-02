@@ -2,7 +2,7 @@ import { isIP } from 'node:net';
 
 import { BLOCKED_HOSTNAMES, isBlockedIp } from '@oxyhq/core/server';
 import { WEBHOOK_EVENT_TYPES, type WebhookEventType } from '@oxyhq/crowdsource-contracts';
-import type { ClientSession } from 'mongoose';
+import type { TransactionSession } from '../../db/collections';
 
 import type { TenantContext } from '../../db/tenantScope';
 import { duplicateKeyViolation, withTransaction } from '../../db/transaction';
@@ -465,7 +465,7 @@ export async function disableWebhookEndpoint(
   webhookEndpointId: string,
   reason: WebhookDisabledReason,
   now: Date,
-  session?: ClientSession,
+  session?: TransactionSession,
 ): Promise<boolean> {
   const changed = await webhookEndpoints.updateOne(
     context,

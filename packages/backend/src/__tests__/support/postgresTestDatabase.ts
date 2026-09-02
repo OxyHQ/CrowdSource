@@ -61,6 +61,8 @@ export interface PostgresTestDatabase {
    */
   readonly asMigrator: postgres.Sql;
   readonly url: string;
+  /** Test-only privileged URL for control queries which must bypass RLS. */
+  readonly migratorUrl: string;
   close(): Promise<void>;
 }
 
@@ -213,7 +215,8 @@ export async function createPostgresTestDatabase(): Promise<PostgresTestDatabase
     },
   });
 
-  const asMigrator = postgres(withCredentials(url, MIGRATOR_ROLE, MIGRATOR_PASSWORD), {
+  const migratorUrl = withCredentials(url, MIGRATOR_ROLE, MIGRATOR_PASSWORD);
+  const asMigrator = postgres(migratorUrl, {
     max: 2,
     connection: { statement_timeout: STATEMENT_TIMEOUT_MS },
   });
@@ -223,6 +226,7 @@ export async function createPostgresTestDatabase(): Promise<PostgresTestDatabase
     client: built.client,
     asMigrator,
     url: applicationUrl,
+    migratorUrl,
     async close() {
       await asMigrator.end();
       await built.client.end();
