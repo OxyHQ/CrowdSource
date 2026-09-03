@@ -20,9 +20,13 @@ Stop before the maintenance window unless all of these are true:
    `crowdsource-production`, 3,728 bytes and SHA-256
    `4417e03de8c98d55637e4d5aac8462414c98f2b7191dd3309ab9af11bf25a994`.
 2. PostgreSQL is separately named, empty, and provisioned with two roles:
-   `crowdsource_migrator` owns the schema; `crowdsource_app` owns nothing and is
-   subject to forced RLS. Neither connection string is written into the
-   manifest.
+   `crowdsource_migrator` owns the database and therefore reaches the `public`
+   schema through PostgreSQL's `pg_database_owner` pseudo-role;
+   `crowdsource_app` owns nothing, has an explicit `USAGE` grant on `public`,
+   receives DML through the migrator's default privileges, and is subject to
+   forced RLS. Do not add a redundant direct `CREATE`/`USAGE` schema grant to
+   the migrator: it adds an ACL row without changing its effective authority.
+   Neither connection string is written into the manifest.
 3. The migration image and journal digest are pinned. The serving task never
    receives `MIGRATOR_DATABASE_URL`. Archive parsing uses only the pinned
    MongoDB 8.2.11 image digest from the recovery profile, matching the archive
@@ -206,8 +210,17 @@ indexes; `ENABLE` and `FORCE` RLS; policy roles, commands, `USING` and
 inheritance; domain/enum/range/composite types with owners, ACLs, collations and
 domain constraints; standalone collations, sequence parameters, aggregate
 definitions; and any user-defined triggers/functions. PostgreSQL-owned
-internal namespaces are excluded from this service-owned census. It then
-compares every Drizzle ledger hash and timestamp with the checked-in SQL journal.
+internal namespaces are excluded from this service-owned census. Locale names
+normalize only the equivalent terminal UTF-8 spellings (`.utf8`, `.UTF8` and
+`.UTF-8`); language, territory, provider and modifiers remain exact. The host's
+libc/ICU release string is intentionally not portable catalog identity. Instead,
+every run compares PostgreSQL's recorded database collation version with
+`pg_database_collation_actual_version(...)` and refuses a mismatch, so an
+unreindexed provider upgrade cannot pass merely because version strings are not
+hashed. Explicit ACL rows remain exact: a redundant direct grant is drift and is
+refused even when ownership already supplies the same effective privilege. It
+then compares every Drizzle ledger hash and timestamp with the checked-in SQL
+journal.
 Any difference is a refusal, and the final manifest records the exact catalog
 digest that passed.
 
@@ -279,6 +292,27 @@ network-isolated, pinned archive recovery above.
    later schema additions are `pre`, and the high-water-mark ledger correctly
    refuses to skip `0009` during a plain `--phase=pre` run. This first cut cannot
    be introduced by the ordinary rolling-deploy sequence.
+
+   The supported two-role provisioning in oxy-infra runbook 30 §2A is the exact
+   ACL authority. On PostgreSQL 15+, a database owner is implicitly the member
+   of `pg_database_owner` for that database, which owns `public`; therefore no
+   direct schema grant to `crowdsource_migrator` is required. Verify both the
+   effective privilege and absence of a redundant direct ACL before migrating:
+
+   ```sql
+   SELECT has_schema_privilege('crowdsource_migrator', 'public', 'CREATE, USAGE');
+   -- expect: true
+
+   SELECT privilege.privilege_type
+     FROM pg_namespace namespace
+     CROSS JOIN LATERAL aclexplode(
+       COALESCE(namespace.nspacl, acldefault('n', namespace.nspowner))
+     ) privilege
+     JOIN pg_roles grantee ON grantee.oid = privilege.grantee
+    WHERE namespace.nspname = 'public'
+      AND grantee.rolname = 'crowdsource_migrator';
+   -- expect: 0 rows; authority is inherited from ownership, not a direct ACL
+   ```
 
    ```bash
    MIGRATOR_DATABASE_URL="$TARGET_MIGRATOR_URL" DRY_RUN=true \

@@ -19,12 +19,65 @@ import {
 } from './crowdsource-backend-cutover-lib.mjs';
 import {
   assertPostgresTarget,
+  canonicalPostgresDatabaseEvidence,
+  canonicalPostgresLocaleName,
   countTargetRows,
   importPostgres,
   postgresCatalogEvidence,
   reexportPostgres,
   targetFingerprintForUrl,
 } from './crowdsource-backend-cutover-postgres.mjs';
+
+if (
+  canonicalPostgresLocaleName('en_US.utf8') !== 'en_US.UTF-8' ||
+  canonicalPostgresLocaleName('en_US.UTF-8') !== 'en_US.UTF-8' ||
+  canonicalPostgresLocaleName('es_ES.UTF8') !== 'es_ES.UTF-8' ||
+  canonicalPostgresLocaleName('en_GB.UTF-8') === canonicalPostgresLocaleName('en_US.UTF-8')
+) {
+  throw new Error('PostgreSQL locale canonicalization merged distinct locales or retained a UTF-8 alias.');
+}
+
+const dockerDatabaseEvidence = canonicalPostgresDatabaseEvidence([{
+  owner: 'crowdsource_migrator',
+  collate: 'en_US.utf8',
+  ctype: 'en_US.utf8',
+  collationVersion: '2.41',
+  actualCollationVersion: '2.41',
+}]);
+const rdsDatabaseEvidence = canonicalPostgresDatabaseEvidence([{
+  owner: 'crowdsource_migrator',
+  collate: 'en_US.UTF-8',
+  ctype: 'en_US.UTF-8',
+  collationVersion: '2.26-59.amzn2',
+  actualCollationVersion: '2.26-59.amzn2',
+}]);
+if (JSON.stringify(dockerDatabaseEvidence) !== JSON.stringify(rdsDatabaseEvidence)) {
+  throw new Error('Healthy Docker and RDS database collation evidence is not portable.');
+}
+
+for (const [recorded, actual] of [
+  ['2.40', '2.41'],
+  [null, '2.41'],
+  ['2.41', null],
+]) {
+  let staleCollationRefused = false;
+  try {
+    canonicalPostgresDatabaseEvidence([{
+      owner: 'crowdsource_migrator',
+      collate: 'en_US.UTF-8',
+      ctype: 'en_US.UTF-8',
+      collationVersion: recorded,
+      actualCollationVersion: actual,
+    }]);
+  } catch (error) {
+    staleCollationRefused = /collation version is stale/.test(
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+  if (!staleCollationRefused) {
+    throw new Error('A stale or ambiguously unversioned database collation passed canonicalization.');
+  }
+}
 
 const adminUrl = process.env.CROWDSOURCE_BACKEND_TEST_POSTGRES_URL;
 if (adminUrl === undefined || adminUrl.length === 0) {
@@ -140,8 +193,6 @@ try {
   adminTargetUrl.pathname = `/${targetDatabase}`;
   asAdmin = postgres(adminTargetUrl.toString(), { max: 1 });
 
-  await assertPostgresTarget(database.asMigrator, targetDatabase);
-
   const assertCatalogMutationRefused = async (label) => {
     let refused = false;
     try {
@@ -151,6 +202,18 @@ try {
     }
     if (!refused) throw new Error(`${label} passed the exact PostgreSQL catalog preflight.`);
   };
+
+  await assertPostgresTarget(database.asMigrator, targetDatabase);
+
+  const baselineCatalog = await postgresCatalogEvidence(database.asMigrator);
+  if (baselineCatalog.database[0]?.collationVersionStatus !== 'current') {
+    throw new Error('The disposable database did not attest its live collation provider version.');
+  }
+
+  await database.asMigrator`GRANT CREATE, USAGE ON SCHEMA public TO crowdsource_migrator`;
+  await assertCatalogMutationRefused('A redundant direct migrator public-schema ACL');
+  await database.asMigrator`REVOKE CREATE, USAGE ON SCHEMA public FROM crowdsource_migrator`;
+  await assertPostgresTarget(database.asMigrator, targetDatabase);
 
   await database.asMigrator`
     CREATE SCHEMA unexpected_cutover_scope AUTHORIZATION crowdsource_migrator
@@ -526,5 +589,5 @@ try {
 }
 
 process.stdout.write(
-  'Real PostgreSQL cutover exact catalog, foreign-owned schema/default-ACL/collation/type/sequence/function/trigger/aggregate/setting/RLS/index/ledger mutations, public bindings, rollback, import, committed retry, re-export and target-mutation refusal passed.\n',
+  'Real PostgreSQL cutover portable locale/current-collation attestation, exact ACL catalog, foreign-owned schema/default-ACL/collation/type/sequence/function/trigger/aggregate/setting/RLS/index/ledger mutations, public bindings, rollback, import, committed retry, re-export and target-mutation refusal passed.\n',
 );

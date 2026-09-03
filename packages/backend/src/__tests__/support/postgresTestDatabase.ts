@@ -118,7 +118,14 @@ async function provisionRoles(admin: postgres.Sql, databaseName: string): Promis
    * how this requirement was found rather than assumed.
    */
   await admin.unsafe(`ALTER DATABASE "${databaseName}" OWNER TO "${MIGRATOR_ROLE}"`);
-  await admin.unsafe(`GRANT CREATE, USAGE ON SCHEMA public TO "${MIGRATOR_ROLE}"`);
+  /**
+   * There is deliberately no direct public-schema grant to the migrator.
+   * PostgreSQL 15+ owns `public` through `pg_database_owner`; because the
+   * migrator owns this database, that pseudo-role already gives it CREATE and
+   * USAGE. Adding an explicit duplicate ACL changes the attested topology while
+   * conferring no authority. Production follows runbook 30 §2A and has no such
+   * duplicate, so the real-database fixture must model the same catalog.
+   */
   await admin.unsafe(`GRANT USAGE ON SCHEMA public TO "${APPLICATION_ROLE}"`);
 
   /**
