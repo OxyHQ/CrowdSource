@@ -33,10 +33,11 @@ export const ARCHIVE_CENSUS_FORMAT = 'crowdsource-backend-archive-census/v1';
 export const ARCHIVE_SOURCE_KIND = 'verified_mongodump_archive';
 export const MIGRATION_PHASE = 'all';
 export const MIGRATOR_ROLE = 'crowdsource_migrator';
-// Generated from two independently migrated PostgreSQL 17 databases. Changing
-// covered DDL or privileges requires an intentional canonical-catalog review.
+// Generated from independently migrated PostgreSQL 17 Docker and RDS catalogs.
+// Changing covered DDL or privileges requires an intentional canonical-catalog
+// review; host collation versions are validated before this digest is computed.
 export const EXPECTED_POSTGRES_CATALOG_SHA256 =
-  'sha256:6016ddf226b5a48116f3f1ac228a5abab57d44f15142bd79cab65bd0b6901fa5';
+  'sha256:f585f227d394bdadbd87277ce13855775d7a40c9538b013bfdaf64d7ef1f0fa3';
 
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/;

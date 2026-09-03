@@ -33,7 +33,61 @@ import {
 
 const CUTOVER_LOCK_ID = 0x43524f5744534f55n;
 const INSERT_BATCH_SIZE = 200;
-export const POSTGRES_CATALOG_FORMAT = 'crowdsource-backend-postgres-catalog/v1';
+export const POSTGRES_CATALOG_FORMAT = 'crowdsource-backend-postgres-catalog/v2';
+
+/**
+ * PostgreSQL and glibc expose the same UTF-8 locale under both `.utf8` and
+ * `.UTF-8`. The spelling is installation metadata, not a different collation.
+ * No other locale component is folded: language, territory and modifiers stay
+ * exact, so a genuinely different locale still changes the catalog digest.
+ */
+export function canonicalPostgresLocaleName(localeName) {
+  if (localeName === null) return null;
+  if (typeof localeName !== 'string') {
+    throw new Error('PostgreSQL returned a non-string database locale.');
+  }
+  return localeName.replace(/\.(?:utf8|utf-8)$/i, '.UTF-8');
+}
+
+/**
+ * Makes database collation evidence portable without accepting stale indexes.
+ *
+ * The provider version is expected to differ between Docker and RDS because it
+ * is the host libc/ICU version. PostgreSQL separately retains the version used
+ * when the database was created or refreshed. Requiring that recorded value to
+ * equal the provider's current value is the fail-closed property: an OS/library
+ * upgrade that needs REINDEX + REFRESH COLLATION VERSION is refused, while two
+ * healthy installations do not hash their unrelated package-release strings.
+ */
+export function canonicalPostgresDatabaseEvidence(rows) {
+  if (!Array.isArray(rows) || rows.length !== 1) {
+    throw new Error('PostgreSQL did not return exactly one current database catalog row.');
+  }
+
+  return rows.map((row) => {
+    const { collationVersion, actualCollationVersion, ...portable } = row;
+    if (
+      !(collationVersion === null || typeof collationVersion === 'string') ||
+      !(actualCollationVersion === null || typeof actualCollationVersion === 'string')
+    ) {
+      throw new Error('PostgreSQL returned an invalid database collation version.');
+    }
+    if (collationVersion !== actualCollationVersion) {
+      throw new Error(
+        'PostgreSQL database collation version is stale: the recorded version does not ' +
+        'match the current provider version. REINDEX affected objects and refresh the ' +
+        'database collation version before cutover.',
+      );
+    }
+
+    return {
+      ...portable,
+      collate: canonicalPostgresLocaleName(row.collate),
+      ctype: canonicalPostgresLocaleName(row.ctype),
+      collationVersionStatus: collationVersion === null ? 'not_versioned' : 'current',
+    };
+  });
+}
 
 function postgresClient(connectionUrl) {
   return postgres(connectionUrl, {
@@ -102,7 +156,7 @@ export async function postgresCatalogEvidence(client) {
        OR member.rolname ~ '^crowdsource_'
     ORDER BY granted.rolname, member.rolname, grantor.rolname
   `);
-  const database = await client.unsafe(`
+  const databaseRows = await client.unsafe(`
     SELECT
       pg_get_userbyid(datdba) AS owner,
       datallowconn AS "allowConnections",
@@ -116,11 +170,13 @@ export async function postgresCatalogEvidence(client) {
       datlocale AS locale,
       daticurules AS "icuRules",
       datcollversion AS "collationVersion",
+      pg_database_collation_actual_version(database_record.oid) AS "actualCollationVersion",
       tablespace.spcname AS tablespace
     FROM pg_database database_record
     JOIN pg_tablespace tablespace ON tablespace.oid = database_record.dattablespace
     WHERE datname = current_database()
   `);
+  const database = canonicalPostgresDatabaseEvidence(databaseRows);
   const roleSettings = await client.unsafe(`
     SELECT
       CASE WHEN setting.setdatabase = 0 THEN '*'
