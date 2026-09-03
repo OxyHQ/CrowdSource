@@ -1,6 +1,14 @@
-import { index, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { check, index, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
-import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+
+import {
+  CONSOLE_ROLES,
+  MEMBER_STATUSES,
+  STAFF_AUDIT_ACTIONS,
+  STAFF_ROLES,
+} from '../../../domain/closedValues';
 
 /**
  * The console's own tables: who may operate a tenant, who may operate the
@@ -38,9 +46,12 @@ export const organizationMembers = pgTable(
     /** The Oxy account. Never an application principal. */
     oxyUserId: text('oxy_user_id').notNull(),
 
-    /** A scalar array nothing queries into. */
+    /** A member may hold multiple console roles; the domain collection uses one today. */
     roles: text('roles').array().notNull(),
     status: text('status').notNull(),
+
+    invitedByOxyUserId: text('invited_by_oxy_user_id'),
+    revokedAt: timestamptz(),
 
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -57,6 +68,14 @@ export const organizationMembers = pgTable(
      * the only term the caller's credential supplies.
      */
     index('organization_members_oxy_user_id_status_idx').on(table.oxyUserId, table.status),
+    check(
+      'organization_members_roles_check',
+      sql`${table.roles} <@ array[${sql.raw(inList(CONSOLE_ROLES))}]::text[]`,
+    ),
+    check(
+      'organization_members_status_check',
+      sql`${table.status} in (${sql.raw(inList(MEMBER_STATUSES))})`,
+    ),
   ],
 );
 
@@ -79,7 +98,16 @@ export const trustSafetyStaff = pgTable(
   // No index beyond the primary key: every read is `findOne({ oxyUserId })` from
   // `consoleAuth.ts`, which the key already serves. An index on `status` would
   // answer a question nothing asks.
-  () => [],
+  (table) => [
+    check(
+      'trust_safety_staff_roles_check',
+      sql`${table.roles} <@ array[${sql.raw(inList(STAFF_ROLES))}]::text[]`,
+    ),
+    check(
+      'trust_safety_staff_status_check',
+      sql`${table.status} in (${sql.raw(inList(MEMBER_STATUSES))})`,
+    ),
+  ],
 );
 
 export const staffAuditEvents = pgTable(
@@ -126,6 +154,14 @@ export const staffAuditEvents = pgTable(
     index('staff_audit_events_application_id_occurred_at_idx').on(
       table.applicationId,
       table.occurredAt,
+    ),
+    check(
+      'staff_audit_events_action_check',
+      sql`${table.action} in (${sql.raw(inList(STAFF_AUDIT_ACTIONS))})`,
+    ),
+    check(
+      'staff_audit_events_roles_check',
+      sql`${table.roles} <@ array[${sql.raw(inList(STAFF_ROLES))}]::text[]`,
     ),
   ],
 );

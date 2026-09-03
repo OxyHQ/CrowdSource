@@ -1,5 +1,11 @@
 # `@oxyhq/crowdsource-app` gains a PostgreSQL backend
 
+> **Archived, superseded design.** The dual-store design below records the
+> 2026-08-06 decision process; it is not the current runtime. CrowdSource and
+> `@oxyhq/crowdsource-app` now serve only from PostgreSQL. In current operations,
+> MongoDB is retained solely inside the pinned, network-isolated archive recovery
+> reader; no live-source connector remains.
+
 **Status:** design, 2026-08-06. Not a plan — a shape to argue with, and a size.
 
 **Why this exists.** Syra is porting MongoDB to PostgreSQL, and its moderation

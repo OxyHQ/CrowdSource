@@ -11,12 +11,10 @@ import {
 /**
  * The gate on the privileged cross-tenant reads.
  *
- * `collectionBoundary.test.ts` pins WHO may reach the driver. That is necessary and it is
- * not sufficient, and the gap is the point of this file: the driver scanner sees a module
- * that touches `mongoose.model(`, and it cannot see a module that reaches the same data by
- * IMPORTING an already-sanctioned function. So the second control is on the import graph,
- * and the third is on the projections themselves — declared as data precisely so a test
- * can read them.
+ * RLS keeps ordinary repositories inside one tenant, while this module performs
+ * a deliberate tenant-by-tenant fan-out. The second control is on its import
+ * graph, and the third is on the projections themselves — declared as data so a
+ * test can read them.
  *
  * Three independent properties, each with its own failure:
  *
@@ -73,9 +71,9 @@ function collectSources(directory: string): ScannedFile[] {
  * misses every one of them — which is the failure mode where this check reports an empty
  * result while a real caller sits in the tree. The `from` clause is always on one line.
  *
- * Comment lines are stripped first, the same way `driverEscapes.ts` does it, so the doc
- * comments that name this module on purpose are not read as imports. The module itself is
- * excluded: it is not its own caller.
+ * Comment lines are stripped first so documentation that names this module on
+ * purpose is not read as an import. The module itself is excluded: it is not its
+ * own caller.
  */
 function importersOf(files: readonly ScannedFile[], specifier: string): string[] {
   const pattern = new RegExp(`from\\s+['"][^'"]*${specifier}['"]`);

@@ -27,9 +27,8 @@ export type BackendSchema = typeof schema;
 /**
  * How many server-side connections one task may hold.
  *
- * Lower than the Mongo pool above it (50) on purpose: a PostgreSQL connection
- * is a backend PROCESS rather than a socket, the instance is shared with every
- * other Oxy database, and `max_connections` is a cluster-wide budget that a
+ * A PostgreSQL connection is a backend process rather than a socket. The
+ * instance is shared with every other Oxy database, and `max_connections` is a
  * service cannot overdraw without taking its neighbours down with it. Several
  * tasks multiply this.
  */
@@ -74,9 +73,9 @@ export function getPostgresDatabase(): OxyDatabase<BackendSchema> {
  *
  * A real round trip rather than a cached flag or a look at pool state, because
  * the question readiness has to answer is whether a query would succeed, and
- * every cheaper proxy for that answers a different question. Mongo can be asked
- * `readyState` because the driver maintains one; postgres.js opens connections
- * lazily, so "the pool exists" is true before anything has ever connected.
+ * every cheaper proxy for that answers a different question. postgres.js opens
+ * connections lazily, so "the pool exists" is true before anything has ever
+ * connected.
  *
  * Throws rather than returning a boolean: the boot path wants the failure to
  * propagate and stop the process, and a caller that wants a verdict instead can
@@ -90,9 +89,9 @@ export async function pingPostgres(): Promise<void> {
 /**
  * Close the pool, if one was ever opened.
  *
- * Called from the shutdown path beside the Mongo disconnect. Safe to call when
- * nothing was built: a task that fails before its first query has no pool, and
- * a shutdown that threw on that would turn a clean exit into a crash.
+ * Called from the shutdown path. Safe to call when nothing was built: a task
+ * that fails before its first query has no pool, and a shutdown that threw on
+ * that would turn a clean exit into a crash.
  */
 export async function closePostgresDatabase(): Promise<void> {
   const open = handle;

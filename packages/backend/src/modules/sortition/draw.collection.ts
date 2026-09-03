@@ -1,16 +1,9 @@
-import { Schema } from 'mongoose';
-
 import { defineUnscopedCollection } from '../../db/collections';
-import {
-  DRAW_KINDS,
-  DRAW_STATUSES,
-  type DrawKind,
-  type DrawStatus,
-} from '../../db/postgres/schema/sortition';
-import { REVIEW_POOLS, type ReviewPool } from '../triage/triage';
+import type { DrawKind, DrawStatus } from '../../db/postgres/schema/sortition';
+import type { ReviewPool } from '../triage/triage';
 import type { EligibilityRejection } from '../reviewer/eligibility';
 import type { ExclusionReason } from './exclusions';
-import { SLOT_TYPES, type SlotType } from './panelSpec';
+import type { SlotType } from './panelSpec';
 import type { PanelRefusalReason } from './weightedSampling';
 
 /**
@@ -117,72 +110,6 @@ export interface SortitionDrawDocument {
   updatedAt: Date;
 }
 
-const drawCandidateSchema = new Schema<DrawCandidate>(
-  {
-    reviewerId: { type: String, required: true },
-    selectionWeight: { type: Number, required: true },
-    reliability: { type: Number, required: true },
-    eligibleSlots: { type: [String], required: true, enum: SLOT_TYPES },
-  },
-  { _id: false },
-);
-
-const drawRejectionSchema = new Schema<DrawRejection>(
-  {
-    reviewerId: { type: String, required: true },
-    reason: { type: String, required: true },
-  },
-  { _id: false },
-);
-
-const drawSeatSchema = new Schema<DrawSeat>(
-  {
-    reviewerId: { type: String, required: true },
-    slotType: { type: String, required: true, enum: SLOT_TYPES },
-    filledAs: { type: String, required: true, enum: SLOT_TYPES },
-    assignmentId: { type: String, required: true },
-  },
-  { _id: false },
-);
-
-const sortitionDrawSchema = new Schema<SortitionDrawDocument>(
-  {
-    drawId: { type: String, required: true, unique: true },
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-
-    caseId: { type: String, required: true },
-    caseRevision: { type: Number, required: true },
-    pool: { type: String, required: true, enum: REVIEW_POOLS },
-    round: { type: Number, required: true },
-    kind: { type: String, required: true, enum: DRAW_KINDS },
-
-    panelSpecId: { type: String, required: true },
-    rulesVersion: { type: String, required: true },
-    seed: { type: String, required: true },
-
-    requestedSlots: { type: [String], required: true, enum: SLOT_TYPES },
-    candidateSnapshot: { type: [drawCandidateSchema], required: true, default: [] },
-    rejections: { type: [drawRejectionSchema], required: true, default: [] },
-    selected: { type: [drawSeatSchema], required: true, default: [] },
-
-    sampledCount: { type: Number, required: true },
-    eligibleCount: { type: Number, required: true },
-
-    status: { type: String, required: true, enum: DRAW_STATUSES },
-    refusalReason: { type: String, default: null },
-
-    drawnAt: { type: Date, required: true },
-  },
-  { timestamps: true, collection: 'sortition_draws' },
-);
-
-/** Every draw for a case, in order: the panel's whole history in one query. */
-sortitionDrawSchema.index({ caseId: 1, caseRevision: 1, drawnAt: 1 });
-
-/** The operator's question after a quiet morning: what refused, and why? */
-sortitionDrawSchema.index({ status: 1, drawnAt: -1 });
-
-export const sortitionDraws = defineUnscopedCollection('SortitionDraw', sortitionDrawSchema, {
+export const sortitionDraws = defineUnscopedCollection<SortitionDrawDocument>('SortitionDraw', {
   why: 'A draw records reviewers, who belong to no tenant, alongside the case they were drawn for; it is written by the sortition worker and never returned to an application-API caller.',
 });

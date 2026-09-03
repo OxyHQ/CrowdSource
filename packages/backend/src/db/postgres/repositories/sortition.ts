@@ -10,17 +10,15 @@ import { requireTransaction, type PgHandle, type PgTransactionHandle } from '../
  * Neither is tenant-owned, for the reason `schema/sortition.ts` sets out at
  * length: every row carries the tenant pair, stamped from the case inside the
  * draw's transaction, but the READER of an assignment presents an Oxy session
- * that carries no tenant to scope by. So every signature here takes a plain
- * `PgHandle` unless the Mongo call site it replaces passed a `ClientSession`.
- *
- * NOTHING CALLS THIS IN PRODUCTION YET. `sortitionRepositories.realdb.test.ts` is
- * what makes these statements ones that have genuinely run against the real
- * schema, the real constraints and the real unprivileged role, rather than ones
- * whose first execution is in production.
+ * that carries no tenant to scope by. Read-only and refusal-recording paths take
+ * a plain `PgHandle`; writes that must be atomic with a domain change take a
+ * `PgTransactionHandle`. Domain services use these repositories at runtime, and
+ * `sortitionRepositories.realdb.test.ts` proves the same statements against the
+ * real schema, constraints and unprivileged role.
  *
  * ## Which functions take a transaction, and why it is not uniform
  *
- * Four do, and each is a call site that passes a `ClientSession` today:
+ * Four do, matching the domain transaction boundaries:
  * `consumeAssignment` (:189, inside the review's transaction),
  * `recuseAssignment` (:232), `expireAssignment` (:308) and `insertAssignment` /
  * `insertDrawnRecord` (:589 and :560, inside `openPanel`'s one transaction).

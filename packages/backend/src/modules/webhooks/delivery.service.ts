@@ -1,4 +1,16 @@
 import { createTenantContext, type TenantContext } from '../../db/tenantScope';
+import { getPostgresDatabase } from '../../db/postgres/database';
+import {
+  claimDueDelivery as claimDueDeliveryRow,
+  countDeliveriesAcrossTenants,
+  countDeliveriesForEndpoint,
+  findTenantDelivery as findTenantDeliveryRow,
+  insertDeliveryIfAbsent,
+  listDeadLetteredAcrossTenants,
+  listTenantDeliveries as listTenantDeliveryRows,
+  recordDeliveryOutcome,
+  replayDeadLetteredDelivery as replayDeadLetteredDeliveryRow,
+} from '../../db/postgres/repositories/webhookDeliveries';
 import { duplicateKeyViolation } from '../../db/transaction';
 import { ApiError } from '../../http/apiError';
 import { canonicalize } from '../../utils/canonicalJson';
@@ -8,7 +20,6 @@ import { redactResponseBody } from './redaction';
 import { nextRetry, type WebhookOutcome } from './retrySchedule';
 import {
   webhookAttempts,
-  webhookDeliveries,
   type WebhookDeliveryDocument,
   type WebhookFailureKind,
 } from './webhook.collections';
@@ -83,8 +94,7 @@ export async function recordDelivery(
 ): Promise<boolean> {
   const now = request.now ?? new Date();
 
-  try {
-    await webhookDeliveries.insertOne({
+  return insertDeliveryIfAbsent(getPostgresDatabase(), {
       organizationId: context.organizationId,
       applicationId: context.applicationId,
       deliveryId: newPublicId('webhookDelivery'),
@@ -105,12 +115,7 @@ export async function recordDelivery(
       replayCount: 0,
       createdAt: now,
       updatedAt: now,
-    });
-    return true;
-  } catch (error: unknown) {
-    if (duplicateKeyViolation(error)) return false;
-    throw error;
-  }
+  });
 }
 
 /**
@@ -127,25 +132,11 @@ export async function recordDelivery(
  * worker from being retried forever.
  */
 export async function claimDueDelivery(now: Date): Promise<WebhookDeliveryDocument | null> {
-  return webhookDeliveries.findOneAndUpdate(
-    {
-      $or: [
-        { status: 'pending', nextAttemptAt: { $lte: now } },
-        { status: 'delivering', leaseExpiresAt: { $lte: now } },
-      ],
-    },
-    {
-      $set: {
-        status: 'delivering',
-        leaseExpiresAt: new Date(now.getTime() + WEBHOOK_DELIVERY_LEASE_MS),
-        updatedAt: now,
-      },
-      $inc: { attemptCount: 1, cycleAttemptCount: 1 },
-    },
-    // Oldest due first, so a delivery backing off on a long rung cannot starve
-    // the ones behind it.
-    { sort: { nextAttemptAt: 1 } },
-  );
+  return (await claimDueDeliveryRow(
+    getPostgresDatabase(),
+    now,
+    new Date(now.getTime() + WEBHOOK_DELIVERY_LEASE_MS),
+  )) as WebhookDeliveryDocument | null;
 }
 
 /** What one attempt produced. */
@@ -253,19 +244,14 @@ export async function recordAttempt(
       ? 'pending'
       : 'dead_letter';
 
-  await webhookDeliveries.updateOne(
-    { deliveryId: delivery.deliveryId },
-    {
-      status,
-      nextAttemptAt,
-      leaseExpiresAt: null,
-      lastResponseStatus: result.responseStatus,
-      deadLetterReason: status === 'dead_letter' ? (decision?.deadLetterReason ?? null) : null,
-      succeededAt: succeeded ? now : delivery.succeededAt,
-      deadLetteredAt: status === 'dead_letter' ? now : delivery.deadLetteredAt,
-      updatedAt: now,
-    },
-  );
+  await recordDeliveryOutcome(getPostgresDatabase(), delivery.deliveryId, {
+    status,
+    nextAttemptAt,
+    lastResponseStatus: result.responseStatus,
+    deadLetterReason: status === 'dead_letter' ? (decision?.deadLetterReason ?? null) : null,
+    succeededAt: succeeded ? now : delivery.succeededAt,
+    deadLetteredAt: status === 'dead_letter' ? now : delivery.deadLetteredAt,
+  });
 
   if (status === 'dead_letter') {
     /**
@@ -329,19 +315,7 @@ export async function replayDeadLetteredDelivery(
     );
   }
 
-  await webhookDeliveries.updateOne(
-    { deliveryId },
-    {
-      status: 'pending',
-      cycleAttemptCount: 0,
-      nextAttemptAt: now,
-      leaseExpiresAt: null,
-      deadLetterReason: null,
-      deadLetteredAt: null,
-      replayCount: delivery.replayCount + 1,
-      updatedAt: now,
-    },
-  );
+  await replayDeadLetteredDeliveryRow(getPostgresDatabase(), deliveryId, now);
 
   const replayed = await findTenantDelivery(context, deliveryId);
   if (!replayed) {
@@ -363,11 +337,12 @@ export async function findTenantDelivery(
   context: TenantContext,
   deliveryId: string,
 ): Promise<WebhookDeliveryDocument | null> {
-  return webhookDeliveries.findOne({
+  return (await findTenantDeliveryRow(
+    getPostgresDatabase(),
+    context.organizationId,
+    context.applicationId,
     deliveryId,
-    organizationId: context.organizationId,
-    applicationId: context.applicationId,
-  });
+  )) as WebhookDeliveryDocument | null;
 }
 
 /**
@@ -388,17 +363,13 @@ export async function listTenantDeliveries(
     readonly limit?: number;
   } = {},
 ): Promise<readonly WebhookDeliveryDocument[]> {
-  return webhookDeliveries.find(
-    {
-      organizationId: context.organizationId,
-      applicationId: context.applicationId,
-      ...(filter.status === undefined ? {} : { status: filter.status }),
-      ...(filter.webhookEndpointId === undefined
-        ? {}
-        : { webhookEndpointId: filter.webhookEndpointId }),
-    },
-    { sort: { createdAt: -1 }, limit: filter.limit ?? 50 },
-  );
+  return (await listTenantDeliveryRows(
+    getPostgresDatabase(),
+    context.organizationId,
+    context.applicationId,
+    filter,
+    filter.limit ?? 50,
+  )) as WebhookDeliveryDocument[];
 }
 
 /** How many of one endpoint's deliveries sit in each state. */
@@ -420,20 +391,12 @@ export async function deliveryHealthFor(
   context: TenantContext,
   webhookEndpointId: string,
 ): Promise<DeliveryHealth> {
-  const base = {
-    organizationId: context.organizationId,
-    applicationId: context.applicationId,
+  return countDeliveriesForEndpoint(
+    getPostgresDatabase(),
+    context.organizationId,
+    context.applicationId,
     webhookEndpointId,
-  };
-
-  const [pending, delivering, succeeded, deadLetter] = await Promise.all([
-    webhookDeliveries.countDocuments({ ...base, status: 'pending' }),
-    webhookDeliveries.countDocuments({ ...base, status: 'delivering' }),
-    webhookDeliveries.countDocuments({ ...base, status: 'succeeded' }),
-    webhookDeliveries.countDocuments({ ...base, status: 'dead_letter' }),
-  ]);
-
-  return { pending, delivering, succeeded, deadLetter };
+  );
 }
 
 /**
@@ -452,19 +415,13 @@ export async function deliveryHealthFor(
 export async function listDeadLetteredDeliveriesAcrossTenants(
   limit = 100,
 ): Promise<readonly WebhookDeliveryDocument[]> {
-  return webhookDeliveries.find(
-    { status: 'dead_letter' },
-    { sort: { deadLetteredAt: -1 }, limit },
-  );
+  return (await listDeadLetteredAcrossTenants(
+    getPostgresDatabase(),
+    limit,
+  )) as WebhookDeliveryDocument[];
 }
 
 /** How many deliveries sit in each state across every tenant (§16.4). */
 export async function deliveryCountsAcrossTenants(): Promise<DeliveryHealth> {
-  const [pending, delivering, succeeded, deadLetter] = await Promise.all([
-    webhookDeliveries.countDocuments({ status: 'pending' }),
-    webhookDeliveries.countDocuments({ status: 'delivering' }),
-    webhookDeliveries.countDocuments({ status: 'succeeded' }),
-    webhookDeliveries.countDocuments({ status: 'dead_letter' }),
-  ]);
-  return { pending, delivering, succeeded, deadLetter };
+  return countDeliveriesAcrossTenants(getPostgresDatabase());
 }

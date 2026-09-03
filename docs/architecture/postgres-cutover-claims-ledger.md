@@ -1,8 +1,8 @@
 # Claims ledger — what the Postgres cutover has to correct
 
-Every statement here is **true today** and stops being true when the backend
-service moves to PostgreSQL. It is written before the port rather than after so
-each claim is corrected in the change that falsifies it, instead of surviving it.
+This is the historical checklist used to make the backend runtime cut. Its
+Mongo-era statements are intentionally retained as evidence of what had to
+change; they are not current runtime instructions.
 
 That is not hypothetical. In the Oxy repos that finished this migration, the
 source-level "no Mongo" guards all passed while the prose stayed wrong for
@@ -13,12 +13,12 @@ had contributors install MongoDB against a backend that exits without
 `DATABASE_URL`. Comments and markdown are exempt from those guards deliberately
 and correctly — a ledger is what covers them instead.
 
-**Scope note, because the repository is already split.** `@oxyhq/crowdsource-app`
-(`packages/app`) ALREADY ships both stores — `src/mongoose/` and `src/postgres/`
-— since #79, and `AGENTS.md` is current on that. This ledger is about
-`@crowdsource/backend` (`packages/backend`), the ECS service, which is still
-Mongo-only: task definition `oxy-crowdsource:26` carries `MONGODB_URI` and no
-`DATABASE_URL`, and `package.json` declares `mongoose`.
+**Current repository state.** `@oxyhq/crowdsource-app` and
+`@crowdsource/backend` are PostgreSQL-only in source. The former Mongoose subpath,
+backend dependencies, boot path, test harness and deploy wiring are removed and
+gated. This does not prove a live data or task-definition cutover: production
+still requires the authorised backend runbook's freeze/export/import/reconcile
+manifest and exact deployed-artifact verification.
 
 ---
 
@@ -66,16 +66,16 @@ away. Retire the guard and its three companions together, and say in the ADR tha
 the risk it covered no longer exists; do not port a guard whose failure mode is
 gone, and do not delete it silently either.
 
-The tenant-isolation entry is the one that gains a guarantee: today isolation is
-enforced only by `db/tenantScope.ts` and review, and under RLS it becomes a
-property of the database. `tenantScope.ts` should not simply be deleted — the
+The tenant-isolation entry was the one that needed to gain a guarantee: isolation
+was enforced only by `db/tenantScope.ts` and review. It is now also a property of
+the database under forced RLS. `tenantScope.ts` was correctly retained — the
 composite key `{organizationId, applicationId}` and the rule that a caller may
 never supply it are still the contract; only the ENFORCEMENT moves.
 
-## 3. Two things nothing in Oxy has today
+## 3. Two things Oxy did not have when this checklist was written
 
-**3.1 A second database role.** The migrator/app split means two roles and a
-two-connection-string contract. `oxy-infra`'s runbook 30
+**3.1 A second database role.** At planning time the migrator/app split meant two
+roles and a two-connection-string contract. `oxy-infra`'s runbook 30
 (`docs/runbooks/30-postgres-database-provisioning.md`) is written for the
 one-role model and states, at §0:
 
@@ -83,27 +83,29 @@ one-role model and states, at §0:
 > one, the database was created by the wrong role. Fix the ownership; do not
 > paper over it with grants.
 
-That is **correct for every Oxy database that exists today and wrong for this
-one.** Whoever provisions CrowdSource will be told by the runbook that their
-correct design is a mistake. It needs a documented successor — a named variant
+That was **correct for every Oxy database inspected at the time and wrong for
+this one.** Whoever provisions CrowdSource from the old runbook would be told
+that their correct design is a mistake. It needs a documented successor — a named variant
 for the two-role case covering `ALTER DEFAULT PRIVILEGES` — landing WITH the
 provisioning change, not after it. Record it as a claim with a successor rather
 than as an error: the one-role rule stays right for everything else.
 
-**3.2 RLS itself.** No Oxy service uses Row Level Security. Whatever the cutover
-decides about `SET LOCAL` vs a session role, connection pooling interaction, and
-what happens on a pooled connection that forgets to set the tenant, is the first
-instance of that pattern in the ecosystem and should be written down where the
-next service can find it.
+**3.2 RLS itself.** No Oxy service used Row Level Security when this was written.
+The cutover chose `SET LOCAL` with a non-owner application role and forced RLS.
+Its connection-pooling interaction and fail-closed tenant setup are the first
+instance of that pattern in the ecosystem and are recorded in the current
+runtime-cut document and backend README.
 
 ## 4. Facts that are already settled and should not be re-litigated
 
-- **There is no data migration, and the production database is why.** It holds
-  **2 documents**, both `reviewer_profiles` (measured 2026-08-09). The specs
-  already decided this — `docs/superpowers/specs/2026-08-06-crowdsource-app-postgres-design.md`
-  and the scoping report both say do not build one. The cutover starts empty.
-  Anything later implying a backfill is wrong; keep the measurement beside the
-  decision so nobody re-opens it from first principles.
+- **The 2026-08-09 measurement is historical evidence, not current cutover
+  authority.** That inspection found **2 documents**, both
+  `reviewer_profiles`, and the original package-only specs therefore proposed
+  an empty start. It does not prove the source is still unchanged and cannot
+  authorise dropping or omitting current data. The backend cutover requires a
+  fresh read-only inventory, frozen writes, an empty separately identified
+  target, and per-dataset source/target ID, count and SHA-256 reconciliation.
+  No phase may substitute the old count or a guessed identity for that evidence.
 - **`WEBHOOK_SECRET_ENCRYPTION_KEY`'s provenance is correctly documented here** —
   `deploy-aws.yml` carries it in `SSM_SECRET_ALLOWLIST` and the task definition
   maps it to `/oxy/crowdsource/WEBHOOK_SECRET_ENCRYPTION_KEY`. It was live in

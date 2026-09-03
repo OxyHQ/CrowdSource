@@ -143,4 +143,53 @@ describe('the migrations folder', () => {
       path.join('postgres', 'migrations'),
     );
   });
+
+  it('refuses populated partial case tables before changing their old index', () => {
+    const migration = readFileSync(
+      path.join(MIGRATIONS_FOLDER, '0008_dear_microchip.sql'),
+      'utf8',
+    );
+    const emptyTargetGuard = migration.indexOf('IF EXISTS (SELECT 1 FROM "cases" LIMIT 1)');
+    const firstChange = migration.indexOf('DROP INDEX "cases_application_subject_key"');
+
+    expect(emptyTargetGuard).toBeGreaterThanOrEqual(0);
+    expect(firstChange).toBeGreaterThan(emptyTargetGuard);
+    expect(migration).toContain('requires an empty PostgreSQL target');
+  });
+
+  it('keeps old and new principal-link writers compatible until the post phase', () => {
+    const expand = readFileSync(
+      path.join(MIGRATIONS_FOLDER, '0011_third_ezekiel_stane.sql'),
+      'utf8',
+    );
+    const contract = readFileSync(
+      path.join(MIGRATIONS_FOLDER, '0012_cooing_blonde_phantom.sql'),
+      'utf8',
+    );
+
+    expect(expand).toContain('-- oxy:deploy-phase=pre');
+    expect(expand).toContain(
+      'ALTER COLUMN "reviewer_principal_link_id" DROP NOT NULL',
+    );
+    expect(expand).toContain(
+      'PRIMARY KEY("reviewer_id","application_id","external_principal_id")',
+    );
+    expect(expand).not.toContain('DROP COLUMN "reviewer_principal_link_id"');
+
+    expect(contract).toContain('-- oxy:deploy-phase=post');
+    expect(contract).toContain('DROP COLUMN "reviewer_principal_link_id"');
+  });
+
+  it('contracts every remaining closed-value gap after the runtime cut', () => {
+    const migration = readFileSync(
+      path.join(MIGRATIONS_FOLDER, '0014_living_wasp.sql'),
+      'utf8',
+    );
+
+    expect(migration).toContain('-- oxy:deploy-phase=post');
+    expect(migration.match(/ ADD CONSTRAINT /g)).toHaveLength(19);
+    expect(migration).toContain('"organization_members_roles_check"');
+    expect(migration).toContain('"app_trust_snapshots_standing_check"');
+    expect(migration).toContain('"webhook_attempts_failure_kind_check"');
+  });
 });

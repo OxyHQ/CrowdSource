@@ -54,7 +54,7 @@ async function main(): Promise<void> {
   });
 }
 
-main().catch((error: unknown) => {
-  logger.error({ err: error }, 'Migration failed');
+main().catch((_error: unknown) => {
+  logger.error({ classification: 'migration_failed' }, 'Migration failed');
   process.exit(1);
 });

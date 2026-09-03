@@ -24,8 +24,7 @@ import type {
  * Every decision in this file is a POLICY decision — the retry ceiling, the
  * backoff curve, the lease-length floor, what counts as retryable, how long a
  * row is kept. The queries that carry them out belong to a
- * {@link ModerationOutboxStore}, so two backends cannot re-derive any of it
- * differently.
+ * {@link ModerationOutboxStore}, outside the PostgreSQL query implementation.
  */
 
 const DEFAULT_LEASE_MS = 60_000;

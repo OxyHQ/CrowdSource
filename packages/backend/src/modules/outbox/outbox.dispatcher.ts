@@ -1,6 +1,11 @@
 import { logger } from '../../utils/logger';
+import { getPostgresDatabase } from '../../db/postgres/database';
 import {
-  outboxEvents,
+  claimNextOutboxEvent,
+  markOutboxEventDispatched,
+  markOutboxEventFailed,
+} from '../../db/postgres/repositories/outbox';
+import {
   type OutboxEventDocument,
   type OutboxEventType,
 } from './outbox.collection';
@@ -11,7 +16,7 @@ import {
  * The plan's flow is: a transaction writes the domain object and an outbox row;
  * a dispatcher publishes the row; a worker consumes it idempotently, updates
  * domain state, and writes the next outbox rows. This file is the middle step,
- * and it reads the rows from MongoDB rather than from a queue on purpose.
+ * and it reads the durable PostgreSQL rows rather than from a queue on purpose.
  *
  * ## Why there is no BullMQ here
  *
@@ -106,8 +111,8 @@ function backoffMs(attempts: number): number {
  *
  * `pending` and an EXPIRED `dispatching` are both claimable — the second is
  * crash recovery, and without it a dispatcher that died mid-handler would hold
- * its rows forever. A single `findOneAndUpdate` is what makes two dispatchers
- * safe: the loser of the race sees the row already leased and moves on.
+ * its rows forever. One guarded PostgreSQL claim statement makes two dispatchers
+ * safe: the loser sees the row already leased and moves on.
  *
  * Only types with a registered consumer are claimed, and that is the whole
  * reason the outbox can be trusted. An event nobody consumes yet — today
@@ -126,64 +131,40 @@ async function claimNext(now: Date): Promise<OutboxEventDocument | null> {
   const consumed = [...handlers.keys()];
   if (consumed.length === 0) return null;
 
-  return outboxEvents.findOneAndUpdate(
-    {
-      type: { $in: consumed },
-      status: { $in: ['pending', 'dispatching'] },
-      availableAt: { $lte: now },
-    },
-    {
-      $set: {
-        status: 'dispatching',
-        availableAt: new Date(now.getTime() + OUTBOX_LEASE_MS),
-        updatedAt: now,
-      },
-      $inc: { attempts: 1 },
-    },
-    // Oldest first, so a row that keeps failing cannot starve the queue behind
-    // it: its backoff pushes `availableAt` forward and everything due sooner
-    // goes first.
-    { sort: { availableAt: 1 } },
-  );
+  return (await claimNextOutboxEvent(getPostgresDatabase(), {
+    types: consumed,
+    now,
+    leaseUntil: new Date(now.getTime() + OUTBOX_LEASE_MS),
+  })) as OutboxEventDocument | null;
 }
 
 async function markDispatched(event: OutboxEventDocument, now: Date): Promise<void> {
-  await outboxEvents.updateOne(
-    { eventId: event.eventId },
-    { status: 'dispatched', dispatchedAt: now, lastError: null, updatedAt: now },
-  );
+  await markOutboxEventDispatched(getPostgresDatabase(), event.eventId, now);
 }
 
 async function markFailed(
   event: OutboxEventDocument,
-  error: unknown,
   now: Date,
 ): Promise<void> {
   const deadLettered = event.attempts >= OUTBOX_MAX_ATTEMPTS;
   /**
-   * The message only. An outbox handler works with reported material, and a
-   * stack or a driver error routinely quotes the document it choked on —
-   * §13.4's log redaction rule is not satisfied by hoping that does not happen.
+   * A handler or driver message can quote the document it choked on, so neither
+   * the durable row nor the log receives the thrown value, message or stack.
+   * The event id/type/attempt count are the safe operator correlation surface.
    */
-  const reason = error instanceof Error ? error.message : 'Unknown dispatch failure';
-
-  await outboxEvents.updateOne(
-    { eventId: event.eventId },
-    {
-      status: deadLettered ? 'failed' : 'pending',
-      availableAt: deadLettered ? now : new Date(now.getTime() + backoffMs(event.attempts)),
-      lastError: reason.slice(0, 500),
-      updatedAt: now,
-    },
-  );
+  await markOutboxEventFailed(getPostgresDatabase(), event.eventId, {
+    status: deadLettered ? 'failed' : 'pending',
+    availableAt: deadLettered ? now : new Date(now.getTime() + backoffMs(event.attempts)),
+    lastError: 'dispatch_failed',
+  });
 
   logger.error(
     {
       eventId: event.eventId,
       type: event.type,
       attempts: event.attempts,
+      classification: 'outbox_dispatch_failed',
       deadLettered,
-      reason,
     },
     deadLettered ? 'Outbox event dead-lettered' : 'Outbox event dispatch failed; will retry',
   );
@@ -211,7 +192,7 @@ export async function runOnce(limit = 25, now: Date = new Date()): Promise<Dispa
       // Unreachable: the claim filters on the registered types. Returning the
       // row rather than marking it dispatched keeps the "nothing is completed
       // without being handled" property true even if that ever changes.
-      await markFailed(event, new Error('No consumer for this event type.'), new Date());
+      await markFailed(event, new Date());
       failed += 1;
       continue;
     }
@@ -220,8 +201,8 @@ export async function runOnce(limit = 25, now: Date = new Date()): Promise<Dispa
       await handler(event);
       await markDispatched(event, new Date());
       dispatched += 1;
-    } catch (error: unknown) {
-      await markFailed(event, error, new Date());
+    } catch (_error: unknown) {
+      await markFailed(event, new Date());
       failed += 1;
     }
   }
@@ -270,8 +251,8 @@ export function startOutboxDispatcher(intervalMs = 1_000): void {
   if (timer) return;
 
   timer = setInterval(() => {
-    void runOnce().catch((error: unknown) => {
-      logger.error({ err: error }, 'Outbox dispatcher pass failed');
+    void runOnce().catch((_error: unknown) => {
+      logger.error({ classification: 'outbox_dispatcher_pass_failed' }, 'Outbox dispatcher pass failed');
     });
   }, intervalMs);
   timer.unref?.();

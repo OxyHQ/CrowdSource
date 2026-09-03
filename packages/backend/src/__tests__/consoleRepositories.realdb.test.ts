@@ -149,12 +149,12 @@ describe('trust and safety staff — no tenant dimension at all', () => {
   it('inserts, finds and updates a staff row', async () => {
     await consoleRepository.insertTrustSafetyStaff(database.db, {
       oxyUserId: STAFF_USER,
-      roles: ['reviewer'],
+      roles: ['security'],
       status: 'active',
     });
 
     expect((await consoleRepository.findTrustSafetyStaff(database.db, STAFF_USER))?.roles).toEqual([
-      'reviewer',
+      'security',
     ]);
 
     const revokedAt = new Date();
@@ -188,18 +188,18 @@ describe('the staff audit trail — names an application without belonging to on
   it('appends events with and without an application', async () => {
     await consoleRepository.appendStaffAuditEvent(database.db, {
       staffAuditId: 'audit_with_app',
-      action: 'application.standing.changed',
+      action: 'staff.standing.changed',
       actorOxyUserId: STAFF_USER,
-      roles: ['reviewer'],
+      roles: ['security'],
       applicationId: 'app_console_fixture',
       occurredAt: new Date('2026-08-10T01:00:00.000Z'),
     });
 
     await consoleRepository.appendStaffAuditEvent(database.db, {
       staffAuditId: 'audit_without_app',
-      action: 'staff.roles.granted',
+      action: 'staff.metrics.read',
       actorOxyUserId: STAFF_USER,
-      roles: ['reviewer'],
+      roles: ['security'],
       applicationId: null,
       occurredAt: new Date('2026-08-10T02:00:00.000Z'),
     });

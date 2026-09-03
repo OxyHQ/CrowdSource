@@ -10,19 +10,14 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: [path.resolve(backendRoot, 'vitest.setup.ts')],
-    // Starts the MongoDB replica set the integration tests run against and
-    // publishes its URI before any worker forks. See the file for why a replica
-    // set specifically.
+    // Refuses a green run unless the real PostgreSQL fixture is configured.
     globalSetup: [path.resolve(backendRoot, 'vitest.globalSetup.ts')],
-    // Downloading and starting a mongod on a cold cache is slower than the
-    // default 60s allows, and a timeout there looks like a broken test rather
-    // than a slow one.
     testTimeout: 30_000,
     hookTimeout: 120_000,
     /**
      * One file at a time.
      *
-     * Every integration suite runs against ONE replica set, and two of the
+     * Every integration suite runs against ONE disposable PostgreSQL database, and two of the
      * things under test are deliberately global: the outbox dispatcher claims
      * across every tenant, and so does the webhook delivery worker. Run in
      * parallel, one file's dispatcher claims another file's rows and completes
@@ -36,6 +31,13 @@ export default defineConfig({
      * is a good trade for a gate that means what it says.
      */
     fileParallelism: false,
+    // Node's forked pool intermittently exits with SIGSEGV on the supported
+    // development host before Vitest reaches an assertion. The thread pool with
+    // one worker executes the complete suite and also preserves the database
+    // serialization contract above; it is not a retry, skip or reduced test
+    // selection.
+    pool: 'threads',
+    maxWorkers: 1,
     include: [path.resolve(backendRoot, 'src/__tests__/**/*.test.ts')],
     coverage: {
       provider: 'v8',

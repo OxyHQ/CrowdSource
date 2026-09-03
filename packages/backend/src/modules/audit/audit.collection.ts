@@ -1,7 +1,10 @@
-import { Schema, type ClientSession } from 'mongoose';
 
-import { defineTenantCollection } from '../../db/collections';
+import {
+  defineTenantCollection,
+  type TransactionSession,
+} from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
+import { AUDIT_ACTIONS, AUDIT_REASONS } from '../../domain/closedValues';
 import { newPublicId } from '../../utils/identifiers';
 
 /**
@@ -33,56 +36,14 @@ import { newPublicId } from '../../utils/identifiers';
  */
 
 /** What happened. One token per auditable act. */
-export const AUDIT_ACTIONS = [
-  'report.ingress.accepted',
-  'report.ingress.replayed',
-  'report.ingress.rejected',
-  'report.receipt.read',
-  'case.read',
-  'decision.read',
-  /**
-   * §9.8's appeal, recorded as an act and nothing more. The reason and the
-   * author's context are deliberately not here: an audit row outlives the case
-   * (§13.6), so a field that ever held case content would keep it after the
-   * material it described was deleted.
-   */
-  'appeal.filed',
-  'appeal.filed.replayed',
-  /**
-   * Console writes (§13.2: "las acciones irreversibles o de exportación requieren
-   * step up authentication y audit reason").
-   *
-   * These are the acts that change how an application behaves in production, and each
-   * is irreversible in the sense that matters: a revoked credential cannot be
-   * un-revoked and a rotated secret cannot be un-rotated. Without a trail, "who broke
-   * our integration at 3am" has no answer, and §13.1's insider-abuse row has no
-   * evidence to work from.
-   *
-   * A membership change is deliberately absent: a seat is ORGANIZATION-scoped and this
-   * collection is APPLICATION-scoped, so recording one would mean inventing an
-   * application for it to belong to. See `console.routes.ts` for what stands in.
-   *
-   * Step-up authentication is NOT implemented — see the module doc above.
-   */
-  'console.credential.issued',
-  'console.credential.revoked',
-  'console.webhook.secret.rotated',
-  'console.delivery.replayed',
-  'console.application.created',
-] as const;
+export { AUDIT_ACTIONS } from '../../domain/closedValues';
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 /**
  * Why an act was refused. A closed vocabulary, because a free-text reason is
  * where an envelope fragment ends up.
  */
-export const AUDIT_REASONS = [
-  'schema_invalid',
-  'application_mismatch',
-  'unsafe_resource_url',
-  'policy_unknown',
-  'payload_conflict',
-] as const;
+export { AUDIT_REASONS } from '../../domain/closedValues';
 export type AuditReason = (typeof AUDIT_REASONS)[number];
 
 export interface AuditEventDocument extends TenantContext {
@@ -126,29 +87,7 @@ export interface AuditEventDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const auditEventSchema = new Schema<AuditEventDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    auditId: { type: String, required: true, unique: true },
-    action: { type: String, required: true, enum: AUDIT_ACTIONS },
-    actorCredentialId: { type: String, default: null },
-    actorOxyUserId: { type: String, default: null },
-    reportId: { type: String, default: null },
-    caseId: { type: String, default: null },
-    externalReportId: { type: String, default: null },
-    reason: { type: String, enum: [...AUDIT_REASONS, null], default: null },
-    subjectId: { type: String, default: null },
-    occurredAt: { type: Date, required: true },
-  },
-  { timestamps: true, collection: 'audit_events' },
-);
-
-/** The operator's question is always "what happened to this tenant, recently". */
-auditEventSchema.index({ applicationId: 1, occurredAt: -1 });
-auditEventSchema.index({ applicationId: 1, caseId: 1, occurredAt: -1 });
-
-export const auditEvents = defineTenantCollection('AuditEvent', auditEventSchema);
+export const auditEvents = defineTenantCollection<AuditEventDocument>('AuditEvent');
 
 export interface AuditRecord {
   readonly action: AuditAction;
@@ -173,7 +112,7 @@ export interface AuditRecord {
 export async function appendAuditEvent(
   context: TenantContext,
   record: AuditRecord,
-  session?: ClientSession,
+  session?: TransactionSession,
 ): Promise<string> {
   const auditId = newPublicId('auditEvent');
   const now = new Date();

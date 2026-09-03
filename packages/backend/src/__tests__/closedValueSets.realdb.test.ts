@@ -1,37 +1,15 @@
-import mongoose from 'mongoose';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createPostgresTestDatabase, type PostgresTestDatabase } from './support/postgresTestDatabase';
-
-// Imported for their side effect: a schema is only registered once the module
-// that declares it is loaded, and an unregistered model contributes no enums —
-// which reads exactly like a model that has none. The floors below are what turn
-// a missing import here from a silent gap into a red test.
-import '../modules/appeals/appeal.collection';
-import '../modules/audit/audit.collection';
-import '../modules/cases/case.collection';
-import '../modules/console/console.collections';
-import '../modules/console/staffAudit.collection';
-import '../modules/decision/decision.collection';
-import '../modules/ingestion/report.collection';
-import '../modules/trust/applicationTrust.collection';
-import '../modules/trust/usageCounter.collection';
-import '../modules/outbox/outbox.collection';
-import '../modules/policy/policySet.collection';
-import '../modules/review/review.collection';
-import '../modules/reviewer/reviewer.collection';
-import '../modules/sortition/assignment.collection';
-import '../modules/sortition/draw.collection';
-import '../modules/tenancy/tenancy.collections';
-import '../modules/webhooks/webhook.collections';
+import { OUTBOX_STATUSES } from '../db/postgres/schema/infrastructure';
 
 /**
  * The gate on closed value sets surviving the port.
  *
  * ## What it exists to catch
  *
- * A Mongoose `enum:` validator is a real, writer-side prohibition. Its Postgres
- * counterpart is a CHECK constraint — and a port that simply does not write one
+ * A closed domain vocabulary is a real, writer-side prohibition. Its PostgreSQL
+ * representation is a CHECK constraint — and a port that simply does not write one
  * downgrades an enforced constraint to a comment, silently. Nothing recomputes a
  * comment, no test fails, and the column happily accepts a value the product has
  * no meaning for. That is *a prohibition is a TYPE or a CHECK, never a
@@ -43,17 +21,9 @@ import '../modules/webhooks/webhook.collections';
  * noticed is that somebody happened to read the Mongoose schema beside the
  * `pgTable`. This file exists so the next one is not found by luck.
  *
- * ## Why the census is a runtime walk rather than a parse
- *
- * A hand-rolled parser for TypeScript would have to guess at syntax it does not
- * recognise, and the guess that reads as "no enum here" is indistinguishable from
- * "no enum here". So this asks MONGOOSE instead: every registered schema is
- * walked through `eachPath`, reading `enumValues` for scalars, `caster.enumValues`
- * for `[String]` arrays, and recursing into `path.schema` for subdocuments.
- *
- * Cross-checked when it was written: this walk found 41 enums across 26 models,
- * and `grep -c 'enum:'` over the same model files found 41. Two instruments, one
- * number, so `ENUM_FLOOR` below is a measurement rather than a copy of a grep.
+ * The Mongo-era census froze 41 value-set decisions. Mongo is no longer a test
+ * oracle or a dependency: the frozen port ledger below is now the input, and the
+ * migrated PostgreSQL catalogue is the authority that may refuse its mappings.
  *
  * ## Why the CHECK side is read from the DATABASE
  *
@@ -88,71 +58,6 @@ afterAll(async () => {
 /** `Model.path` — the key every bucket below is written in. */
 type EnumKey = string;
 
-interface FoundEnum {
-  readonly key: EnumKey;
-  readonly model: string;
-  readonly collection: string;
-  readonly path: string;
-  readonly values: readonly string[];
-}
-
-/**
- * Every enum-constrained path on every registered schema.
- *
- * `caster.enumValues` is the array case and is not optional: four of the enums
- * here are declared as `{ type: [String], enum: [...] }`, and a walk that read
- * only `enumValues` would report them absent — a quieter version of exactly the
- * loss this file is about.
- */
-function censusEnums(): FoundEnum[] {
-  const found: FoundEnum[] = [];
-
-  for (const [model, compiled] of Object.entries(mongoose.models)) {
-    const walk = (schema: mongoose.Schema, prefix: string): void => {
-      schema.eachPath((pathName, type) => {
-        const candidate = type as unknown as {
-          enumValues?: string[];
-          caster?: { enumValues?: string[] };
-          schema?: mongoose.Schema;
-        };
-
-        const scalar =
-          candidate.enumValues && candidate.enumValues.length > 0 ? candidate.enumValues : undefined;
-        const array =
-          candidate.caster?.enumValues && candidate.caster.enumValues.length > 0
-            ? candidate.caster.enumValues
-            : undefined;
-        const values = scalar ?? array;
-
-        if (values !== undefined) {
-          const path = `${prefix}${pathName}`;
-          found.push({
-            key: `${model}.${path}`,
-            model,
-            collection: compiled.collection.name,
-            path,
-            values,
-          });
-        }
-
-        if (candidate.schema) walk(candidate.schema, `${prefix}${pathName}.`);
-      });
-    };
-
-    walk(compiled.schema, '');
-  }
-
-  return found.sort((left, right) => left.key.localeCompare(right.key));
-}
-
-/**
- * Floors, not targets. Measured 2026-08-11 and cross-checked against a source
- * grep; they exist so a walk that stopped recognising a shape, or a module that
- * stopped being imported, fails HERE rather than turning every assertion below
- * vacuously true. A census that finds nothing satisfies every loop in this file.
- */
-const MODEL_FLOOR = 26;
-const ENUM_FLOOR = 41;
 
 /**
  * Enums whose Postgres column carries a CHECK, and the constraint that must
@@ -303,6 +208,106 @@ const MAPPED: Readonly<
     column: 'context_sufficiency',
     constraint: 'reviews_context_sufficiency_check',
   },
+  'Application.status': {
+    table: 'applications',
+    column: 'status',
+    constraint: 'applications_status_check',
+  },
+  'ApplicationCredential.status': {
+    table: 'application_credentials',
+    column: 'status',
+    constraint: 'application_credentials_status_check',
+  },
+  'ApplicationTrust.lastStandingReason': {
+    table: 'app_trust_snapshots',
+    column: 'last_standing_reason',
+    constraint: 'app_trust_snapshots_last_standing_reason_check',
+  },
+  'ApplicationTrust.standing': {
+    table: 'app_trust_snapshots',
+    column: 'standing',
+    constraint: 'app_trust_snapshots_standing_check',
+  },
+  'AuditEvent.action': {
+    table: 'audit_events',
+    column: 'action',
+    constraint: 'audit_events_action_check',
+  },
+  'AuditEvent.reason': {
+    table: 'audit_events',
+    column: 'reason',
+    constraint: 'audit_events_reason_check',
+  },
+  'Case.status': {
+    table: 'cases',
+    column: 'status',
+    constraint: 'cases_status_check',
+  },
+  'Organization.status': {
+    table: 'organizations',
+    column: 'status',
+    constraint: 'organizations_status_check',
+  },
+  'OrganizationMember.role': {
+    table: 'organization_members',
+    column: 'roles',
+    constraint: 'organization_members_roles_check',
+  },
+  'OrganizationMember.status': {
+    table: 'organization_members',
+    column: 'status',
+    constraint: 'organization_members_status_check',
+  },
+  'PolicySet.status': {
+    table: 'policy_sets',
+    column: 'status',
+    constraint: 'policy_sets_status_check',
+  },
+  'Report.status': {
+    table: 'reports',
+    column: 'status',
+    constraint: 'reports_status_check',
+  },
+  'StaffAuditEvent.action': {
+    table: 'staff_audit_events',
+    column: 'action',
+    constraint: 'staff_audit_events_action_check',
+  },
+  'StaffAuditEvent.roles': {
+    table: 'staff_audit_events',
+    column: 'roles',
+    constraint: 'staff_audit_events_roles_check',
+  },
+  'TrustSafetyStaff.roles': {
+    table: 'trust_safety_staff',
+    column: 'roles',
+    constraint: 'trust_safety_staff_roles_check',
+  },
+  'TrustSafetyStaff.status': {
+    table: 'trust_safety_staff',
+    column: 'status',
+    constraint: 'trust_safety_staff_status_check',
+  },
+  'WebhookAttempt.failureKind': {
+    table: 'webhook_attempts',
+    column: 'failure_kind',
+    constraint: 'webhook_attempts_failure_kind_check',
+  },
+  'WebhookAttempt.outcome': {
+    table: 'webhook_attempts',
+    column: 'outcome',
+    constraint: 'webhook_attempts_outcome_check',
+  },
+  'WebhookEndpoint.disabledReason': {
+    table: 'webhook_endpoints',
+    column: 'disabled_reason',
+    constraint: 'webhook_endpoints_disabled_reason_check',
+  },
+  'WebhookEndpoint.status': {
+    table: 'webhook_endpoints',
+    column: 'status',
+    constraint: 'webhook_endpoints_status_check',
+  },
 };
 
 /**
@@ -392,7 +397,7 @@ const ENUMS_WITHOUT_CHECK_AT_FREEZE: readonly EnumKey[] = [
 ];
 
 /**
- * Enums whose CHECK has NOT been written yet — task #110's remaining work.
+ * Enums whose CHECK has NOT been written yet.
  *
  * The WORKING list, and it may only ever SHRINK. Every member must also appear in
  * `ENUMS_WITHOUT_CHECK_AT_FREEZE` above; see that header for why the pair exists
@@ -403,36 +408,21 @@ const ENUMS_WITHOUT_CHECK_AT_FREEZE: readonly EnumKey[] = [
  * to REMOVE a line because you wrote that migration, move the entry into `MAPPED`
  * and drop `KNOWN_GAP_COUNT` by one, leaving the record above untouched.
  *
- * It stands at 28. Migration 0005 closed the seven belonging to `assignments` and
- * `sortition_draws` — the first time it has moved from the 35 it froze at — and
- * those seven stay in `ENUMS_WITHOUT_CHECK_AT_FREEZE` above, because that list
- * records what was true on 2026-08-11 and closing a gap does not change the past.
+ * The backend PostgreSQL-only cut closed the last entries. The empty list remains
+ * as a ratchet: a new value set cannot be filed here because it is absent from
+ * the historical freeze list above.
  */
-const KNOWN_GAPS: readonly EnumKey[] = [
-  'Application.status',
-  'ApplicationCredential.status',
-  'ApplicationTrust.lastStandingReason',
-  'ApplicationTrust.standing',
-  'AuditEvent.action',
-  'AuditEvent.reason',
-  'Case.status',
-  'Organization.status',
-  'OrganizationMember.role',
-  'OrganizationMember.status',
-  'PolicySet.status',
-  'Report.status',
-  'StaffAuditEvent.action',
-  'StaffAuditEvent.roles',
-  'TrustSafetyStaff.roles',
-  'TrustSafetyStaff.status',
-  'WebhookAttempt.failureKind',
-  'WebhookAttempt.outcome',
-  'WebhookEndpoint.disabledReason',
-  'WebhookEndpoint.status',
-];
+const KNOWN_GAPS: readonly EnumKey[] = [];
 
-/** Frozen. Lower it when you write a migration; never raise it. Was 35, then 28. */
-const KNOWN_GAP_COUNT = 20;
+/** Ratcheted to zero by the backend PostgreSQL-only cut; never raise it. */
+const KNOWN_GAP_COUNT = 0;
+
+/** The 41 frozen value-set decisions, now expressed without a Mongo runtime. */
+const PORTED_VALUE_SET_KEYS = [
+  ...Object.keys(MAPPED),
+  ...Object.keys(NOT_APPLICABLE),
+  ...KNOWN_GAPS,
+];
 
 interface CheckConstraint {
   readonly table_name: string;
@@ -462,80 +452,28 @@ async function checkConstraints(): Promise<CheckConstraint[]> {
   `;
 }
 
-describe('the enum census can see what it claims to see', () => {
-  it('walked a plausible number of registered models', () => {
-    expect(
-      Object.keys(mongoose.models).length,
-      'fewer models are registered than when this gate was written; a collection ' +
-        'module has stopped being imported at the top of this file, and every enum ' +
-        'it declares is now invisible to the assertions below',
-    ).toBeGreaterThanOrEqual(MODEL_FLOOR);
+describe('the PostgreSQL port ledger can see what it claims to see', () => {
+  it('retains all 41 frozen value-set decisions exactly once', () => {
+    expect(PORTED_VALUE_SET_KEYS).toHaveLength(41);
+    expect(new Set(PORTED_VALUE_SET_KEYS).size).toBe(PORTED_VALUE_SET_KEYS.length);
   });
 
-  it('found a plausible number of enum-constrained paths', () => {
-    expect(
-      censusEnums().length,
-      'the enum walk found fewer paths than it did when this gate was written. ' +
-        'Either a model lost an enum (deliberate — lower the floor in the same ' +
-        'edit) or the walk stopped recognising a shape, in which case everything ' +
-        'below is measuring less than it appears to.',
-    ).toBeGreaterThanOrEqual(ENUM_FLOOR);
-  });
-
-  /**
-   * The positive control, in the same currency as the measurement.
-   *
-   * Both halves matter. A scalar enum and an ARRAY enum are read off different
-   * properties (`enumValues` versus `caster.enumValues`), so a walk that lost the
-   * array branch would still satisfy a control that only checked a scalar — and
-   * four of the enums in this schema are arrays.
-   */
-  it('actually recognises both a scalar enum and an array enum', () => {
-    const keys = new Set(censusEnums().map((entry) => entry.key));
-
-    expect(keys, 'the scalar branch of the walk found nothing').toContain('OutboxEvent.status');
-    expect(keys, 'the array branch of the walk found nothing').toContain('TrustSafetyStaff.roles');
-  });
-
-  /** A census that read no VALUES would satisfy every membership check above. */
-  it('reads the values, not merely the paths', () => {
-    const outbox = censusEnums().find((entry) => entry.key === 'OutboxEvent.status');
-
-    expect([...(outbox?.values ?? [])].sort()).toEqual(
+  it('keeps a real scalar vocabulary as a positive control', () => {
+    expect([...OUTBOX_STATUSES].sort()).toEqual(
       ['dispatched', 'dispatching', 'failed', 'pending'].sort(),
     );
+    expect(MAPPED['OutboxEvent.status']).toEqual({
+      table: 'outbox_events',
+      column: 'status',
+      constraint: 'outbox_events_status_check',
+    });
   });
 });
 
 describe('every closed value set is accounted for', () => {
-  it('files every enum in exactly one bucket', () => {
-    const gaps = new Set(KNOWN_GAPS);
-
-    const unfiled = censusEnums()
-      .filter(
-        (entry) =>
-          MAPPED[entry.key] === undefined &&
-          NOT_APPLICABLE[entry.key] === undefined &&
-          !gaps.has(entry.key),
-      )
-      .map((entry) => `${entry.key} (${entry.collection})`);
-
-    expect(
-      unfiled,
-      `${unfiled.join(', ')} is an enum-constrained Mongoose path that this gate ` +
-        'has never been told about. It is NOT enough to leave it unmentioned — a ' +
-        'closed value set that reaches PostgreSQL without a CHECK is an enforced ' +
-        'prohibition silently downgraded to a comment. Either write the migration ' +
-        'and add it to MAPPED, or say in NOT_APPLICABLE why the column cannot ' +
-        'carry a CHECK. Adding it to KNOWN_GAPS is not available: that list is ' +
-        'frozen and may only shrink.',
-    ).toEqual([]);
-  });
-
   it('files no enum in two buckets at once', () => {
     const gaps = new Set(KNOWN_GAPS);
-    const overlapping = censusEnums()
-      .map((entry) => entry.key)
+    const overlapping = PORTED_VALUE_SET_KEYS
       .filter(
         (key) =>
           [MAPPED[key] !== undefined, NOT_APPLICABLE[key] !== undefined, gaps.has(key)].filter(
@@ -548,29 +486,6 @@ describe('every closed value set is accounted for', () => {
       `${overlapping.join(', ')} is filed in more than one bucket. The three are ` +
         'meant to partition the census; an entry in two of them makes "accounted ' +
         'for" ambiguous and lets a gap hide behind a mapping.',
-    ).toEqual([]);
-  });
-
-  /**
-   * Every bucket entry must name an enum that EXISTS.
-   *
-   * Without this, a typo or a renamed path leaves a mapping that constrains
-   * nothing and a gap that is never closed, while the partition check above still
-   * passes — the enum simply falls through to `unfiled` under its real name, or,
-   * worse, was deleted entirely and its entry sits here forever claiming work
-   * that no longer exists.
-   */
-  it('names only enums that are really in the census', () => {
-    const keys = new Set(censusEnums().map((entry) => entry.key));
-    const declared = [...Object.keys(MAPPED), ...Object.keys(NOT_APPLICABLE), ...KNOWN_GAPS];
-    const phantom = declared.filter((key) => !keys.has(key));
-
-    expect(
-      phantom,
-      `${phantom.join(', ')} is filed by this gate but is not an enum-constrained ` +
-        'path on any registered schema — a typo, a renamed path, or a value set ' +
-        'that has been deleted since. Each of those makes the entry a claim about ' +
-        'nothing.',
     ).toEqual([]);
   });
 
@@ -627,7 +542,7 @@ describe('every closed value set is accounted for', () => {
     expect(
       KNOWN_GAPS.length,
       'the known-gap list changed size. It may only SHRINK: it records value sets ' +
-        'that lost their CHECK in the port and are waiting on task #110. If you ' +
+        'that lost their CHECK in the port. If you ' +
         'wrote one of those migrations, move the entry to MAPPED and lower ' +
         'KNOWN_GAP_COUNT. If a NEW enum brought you here, the answer is a ' +
         'migration — a table that lands without its CHECK is the failure this ' +

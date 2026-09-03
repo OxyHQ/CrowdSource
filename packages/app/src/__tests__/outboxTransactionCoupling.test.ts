@@ -24,9 +24,8 @@ import type { Harness } from './support/backend.js';
 import { BACKENDS } from './support/backends.js';
 
 /**
- * Both backends, one suite. The leaf test names are unchanged: vitest prints
- * `mongoose > <name>` and `postgres > <name>`, and the mutation script matches on
- * the leaf.
+ * The storage label stays in the test name so a missing PostgreSQL run is
+ * visible, and the mutation script matches on the leaf.
  */
 describe.each(BACKENDS)('$name', (backend) => {
 

@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 import { createApp } from '../app';
 import { config } from '../config';
+import * as webhookDeliveryRepository from '../db/postgres/repositories/webhookDeliveries';
 import { ApiError } from '../http/apiError';
 import {
   claimDueDelivery,
@@ -1053,7 +1054,9 @@ describe('two registrations of the same URL racing', () => {
   });
 
   it('re-raises a write failure that is not a duplicate key', async () => {
-    vi.spyOn(webhookDeliveries, 'insertOne').mockRejectedValueOnce(new Error('the database blinked'));
+    vi.spyOn(webhookDeliveryRepository, 'insertDeliveryIfAbsent').mockRejectedValueOnce(
+      new Error('the database blinked'),
+    );
 
     await expect(
       recordDelivery(tenant.tenant, {
@@ -1280,7 +1283,9 @@ describe('a worker pass that cannot record what it did', () => {
      * database that is genuinely unavailable fails both, and that is the case
      * this branch exists for.
      */
-    vi.spyOn(webhookDeliveries, 'updateOne').mockRejectedValue(new Error('the database blinked'));
+    vi.spyOn(webhookDeliveryRepository, 'recordDeliveryOutcome').mockRejectedValue(
+      new Error('the database blinked'),
+    );
     const logged = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
     const summary = await runWebhookPass(5, new Date());
@@ -1290,11 +1295,12 @@ describe('a worker pass that cannot record what it did', () => {
     expect(summary.claimed).toBeGreaterThanOrEqual(1);
     expect(summary.delivered).toBeLessThan(summary.claimed);
 
-    // Named, so an operator can find the row — and carrying the message only,
-    // never the error object, which would quote the delivery body.
+    // Named, so an operator can find the row, without the thrown message or
+    // object, either of which can quote the delivery body.
     const written = logged.mock.calls.map((call) => JSON.stringify(call)).join('\n');
     expect(written).toContain('Webhook delivery attempt could not be recorded');
     expect(written).toContain(delivery.deliveryId);
+    expect(written).not.toContain('the database blinked');
     expect(written).not.toContain(delivery.body);
   });
 });
@@ -1327,7 +1333,7 @@ describe('the delivery loop', () => {
 
   it('survives a pass that throws without stopping the loop', async () => {
     const failing = vi
-      .spyOn(webhookDeliveries, 'findOneAndUpdate')
+      .spyOn(webhookDeliveryRepository, 'claimDueDelivery')
       .mockRejectedValue(new Error('the database blinked'));
 
     startWebhookDeliveryWorker(5);

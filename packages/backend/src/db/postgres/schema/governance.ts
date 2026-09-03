@@ -1,6 +1,10 @@
-import { index, integer, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { check, index, integer, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
-import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
+import { POLICY_SET_STATUSES } from '@oxyhq/crowdsource-contracts';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+
+import { AUDIT_ACTIONS, AUDIT_REASONS } from '../../../domain/closedValues';
 
 /**
  * Policy sets, the audit trail, and the usage meter.
@@ -45,6 +49,10 @@ export const policySets = pgTable(
       table.applicationId,
       table.policySetId,
       table.version,
+    ),
+    check(
+      'policy_sets_status_check',
+      sql`${table.status} in (${sql.raw(inList(POLICY_SET_STATUSES))})`,
     ),
   ],
 );
@@ -94,6 +102,14 @@ export const auditEvents = pgTable(
       table.applicationId,
       table.caseId,
       table.occurredAt.desc(),
+    ),
+    check(
+      'audit_events_action_check',
+      sql`${table.action} in (${sql.raw(inList(AUDIT_ACTIONS))})`,
+    ),
+    check(
+      'audit_events_reason_check',
+      sql`${table.reason} is null or ${table.reason} in (${sql.raw(inList(AUDIT_REASONS))})`,
     ),
   ],
 );

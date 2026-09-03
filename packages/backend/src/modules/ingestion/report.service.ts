@@ -90,7 +90,7 @@ const CASE_CONTENTION_ATTEMPTS = 3;
  *  - the case dedup index (`externalSubjectId`) — two people reporting the same post
  *    in the same instant, both upserts trying to insert;
  *  - the usage counter's `applicationId + day` index — the same shape on the FIRST
- *    report of a UTC day, when the counter document does not exist yet. MongoDB
+ *    report of a UTC day, when the counter row does not exist yet. PostgreSQL
  *    permits a racing upsert to fail with a duplicate key rather than finding the
  *    winner's row, so this is not hypothetical; without it, two reports arriving
  *    together at midnight would answer 500 and the second one's retry would be a
@@ -375,9 +375,13 @@ export async function recordIngressRefusal(
         : { externalReportId: delivery.externalReportId }),
       reason,
     });
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
     logger.error(
-      { err: error, applicationId: context.applicationId, reason },
+      {
+        applicationId: context.applicationId,
+        classification: 'ingress_audit_write_failed',
+        reason,
+      },
       'Failed to record a rejected ingress in the audit trail',
     );
   }

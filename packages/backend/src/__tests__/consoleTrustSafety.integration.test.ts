@@ -25,6 +25,9 @@ const { grantMembership } = await import('../modules/console/membership.service'
 const { grantStaffRoles, revokeStaff } = await import('../modules/console/staff.service');
 const { applicationTrustFor } = await import('../modules/trust/applicationTrust.service');
 const { usageCounters, utcDayKey } = await import('../modules/trust/usageCounter.collection');
+const { incrementUsageCounter } = await import('../db/postgres/repositories/scoped/governance');
+const { getPostgresDatabase } = await import('../db/postgres/database');
+const { withTenant } = await import('../db/postgres/withTenant');
 const { quotaFor } = await import('../modules/trust/quota');
 const { newPublicId } = await import('../utils/identifiers');
 const { webhookEndpoints } = await import('../modules/webhooks/webhook.collections');
@@ -464,10 +467,8 @@ describe('the standing gate on ingestion (§11.13, §13.1)', () => {
 
     // A day's traffic, written straight to the meter. Sending 5,000 real reports would
     // test the same branch and take minutes.
-    await usageCounters.upsertOne(
-      tenant.tenant,
-      { day: utcDayKey(new Date()) },
-      { inc: { reportsReceived: limit }, set: { updatedAt: new Date() } },
+    await withTenant(getPostgresDatabase(), tenant.tenant, async (tx) =>
+      incrementUsageCounter(tx, tenant.tenant, utcDayKey(new Date()), limit),
     );
 
     const refused = await request(app)

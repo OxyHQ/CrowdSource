@@ -224,8 +224,8 @@ export function availabilityScore(
  * then rejected — never admit one who should not have been drawn.
  *
  * `languages` is a filter clause but not part of the index used for the scan,
- * because MongoDB refuses a compound index over two array fields and
- * `categories` is the more selective of the two. See `reviewer.collection.ts`.
+ * because categories and languages use separate PostgreSQL GIN indexes and
+ * `categories` is the more selective predicate. See the reviewer schema.
  */
 export function eligibilityFilter(
   criteria: CaseEligibilityCriteria,

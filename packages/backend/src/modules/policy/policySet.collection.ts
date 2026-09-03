@@ -1,4 +1,3 @@
-import { Schema } from 'mongoose';
 import type { PolicyRule, PolicySetStatus } from '@oxyhq/crowdsource-contracts';
 
 import { defineTenantCollection } from '../../db/collections';
@@ -33,27 +32,4 @@ export interface PolicySetDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const policySetSchema = new Schema<PolicySetDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    policySetId: { type: String, required: true },
-    version: { type: String, required: true },
-    status: { type: String, required: true, enum: ['draft', 'published'], default: 'draft' },
-    title: { type: String, required: true },
-    locale: { type: String },
-    /**
-     * Stored as delivered, after `PolicySetVersionSchema` has parsed it. Mixed
-     * rather than a nested Mongoose schema because the CONTRACT is the authority
-     * on a rule's shape — a second schema here would be a second place to update
-     * when a rule gains a field, and the two would drift.
-     */
-    rules: { type: Schema.Types.Mixed, required: true },
-    publishedAt: { type: Date, default: null },
-  },
-  { timestamps: true, collection: 'policy_sets' },
-);
-
-policySetSchema.index({ applicationId: 1, policySetId: 1, version: 1 }, { unique: true });
-
-export const policySets = defineTenantCollection('PolicySet', policySetSchema);
+export const policySets = defineTenantCollection<PolicySetDocument>('PolicySet');

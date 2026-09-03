@@ -1,13 +1,15 @@
-import { Schema } from 'mongoose';
-
 import { defineTenantCollection, defineUnscopedCollection } from '../../db/collections';
-import {
-  WEBHOOK_DEAD_LETTER_REASONS,
-  WEBHOOK_DELIVERY_STATUSES,
-  type WebhookDeadLetterReason,
-  type WebhookDeliveryStatus,
+import type {
+  WebhookDeadLetterReason,
+  WebhookDeliveryStatus,
 } from '../../db/postgres/schema/webhooks';
 import type { TenantContext } from '../../db/tenantScope';
+import {
+  WEBHOOK_DISABLED_REASONS,
+  WEBHOOK_ATTEMPT_OUTCOMES,
+  WEBHOOK_ENDPOINT_STATUSES,
+  WEBHOOK_FAILURE_KINDS,
+} from '../../domain/closedValues';
 
 /**
  * Outbound webhook storage (§10.6–§10.9, §12.6 `webhook_endpoints`,
@@ -37,7 +39,7 @@ import type { TenantContext } from '../../db/tenantScope';
  */
 
 /** §10.6's event types, as stored. Kept as strings so a new event is additive. */
-export const WEBHOOK_ENDPOINT_STATUSES = ['active', 'disabled'] as const;
+export { WEBHOOK_ENDPOINT_STATUSES } from '../../domain/closedValues';
 export type WebhookEndpointStatus = (typeof WEBHOOK_ENDPOINT_STATUSES)[number];
 
 /**
@@ -48,7 +50,7 @@ export type WebhookEndpointStatus = (typeof WEBHOOK_ENDPOINT_STATUSES)[number];
  * permanently gone" rather than "not right now". `operator` exists for the Trust
  * & Safety surface that will need it and is written by nothing yet.
  */
-export const WEBHOOK_DISABLED_REASONS = ['gone', 'operator'] as const;
+export { WEBHOOK_DISABLED_REASONS } from '../../domain/closedValues';
 export type WebhookDisabledReason = (typeof WEBHOOK_DISABLED_REASONS)[number];
 
 export interface WebhookEndpointDocument extends TenantContext {
@@ -64,40 +66,7 @@ export interface WebhookEndpointDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const webhookEndpointSchema = new Schema<WebhookEndpointDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    webhookEndpointId: { type: String, required: true, unique: true },
-    url: { type: String, required: true },
-    eventTypes: { type: [String], required: true, default: [] },
-    status: {
-      type: String,
-      required: true,
-      enum: WEBHOOK_ENDPOINT_STATUSES,
-      default: 'active',
-    },
-    disabledReason: { type: String, enum: [...WEBHOOK_DISABLED_REASONS, null], default: null },
-    disabledAt: { type: Date, default: null },
-  },
-  { timestamps: true, collection: 'webhook_endpoints' },
-);
-
-/**
- * One endpoint per URL per application.
- *
- * §10.2 gives registration no idempotency key, so an integrator whose deploy
- * script POSTs on every boot would otherwise accumulate identical endpoints and
- * every event would be delivered to the same URL several times. With this index
- * the second registration updates the first — which is also the only route back
- * for an endpoint a 410 disabled, since §10.2 has no re-enable endpoint.
- */
-webhookEndpointSchema.index({ applicationId: 1, url: 1 }, { unique: true });
-
-/** The fan-out query: which of this tenant's live endpoints wanted this event. */
-webhookEndpointSchema.index({ applicationId: 1, status: 1, eventTypes: 1 });
-
-export const webhookEndpoints = defineTenantCollection('WebhookEndpoint', webhookEndpointSchema);
+export const webhookEndpoints = defineTenantCollection<WebhookEndpointDocument>('WebhookEndpoint');
 
 /**
  * A versioned signing secret (§13.4: "versioned and rotated").
@@ -133,35 +102,7 @@ export interface WebhookSecretDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const webhookSecretSchema = new Schema<WebhookSecretDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    webhookEndpointId: { type: String, required: true },
-    version: { type: Number, required: true },
-    algorithm: { type: String, required: true },
-    keyFingerprint: { type: String, required: true },
-    ciphertext: { type: String, required: true },
-    iv: { type: String, required: true },
-    authTag: { type: String, required: true },
-    activatesAt: { type: Date, required: true },
-    expiresAt: { type: Date, default: null },
-  },
-  { timestamps: true, collection: 'webhook_secrets' },
-);
-
-/**
- * One row per version, enforced rather than assumed.
- *
- * Two rotations racing would otherwise both read "the highest version is 3" and
- * both write a 4, leaving two secrets claiming to sign the same deliveries and no
- * way to say which one an integrator was handed.
- */
-webhookSecretSchema.index({ applicationId: 1, webhookEndpointId: 1, version: 1 }, { unique: true });
-/** The signer's question: which versions of this endpoint's secret are live. */
-webhookSecretSchema.index({ applicationId: 1, webhookEndpointId: 1, activatesAt: -1 });
-
-export const webhookSecrets = defineTenantCollection('WebhookSecret', webhookSecretSchema);
+export const webhookSecrets = defineTenantCollection<WebhookSecretDocument>('WebhookSecret');
 
 export interface WebhookDeliveryDocument extends TenantContext {
   deliveryId: string;
@@ -210,78 +151,17 @@ export interface WebhookDeliveryDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const webhookDeliverySchema = new Schema<WebhookDeliveryDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    deliveryId: { type: String, required: true, unique: true },
-    webhookEndpointId: { type: String, required: true },
-    eventId: { type: String, required: true },
-    eventType: { type: String, required: true },
-    body: { type: String, required: true },
-    status: {
-      type: String,
-      required: true,
-      enum: WEBHOOK_DELIVERY_STATUSES,
-      default: 'pending',
-    },
-    attemptCount: { type: Number, required: true, default: 0 },
-    cycleAttemptCount: { type: Number, required: true, default: 0 },
-    nextAttemptAt: { type: Date, default: null },
-    leaseExpiresAt: { type: Date, default: null },
-    lastResponseStatus: { type: Number, default: null },
-    deadLetterReason: {
-      type: String,
-      enum: [...WEBHOOK_DEAD_LETTER_REASONS, null],
-      default: null,
-    },
-    succeededAt: { type: Date, default: null },
-    deadLetteredAt: { type: Date, default: null },
-    replayCount: { type: Number, required: true, default: 0 },
-  },
-  { timestamps: true, collection: 'webhook_deliveries' },
-);
-
-/**
- * §12.7 verbatim: one logical delivery per endpoint and event, many attempts
- * beneath it.
- *
- * This is the constraint that stops a retry from becoming a second delivery, and
- * it is an INDEX rather than a lookup because a lookup races — two workers
- * replaying the same outbox row both read nothing and both insert, and the
- * tenant receives one decision twice. No tenant prefix on purpose: it is exactly
- * the plan's pair, and endpoint ids are random and globally unique, so the pair
- * is already stronger than a prefixed version of it.
- */
-webhookDeliverySchema.index({ webhookEndpointId: 1, eventId: 1 }, { unique: true });
-
-/** The worker's claim, which spans every tenant. */
-webhookDeliverySchema.index({ status: 1, nextAttemptAt: 1 });
-/** "What happened to this tenant's webhooks lately" — the console's question. */
-webhookDeliverySchema.index({ applicationId: 1, status: 1, createdAt: -1 });
-
-export const webhookDeliveries = defineUnscopedCollection(
+export const webhookDeliveries = defineUnscopedCollection<WebhookDeliveryDocument>(
   'WebhookDelivery',
-  webhookDeliverySchema,
   {
     why: 'The delivery worker claims due rows across every tenant; rows are tenant-stamped on write.',
   },
 );
 
 /** How an attempt ended, as a closed vocabulary — never a free-text message. */
-export const WEBHOOK_FAILURE_KINDS = [
-  /** The endpoint answered, but not with a 2xx. */
-  'http_status',
-  /** The URL resolved into a private, loopback or reserved address. */
-  'unsafe_target',
-  /** No usable response: connection refused, TLS failure, redirect loop, timeout. */
-  'upstream_unreachable',
-  /** The endpoint's secret could not be decrypted, so nothing was sent. */
-  'secret_unavailable',
-  /** The endpoint was disabled before the attempt was made. */
-  'endpoint_disabled',
-] as const;
+export { WEBHOOK_FAILURE_KINDS } from '../../domain/closedValues';
 export type WebhookFailureKind = (typeof WEBHOOK_FAILURE_KINDS)[number];
+export type WebhookAttemptOutcome = (typeof WEBHOOK_ATTEMPT_OUTCOMES)[number];
 
 /**
  * One attempt (§10.9: "each attempt keeps status, latency, a truncated and
@@ -300,7 +180,7 @@ export interface WebhookAttemptDocument extends TenantContext {
   eventId: string;
   /** 1-based, monotonic across replays, unique per delivery. */
   attemptNumber: number;
-  outcome: 'succeeded' | 'failed';
+  outcome: WebhookAttemptOutcome;
   responseStatus: number | null;
   failureKind: WebhookFailureKind | null;
   latencyMs: number;
@@ -313,49 +193,4 @@ export interface WebhookAttemptDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const webhookAttemptSchema = new Schema<WebhookAttemptDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    attemptId: { type: String, required: true, unique: true },
-    deliveryId: { type: String, required: true },
-    webhookEndpointId: { type: String, required: true },
-    eventId: { type: String, required: true },
-    attemptNumber: { type: Number, required: true },
-    outcome: { type: String, required: true, enum: ['succeeded', 'failed'] },
-    responseStatus: { type: Number, default: null },
-    failureKind: { type: String, enum: [...WEBHOOK_FAILURE_KINDS, null], default: null },
-    latencyMs: { type: Number, required: true },
-    // Not `required`: Mongoose treats an empty string as a missing value, and
-    // empty is the CORRECT stored form for a success, where nothing is kept.
-    responseBodyPreview: { type: String, default: '' },
-    nextAttemptAt: { type: Date, default: null },
-    secretVersion: { type: Number, default: null },
-    attemptedAt: { type: Date, required: true },
-  },
-  { timestamps: true, collection: 'webhook_attempts' },
-);
-
-/**
- * One row per attempt number, so a worker that crashed after sending and before
- * recording cannot write the same attempt twice on replay.
- */
-webhookAttemptSchema.index({ deliveryId: 1, attemptNumber: 1 }, { unique: true });
-webhookAttemptSchema.index({ applicationId: 1, attemptedAt: -1 });
-
-/**
- * §13.6's retention for webhook attempts: 90 days.
- *
- * A TTL index rather than a job, and this is the only retention rule the module
- * implements. Attempts are an operational journal — statuses, latencies and a
- * redacted preview — so deleting them on a clock is the whole requirement.
- * Everything else §13.6 covers is evidence with a legal-hold path attached, and
- * that belongs to the retention module rather than to a silent expiry here.
- */
-export const WEBHOOK_ATTEMPT_RETENTION_SECONDS = 90 * 24 * 60 * 60;
-webhookAttemptSchema.index(
-  { attemptedAt: 1 },
-  { expireAfterSeconds: WEBHOOK_ATTEMPT_RETENTION_SECONDS },
-);
-
-export const webhookAttempts = defineTenantCollection('WebhookAttempt', webhookAttemptSchema);
+export const webhookAttempts = defineTenantCollection<WebhookAttemptDocument>('WebhookAttempt');

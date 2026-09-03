@@ -1,5 +1,11 @@
 # Scoping report — `@oxyhq/crowdsource-app` gains a PostgreSQL backend
 
+> **Archived measurement.** This report describes the pre-cutover tree on
+> 2026-08-06 and is not current implementation guidance. CrowdSource and the
+> app package are now PostgreSQL-only; in current operations, MongoDB is allowed
+> only inside the pinned, network-isolated archive recovery reader; no
+> live-source connector remains.
+
 **Date:** 2026-08-06. **Design:** `./2026-08-06-crowdsource-app-postgres-design.md`.
 **Nothing was modified.** Two documents created; every repository read-only.
 

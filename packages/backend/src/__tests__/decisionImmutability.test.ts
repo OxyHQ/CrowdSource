@@ -230,12 +230,12 @@ describe('the compare-and-swap is where publication is serialised', () => {
   });
 
   it('has a second lock that does not depend on remembering the first', () => {
-    const collection =
-      sources.find((file) => file.path === 'src/modules/decision/decision.collection.ts')?.source ??
+    const schema =
+      sources.find((file) => file.path === 'src/db/postgres/schema/decisions.ts')?.source ??
       '';
 
-    expect(collection).toMatch(
-      /decisionSchema\.index\(\s*\{\s*caseId:\s*1,\s*revision:\s*1\s*\},\s*\{\s*unique:\s*true\s*\}/,
+    expect(schema).toMatch(
+      /uniqueIndex\('decisions_case_revision_key'\)\.on\(\s*table\.caseId,\s*table\.revision\s*\)/,
     );
   });
 });

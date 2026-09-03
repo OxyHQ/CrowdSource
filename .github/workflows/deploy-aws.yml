@@ -51,7 +51,15 @@ jobs:
 
   deploy:
     needs: scope
-    if: needs.scope.outputs.deploy == 'true'
+    # Main may contain the PostgreSQL-only runtime before production data has
+    # completed its separately authorised freeze/import/reconciliation. An
+    # absent repository variable is false, so a merge cannot run migrations,
+    # repoint the parked service or publish a release by accident. Set the
+    # exact variable to the exact string `true` only after the runbook's signed
+    # final manifest and committed receipt have both been accepted.
+    if: >-
+      needs.scope.outputs.deploy == 'true' &&
+      vars.CROWDSOURCE_POSTGRES_CUTOVER_COMPLETE == 'true'
     runs-on: ubuntu-24.04-arm
     # Includes image build, migrations, rollout, smoke checks and a full
     # rollback window if the production smoke check fails.
@@ -64,12 +72,6 @@ jobs:
 
       - name: Verify current main before building
         run: bash .github/scripts/require-current-main.sh
-
-      # Runs before any AWS credential is issued. The database this release is
-      # allowed to reach is declared in application source, so this is the
-      # earliest point the target can be checked — long before a task starts.
-      - name: Verify this release targets its own database
-        run: bash .github/scripts/assert-own-database.sh
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6
@@ -151,12 +153,6 @@ jobs:
               continue
             fi
 
-            # MONGODB_URI is no longer synced (the shared instance was retired
-            # on 2026-08-10 — oxy-infra runbook 31), so the note that used to sit
-            # here about not checking its database component no longer applies.
-            # assert-own-database.sh still runs above against source; it guards a
-            # shared-instance hazard that no longer exists and is left for the
-            # Postgres port to retire deliberately rather than as a side effect.
             aws ssm put-parameter \
               --name "/oxy/$APP/$key" \
               --value "$value" \
@@ -180,12 +176,13 @@ jobs:
           # check, and refuses outright if the family, the target database or
           # the migrator credential is missing.
           #
-          # What still gates RUN_MIGRATIONS is INFRASTRUCTURE: the database is
-          # not provisioned and `oxy-crowdsource-migrate` does not exist yet.
-          # Turn this on in the SAME change that lands them, together with the
-          # variables below — the script fails closed without them, so a
-          # half-configured flip stops the deploy rather than migrating as the
-          # wrong role.
+          # Enabling this assumes the separately managed database, migration
+          # task family and migrator parameter already exist. The script fails
+          # closed without them, so missing infrastructure stops the deploy
+          # rather than migrating as the wrong role. This rolling `pre -> post`
+          # path also cannot initialise a fresh target: the first empty target
+          # must cross the historical post-before-later-pre boundary with the
+          # runbook's frozen `--phase=all` procedure before this workflow runs.
           #
           # `oxy-crowdsource-migrate` carries MIGRATOR_DATABASE_URL and nothing
           # else. Its own image is whatever revision 1 was registered with; the

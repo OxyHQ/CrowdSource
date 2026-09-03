@@ -18,10 +18,16 @@ keeps its status and is drawn again when something changes.
 ## 1. Read the refused draws
 
 Every draw — successful or refused — is a durable row in `sortition_draws`, with
-an index on `{ status, drawnAt }` for exactly this question.
+an index on `(status, drawn_at)` for exactly this question.
 
-```js
-db.sortition_draws.find({ status: "refused" }).sort({ drawnAt: -1 }).limit(50)
+```sql
+SELECT draw_id, organization_id, application_id, case_id, case_revision,
+       pool, round, kind, requested_slots, candidate_snapshot, rejections,
+       selected, sampled_count, eligible_count, refusal_reason, drawn_at
+FROM sortition_draws
+WHERE status = 'refused'
+ORDER BY drawn_at DESC
+LIMIT 50;
 ```
 
 Each row carries the seed, the candidate snapshot, the rejections with their

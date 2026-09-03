@@ -22,12 +22,9 @@ import type {
 /**
  * The three tables this package owns, in Postgres.
  *
- * A direct port of `src/mongoose/models.ts`, table for table, index for index —
- * the same names, so a deployment can be read side by side with a Mongo one, and
- * the same design arguments, because those are about moderation rather than
- * about a driver. Where a Mongo comment explains WHY a field exists, it is
- * repeated on the column: the reasoning is what a future reader needs, and it is
- * not carried by the DDL.
+ * These names and constraints are stable application data contracts. The
+ * reasoning for each field is repeated on the column because it is not carried
+ * by the DDL.
  *
  * Three things differ, and each is a property of Postgres rather than a choice:
  *
@@ -68,15 +65,8 @@ import type {
  */
 
 /**
- * The three table names, spelled out rather than imported from the Mongo half.
- *
- * They are deliberately the SAME strings as the `MODERATION_*_COLLECTION`
- * constants, so one deployment can be read beside the other — but importing them
- * from `src/mongoose/models.js` would pull `mongoose` into the Postgres path and
- * undo the whole point of an optional peer: a Postgres-only deployment would
- * have to install a driver it never uses. `postgresSchema.test.ts` asserts the
- * two sets of names agree, which is the only place both halves may be imported
- * at once.
+ * The three table names are kept beside their definitions. The schema tests
+ * assert their exact values so a rename cannot strand deployed data.
  */
 const OUTBOX_TABLE = 'moderation_outbox';
 const EVENT_TABLE = 'moderation_events';

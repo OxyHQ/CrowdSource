@@ -22,8 +22,8 @@ const CJS = '"use strict";\nconst zod = require("zod");\nexports.schema = zod.z.
 /**
  * A tree that must pass: both formats, each condition on the right one.
  *
- * `app` publishes two SUBPATHS as well, because the real one does — one per
- * storage backend. Their ESM entries sit a directory deeper than the
+ * `app` publishes its PostgreSQL SUBPATH as well, because the real one does.
+ * Its ESM entry sits a directory deeper than the
  * `{"type":"module"}` marker, which is correct and is what Node resolves by
  * walking upward, so a healthy tree with only root entries would leave that path
  * unexercised. The count also has to match the per-package floor: a fixture with
@@ -54,16 +54,14 @@ function healthyTree() {
       },
     ]),
   );
-  for (const backend of ["mongoose", "postgres"]) {
-    tree.app.manifest.exports[`./${backend}`] = {
-      types: `./dist/${backend}/index.d.ts`,
-      import: `./dist/esm/${backend}/index.js`,
-      require: `./dist/${backend}/index.js`,
-      default: `./dist/${backend}/index.js`,
-    };
-    tree.app.files[`dist/${backend}/index.js`] = CJS;
-    tree.app.files[`dist/esm/${backend}/index.js`] = ESM;
-  }
+  tree.app.manifest.exports["./postgres"] = {
+    types: "./dist/postgres/index.d.ts",
+    import: "./dist/esm/postgres/index.js",
+    require: "./dist/postgres/index.js",
+    default: "./dist/postgres/index.js",
+  };
+  tree.app.files["dist/postgres/index.js"] = CJS;
+  tree.app.files["dist/esm/postgres/index.js"] = ESM;
   return tree;
 }
 
@@ -146,12 +144,12 @@ const cases = [
     name: "an ESM entry nested below the marker is governed by it",
     expectFailure: false,
     mutate: (tree) => {
-      tree.app.manifest.exports["./mongoose/store"] = {
-        import: "./dist/esm/mongoose/store/index.js",
-        require: "./dist/mongoose/store/index.js",
+      tree.app.manifest.exports["./postgres/store"] = {
+        import: "./dist/esm/postgres/store/index.js",
+        require: "./dist/postgres/store/index.js",
       };
-      tree.app.files["dist/esm/mongoose/store/index.js"] = ESM;
-      tree.app.files["dist/mongoose/store/index.js"] = CJS;
+      tree.app.files["dist/esm/postgres/store/index.js"] = ESM;
+      tree.app.files["dist/postgres/store/index.js"] = CJS;
       return tree;
     },
   },
@@ -180,7 +178,7 @@ const cases = [
     expectFailure: true,
     mustMention: "packages/app",
     mutate: (tree) => {
-      delete tree.app.manifest.exports["./mongoose"];
+      delete tree.app.manifest.exports["./postgres"];
       return tree;
     },
   },

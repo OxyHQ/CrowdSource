@@ -10,8 +10,7 @@ export default defineConfig({
     environment: 'node',
     include: [path.resolve(packageRoot, 'src/__tests__/**/*.test.ts')],
     globalSetup: [path.resolve(packageRoot, 'vitest.globalSetup.ts')],
-    // The replica set takes a while to come up on a cold cache, and several
-    // tests deliberately wait for a lease to expire.
+    // Schema setup and contention checks can take longer on a cold database.
     testTimeout: 30_000,
     hookTimeout: 60_000,
     coverage: {

@@ -1,10 +1,9 @@
 /**
  * The tenant isolation boundary.
  *
- * PostgreSQL Row Level Security would have made isolation a property of the
- * database. MongoDB has no equivalent, so isolation here is a property of the
- * code — which means it holds only as long as every query goes through this
- * module. Two rules follow, and neither is optional:
+ * PostgreSQL Row Level Security makes isolation a property of the database, and
+ * this module supplies the authenticated tenant values installed with
+ * `SET LOCAL`. Two rules follow, and neither is optional:
  *
  *  1. A `TenantContext` is derived from AUTHENTICATED PROOF, never from a request
  *     body, path parameter, query string or header. A tenant id a caller can choose
@@ -27,8 +26,8 @@
  *     the database decides which are its own. If a third source is ever added, it goes
  *     through `createTenantContext` too; a module that assembles the two keys itself is
  *     how isolation stops being a property of this codebase.
- *  2. No module reaches the Mongoose driver around this layer. Every read and
- *     write on a tenant-owned collection is scoped here.
+ *  2. Every tenant-owned repository enters through `withTenant` or
+ *     `withTenantTransaction`; no route or service installs RLS variables.
  *
  * The one sanctioned exception is cross-tenant incident correlation, which
  * lives in a privileged module that must never return another tenant's data to

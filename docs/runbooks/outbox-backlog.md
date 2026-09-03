@@ -5,10 +5,10 @@ moves, no panel is drawn, no decision is delivered.
 
 ## What the outbox is, and why a backlog is survivable
 
-Every domain write commits **in one MongoDB transaction with its outbox row**.
-`appendOutboxEvent` requires a `ClientSession`, so there is no way to write an
-event outside a transaction and an event cannot come apart from the object it
-describes.
+Every domain write commits **in one PostgreSQL transaction with its outbox row**.
+`appendOutboxEvent` requires a `PgTransactionHandle` and verifies it at runtime,
+so the ordinary path cannot write an event outside the transaction or separate
+it from the object it describes.
 
 The dispatcher then reads those rows. **The row is the record; nothing is ever
 enqueued anywhere else.** That is what makes a backlog a delay rather than a
@@ -25,8 +25,13 @@ delivery has been retried a few times.
 `outbox_events.status` is one of `pending`, `dispatching`, `dispatched`,
 `failed`.
 
-```js
-db.outbox_events.aggregate([{ $group: { _id: { status: "$status", type: "$type" }, n: { $sum: 1 } } }])
+```sql
+SELECT status, type, count(*) AS n,
+       min(available_at) AS oldest_available_at,
+       max(available_at) AS newest_available_at
+FROM outbox_events
+GROUP BY status, type
+ORDER BY status, type;
 ```
 
 | What you see | What it means |
@@ -75,13 +80,24 @@ permanently lost moderation work. Backoff between attempts is exponential from
 never a stack, never the document. An outbox handler works with reported
 material, and a driver error routinely quotes what it choked on.
 
-To replay after fixing the cause, set the rows back:
+To replay after fixing the cause, use one reviewed event type and inspect the
+exact returned ids. Do not run an unbounded update:
 
-```js
-db.outbox_events.updateMany(
-  { status: "failed", type: "<the type you fixed>" },
-  { $set: { status: "pending", attempts: 0, availableAt: new Date(), lastError: null, updatedAt: new Date() } }
-)
+```sql
+BEGIN;
+
+UPDATE outbox_events
+SET status = 'pending',
+    attempts = 0,
+    available_at = now(),
+    last_error = NULL,
+    updated_at = now()
+WHERE status = 'failed'
+  AND type = '<reviewed event type>'
+RETURNING event_id, organization_id, application_id, type;
+
+-- Commit only after the returned rows match the approved incident scope.
+COMMIT;
 ```
 
 Every handler is idempotent — it has to be, because at-least-once delivery is
@@ -105,7 +121,7 @@ restarting: the leases expire and the rows are reclaimed.
 
 **Work enqueued without its outbox row is lost moderation work with no trace.**
 Nothing in the infrastructure enforces the rule — `appendOutboxEvent` requiring
-a session is as close as it gets, and it only enforces the transaction, not the
+a transaction is as close as it gets, and it only enforces the transaction, not the
 decision to write a row at all. The rule holds by review.
 
 If a module ever calls another module's service directly across the outbox
@@ -123,8 +139,8 @@ case never got a panel.
 - **No retention or closure job.** `case.closed` is defined as a webhook event
   and nothing publishes it. Cases do not currently expire, and neither does
   evidence.
-- **No `Incident` collection.** `cases.incidentId` is a field that is `null` on
-  every document (`modules/cases/case.service.ts:182`), so cross-tenant
+- **No `Incident` table.** `cases.incident_id` is currently `null` on rows created
+  by `modules/cases/case.service.ts`, so cross-tenant
   correlation of one piece of material across applications **does not exist**.
   The reputation-effect index that would be built on it has nothing to be built
   on.

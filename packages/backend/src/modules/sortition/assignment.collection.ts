@@ -1,12 +1,7 @@
-import { Schema } from 'mongoose';
-
 import { defineUnscopedCollection } from '../../db/collections';
-import {
-  ASSIGNMENT_STATUSES,
-  type AssignmentStatus,
-} from '../../db/postgres/schema/sortition';
+import type { AssignmentStatus } from '../../db/postgres/schema/sortition';
 import type { SensitivityClass } from '../triage/triage';
-import { SLOT_TYPES, type SlotType } from './panelSpec';
+import type { SlotType } from './panelSpec';
 
 /**
  * Temporary assignments (§8.7, §12.6's `assignments`).
@@ -92,61 +87,6 @@ export interface AssignmentDocument {
   updatedAt: Date;
 }
 
-const assignmentSchema = new Schema<AssignmentDocument>(
-  {
-    assignmentId: { type: String, required: true, unique: true },
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-
-    caseId: { type: String, required: true },
-    caseRevision: { type: Number, required: true },
-    drawId: { type: String, required: true },
-    incidentId: { type: String, default: null },
-
-    reviewerId: { type: String, required: true },
-    slotType: { type: String, required: true, enum: SLOT_TYPES },
-    filledAs: { type: String, required: true, enum: SLOT_TYPES },
-
-    status: { type: String, required: true, enum: ASSIGNMENT_STATUSES },
-    tokenHash: { type: String, required: true },
-    sensitivityClass: { type: String, required: true },
-
-    offeredAt: { type: Date, required: true },
-    acceptedAt: { type: Date, default: null },
-    expiresAt: { type: Date, required: true },
-    completedAt: { type: Date, default: null },
-
-    recusalReason: { type: String, default: null },
-    replacementAssignmentId: { type: String, default: null },
-  },
-  { timestamps: true, collection: 'assignments' },
-);
-
-/**
- * One seat per person per case revision, enforced by the database.
- *
- * A replacement for a recused juror must not be the same person, a replayed
- * draw must not seat somebody twice, and §12.7's `case_id + reviewer_id +
- * decision_revision` constraint on reviews is only meaningful if the assignment
- * that authorises them is unique the same way.
- */
-assignmentSchema.index({ caseId: 1, reviewerId: 1, caseRevision: 1 }, { unique: true });
-
-/** "What is this reviewer holding?" — the reviewer surface's only question. */
-assignmentSchema.index({ reviewerId: 1, status: 1, expiresAt: 1 });
-
-/** "Who is on this panel?" — consensus, replacement and prior-juror checks. */
-assignmentSchema.index({ caseId: 1, caseRevision: 1, status: 1 });
-
-/** §8.5's prior jurors across an incident, without a join. */
-assignmentSchema.index({ incidentId: 1, reviewerId: 1 });
-
-/** The expiry sweep: open assignments whose time has run out (§8.7). */
-assignmentSchema.index({ status: 1, expiresAt: 1 });
-
-/** §13.7's exposure counting: what has this reviewer completed, and when. */
-assignmentSchema.index({ reviewerId: 1, completedAt: -1 });
-
-export const assignments = defineUnscopedCollection('Assignment', assignmentSchema, {
+export const assignments = defineUnscopedCollection<AssignmentDocument>('Assignment', {
   why: 'An assignment joins a tenant’s case to a reviewer who belongs to no tenant, and is read by an Oxy session that carries no tenant to scope by; rows are stamped from the case inside the draw transaction.',
 });

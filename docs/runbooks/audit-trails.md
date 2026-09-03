@@ -1,6 +1,6 @@
 # Reading the audit trails
 
-**There are two, they are different collections, and neither contains the
+**There are two, they are different PostgreSQL tables, and neither contains the
 other's rows.** Reaching for the wrong one is how an investigation concludes
 that nothing happened.
 
@@ -80,9 +80,14 @@ ends up: `schema_invalid`, `application_mismatch`, `unsafe_resource_url`,
 
 Indexed for the two questions an operator actually asks:
 
-```js
-db.audit_events.find({ applicationId: "app_…" }).sort({ occurredAt: -1 })
-db.audit_events.find({ applicationId: "app_…", caseId: "case_…" }).sort({ occurredAt: -1 })
+```sql
+SELECT * FROM audit_events
+WHERE application_id = 'app_…'
+ORDER BY occurred_at DESC;
+
+SELECT * FROM audit_events
+WHERE application_id = 'app_…' AND case_id = 'case_…'
+ORDER BY occurred_at DESC;
 ```
 
 `subjectId` carries the object a console act was about — a credential id, an
@@ -138,12 +143,16 @@ looked at what must not itself become a copy of what they looked at.
 
 Indexed for both directions of the investigation:
 
-```js
-// What did this operator do?
-db.staff_audit_events.find({ actorOxyUserId: "…" }).sort({ occurredAt: -1 })
+```sql
+-- What did this operator do?
+SELECT * FROM staff_audit_events
+WHERE actor_oxy_user_id = 'oxy_…'
+ORDER BY occurred_at DESC;
 
-// Who has been looking at this application?
-db.staff_audit_events.find({ applicationId: "app_…" }).sort({ occurredAt: -1 })
+-- Who has been looking at this application?
+SELECT * FROM staff_audit_events
+WHERE application_id = 'app_…'
+ORDER BY occurred_at DESC;
 ```
 
 There is **no HTTP route that reads this trail**, for any caller class.

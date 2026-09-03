@@ -1,6 +1,15 @@
-import { Schema } from 'mongoose';
-
 import { defineUnscopedCollection } from '../../db/collections';
+import {
+  APPLICATION_STATUSES,
+  CREDENTIAL_STATUSES,
+  ORGANIZATION_STATUSES,
+} from '../../domain/closedValues';
+
+export { APPLICATION_STATUSES, CREDENTIAL_STATUSES, ORGANIZATION_STATUSES } from '../../domain/closedValues';
+
+export type OrganizationStatus = (typeof ORGANIZATION_STATUSES)[number];
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+export type CredentialStatus = (typeof CREDENTIAL_STATUSES)[number];
 
 /**
  * The collections that DEFINE a tenant.
@@ -13,7 +22,7 @@ import { defineUnscopedCollection } from '../../db/collections';
  * no application-API route returns a row from it that was not resolved from the
  * caller's own credential.
  *
- * Schemas are `strict` (Mongoose's default) so an unknown field is dropped
+ * Repository codecs whitelist fields explicitly so an unknown field is dropped
  * rather than stored: a write path that ever gets handed a request body cannot
  * smuggle a field through it.
  */
@@ -22,24 +31,12 @@ export interface OrganizationDocument {
   organizationId: string;
   name: string;
   slug: string;
-  status: 'active' | 'suspended';
+  status: OrganizationStatus;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const organizationSchema = new Schema<OrganizationDocument>(
-  {
-    organizationId: { type: String, required: true, unique: true },
-    name: { type: String, required: true, trim: true },
-    // A human-readable handle for the console. Unique across the deployment so
-    // two organizations cannot present as one another to an operator.
-    slug: { type: String, required: true, unique: true, trim: true, lowercase: true },
-    status: { type: String, required: true, enum: ['active', 'suspended'], default: 'active' },
-  },
-  { timestamps: true, collection: 'organizations' },
-);
-
-export const organizations = defineUnscopedCollection('Organization', organizationSchema, {
+export const organizations = defineUnscopedCollection<OrganizationDocument>('Organization', {
   why: 'An organization IS the tenant root; there is no wider tenant to scope it by.',
 });
 
@@ -47,22 +44,12 @@ export interface ApplicationDocument {
   organizationId: string;
   applicationId: string;
   name: string;
-  status: 'active' | 'suspended';
+  status: ApplicationStatus;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const applicationSchema = new Schema<ApplicationDocument>(
-  {
-    organizationId: { type: String, required: true, index: true },
-    applicationId: { type: String, required: true, unique: true },
-    name: { type: String, required: true, trim: true },
-    status: { type: String, required: true, enum: ['active', 'suspended'], default: 'active' },
-  },
-  { timestamps: true, collection: 'applications' },
-);
-
-export const applications = defineUnscopedCollection('Application', applicationSchema, {
+export const applications = defineUnscopedCollection<ApplicationDocument>('Application', {
   why: 'Credential resolution reads an application before any tenant context exists.',
 });
 
@@ -74,30 +61,15 @@ export interface ApplicationCredentialDocument {
   /** SHA-256 of the secret half. See `credential.service.ts` for why not a KDF. */
   secretHash: string;
   scopes: string[];
-  status: 'active' | 'revoked';
+  status: CredentialStatus;
   expiresAt: Date | null;
   revokedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const applicationCredentialSchema = new Schema<ApplicationCredentialDocument>(
-  {
-    organizationId: { type: String, required: true, index: true },
-    applicationId: { type: String, required: true, index: true },
-    credentialId: { type: String, required: true, unique: true },
-    secretHash: { type: String, required: true },
-    scopes: { type: [String], required: true, default: [] },
-    status: { type: String, required: true, enum: ['active', 'revoked'], default: 'active' },
-    expiresAt: { type: Date, default: null },
-    revokedAt: { type: Date, default: null },
-  },
-  { timestamps: true, collection: 'application_credentials' },
-);
-
-export const applicationCredentials = defineUnscopedCollection(
+export const applicationCredentials = defineUnscopedCollection<ApplicationCredentialDocument>(
   'ApplicationCredential',
-  applicationCredentialSchema,
   {
     why: 'A presented credential is looked up by its own id, which is what yields the tenant.',
   },

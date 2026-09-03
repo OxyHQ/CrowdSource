@@ -136,8 +136,22 @@ describe('the tenant-defining tables are reachable with NO tenant context', () =
    */
   it('still cannot read a tenant-owned table without a context, which proves RLS is live', async () => {
     await database.asMigrator`
-      INSERT INTO cases (case_id, organization_id, application_id, subject_external_id, status, opened_at)
-      VALUES ('case_control', ${ORGANIZATION_ID}, ${APPLICATION_ID}, 'subject', 'open', now())
+      INSERT INTO cases (
+        case_id, organization_id, application_id, subject_external_id,
+        content_hash, policy_version, case_dedup_key, subject_type,
+        primary_resource_id, policy_set_id, taxonomy_version, content_snapshot,
+        status, allegation_codes, report_count, reporter_fingerprints, reach,
+        active_distribution, allow_community_review, contains_personal_data,
+        retention_days, priority_score, sensitivity_class, review_pool,
+        requires_redaction, escalated, triaged_at, current_revision,
+        decided_revision, incident_id, first_reported_at, last_reported_at
+      ) VALUES (
+        'case_control', ${ORGANIZATION_ID}, ${APPLICATION_ID}, 'subject',
+        'hash_control', 'baseline@1', 'dedup_control', 'post', 'resource_control',
+        'baseline', '2026.08', '{}'::jsonb, 'received', ARRAY['integrity.spam'],
+        1, ARRAY['reporter_control'], 0, false, true, false, 30, 0, NULL, NULL,
+        false, false, NULL, 1, 0, NULL, now(), now()
+      )
     `;
 
     const [seeded] = await database.asMigrator<{ n: number }[]>`

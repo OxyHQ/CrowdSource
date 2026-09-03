@@ -88,20 +88,21 @@ touched. It reads exactly like someone else's broken commit.
 
 ## The rules
 
-- **BullMQ is dispatch. It is NEVER the durable record.** The queue is a
-  single-node Valkey with no replica, no failover and no snapshots. A domain
-  write and its outbox document commit in ONE transaction; the dispatcher then
-  enqueues. **Never enqueue work that is not already recorded in the outbox** — a
-  dropped job must be a delay, never lost moderation work. Nothing in
-  infrastructure enforces this; it holds by review alone.
-- **Isolation is a property of this codebase and nothing else enforces it.** A
+- **The PostgreSQL outbox row is the durable work record.** There is no queue
+  dependency. A domain write and its outbox row commit through the SAME Drizzle
+  transaction; workers claim durable rows with bounded leases. Never create work
+  without the outbox row that makes it re-derivable.
+- **`@oxyhq/crowdsource-app` is PostgreSQL-only.** Do not restore a Mongoose
+  export, dependency or runtime path. Adopter migrations preserve exact ids and
+  reconcile counts plus canonical SHA-256 digests against an empty target.
+- **Isolation is enforced by PostgreSQL RLS and the scoped repository types.** A
   `TenantContext` is built ONLY by `createTenantContext`, from the authenticated
-  service credential — never from a body, path, query or header. Every read and
-  write goes through `tenantScopedFilter` / `tenantScopedDocument`; no module
-  reaches the driver around that layer. Supplying a tenant key is a THROW, not a
-  silent correction. Public ids are ULID or UUID, never sequential.
+  service credential — never from a body, path, query or header. Tenant-owned
+  repositories require `TenantScopedHandle`, minted only after both `SET LOCAL`
+  parameters are written and read back inside a transaction. Never bypass it
+  with the pool. Public ids are ULID or UUID, never sequential.
 - **Idempotency lives in unique compound indexes and they are REQUIRED** — one
-  per retry-safe operation, created with the collection that owns it. The list is
+  per retry-safe operation, applied by PostgreSQL migrations. The list is
   in `docs/architecture/engineering-rules.md`; each is what makes a retry safe
   rather than duplicating a case, a review or a penalty.
 - **`applicationId` is read off the credential and no surface can carry one.**
@@ -115,15 +116,14 @@ touched. It reads exactly like someone else's broken commit.
   Ingress fingerprints the whole envelope, so an invented timestamp, a random id
   or an unsorted list turns a legitimate outbox retry into a permanent 409 —
   silently, days later, as moderation work stuck in a queue.
-- **`databaseIdentity.ts` is a source constant, not configuration.** `dbName`
-  OVERRIDES the database named in the connection string, so a wrong value does
-  not fail to connect — it silently reads and writes another Oxy product's live
-  data. Four things move together in the same change: the declaration, the
-  release-time assert script, its mutation test, and the runtime test.
+- **A backend data cutover is freeze/export/import/reconcile, never an in-place
+  guess.** Preserve every existing identifier, prove the PostgreSQL target empty,
+  and compare canonical counts plus SHA-256 digests before deploy. The repository
+  runtime cut does not assert that production data was migrated.
 - **Take a reviewer `(family, language)` cell from
   `src/__tests__/support/reviewerAxes.ts`; never declare a pair inline.** Every
-  integration file shares ONE replica set, so the eligibility pair is the only
-  thing keeping two files apart. When checking for this class of bug, assert on
+  integration file shares ONE disposable PostgreSQL database, so the eligibility
+  pair is the only thing keeping two files apart. When checking for this class of bug, assert on
   the FILE count — a collision throws in a hook, which Vitest reports as
   `Test Files 1 failed` while the skimmed line reads `Tests 40 passed`.
 - **`app/_layout.tsx` is the SOLE authority for the `(auth)` ↔ `(app)` swap.** A

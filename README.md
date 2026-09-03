@@ -63,19 +63,19 @@ These come from the approved product specification. They are not preferences. A 
 | Package | Path | What it holds |
 |---|---|---|
 | [`@oxyhq/crowdsource-contracts`](https://www.npmjs.com/package/@oxyhq/crowdsource-contracts) | [`packages/contracts`](./packages/contracts) | The versioned contracts every surface agrees on, as Zod schemas and JSON Schema: case envelope, resources, taxonomy, policies, reviews, decisions, webhooks, reputation events |
-| `@crowdsource/backend` | [`packages/backend`](./packages/backend) | Express 5 modular monolith over MongoDB: tenancy, ingestion, evidence, cases, sortition, review, consensus, decisions and webhook delivery |
+| `@crowdsource/backend` | [`packages/backend`](./packages/backend) | PostgreSQL/Drizzle Express 5 modular monolith: RLS-scoped tenancy, ingestion, evidence, cases, sortition, review, consensus, decisions and webhook delivery |
 | `@crowdsource/reviewer` | [`packages/reviewer`](./packages/reviewer) | The reviewer app, Expo Router and React Native Web from one codebase |
 | `@crowdsource/console` | [`packages/console`](./packages/console) | Developer and Trust and Safety console, Expo Router on the web only |
 | [`@oxyhq/crowdsource`](https://www.npmjs.com/package/@oxyhq/crowdsource) | [`packages/sdk`](./packages/sdk) | TypeScript client for integrators: reports, uploads, cases, decisions |
 | [`@oxyhq/crowdsource-express`](https://www.npmjs.com/package/@oxyhq/crowdsource-express) | [`packages/sdk-express`](./packages/sdk-express) | Express webhook receiver: raw body capture, HMAC verification, replay protection, typed events |
-| `@oxyhq/crowdsource-app` | [`packages/app`](./packages/app) | The application half of an integration: transactional outbox, delivery, receiver, decision application, idempotent enforcement. Written, not yet on npm |
+| `@oxyhq/crowdsource-app` | [`packages/app`](./packages/app) | PostgreSQL-only application integration: transactional outbox, delivery, receiver, decision application and idempotent enforcement. The 0.7 source is a breaking migration from the former Mongoose subpath; publication is separate. |
 | [`@oxyhq/crowdsource-testing`](https://www.npmjs.com/package/@oxyhq/crowdsource-testing) | [`packages/testing`](./packages/testing) | Fixtures, a webhook simulator and an in process sandbox, so you can integrate before a jury has ever sat |
 
 Each package README says what that package holds.
 
 ## Integrating
 
-An adopting application writes four things and nothing else: its subject providers, its category to allegation mapping, its enforcement tables plus one `apply`, and its own report model. Everything it would otherwise copy, the outbox, delivery, the webhook receiver, cross instance dedupe, decision application, the enforcement claim and the enforcement planning algorithm, lives in `@oxyhq/crowdsource-app`.
+An adopting application writes four things and nothing else: its subject providers, its category to allegation mapping, its enforcement tables plus one `apply`, and its own PostgreSQL report table. Everything it would otherwise copy, the outbox, delivery, the webhook receiver, cross instance dedupe, decision application, the enforcement claim and the enforcement planning algorithm, lives in `@oxyhq/crowdsource-app`.
 
 ```bash
 bun add @oxyhq/crowdsource @oxyhq/crowdsource-express

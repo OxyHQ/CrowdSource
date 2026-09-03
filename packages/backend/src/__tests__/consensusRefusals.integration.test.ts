@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { TaxonomyCode } from '@oxyhq/crowdsource-contracts';
+import { constraintNameOf, sqlStateOf } from '@oxyhq/db';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
@@ -305,8 +306,9 @@ describe('a tenant reaches only its own decisions', () => {
 
     expect(again).toEqual({ published: false, reason: 'already_decided' });
 
-    await expect(
-      decisions.insertOne(tenant.tenant, {
+    let refused: unknown;
+    try {
+      await decisions.insertOne(tenant.tenant, {
         decisionId: newPublicId('decision'),
         caseId,
         revision: 1,
@@ -333,8 +335,12 @@ describe('a tenant reaches only its own decisions', () => {
         publishedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
-      }),
-    ).rejects.toMatchObject({ code: 11000 });
+      });
+    } catch (error: unknown) {
+      refused = error;
+    }
+    expect(sqlStateOf(refused)).toBe('23505');
+    expect(constraintNameOf(refused)).toBe('decisions_case_revision_key');
 
     expect(await decisions.countDocuments(tenant.tenant, { caseId })).toBe(1);
   });

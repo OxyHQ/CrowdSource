@@ -80,9 +80,9 @@ const SEEDING_MARKERS = [
   /**
    * The two PostgreSQL routes, added with the reviewer repositories.
    *
-   * Every marker above is a MONGO shape, and that was fine for exactly as long as
-   * Mongo was the only store. A suite seeding reviewers through a Postgres
-   * repository matches none of them, so it would have been invisible to the
+   * The markers above cover the collection facade and HTTP routes. A suite
+   * seeding reviewers through a PostgreSQL repository matches none of them, so
+   * it would have been invisible to the
    * completeness assertion below — not exempted, not reported, simply absent —
    * and "no file is missing an entry" would have stayed true by not looking.
    *
@@ -104,8 +104,8 @@ const SEEDING_MARKERS = [
  * Suites that seed reviewer profiles and CANNOT be drawn into another suite's
  * panels, with the reason each one is exempt.
  *
- * The registry's whole premise is a SHARED population: every Mongo integration
- * file runs against one `mongodb-memory-server` replica set, reviewer profiles
+ * The registry's whole premise is a SHARED population: every integration file
+ * runs against one disposable PostgreSQL database, reviewer profiles
  * carry no tenant key, and `candidatePool` has no tenant filter — so one file's
  * pool is a candidate for every other file's case, and the only wall is the
  * `(family, language)` cell. A suite that does not share a population has no such
@@ -114,7 +114,7 @@ const SEEDING_MARKERS = [
  * ## Why the list is restricted to `*.realdb.test.ts` BY SHAPE
  *
  * An exemption list is the cheapest way to make this gate green, which makes it
- * the most dangerous thing in the file: the moment a Mongo integration suite
+ * the most dangerous thing in the file: the moment an integration suite
  * trips the completeness check, adding a line here is easier than declaring
  * axes, and it silently reintroduces exactly the collision the gate exists to
  * catch.
@@ -122,15 +122,14 @@ const SEEDING_MARKERS = [
  * So the structural constraint below is load-bearing rather than tidy. Only a
  * `*.realdb.test.ts` file may appear here, because only a real-database suite
  * gets its own throwaway PostgreSQL database — `createPostgresTestDatabase()` in
- * its own `beforeAll`, one per test file, dropped at the end. For a Mongo
+ * its own `beforeAll`, one per test file, dropped at the end. For a shared-fixture
  * integration file the exemption is UNAVAILABLE, so the cheapest way to make the
  * gate green is the correct one: declare a cell.
  *
  * The naming convention is doing real work there, and that is worth saying out
- * loud: a Mongo suite renamed to `*.realdb.test.ts` would become exemptible
- * without becoming isolated. What stops that is that the name is also what makes
- * a file take `createPostgresTestDatabase()`, and a file that seeds Mongo
- * reviewers under a realdb name is a lie a reviewer can see in one line.
+ * loud: a shared-fixture suite renamed to `*.realdb.test.ts` would become
+ * exemptible without becoming isolated. What stops that is that a realdb file
+ * also has to call `createPostgresTestDatabase()` and close its own fixture.
  */
 const NOT_APPLICABLE: Readonly<Record<string, string>> = {
   'reviewerRepositories.realdb.test.ts':
@@ -162,8 +161,9 @@ const NOT_APPLICABLE_COUNT = 1;
  */
 const TEST_FILE_FLOOR = 55;
 /**
- * Nine since `reviewerRepositories.realdb.test.ts` joined the count — eight Mongo
- * suites plus the one PostgreSQL suite the two markers above were added to see.
+ * Nine since `reviewerRepositories.realdb.test.ts` joined the count — eight
+ * shared-fixture suites plus the isolated PostgreSQL suite the two repository
+ * markers above were added to see.
  */
 const SEEDING_FILE_FLOOR = 9;
 

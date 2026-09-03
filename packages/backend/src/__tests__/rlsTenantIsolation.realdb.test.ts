@@ -117,6 +117,60 @@ async function expectPolicyRefusal(operation: () => Promise<unknown>): Promise<v
   expect(String(message)).toMatch(/row-level security/i);
 }
 
+function insertCaseStatement(input: {
+  readonly caseId: string;
+  readonly organizationId: string;
+  readonly applicationId: string;
+  readonly subject: string;
+}): SQL {
+  return sql`
+    INSERT INTO cases (
+      case_id, organization_id, application_id, subject_external_id,
+      content_hash, policy_version, case_dedup_key, subject_type,
+      primary_resource_id, policy_set_id, taxonomy_version, content_snapshot,
+      status, allegation_codes, report_count, reporter_fingerprints, reach,
+      active_distribution, allow_community_review, contains_personal_data,
+      retention_days, priority_score, sensitivity_class, review_pool,
+      requires_redaction, escalated, triaged_at, current_revision,
+      decided_revision, incident_id, first_reported_at, last_reported_at
+    ) VALUES (
+      ${input.caseId}, ${input.organizationId}, ${input.applicationId}, ${input.subject},
+      ${`hash_${input.caseId}`}, 'baseline@1', ${`dedup_${input.caseId}`}, 'post',
+      ${`resource_${input.caseId}`}, 'baseline', '2026.08', '{}'::jsonb,
+      'received', ARRAY['integrity.spam'], 1, ARRAY[${`reporter_${input.caseId}`}], 0,
+      false, true, false, 30, 0, NULL, NULL, false, false, NULL, 1, 0, NULL,
+      now(), now()
+    )
+  `;
+}
+
+async function seedCaseAsMigrator(input: {
+  readonly caseId: string;
+  readonly organizationId: string;
+  readonly applicationId: string;
+  readonly subject: string;
+}): Promise<void> {
+  await database.asMigrator`
+    INSERT INTO cases (
+      case_id, organization_id, application_id, subject_external_id,
+      content_hash, policy_version, case_dedup_key, subject_type,
+      primary_resource_id, policy_set_id, taxonomy_version, content_snapshot,
+      status, allegation_codes, report_count, reporter_fingerprints, reach,
+      active_distribution, allow_community_review, contains_personal_data,
+      retention_days, priority_score, sensitivity_class, review_pool,
+      requires_redaction, escalated, triaged_at, current_revision,
+      decided_revision, incident_id, first_reported_at, last_reported_at
+    ) VALUES (
+      ${input.caseId}, ${input.organizationId}, ${input.applicationId}, ${input.subject},
+      ${`hash_${input.caseId}`}, 'baseline@1', ${`dedup_${input.caseId}`}, 'post',
+      ${`resource_${input.caseId}`}, 'baseline', '2026.08', '{}'::jsonb,
+      'received', ARRAY['integrity.spam'], 1, ARRAY[${`reporter_${input.caseId}`}], 0,
+      false, true, false, 30, 0, NULL, NULL, false, false, NULL, 1, 0, NULL,
+      now(), now()
+    )
+  `;
+}
+
 beforeAll(async () => {
   database = await createPostgresTestDatabase();
 
@@ -124,11 +178,12 @@ beforeAll(async () => {
   // would prove only that the policy admits writes it also admits reads for; the
   // rows have to exist independently of the mechanism under test.
   for (const row of seeded) {
-    await database.asMigrator`
-      INSERT INTO cases (case_id, organization_id, application_id, subject_external_id, status, opened_at)
-      VALUES (${row.caseId}, ${row.context.organizationId}, ${row.context.applicationId},
-              ${row.subject}, 'open', now())
-    `;
+    await seedCaseAsMigrator({
+      caseId: row.caseId,
+      organizationId: row.context.organizationId,
+      applicationId: row.context.applicationId,
+      subject: row.subject,
+    });
   }
 }, 120_000);
 
@@ -260,7 +315,7 @@ describe('a tenant sees only its own rows', () => {
 
   it('UPDATE: cannot touch a sibling application of its own organization', async () => {
     const affected = await withTenant(database.db, alpha, async (tx) =>
-      affectedRows(tx, sql`UPDATE cases SET status = 'tampered' WHERE case_id = 'case_sibling'`),
+      affectedRows(tx, sql`UPDATE cases SET status = 'triaged' WHERE case_id = 'case_sibling'`),
     );
     expect(affected).toBe(0);
 
@@ -269,7 +324,7 @@ describe('a tenant sees only its own rows', () => {
     const [row] = await database.asMigrator<{ status: string }[]>`
       SELECT status FROM cases WHERE case_id = 'case_sibling'
     `;
-    expect(row.status).toBe('open');
+    expect(row.status).toBe('received');
   });
 
   it('DELETE: cannot remove another organization row', async () => {
@@ -287,10 +342,12 @@ describe('a tenant sees only its own rows', () => {
   it('INSERT: refuses a row belonging to another tenant', async () => {
     await expectPolicyRefusal(async () =>
       withTenant(database.db, alpha, async (tx) =>
-        tx.execute(sql`
-          INSERT INTO cases (case_id, organization_id, application_id, subject_external_id, status, opened_at)
-          VALUES ('case_forged', 'org_beta', 'app_beta', 'post_forged', 'open', now())
-        `),
+        tx.execute(insertCaseStatement({
+          caseId: 'case_forged',
+          organizationId: 'org_beta',
+          applicationId: 'app_beta',
+          subject: 'post_forged',
+        })),
       ),
     );
 
@@ -298,20 +355,24 @@ describe('a tenant sees only its own rows', () => {
     // same organization, different application.
     await expectPolicyRefusal(async () =>
       withTenant(database.db, alpha, async (tx) =>
-        tx.execute(sql`
-          INSERT INTO cases (case_id, organization_id, application_id, subject_external_id, status, opened_at)
-          VALUES ('case_forged_sib', 'org_alpha', 'app_sibling', 'post_forged_sib', 'open', now())
-        `),
+        tx.execute(insertCaseStatement({
+          caseId: 'case_forged_sib',
+          organizationId: 'org_alpha',
+          applicationId: 'app_sibling',
+          subject: 'post_forged_sib',
+        })),
       ),
     );
 
     // The positive control: an insert into its OWN tenant succeeds, so the
     // refusal above is the policy and not a broken statement.
     await withTenant(database.db, alpha, async (tx) =>
-      tx.execute(sql`
-        INSERT INTO cases (case_id, organization_id, application_id, subject_external_id, status, opened_at)
-        VALUES ('case_alpha_own', 'org_alpha', 'app_alpha', 'post_own', 'open', now())
-      `),
+      tx.execute(insertCaseStatement({
+        caseId: 'case_alpha_own',
+        organizationId: 'org_alpha',
+        applicationId: 'app_alpha',
+        subject: 'post_own',
+      })),
     );
 
     const [row] = await database.asMigrator<{ total: number }[]>`

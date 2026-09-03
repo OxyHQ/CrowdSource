@@ -13,24 +13,22 @@ import { createPostgresTestDatabase, type PostgresTestDatabase } from './support
 /**
  * The reviewer person-model repositories, against a real PostgreSQL server.
  *
- * These functions have no production caller yet, and this suite is why that is
- * acceptable: a repository that only type-checks is a set of statements whose
- * first execution happens in production. Below they have genuinely run, against
- * the real schema, the real unique indexes and the real unprivileged role.
+ * Runtime domain services call these repositories. This suite also executes
+ * them against the real schema, unique indexes and unprivileged role.
  *
  * ## This file is NOT in `support/reviewerAxes.ts`, and that is checked
  *
  * `reviewerAxes.test.ts` requires every suite that seeds a globally drawable
  * reviewer profile to own a `(family, language)` cell no other suite holds. That
- * rule exists because the Mongo integration suites share ONE
- * `mongodb-memory-server` replica set, where reviewer profiles are global and one
- * file's pool is a candidate for another file's case.
+ * rule exists because the integration suites share ONE disposable PostgreSQL
+ * database, where reviewer profiles are global and one file's pool is a
+ * candidate for another file's case.
  *
  * This file seeds reviewers into a THROWAWAY POSTGRES DATABASE created in its own
  * `beforeAll` — one per test file, dropped at the end — so the mechanism the
  * registry exists to prevent structurally does not exist here. It is recorded in
  * that gate's not-applicable list WITH that reason, rather than left to slip past
- * a marker list that only knows Mongo shapes.
+ * a marker list that does not recognise repository and direct-Drizzle writes.
  *
  * ## Fixture policy
  *
@@ -417,6 +415,34 @@ describe('the eligibility predicate narrows on every dimension it claims to', ()
 });
 
 describe('reviewer principal links', () => {
+  it('uses the exact source tuple as its primary key and has no invented link id', async () => {
+    const columns = await database.asMigrator<{ column_name: string }[]>`
+      SELECT column_name
+        FROM information_schema.columns
+       WHERE table_schema = current_schema()
+         AND table_name = 'reviewer_principal_links'
+       ORDER BY ordinal_position`;
+    expect(columns.map((column) => column.column_name)).not.toContain(
+      'reviewer_principal_link_id',
+    );
+
+    const primaryKey = await database.asMigrator<{ column_name: string }[]>`
+      SELECT key_usage.column_name
+        FROM information_schema.table_constraints AS constraints
+        JOIN information_schema.key_column_usage AS key_usage
+          ON key_usage.constraint_schema = constraints.constraint_schema
+         AND key_usage.constraint_name = constraints.constraint_name
+       WHERE constraints.table_schema = current_schema()
+         AND constraints.table_name = 'reviewer_principal_links'
+         AND constraints.constraint_type = 'PRIMARY KEY'
+       ORDER BY key_usage.ordinal_position`;
+    expect(primaryKey.map((column) => column.column_name)).toEqual([
+      'reviewer_id',
+      'application_id',
+      'external_principal_id',
+    ]);
+  });
+
   it('replaces one reviewer’s links wholesale, leaving another reviewer alone', async () => {
     const mine = await reviewerRepository.insertReviewerProfileIfAbsent(
       database.db,

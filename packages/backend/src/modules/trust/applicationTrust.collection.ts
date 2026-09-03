@@ -1,7 +1,6 @@
-import { Schema } from 'mongoose';
-
 import { defineUnscopedCollection } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
+import { APPLICATION_STANDINGS, STANDING_REASONS } from '../../domain/closedValues';
 
 /**
  * Application moderation trust (§11.13).
@@ -24,7 +23,7 @@ import type { TenantContext } from '../../db/tenantScope';
  */
 
 /** §11.13's three states, verbatim. */
-export const APPLICATION_STANDINGS = ['sandbox', 'trusted', 'restricted'] as const;
+export { APPLICATION_STANDINGS } from '../../domain/closedValues';
 export type ApplicationStanding = (typeof APPLICATION_STANDINGS)[number];
 
 /**
@@ -32,20 +31,7 @@ export type ApplicationStanding = (typeof APPLICATION_STANDINGS)[number];
  * shown on an operator screen and kept indefinitely, and a free-text field next to
  * a case is where a fragment of reported material eventually lands.
  */
-export const STANDING_REASONS = [
-  /** The initial state of every new application (§11.13). */
-  'initial',
-  /** Passed technical review, identity verification and a quality period. */
-  'promotion_review_passed',
-  /** Evidence integrity or binding reliability failed an audit. */
-  'evidence_integrity_failed',
-  /** Decisions about this application's cases are overturned unusually often. */
-  'high_overturn_rate',
-  /** Reported volume or content indicates abuse of the pipeline. */
-  'suspected_abuse',
-  /** An operator restored standing after an investigation closed. */
-  'investigation_closed',
-] as const;
+export { STANDING_REASONS } from '../../domain/closedValues';
 export type StandingReason = (typeof STANDING_REASONS)[number];
 
 export interface ApplicationTrustDocument extends TenantContext {
@@ -88,38 +74,8 @@ export interface ApplicationTrustDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const applicationTrustSchema = new Schema<ApplicationTrustDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true, unique: true },
-    standing: {
-      type: String,
-      required: true,
-      enum: APPLICATION_STANDINGS,
-      default: 'sandbox',
-    },
-    globalReputationEffectsAllowed: { type: Boolean, required: true, default: false },
-    evidenceIntegrity: { type: Number, default: null },
-    identityBindingReliability: { type: Number, default: null },
-    policyQuality: { type: Number, default: null },
-    lastStandingReason: {
-      type: String,
-      required: true,
-      enum: STANDING_REASONS,
-      default: 'initial',
-    },
-    standingChangedAt: { type: Date, default: null },
-    standingChangedByOxyUserId: { type: String, default: null },
-  },
-  { timestamps: true, collection: 'app_trust_snapshots' },
-);
-
-/** The Trust & Safety queue: "which applications are in which standing". */
-applicationTrustSchema.index({ standing: 1, updatedAt: -1 });
-
-export const applicationTrust = defineUnscopedCollection(
+export const applicationTrust = defineUnscopedCollection<ApplicationTrustDocument>(
   'ApplicationTrust',
-  applicationTrustSchema,
   {
     why: 'Trust & Safety compares standing across every application (§4.3), and the ingestion gate reads the row that establishes the tenant.',
   },

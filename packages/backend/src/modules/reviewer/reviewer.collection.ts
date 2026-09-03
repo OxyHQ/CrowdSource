@@ -1,16 +1,11 @@
-import { Schema } from 'mongoose';
 import {
   REVIEWER_SENSITIVITY_CLASSES,
-  REVIEWER_STATES,
   type ReviewerState,
   type TaxonomyFamily,
 } from '@oxyhq/crowdsource-contracts';
 
 import { defineUnscopedCollection } from '../../db/collections';
-import {
-  REVIEWER_RELATION_SOURCES,
-  type ReviewerRelationSource,
-} from '../../db/postgres/schema/reviewers';
+import type { ReviewerRelationSource } from '../../db/postgres/schema/reviewers';
 import type { SensitivityClass } from '../triage/triage';
 
 
@@ -177,99 +172,7 @@ export interface ReviewerProfileDocument {
   updatedAt: Date;
 }
 
-const reviewerPrincipalLinkSchema = new Schema<ReviewerPrincipalLink>(
-  {
-    applicationId: { type: String, required: true },
-    externalPrincipalId: { type: String, required: true },
-  },
-  { _id: false },
-);
-
-const reviewerProfileSchema = new Schema<ReviewerProfileDocument>(
-  {
-    reviewerId: { type: String, required: true, unique: true },
-    oxyUserId: { type: String, required: true, unique: true },
-
-    state: { type: String, required: true, enum: REVIEWER_STATES, default: 'applicant' },
-
-    accountActive: { type: Boolean, required: true, default: true },
-    oxyAccountVerified: { type: Boolean, required: true, default: false },
-    isAdult: { type: Boolean, required: true, default: false },
-
-    suspectedSockPuppet: { type: Boolean, required: true, default: false },
-    riskClusterId: { type: String, default: null },
-
-    languages: { type: [String], required: true, default: [] },
-    categories: { type: [String], required: true, default: [] },
-    specialistCategories: { type: [String], required: true, default: [] },
-
-    maxSensitivityRank: { type: Number, required: true, default: 0 },
-    consentedSensitiveCategories: { type: [String], required: true, default: [] },
-
-    declaredConflictApplications: { type: [String], required: true, default: [] },
-
-    rulesAcceptedAt: { type: Date, default: null },
-
-    available: { type: Boolean, required: true, default: true },
-    dailyReviewLimit: { type: Number, required: true },
-
-    trainingCompletedModules: { type: [String], required: true, default: [] },
-    trainingCompletedAt: { type: Date, default: null },
-    calibrationPassedAt: { type: Date, default: null },
-    calibrationScore: { type: Number, default: null },
-    calibrationAttempts: { type: Number, required: true, default: 0 },
-    lastCalibrationAt: { type: Date, default: null },
-
-    reliabilityByCategory: { type: Schema.Types.Mixed, required: true, default: {} },
-    completedReviewCount: { type: Number, required: true, default: 0 },
-    personhoodConfidence: { type: Number, required: true, default: 0 },
-
-    samplingKey: { type: Number, required: true },
-
-    principalLinks: { type: [reviewerPrincipalLinkSchema], required: true, default: [] },
-
-    suspendedUntil: { type: Date, default: null },
-  },
-  { timestamps: true, collection: 'reviewer_profiles' },
-);
-
-/**
- * §12.7's "index reviewer eligibility dimensions", as TWO indexes rather than
- * one, because MongoDB refuses a compound index over two array fields — and
- * `categories` and `languages` are both arrays.
- *
- * Each index ends in `samplingKey`, which is what turns the candidate query into
- * a bounded range scan instead of a filtered collection scan: equality on the
- * state and the dimension, then a range from a random point on the key. `$sample`
- * would not do — it scans everything the filter matched before choosing.
- *
- * Deliberately NOT in either index: `personhoodConfidence`, `available`,
- * `maxSensitivityRank` and the consent arrays. An index can only take bounds
- * from one range field, and putting a second range before `samplingKey` would
- * cost the bounded scan — the very property that makes this cheap at millions of
- * profiles. They filter on the documents the index already found, which is one
- * comparison per fetched document and no extra round trip.
- */
-reviewerProfileSchema.index({ state: 1, categories: 1, samplingKey: 1 });
-reviewerProfileSchema.index({ state: 1, languages: 1, samplingKey: 1 });
-
-/** §8.3's cap of one panel member per risk cluster starts as a lookup. */
-reviewerProfileSchema.index({ riskClusterId: 1 });
-
-/**
- * "Is anybody involved in this case also a reviewer?" — one query per draw.
- *
- * It answers two of §8.5's exclusions at once: a reviewer who is the subject of
- * the material, and the risk cluster of a party to the case. Without the index
- * this is a collection scan on every draw, which is exactly the per-candidate
- * sequential work §8.8 warns about, moved somewhere less obvious.
- */
-reviewerProfileSchema.index({
-  'principalLinks.applicationId': 1,
-  'principalLinks.externalPrincipalId': 1,
-});
-
-export const reviewerProfiles = defineUnscopedCollection('ReviewerProfile', reviewerProfileSchema, {
+export const reviewerProfiles = defineUnscopedCollection<ReviewerProfileDocument>('ReviewerProfile', {
   why: 'A reviewer is a person drawn across every application, not data owned by one tenant; profiles carry no tenant keys and are never returned to an application-API caller.',
 });
 
@@ -303,27 +206,8 @@ export interface ReviewerRelationDocument {
   updatedAt: Date;
 }
 
-const reviewerRelationSchema = new Schema<ReviewerRelationDocument>(
-  {
-    reviewerId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    externalPrincipalId: { type: String, required: true },
-    source: { type: String, required: true, enum: REVIEWER_RELATION_SOURCES },
-  },
-  { timestamps: true, collection: 'reviewer_relations' },
-);
-
-/** Declaring the same conflict twice is one relation, not two. */
-reviewerRelationSchema.index(
-  { reviewerId: 1, applicationId: 1, externalPrincipalId: 1 },
-  { unique: true },
-);
-/** The draw's question: which of these candidates knows anyone in this case? */
-reviewerRelationSchema.index({ applicationId: 1, externalPrincipalId: 1, reviewerId: 1 });
-
-export const reviewerRelations = defineUnscopedCollection(
+export const reviewerRelations = defineUnscopedCollection<ReviewerRelationDocument>(
   'ReviewerRelation',
-  reviewerRelationSchema,
   {
     why: 'A reviewer’s declared conflicts follow the person across every application they may be drawn for, so the collection cannot be scoped to one tenant.',
   },
@@ -352,28 +236,8 @@ export interface ReviewerAffinityDocument {
   updatedAt: Date;
 }
 
-const reviewerAffinitySchema = new Schema<ReviewerAffinityDocument>(
-  {
-    pairKey: { type: String, required: true, unique: true },
-    reviewerIdA: { type: String, required: true },
-    reviewerIdB: { type: String, required: true },
-    coServedCount: { type: Number, required: true, default: 0 },
-    lastServedAt: { type: Date, required: true },
-  },
-  { timestamps: true, collection: 'reviewer_affinities' },
-);
-
-/**
- * Both directions, because the draw asks "who has this selected reviewer served
- * with too often" and the answer must be found whichever side of the pair they
- * are on.
- */
-reviewerAffinitySchema.index({ reviewerIdA: 1, coServedCount: -1 });
-reviewerAffinitySchema.index({ reviewerIdB: 1, coServedCount: -1 });
-
-export const reviewerAffinities = defineUnscopedCollection(
+export const reviewerAffinities = defineUnscopedCollection<ReviewerAffinityDocument>(
   'ReviewerAffinity',
-  reviewerAffinitySchema,
   {
     why: 'Co-service is a property of a pair of people across every panel they have sat on, and panels span tenants; the pair has no owning application.',
   },

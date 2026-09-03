@@ -1,108 +1,106 @@
-# @crowdsource/backend
+# `@crowdsource/backend`
 
-CrowdSource's Express service — the modular monolith that will own tenancy,
-ingestion, evidence, cases, sortition, review, consensus, decisions, webhook
-delivery and the Oxy Trust reputation bridge.
+CrowdSource's private Express service: tenancy, report ingestion, cases,
+sortition, review, consensus, decisions, appeals, webhooks, reviewer state and
+the developer/Trust & Safety console APIs.
 
-Built so far: **tenancy** (organizations, applications, service credentials,
-scopes), **service-credential authentication and tenant context**, the
-**ingestion** write path for `POST /v1/reports` with its idempotency indexes, and
-the **transactional outbox** row every domain write commits alongside. Evidence,
-cases, policy registry, triage, sortition, review, consensus, decision, webhook
-delivery and the reputation bridge are not written; modules mount in `src/app.ts`
-as they are built.
+The current source is PostgreSQL-only. MongoDB is not a fallback and no Mongo
+URI, driver, deploy secret or test server belongs in this package.
 
-Two things are deliberately absent rather than stubbed. Full **Case Envelope
-validation** (§7.2 steps 2-7) belongs to `@oxyhq/crowdsource-contracts`;
-ingestion validates the request and stores the envelope without pretending to
-have checked a schema it has never seen. The **outbox dispatcher** is not built
-either, so rows accumulate as `pending` — which is the safe direction: the row is
-the durable record, and the queue that will read it is only a dispatch hint.
+## Runtime structure
 
-## Surfaces
+- `server.ts` owns the PostgreSQL reachability check, listener, workers, drain
+  and process handlers. It reaches the database before accepting traffic.
+- `src/app.ts` builds the HTTP app and opens no connections or timers.
+- `src/config/index.ts` validates the runtime contract. `DATABASE_URL` is the
+  application-role connection; it is required to boot.
+- `src/db/postgres/database.ts` owns the one pooled application handle.
+- `src/db/postgres/withTenant.ts` installs tenant parameters with `SET LOCAL`.
+- `src/db/postgres/repositories/` contains explicit Drizzle repositories,
+  transactional claims and the cross-module storage operations.
+- `src/db/postgres/schema/` and `migrations/` are the schema and its only journal.
+- `src/db/collections.ts` is a typed compatibility adapter over 26 explicit
+  domain/table bindings. It never derives a table from a model name.
+- `src/db/transaction.ts` provides PostgreSQL transaction retry and SQLSTATE /
+  constraint classification.
+- `src/routes/health.routes.ts` separates liveness from PostgreSQL-backed
+  readiness.
 
-| Method | Route | Auth | Scope |
-| --- | --- | --- | --- |
-| GET | `/health/live`, `/health/ready` | none | — |
-| POST | `/v1/reports` | service credential | `crowdsource:reports:write` |
-| GET | `/v1/reports/{reportId}` | service credential | `crowdsource:reports:read` |
+Tenant-owned tables use enabled and forced PostgreSQL RLS. The serving role owns
+no tables. Cross-tenant Trust & Safety reads enumerate applications and enter
+each tenant explicitly; they do not use a superuser, `BYPASSRLS`, security
+definers or the migrator credential.
 
-Creating organizations, applications and credentials is a **domain service**
-(`src/modules/tenancy/provisioning.service.ts`), not an HTTP surface. The
-Developer Console (§4.2) is what will call it, and shipping routes for it before
-the console exists would mean unauthenticated tenant creation in production.
+Domain writes and their outbox rows commit in one PostgreSQL transaction. Outbox
+and webhook workers claim rows atomically with leases; a queue is never the only
+record of pending work. Closed domain vocabularies have one shared source tuple
+and named PostgreSQL CHECK constraints; the port ledger has no remaining
+column-backed validation gap.
 
-## Structure
+## Database roles and migrations
 
-- `server.ts` — process bootstrap: connect, listen, drain, exit. The only file
-  with process-level state. It connects to MongoDB *before* listening, so a task
-  never accepts traffic it cannot serve.
-- `src/app.ts` — builds the HTTP application. Opens no connections and starts no
-  timers, so tests exercise it without a runtime.
-- `src/config/index.ts` — the whole environment contract, validated at import.
-- `src/config/databaseIdentity.ts` — declares the database this service uses.
-  Source, not configuration: Mongoose applies `dbName` over the database named
-  in `MONGODB_URI`, so this constant — not the connection string — decides what
-  a release touches. Read by `.github/scripts/assert-own-database.sh` before a
-  release is built.
-- `src/db/tenantScope.ts` — the tenant isolation boundary. Mongo has no Row
-  Level Security, so isolation holds only while every tenant-owned query goes
-  through here.
-- `src/db/collections.ts` — the only way this service reaches a collection.
-  Declares tenant-owned collections (every read and write takes a
-  `TenantContext`) and the few that cannot be scoped by the tenant because they
-  define it, each of which states its reason in source.
-- `src/db/driverEscapes.ts` + `src/__tests__/collectionBoundary.test.ts` — the
-  gate on the above. Nothing in Mongo stops a query that forgets its tenant
-  filter, so the build fails when a module outside `src/db` reaches the driver.
-- `src/db/transaction.ts` — transactions, and the duplicate-key classification
-  that lets idempotency be a unique index instead of a racy read-then-write.
-- `src/http/` — the §10.5 error convention and the one place a failure becomes a
-  response.
-- `src/modules/` — the modular monolith. `tenancy` owns the tenant and where
-  `applicationId` comes from; `ingestion` owns the report write path; `outbox`
-  owns the durable event row.
-- `src/utils/database.ts` — connection, retry and drain.
-- `src/routes/health.routes.ts` — liveness and readiness, kept separate so a
-  draining task, or one that lost its database, fails readiness while still
-  answering liveness.
+Use two separate credentials:
+
+- `DATABASE_URL` -> `crowdsource_app`, the serving role subject to forced RLS;
+- `MIGRATOR_DATABASE_URL` -> `crowdsource_migrator`, the table owner used only by
+  `scripts/migrate.ts`.
+
+The migrator refuses to fall back to the application credential and requires an
+exact `--target-database=<name>` guard. The serving task definition must never
+carry `MIGRATOR_DATABASE_URL`.
+
+```bash
+MIGRATOR_DATABASE_URL='postgres://…' \
+  bun scripts/migrate.ts --target-database=crowdsource --phase=pre
+```
+
+Do not use example names or URLs as production values. Provisioning and cutover
+are operator actions covered by the backend PostgreSQL cutover runbook.
 
 ## Local development
 
-```bash
-cp .env.example .env
-bun run dev
-```
-
-CrowdSource uses its **own database inside the Mongo instance you already run**
-for the other Oxy apps — the same arrangement as production, where separation
-comes from `dbName`, not from a separate server. There is deliberately no
-`docker-compose.yml` starting a second Mongo: it would fight for port 27017 with
-the one already running and model a topology production does not have.
-
-The instance must be a **replica set**. Multi-document transactions need one and
-the outbox pattern depends on them, so a standalone `mongod` works until the
-first outbox write and then fails in a way that looks like a code bug. Check
-with `mongosh --eval 'rs.status().set'`. If you have no Mongo at all:
+Start the disposable PostgreSQL server from the repository root:
 
 ```bash
-docker run -d --name oxy-mongo -p 27017:27017 mongo:8 --replSet rs0 --bind_ip_all
-docker exec oxy-mongo mongosh --quiet --eval 'rs.initiate()'
+docker compose -f docker-compose.postgres.yml up -d --wait postgres
+export CROWDSOURCE_BACKEND_TEST_POSTGRES_URL='postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres'
+export DATABASE_URL="$CROWDSOURCE_BACKEND_TEST_POSTGRES_URL"
+bun run --cwd packages/backend dev
 ```
+
+The test harness creates a uniquely named database plus exact non-superuser app
+and migrator roles for each run, applies the journal, and drops that disposable
+database afterwards. It refuses to run without
+`CROWDSOURCE_BACKEND_TEST_POSTGRES_URL`; it never falls back to a developer or
+production database.
 
 ## Commands
 
 ```bash
-bun run dev      # watch mode
-bun run build    # tsc -> dist/ (this is what the ECS image runs)
-bun run lint     # tsc --noEmit
-bun run test     # vitest
+bun run --cwd packages/backend build
+bun run --cwd packages/backend lint
+bun run --cwd packages/backend test
+bun run check:backend-postgres-only
+CROWDSOURCE_BACKEND_TEST_POSTGRES_URL='postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres' \
+  bun run test:backend-cutover:realdb
 ```
 
-The suite starts a **disposable MongoDB replica set** (`mongodb-memory-server`,
-a devDependency) rather than using the local one, and the integration tests run
-against it — a mocked driver can be made to agree with any claim about a unique
-index or a transaction, which is exactly why it must not be what those claims are
-tested against. `src/__tests__/support/tenants.ts` refuses to run if that replica
-set did not start, so a suite that silently fell back to a developer's local Mongo
-fails instead of passing against the wrong server.
+`bun run check:backend-postgres-only` mutation-tests the signed freeze, exact
+IDs/relationships, the pinned final archive identity/census and fixed
+26-collection/27-table cutover manifest. The dedicated real-database command
+proves transactional import, JSONB/nullable-field canonicalization, exact
+idempotent retry, canonical re-export and target-mutation refusal. The backend
+Vitest suite also blocks Mongo imports, URIs, dependencies, environment
+templates and deployment wiring, and exercises RLS, constraints, transactions
+and claim races against real PostgreSQL.
+
+## Production-data status
+
+The code cut does not prove a live data cutover. The sole source is the exact
+versioned final S3 archive pinned by the runbook; its one-shot recovery uses a
+networkless MongoDB 8.2.11 container matching the archive producer and is never
+copied into this runtime image. Production remains blocked until an authorised
+archive recovery/import/re-export reconciliation produces a valid
+`crowdsource-backend-cutover/v1` schema-v2 manifest against a separately named
+empty PostgreSQL target. See
+[`../../docs/runbooks/crowdsource-backend-postgres-cutover.md`](../../docs/runbooks/crowdsource-backend-postgres-cutover.md).

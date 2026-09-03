@@ -2,16 +2,16 @@
  * The storage port: everything this package writes down, as a contract.
  *
  * INTERNAL, and deliberately so. An adopting application never implements any
- * of this — it picks a backend by which subpath it imports, and the
- * implementation ships with the package. The port exists because two backends
- * must agree, not because storage is a seam an application is invited to fill:
+ * of this — it imports the PostgreSQL subpath and the implementation ships with
+ * the package. The port keeps storage mechanics out of policy code; it is not a
+ * seam an application is invited to fill:
  * a port with this many members handed to seven applications would be seven
  * chances to get the revision guard, the lease ownership check or the
  * insert-if-absent wrong, each in a way nothing fails on.
  *
  * Which is why every member below carries the correctness property it has to
  * preserve. The comments are not documentation of an obvious signature; they
- * are the reason a second implementation can be written at all. A method whose
+ * are the reason the implementation can be audited. A method whose
  * comment says `true` means THIS call took the claim cannot be implemented as
  * "row exists" without the difference being visible.
  *
@@ -21,11 +21,10 @@
  *    status and the next attempt time already computed, `claim` takes an
  *    already-computed `leaseUntil`. Backoff, the retry ceiling, the lease-length
  *    floor and the retryable/permanent classification live in the shared half,
- *    where two backends cannot re-derive them differently.
+ *    outside the PostgreSQL query implementation.
  * 2. **No opaque record id crosses the port.** An enforcement row is addressed
  *    by the natural triple it is keyed on, so the same three values reach the
- *    same row through a Mongo unique index and through a Postgres composite
- *    primary key.
+ *    same row through its PostgreSQL composite primary key.
  */
 
 import type {
@@ -507,10 +506,10 @@ export interface ModerationReportStore<TReport extends ModerationReportFields, T
 /**
  * One object holding every write this package makes.
  *
- * Built by a backend's own factory and passed in whole, so an application picks
- * its storage once rather than per collection — two backends cannot be mixed,
- * which would put the report and its outbox row in different transactions and
- * silently undo the intake guarantee.
+ * Built by the PostgreSQL factory and passed in whole, so an application cannot
+ * assemble pieces backed by different connections, which would put the report
+ * and its outbox row in different transactions and silently undo the intake
+ * guarantee.
  */
 export interface ModerationStore<TReport extends ModerationReportFields, TTx> {
   readonly transaction: ModerationTransactionRunner<TTx>;
@@ -519,8 +518,7 @@ export interface ModerationStore<TReport extends ModerationReportFields, TTx> {
   readonly enforcement: ModerationEnforcementStore;
   readonly reports: ModerationReportStore<TReport, TTx>;
   /**
-   * Creates indexes (Mongo) or asserts the migrated schema is present
-   * (Postgres).
+   * Asserts that the migrated PostgreSQL schema is present.
    *
    * Called once at wiring time. The unique indexes are the mechanism behind
    * every "exactly once" claim in this package, so they must exist before the

@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose';
+import type { TransactionSession } from '../../db/collections';
 import type {
   ContextSufficiency,
   Decision,
@@ -34,7 +34,7 @@ import { decisions, type DecisionDocument, type DecisionJurySummary } from './de
  *
  * and a `modifiedCount` of zero means somebody else got there first, at which
  * point this returns without writing anything. Two concurrent transactions
- * cannot both see the pre-state: MongoDB detects the write conflict on the case
+ * cannot both see the pre-state: PostgreSQL serializes the guarded case update
  * document, the loser's transaction is retried by the driver, and on the retry
  * its filter no longer matches. That is why the swap must come BEFORE the
  * insert — a decision written first and swapped afterwards would leave the loser
@@ -119,9 +119,8 @@ export async function publishDecision(input: PublishDecisionInput): Promise<Publ
            * document where the field is ABSENT: `$lt` skips it, `$not` matches
            * it. A case created before this field existed would otherwise be
            * permanently undecidable — silently, with the worker reporting
-           * "already decided" forever and no decision ever appearing. There is
-           * no migration runner yet (`RUN_MIGRATIONS` is false), so the query
-           * has to tolerate the older shape rather than assume a backfill.
+           * "already decided" forever and no decision ever appearing. Keeping
+           * the tolerant predicate also makes a backfilled legacy row safe.
            */
           decidedRevision: { $not: { $gte: input.revision } },
         },
@@ -249,7 +248,7 @@ export async function markSuperseded(
   caseId: string,
   revision: number,
   now: Date,
-  session?: ClientSession,
+  session?: TransactionSession,
 ): Promise<number> {
   return decisions.updateOne(
     context,

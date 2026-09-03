@@ -4,11 +4,9 @@
  * Everything here is backend-NEUTRAL by construction. The suite asserts the
  * guarantees in §2 — a report and its outbox row commit together, a lease is
  * owned, an enforcement action happens once — and every one of those is a claim
- * about behaviour rather than about a driver. A test body that says
- * `countDocuments({})` or `new mongoose.Types.ObjectId()` is making the same
- * claim in a dialect only one backend speaks, and that is the whole reason this
- * file exists: a second implementation of {@link ModerationBackend} makes the
- * identical suite run against Postgres without touching a test body.
+ * about behaviour rather than about a driver. A test body that reaches a
+ * concrete driver makes the claim in a dialect the public store contract does
+ * not speak. This facade keeps every assertion at that contract boundary.
  *
  * The rule that keeps it honest: **there is no escape hatch.** No `connection`,
  * no model, no `db`. If a test needs something the façade cannot express, the
@@ -253,10 +251,8 @@ export interface HarnessTransaction {
    * Run a callback inside a REAL transaction on this backend, handing it an
    * enqueue already bound to that transaction's handle.
    *
-   * The handle itself never crosses this boundary. A mongoose `ClientSession`
-   * and a drizzle transaction are different types, and one `Harness` cannot name
-   * both without a type parameter — which a single `describe.each` over two
-   * backends cannot tolerate. Binding the enqueue is what removes the need.
+   * The handle itself never crosses this boundary. Binding the enqueue keeps
+   * drizzle transaction details out of the behaviour suite.
    *
    * A throw from the callback MUST propagate, because two tests assert that the
    * transaction rolled back and a swallowed error would make both of them pass
@@ -276,8 +272,8 @@ export interface Harness {
   transaction: HarnessTransaction;
 
   /**
-   * An enqueue bound to a handle that is NOT in a transaction — a bare mongoose
-   * session, or the Postgres pool handle.
+   * An enqueue bound to a handle that is NOT in a transaction — the Postgres
+   * pool handle.
    *
    * The negative case for the enqueue guard, and the only reason this is on the
    * harness at all: the guard exists because a handle that satisfies the
@@ -303,13 +299,13 @@ export interface HarnessOptions {
 /**
  * One storage backend, as the suite sees it.
  *
- * TWO factories, because there are two fictional applications: the one with
+ * Two factories, because there are two fictional applications: the one with
  * levers, and the one with nothing to enforce with. Both are storage shapes a
  * backend has to be able to build, so both live here rather than one being
  * reached through a side door.
  */
 export interface ModerationBackend {
-  readonly name: 'mongoose' | 'postgres';
+  readonly name: 'postgres';
   createHarness(options?: HarnessOptions): Promise<Harness>;
   createReviewOnlyHarness(): Promise<ReviewOnlyHarness>;
 }

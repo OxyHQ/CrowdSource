@@ -82,6 +82,16 @@ COPY --from=builder /app/packages/backend/dist/ packages/backend/dist/
 COPY --from=builder /app/packages/backend/src/db/postgres/migrations/ \
   packages/backend/dist/src/db/postgres/migrations/
 
+# Offline cutover entrypoint for the one-shot migrator task. It exposes only the
+# guarded PostgreSQL fingerprint/import/re-export/verifier commands; the sole
+# Mongo reader is the network-isolated archive recovery tool outside this image.
+# Remove these three files after the signed final
+# receipt and observation window are accepted; the serving command never loads
+# them.
+COPY --from=builder /app/scripts/crowdsource-backend-cutover.mjs scripts/
+COPY --from=builder /app/scripts/crowdsource-backend-cutover-lib.mjs scripts/
+COPY --from=builder /app/scripts/crowdsource-backend-cutover-postgres.mjs scripts/
+
 USER appuser
 EXPOSE 3000
 

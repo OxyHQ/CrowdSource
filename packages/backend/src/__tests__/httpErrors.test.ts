@@ -83,11 +83,31 @@ describe('errorHandler', () => {
 
   it('answers an unexpected failure with 500 and reveals nothing about it', async () => {
     const secret = 'reported text that must never be echoed';
+    const logged = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
     const response = await request(appThrowing(new Error(secret))).get('/boom');
 
     expect(response.status).toBe(500);
-    expect(response.body.error.code).toBe('internal_error');
+    expect(response.body).toEqual({
+      error: { code: 'internal_error', message: 'The request could not be completed.' },
+    });
     expect(JSON.stringify(response.body)).not.toContain(secret);
+    expect(logged).toHaveBeenCalledTimes(1);
+    expect(logged).toHaveBeenCalledWith(
+      {
+        classification: 'unexpected_error',
+        code: 'internal_error',
+        method: 'GET',
+        path: '/boom',
+      },
+      'Unhandled request error',
+    );
+    expect(
+      JSON.stringify(logged.mock.calls, (_key, value) =>
+        value instanceof Error
+          ? { name: value.name, message: value.message, stack: value.stack }
+          : value,
+      ),
+    ).not.toContain(secret);
   });
 
   it('classifies an oversized body as 413 rather than a server fault', async () => {
@@ -140,6 +160,15 @@ describe('errorHandler', () => {
     expect(response.status).toBe(503);
     expect(response.body.error.code).toBe('service_unavailable');
     expect(logged).toHaveBeenCalledTimes(1);
+    expect(logged).toHaveBeenCalledWith(
+      {
+        classification: 'api_error',
+        code: 'service_unavailable',
+        method: 'GET',
+        path: '/boom',
+      },
+      'Request failed with a server-side condition',
+    );
   });
 
   it('does not log an ordinary caller error', async () => {

@@ -1,7 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { index, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { check, index, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
-import { createdAt, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+
+import {
+  APPLICATION_STATUSES,
+  CREDENTIAL_STATUSES,
+  ORGANIZATION_STATUSES,
+} from '../../../domain/closedValues';
 
 /**
  * The three tables that DEFINE a tenant.
@@ -61,6 +67,10 @@ export const organizations = pgTable(
      * path stored differently, where this just works.
      */
     uniqueIndex('organizations_slug_lower_key').on(sql`lower(${table.slug})`),
+    check(
+      'organizations_status_check',
+      sql`${table.status} in (${sql.raw(inList(ORGANIZATION_STATUSES))})`,
+    ),
   ],
 );
 
@@ -86,6 +96,10 @@ export const applications = pgTable(
   (table) => [
     /** "Which applications does this organization own" — the console's list. */
     index('applications_organization_id_idx').on(table.organizationId),
+    check(
+      'applications_status_check',
+      sql`${table.status} in (${sql.raw(inList(APPLICATION_STATUSES))})`,
+    ),
   ],
 );
 
@@ -119,5 +133,9 @@ export const applicationCredentials = pgTable(
     /** Listing and revoking an application's credentials from the console. */
     index('application_credentials_application_id_idx').on(table.applicationId),
     index('application_credentials_organization_id_idx').on(table.organizationId),
+    check(
+      'application_credentials_status_check',
+      sql`${table.status} in (${sql.raw(inList(CREDENTIAL_STATUSES))})`,
+    ),
   ],
 );

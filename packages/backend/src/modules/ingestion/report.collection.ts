@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose';
+import type { ReportStatus } from '@oxyhq/crowdsource-contracts';
 
 import { defineTenantCollection } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
@@ -45,47 +45,10 @@ export interface ReportDocument extends TenantContext {
    * `invalid`, `withdrawn` and `closed` belong to surfaces that do not exist
    * yet, so nothing writes them.
    */
-  status: 'received' | 'merged' | 'invalid' | 'withdrawn' | 'closed';
+  status: ReportStatus;
   receivedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const reportSchema = new Schema<ReportDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-    reportId: { type: String, required: true, unique: true },
-    externalReportId: { type: String, required: true },
-    idempotencyKey: { type: String, required: true },
-    payloadHash: { type: String, required: true },
-    envelope: { type: Schema.Types.Mixed, required: true },
-    caseId: { type: String, required: true },
-    contentHash: { type: String, required: true },
-    status: {
-      type: String,
-      required: true,
-      enum: ['received', 'merged', 'invalid', 'withdrawn', 'closed'],
-      default: 'received',
-    },
-    receivedAt: { type: Date, required: true },
-  },
-  { timestamps: true, collection: 'reports' },
-);
-
-/**
- * The two constraints of §12.7 that make a retry safe.
- *
- * They are unique INDEXES rather than a read-then-write check because a check
- * races: two concurrent retries of the same delivery both read nothing and both
- * insert. With these, the second insert fails and the service answers with the
- * first report's id.
- *
- * `applicationId` alone is enough of a tenant prefix — it is a random public id,
- * unique across the deployment — so these match §12.7 exactly, and one
- * application's `externalReportId` can never collide with another's.
- */
-reportSchema.index({ applicationId: 1, externalReportId: 1 }, { unique: true });
-reportSchema.index({ applicationId: 1, idempotencyKey: 1 }, { unique: true });
-
-export const reports = defineTenantCollection('Report', reportSchema);
+export const reports = defineTenantCollection<ReportDocument>('Report');

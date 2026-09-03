@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose';
+import type { TransactionSession } from '../../db/collections';
 
 import type { TenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';
@@ -62,7 +62,7 @@ function sandboxDefault(
 export async function createApplicationTrust(
   organizationId: string,
   applicationId: string,
-  session?: ClientSession,
+  session?: TransactionSession,
 ): Promise<void> {
   const existing = await applicationTrust.findOne({ applicationId });
   if (existing) return;

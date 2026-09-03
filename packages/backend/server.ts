@@ -2,7 +2,6 @@ import http from 'node:http';
 
 import { createApp } from './src/app';
 import { config } from './src/config';
-import { ensureIndexes } from './src/db/collections';
 import { closePostgresDatabase, pingPostgres } from './src/db/postgres/database';
 import {
   startOutboxDispatcher,
@@ -19,9 +18,7 @@ import {
   stopAssignmentExpirySweep,
 } from './src/modules/sortition/assignment.service';
 import { setRuntimeReady } from './src/routes/health.routes';
-import { connectToDatabase, disconnectFromDatabase } from './src/utils/database';
 import { logger } from './src/utils/logger';
-import { assertTransactionalTopology } from './src/utils/mongoTopology';
 
 /**
  * Process bootstrap: connect, listen, drain, exit. Everything the HTTP
@@ -29,15 +26,15 @@ import { assertTransactionalTopology } from './src/utils/mongoTopology';
  * with process-level state.
  */
 
-process.on('unhandledRejection', (reason: unknown) => {
-  logger.error({ err: reason }, 'Unhandled promise rejection');
+process.on('unhandledRejection', (_reason: unknown) => {
+  logger.error({ classification: 'unhandled_rejection' }, 'Unhandled promise rejection');
   if (config.isProduction) {
     process.exit(1);
   }
 });
 
-process.on('uncaughtException', (error: Error) => {
-  logger.error({ err: error }, 'Uncaught exception');
+process.on('uncaughtException', (_error: Error) => {
+  logger.error({ classification: 'uncaught_exception' }, 'Uncaught exception');
   // The process state is unreliable after this point; never keep serving.
   process.exit(1);
 });
@@ -50,14 +47,11 @@ const server = http.createServer(createApp());
  * request fails.
  */
 async function start(): Promise<void> {
-  await connectToDatabase();
-
   /**
    * Reach PostgreSQL once, before anything can serve a request against it.
    *
-   * The same reasoning as the MongoDB connect above, and it matters more here
-   * because of how this store fails. Under `FORCE` row security a scoped read
-   * on an unreachable or misconfigured database does not error — the whole
+   * This matters because of how this store fails. Under `FORCE` row security a
+   * scoped read on an unreachable or misconfigured database does not error — the whole
    * tenant boundary is evaluated against runtime parameters, and a statement
    * that matches nothing returns ZERO ROWS. Zero rows is an entirely ordinary
    * answer, so a task that never had a working database would serve traffic,
@@ -65,20 +59,6 @@ async function start(): Promise<void> {
    * cases. Boot is the last moment that failure is loud.
    */
   await pingPostgres();
-  // Refuse a deployment that could never honour the outbox, rather than
-  // discovering it at the first transactional write.
-  await assertTransactionalTopology();
-  /**
-   * Idempotency is a unique index (§12.7), so a task serving traffic without
-   * its indexes accepts duplicate reports while reporting perfect health. This
-   * runs before the listener for that reason and not as a convenience.
-   *
-   * It belongs to the migration runner once one exists; until then it lives
-   * here, because the alternative is a correctness guarantee that depends on
-   * somebody having remembered to create an index by hand.
-   */
-  await ensureIndexes();
-
   /**
    * The outbox is the durable record of pending moderation work (§12.5), and
    * this loop is what moves it. Registration first, then the timer: a dispatcher
@@ -151,17 +131,17 @@ function shutdown(signal: NodeJS.Signals): void {
 
   server.close((error) => {
     if (error) {
-      logger.error({ err: error }, 'HTTP server did not close cleanly');
+      logger.error({ classification: 'http_server_close_failed' }, 'HTTP server did not close cleanly');
       process.exit(1);
       return;
     }
-    Promise.allSettled([disconnectFromDatabase(), closePostgresDatabase()])
-      .then(([mongo, postgres]) => {
-        if (mongo.status === 'rejected') {
-          logger.error({ err: mongo.reason }, 'MongoDB did not disconnect cleanly');
-        }
+    Promise.allSettled([closePostgresDatabase()])
+      .then(([postgres]) => {
         if (postgres.status === 'rejected') {
-          logger.error({ err: postgres.reason }, 'PostgreSQL did not disconnect cleanly');
+          logger.error(
+            { classification: 'postgres_disconnect_failed' },
+            'PostgreSQL did not disconnect cleanly',
+          );
         }
       })
       .finally(() => {
@@ -173,7 +153,7 @@ function shutdown(signal: NodeJS.Signals): void {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-start().catch((error: unknown) => {
-  logger.error({ err: error }, 'Failed to start');
+start().catch((_error: unknown) => {
+  logger.error({ classification: 'startup_failed' }, 'Failed to start');
   process.exit(1);
 });

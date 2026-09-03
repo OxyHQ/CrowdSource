@@ -7,6 +7,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
@@ -198,8 +199,6 @@ export const reviewerProfiles = pgTable(
 export const reviewerPrincipalLinks = pgTable(
   'reviewer_principal_links',
   {
-    reviewerPrincipalLinkId: text('reviewer_principal_link_id').primaryKey(),
-
     reviewerId: text('reviewer_id').notNull(),
     applicationId: text('application_id').notNull(),
     /** The application's own id for this person. Never an Oxy user id. */
@@ -209,12 +208,15 @@ export const reviewerPrincipalLinks = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [
-    /** Claiming the same account twice is one link, not two. */
-    uniqueIndex('reviewer_principal_links_reviewer_application_principal_key').on(
-      table.reviewerId,
-      table.applicationId,
-      table.externalPrincipalId,
-    ),
+    /**
+     * The source array explicitly used `_id: false`, so these three source
+     * values are the identity. A synthetic id here would force the cutover to
+     * invent one that cannot be reconciled back to Mongo.
+     */
+    primaryKey({
+      name: 'reviewer_principal_links_reviewer_application_principal_pk',
+      columns: [table.reviewerId, table.applicationId, table.externalPrincipalId],
+    }),
     /**
      * The draw's question, once per draw: "is anybody involved in this case also a
      * reviewer?" — `application_id = $1 AND external_principal_id = ANY($2)`.

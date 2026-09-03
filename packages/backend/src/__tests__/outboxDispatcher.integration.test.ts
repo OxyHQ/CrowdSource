@@ -1,7 +1,8 @@
-import mongoose from 'mongoose';
+import { postgresControl } from './support/postgresControl';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { withTransaction } from '../db/transaction';
+import * as outboxRepository from '../db/postgres/repositories/outbox';
 import {
   appendOutboxEvent,
   OUTBOX_EVENT_TYPES,
@@ -18,6 +19,7 @@ import {
   startOutboxDispatcher,
   stopOutboxDispatcher,
 } from '../modules/outbox/outbox.dispatcher';
+import { logger } from '../utils/logger';
 import {
   provisionTenant,
   startDatabase,
@@ -28,7 +30,7 @@ import {
 /**
  * The outbox dispatcher (§12.5).
  *
- * The reason this loop reads MongoDB rather than a queue is stated in the
+ * The reason this loop reads PostgreSQL rather than a queue is stated in the
  * dispatcher itself: the Valkey that would carry the jobs is a single node with
  * no replica, no failover and no snapshots, so a job is a hint and the row is
  * the record. These tests are about the properties that makes necessary — a
@@ -237,7 +239,7 @@ describe('a dispatcher that dies mid-handler', () => {
 });
 
 describe('a handler that fails', () => {
-  it('returns the row to pending with a backoff, and keeps the reason', async () => {
+  it('returns the row to pending with a backoff and a safe classification', async () => {
     const eventId = await writeEvent(`case_retry_${Date.now()}`);
 
     registerOutboxHandler(OUTBOX_EVENT_TYPES.reportReceived, async (event) => {
@@ -250,7 +252,7 @@ describe('a handler that fails', () => {
     const stored = await readEvent(eventId);
     expect(stored?.status).toBe('pending');
     expect(stored?.attempts).toBe(1);
-    expect(stored?.lastError).toBe('downstream unavailable');
+    expect(stored?.lastError).toBe('dispatch_failed');
     // Backed off, so a permanently broken handler cannot spin the loop.
     expect(stored?.availableAt.getTime()).toBeGreaterThan(before.getTime());
   });
@@ -269,7 +271,7 @@ describe('a handler that fails', () => {
 
     const stored = await readEvent(eventId);
     expect(stored?.status).toBe('failed');
-    expect(stored?.lastError).toBe('always fails');
+    expect(stored?.lastError).toBe('dispatch_failed');
     /**
      * §12.5's guarantee is that pending work is re-derivable from the outbox, so
      * a row that cannot be handled has to stay readable for an operator to
@@ -277,11 +279,11 @@ describe('a handler that fails', () => {
      * into permanently lost moderation work.
      */
     expect(
-      await mongoose.connection.collection('outbox_events').countDocuments({ eventId }),
+      await postgresControl.collection('outbox_events').countDocuments({ eventId }),
     ).toBe(1);
   });
 
-  it('does not put a handler failure message into the log verbatim beyond its own text', async () => {
+  it('does not put a handler failure message or stack into storage or logs', async () => {
     const eventId = await writeEvent(`case_redact_${Date.now()}`);
 
     registerOutboxHandler(OUTBOX_EVENT_TYPES.reportReceived, async (event) => {
@@ -292,13 +294,14 @@ describe('a handler that fails', () => {
       }
     });
 
+    const logged = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
     await runOnce();
 
-    // The MESSAGE is kept; the stack — which routinely quotes the document a
-    // driver choked on — is not (§13.4).
     const stored = await readEvent(eventId);
-    expect(stored?.lastError).toBe('handler failed');
-    expect(stored?.lastError).not.toContain('reported text');
+    expect(stored?.lastError).toBe('dispatch_failed');
+    const written = JSON.stringify(logged.mock.calls);
+    expect(written).not.toContain('handler failed');
+    expect(written).not.toContain('reported text');
   });
 });
 
@@ -323,7 +326,7 @@ describe('appendOutboxEvent', () => {
     ).rejects.toThrow('the domain write failed after the event');
 
     expect(
-      await mongoose.connection
+      await postgresControl
         .collection('outbox_events')
         .countDocuments({ 'payload.caseId': caseId }),
     ).toBe(0);
@@ -355,7 +358,7 @@ describe('a handler that throws something that is not an Error', () => {
     await runOnce();
 
     const stored = await readEvent(eventId);
-    expect(stored?.lastError).toBe('Unknown dispatch failure');
+    expect(stored?.lastError).toBe('dispatch_failed');
     expect(stored?.status).toBe('pending');
   });
 });
@@ -393,7 +396,7 @@ describe('the polling loop', () => {
   it('survives a pass that throws without stopping the loop', async () => {
     registerOutboxHandler(OUTBOX_EVENT_TYPES.reportReceived, async () => {});
     const failing = vi
-      .spyOn(outboxEvents, 'findOneAndUpdate')
+      .spyOn(outboxRepository, 'claimNextOutboxEvent')
       .mockRejectedValueOnce(new Error('the database blinked'));
 
     startOutboxDispatcher(5);

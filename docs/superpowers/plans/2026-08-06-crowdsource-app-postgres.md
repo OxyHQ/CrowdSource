@@ -1,5 +1,12 @@
 # `@oxyhq/crowdsource-app` — PostgreSQL Implementation Plan
 
+> **Archived, superseded plan.** This document preserves the design sequence
+> proposed on 2026-08-06. It is not current implementation guidance:
+> `@oxyhq/crowdsource-app` and CrowdSource's backend are PostgreSQL-only, and
+> the former Mongoose subpath/runtime no longer exists. In current operations,
+> MongoDB may be used only inside the pinned, network-isolated archive recovery
+> reader; no live-source connector remains.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** give `@oxyhq/crowdsource-app` a PostgreSQL implementation, so an adopting backend chooses its storage by which subpath it imports and gets an identical moderation pipeline either way. Syra's moderation vertical — the last task of its Mongo→Postgres port — is blocked on this.

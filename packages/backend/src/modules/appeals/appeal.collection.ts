@@ -1,5 +1,4 @@
-import { Schema } from 'mongoose';
-import { APPEAL_REASONS, type AppealReason } from '@oxyhq/crowdsource-contracts';
+import type { AppealReason } from '@oxyhq/crowdsource-contracts';
 
 import { defineTenantCollection } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
@@ -106,68 +105,4 @@ export interface AppealDocument extends TenantContext {
   updatedAt: Date;
 }
 
-const appealAuthorContextSchema = new Schema<AppealAuthorContextDocument>(
-  {
-    statement: { type: String, required: true },
-    resourceIds: { type: [String], required: true, default: [] },
-    fields: { type: Schema.Types.Mixed, required: true, default: {} },
-  },
-  { _id: false },
-);
-
-const appealSchema = new Schema<AppealDocument>(
-  {
-    organizationId: { type: String, required: true },
-    applicationId: { type: String, required: true },
-
-    appealId: { type: String, required: true, unique: true },
-    caseId: { type: String, required: true },
-
-    supersededRevision: { type: Number, required: true },
-    supersededDecisionId: { type: String, required: true },
-    openedRevision: { type: Number, required: true },
-
-    reason: { type: String, required: true, enum: APPEAL_REASONS },
-    appellantExternalPrincipalId: { type: String, required: true },
-
-    authorContext: { type: appealAuthorContextSchema, default: null },
-
-    previousRequiredVotes: { type: Number, required: true },
-    severeAction: { type: Boolean, required: true },
-    requiredAgreeingVotes: { type: Number, required: true },
-
-    idempotencyKey: { type: String, required: true },
-    payloadHash: { type: String, required: true },
-
-    filedAt: { type: Date, required: true },
-    filedByCredentialId: { type: String, required: true },
-  },
-  { timestamps: true, collection: 'appeals' },
-);
-
-/**
- * One appeal per case revision, enforced by the database (§12.7's idempotency
- * rule applied to this collection).
- *
- * The index is what makes a retry safe. Two deliveries of the same appeal — an
- * application retrying from its outbox, a user double-tapping — must produce ONE
- * appeal and ONE new revision, because two revisions would mean two panels for
- * one appeal and the second one's ballots counting toward a revision that was
- * already being decided. A lookup before the insert would race; the index cannot.
- */
-appealSchema.index({ applicationId: 1, caseId: 1, supersededRevision: 1 }, { unique: true });
-
-/**
- * A retry files one appeal (§10.4's convention, applied here).
- *
- * The other index above refuses a second appeal of one revision, which is not the
- * same guarantee: an application retrying a delivery it never got an answer for
- * has to receive the ORIGINAL appeal rather than a 409, or a network timeout turns
- * into a moderation case nobody can appeal.
- */
-appealSchema.index({ applicationId: 1, idempotencyKey: 1 }, { unique: true });
-
-/** The operator's and the metric's question: this case's appeals, in order. */
-appealSchema.index({ applicationId: 1, caseId: 1, openedRevision: 1 });
-
-export const appeals = defineTenantCollection('Appeal', appealSchema);
+export const appeals = defineTenantCollection<AppealDocument>('Appeal');
