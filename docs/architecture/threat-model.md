@@ -1,9 +1,15 @@
 # Threat model
 
-- **Status**: current as of 2026-07-30, against `origin/main` = `978d31ac`
-- **Revises**: PLAN §13.1, which was written before any of this existed and
-  assumes PostgreSQL Row Level Security, an S3 evidence bucket and three
-  environments. See ADR 0001 for why none of those is what runs.
+- **Status**: archived Mongo-era measurement from 2026-07-30, against `origin/main` = `978d31ac`
+- **Revised at the time**: PLAN §13.1, which was written before that snapshot
+  and assumed PostgreSQL Row Level Security, an S3 evidence bucket and three
+  environments. The superseded ADR 0001 records why those did not run then.
+
+> **Not a current control inventory.** “Today” below means the pinned 2026-07-30
+> source tree. The serving runtime is now PostgreSQL-only with forced RLS; use
+> [`engineering-rules.md`](./engineering-rules.md) and
+> [`postgres-runtime-cut.md`](./postgres-runtime-cut.md) for the active storage
+> boundary, then verify each product control against current code and tests.
 
 ## How to read this
 
@@ -332,7 +338,9 @@ audience than "one specific Oxy operator with a reason".
    values are exactly the material that must not reach logs.
 6. **Logs carry neither identities nor content.** The backend logger
    (`packages/backend/src/utils/logger.ts`) configures no body capture and redacts
-   `authorization`/`cookie`; outbox failures store the error *message* only,
+   `authorization`/`cookie`; the HTTP error handler never serializes a thrown
+   value, message or stack and emits only fixed classification/code/method/path
+   fields. Outbox failures store the error *message* only,
    because a stack or driver error routinely quotes the document it choked on. The
    reviewer app's logger sanitiser
    (`packages/reviewer/lib/logger/sanitize.ts`) redacts keys matching

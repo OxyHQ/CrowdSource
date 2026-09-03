@@ -1,9 +1,15 @@
 # ADR 0001 — Divergence from the specification
 
-- **Status**: accepted
+- **Status**: superseded by [`postgres-runtime-cut.md`](./postgres-runtime-cut.md)
 - **Date**: 2026-07-30
 - **Supersedes**: nothing
 - **Scope**: infrastructure and persistence only. Product content is unaffected.
+
+> **Historical decision.** This ADR explains the former MongoDB/Mongoose
+> runtime. It is not current implementation guidance. CrowdSource now serves
+> exclusively from PostgreSQL; in current operations, MongoDB is permitted only
+> inside the pinned, network-isolated archive recovery reader described by the
+> backend runbook.
 
 ## Context
 

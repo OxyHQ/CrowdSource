@@ -60,7 +60,12 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, request, respo
       // A 503 is the service telling a caller to retry; it has to be visible to
       // an operator, unlike an ordinary 4xx which is the caller's own doing.
       logger.error(
-        { code: apiError.code, method: request.method, path: request.path },
+        {
+          classification: 'api_error',
+          code: apiError.code,
+          method: request.method,
+          path: request.path,
+        },
         'Request failed with a server-side condition',
       );
     }
@@ -68,10 +73,17 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, request, respo
     return;
   }
 
-  // Anything else is a defect. Log it in full, answer with nothing: the message
-  // of an unexpected error routinely contains a query, a filter or a fragment of
-  // whatever was being processed, and reported material must never leave here.
-  logger.error({ err: error, method: request.method, path: request.path }, 'Unhandled request error');
+  // Anything else is a defect. Its message, stack and own properties may contain
+  // reported material, so the logger receives only fixed classification fields.
+  logger.error(
+    {
+      classification: 'unexpected_error',
+      code: 'internal_error',
+      method: request.method,
+      path: request.path,
+    },
+    'Unhandled request error',
+  );
   const internalError = new ApiError('internal_error', 'The request could not be completed.');
   response.status(internalError.status).json(internalError.toResponseBody());
 };

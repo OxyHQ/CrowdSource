@@ -81,18 +81,26 @@ bun run --cwd packages/backend build
 bun run --cwd packages/backend lint
 bun run --cwd packages/backend test
 bun run check:backend-postgres-only
+CROWDSOURCE_BACKEND_TEST_POSTGRES_URL='postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres' \
+  bun run test:backend-cutover:realdb
 ```
 
-`bun run check:backend-postgres-only` mutation-tests the fixed 26-collection /
-27-table cutover manifest. The backend Vitest suite also blocks Mongo imports,
-URIs, dependencies and deployment wiring, and exercises RLS, constraints,
-transactions and claim races against real PostgreSQL.
+`bun run check:backend-postgres-only` mutation-tests the signed freeze, exact
+IDs/relationships, the pinned final archive identity/census and fixed
+26-collection/27-table cutover manifest. The dedicated real-database command
+proves transactional import, JSONB/nullable-field canonicalization, exact
+idempotent retry, canonical re-export and target-mutation refusal. The backend
+Vitest suite also blocks Mongo imports, URIs, dependencies, environment
+templates and deployment wiring, and exercises RLS, constraints, transactions
+and claim races against real PostgreSQL.
 
 ## Production-data status
 
-The code cut does not prove a live data cutover. No source data is inspected,
-modified or deleted by this package. Production remains blocked until an
-authorised freeze/export/import/re-export reconciliation produces a valid
-`crowdsource-backend-cutover/v1` manifest against a separately named empty
-target. See
+The code cut does not prove a live data cutover. The sole source is the exact
+versioned final S3 archive pinned by the runbook; its one-shot recovery uses a
+networkless MongoDB 8.2.11 container matching the archive producer and is never
+copied into this runtime image. Production remains blocked until an authorised
+archive recovery/import/re-export reconciliation produces a valid
+`crowdsource-backend-cutover/v1` schema-v2 manifest against a separately named
+empty PostgreSQL target. See
 [`../../docs/runbooks/crowdsource-backend-postgres-cutover.md`](../../docs/runbooks/crowdsource-backend-postgres-cutover.md).

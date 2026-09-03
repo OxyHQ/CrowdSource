@@ -122,6 +122,10 @@ jobs:
             # `vitest.globalSetup.ts` therefore THROWS without the URL rather than
             # skipping, so a job that forgot this flag fails loudly.
             postgres: true
+          - package: backend-cutover
+            command: bun run test:backend-cutover:realdb
+            build: bun run build:contracts
+            postgres: true
           - package: reviewer
             command: bun run --cwd packages/reviewer test:coverage -- --coverageDirectory="$RUNNER_TEMP/reviewer-coverage"
             coverage: true

@@ -308,11 +308,14 @@ export async function expireDueAssignments(
         );
         expired += 1;
       });
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       // One stuck row must not stop the sweep: the remaining assignments are
       // still overdue, and their panels are still a member short.
       logger.error(
-        { assignmentId: assignment.assignmentId, err: error },
+        {
+          assignmentId: assignment.assignmentId,
+          classification: 'assignment_expiry_failed',
+        },
         'Expiring an assignment failed',
       );
     }
@@ -335,8 +338,8 @@ export function startAssignmentExpirySweep(intervalMs = 60_000): void {
   if (sweepTimer) return;
 
   sweepTimer = setInterval(() => {
-    void expireDueAssignments().catch((error: unknown) => {
-      logger.error({ err: error }, 'Assignment expiry sweep failed');
+    void expireDueAssignments().catch((_error: unknown) => {
+      logger.error({ classification: 'assignment_expiry_sweep_failed' }, 'Assignment expiry sweep failed');
     });
   }, intervalMs);
   sweepTimer.unref?.();

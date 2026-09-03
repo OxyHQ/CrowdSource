@@ -26,15 +26,15 @@ import { logger } from './src/utils/logger';
  * with process-level state.
  */
 
-process.on('unhandledRejection', (reason: unknown) => {
-  logger.error({ err: reason }, 'Unhandled promise rejection');
+process.on('unhandledRejection', (_reason: unknown) => {
+  logger.error({ classification: 'unhandled_rejection' }, 'Unhandled promise rejection');
   if (config.isProduction) {
     process.exit(1);
   }
 });
 
-process.on('uncaughtException', (error: Error) => {
-  logger.error({ err: error }, 'Uncaught exception');
+process.on('uncaughtException', (_error: Error) => {
+  logger.error({ classification: 'uncaught_exception' }, 'Uncaught exception');
   // The process state is unreliable after this point; never keep serving.
   process.exit(1);
 });
@@ -131,14 +131,17 @@ function shutdown(signal: NodeJS.Signals): void {
 
   server.close((error) => {
     if (error) {
-      logger.error({ err: error }, 'HTTP server did not close cleanly');
+      logger.error({ classification: 'http_server_close_failed' }, 'HTTP server did not close cleanly');
       process.exit(1);
       return;
     }
     Promise.allSettled([closePostgresDatabase()])
       .then(([postgres]) => {
         if (postgres.status === 'rejected') {
-          logger.error({ err: postgres.reason }, 'PostgreSQL did not disconnect cleanly');
+          logger.error(
+            { classification: 'postgres_disconnect_failed' },
+            'PostgreSQL did not disconnect cleanly',
+          );
         }
       })
       .finally(() => {
@@ -150,7 +153,7 @@ function shutdown(signal: NodeJS.Signals): void {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-start().catch((error: unknown) => {
-  logger.error({ err: error }, 'Failed to start');
+start().catch((_error: unknown) => {
+  logger.error({ classification: 'startup_failed' }, 'Failed to start');
   process.exit(1);
 });

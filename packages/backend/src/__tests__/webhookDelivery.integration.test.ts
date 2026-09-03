@@ -1295,11 +1295,12 @@ describe('a worker pass that cannot record what it did', () => {
     expect(summary.claimed).toBeGreaterThanOrEqual(1);
     expect(summary.delivered).toBeLessThan(summary.claimed);
 
-    // Named, so an operator can find the row — and carrying the message only,
-    // never the error object, which would quote the delivery body.
+    // Named, so an operator can find the row, without the thrown message or
+    // object, either of which can quote the delivery body.
     const written = logged.mock.calls.map((call) => JSON.stringify(call)).join('\n');
     expect(written).toContain('Webhook delivery attempt could not be recorded');
     expect(written).toContain(delivery.deliveryId);
+    expect(written).not.toContain('the database blinked');
     expect(written).not.toContain(delivery.body);
   });
 });

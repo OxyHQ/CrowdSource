@@ -30,8 +30,9 @@ sequence cannot cross the historical post-before-later-pre high-water mark.
 
 The cut is guarded by:
 
-1. `postgresOnlyRuntime.test.ts`, which scans executable source, manifests and
-   deployment wiring for Mongo imports, URIs, dependencies and secrets;
+1. `postgresOnlyRuntime.test.ts`, which scans executable source, manifests,
+   environment templates and deployment wiring for Mongo imports, URIs,
+   dependencies and secrets;
 2. `postgresTableBoundary.realdb.test.ts`, which requires every Drizzle table to
    be explicitly RLS-scoped or explicitly exempt and verifies the live catalogue;
 3. `scopedRepositoryBoundary.test.ts`, which requires the branded
@@ -39,9 +40,11 @@ The cut is guarded by:
 4. real PostgreSQL tests for isolation, deduplication races, immutable decisions,
    leases, retries, domain/outbox rollback atomicity, the complete closed-value
    ledger, and the natural reviewer principal-link key;
-5. `verify-backend-cutover-manifest.mjs`, which fixes the 26-to-27 dataset map
-   and refuses unfrozen sources, populated targets or count/content/identity
-   mismatches.
+5. `verify-backend-cutover-manifest.mjs` and the cutover tool tests, which fix
+   the 26-to-27 dataset map and mutation-prove the signed freeze, non-empty
+   source, empty target, phase, IDs/relationships and count/content/identity
+   evidence; a dedicated CI entry repeats import/re-export against real
+   PostgreSQL.
 
 Historical design documents under `docs/superpowers/` intentionally retain the
 old state they proposed or measured. They are evidence, not current operations.

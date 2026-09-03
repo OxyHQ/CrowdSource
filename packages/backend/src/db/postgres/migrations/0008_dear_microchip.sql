@@ -4,7 +4,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM "cases" LIMIT 1) THEN
     RAISE EXCEPTION USING
       ERRCODE = 'P0001',
-      MESSAGE = 'CrowdSource cases cutover requires an empty PostgreSQL target; export MongoDB and import through the verified cutover tool instead of altering populated shadow rows.';
+      MESSAGE = 'CrowdSource cases cutover requires an empty PostgreSQL target; recover the pinned signed archive and import through the verified cutover tool instead of altering populated shadow rows.';
   END IF;
 END
 $$;--> statement-breakpoint

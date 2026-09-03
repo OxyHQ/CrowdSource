@@ -51,7 +51,15 @@ jobs:
 
   deploy:
     needs: scope
-    if: needs.scope.outputs.deploy == 'true'
+    # Main may contain the PostgreSQL-only runtime before production data has
+    # completed its separately authorised freeze/import/reconciliation. An
+    # absent repository variable is false, so a merge cannot run migrations,
+    # repoint the parked service or publish a release by accident. Set the
+    # exact variable to the exact string `true` only after the runbook's signed
+    # final manifest and committed receipt have both been accepted.
+    if: >-
+      needs.scope.outputs.deploy == 'true' &&
+      vars.CROWDSOURCE_POSTGRES_CUTOVER_COMPLETE == 'true'
     runs-on: ubuntu-24.04-arm
     # Includes image build, migrations, rollout, smoke checks and a full
     # rollback window if the production smoke check fails.
@@ -168,12 +176,13 @@ jobs:
           # check, and refuses outright if the family, the target database or
           # the migrator credential is missing.
           #
-          # What still gates RUN_MIGRATIONS is INFRASTRUCTURE: the database is
-          # not provisioned and `oxy-crowdsource-migrate` does not exist yet.
-          # Turn this on in the SAME change that lands them, together with the
-          # variables below — the script fails closed without them, so a
-          # half-configured flip stops the deploy rather than migrating as the
-          # wrong role.
+          # Enabling this assumes the separately managed database, migration
+          # task family and migrator parameter already exist. The script fails
+          # closed without them, so missing infrastructure stops the deploy
+          # rather than migrating as the wrong role. This rolling `pre -> post`
+          # path also cannot initialise a fresh target: the first empty target
+          # must cross the historical post-before-later-pre boundary with the
+          # runbook's frozen `--phase=all` procedure before this workflow runs.
           #
           # `oxy-crowdsource-migrate` carries MIGRATOR_DATABASE_URL and nothing
           # else. Its own image is whatever revision 1 was registered with; the

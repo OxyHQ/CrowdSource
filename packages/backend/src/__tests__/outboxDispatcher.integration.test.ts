@@ -19,6 +19,7 @@ import {
   startOutboxDispatcher,
   stopOutboxDispatcher,
 } from '../modules/outbox/outbox.dispatcher';
+import { logger } from '../utils/logger';
 import {
   provisionTenant,
   startDatabase,
@@ -238,7 +239,7 @@ describe('a dispatcher that dies mid-handler', () => {
 });
 
 describe('a handler that fails', () => {
-  it('returns the row to pending with a backoff, and keeps the reason', async () => {
+  it('returns the row to pending with a backoff and a safe classification', async () => {
     const eventId = await writeEvent(`case_retry_${Date.now()}`);
 
     registerOutboxHandler(OUTBOX_EVENT_TYPES.reportReceived, async (event) => {
@@ -251,7 +252,7 @@ describe('a handler that fails', () => {
     const stored = await readEvent(eventId);
     expect(stored?.status).toBe('pending');
     expect(stored?.attempts).toBe(1);
-    expect(stored?.lastError).toBe('downstream unavailable');
+    expect(stored?.lastError).toBe('dispatch_failed');
     // Backed off, so a permanently broken handler cannot spin the loop.
     expect(stored?.availableAt.getTime()).toBeGreaterThan(before.getTime());
   });
@@ -270,7 +271,7 @@ describe('a handler that fails', () => {
 
     const stored = await readEvent(eventId);
     expect(stored?.status).toBe('failed');
-    expect(stored?.lastError).toBe('always fails');
+    expect(stored?.lastError).toBe('dispatch_failed');
     /**
      * §12.5's guarantee is that pending work is re-derivable from the outbox, so
      * a row that cannot be handled has to stay readable for an operator to
@@ -282,7 +283,7 @@ describe('a handler that fails', () => {
     ).toBe(1);
   });
 
-  it('does not put a handler failure message into the log verbatim beyond its own text', async () => {
+  it('does not put a handler failure message or stack into storage or logs', async () => {
     const eventId = await writeEvent(`case_redact_${Date.now()}`);
 
     registerOutboxHandler(OUTBOX_EVENT_TYPES.reportReceived, async (event) => {
@@ -293,13 +294,14 @@ describe('a handler that fails', () => {
       }
     });
 
+    const logged = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
     await runOnce();
 
-    // The MESSAGE is kept; the stack — which routinely quotes the document a
-    // driver choked on — is not (§13.4).
     const stored = await readEvent(eventId);
-    expect(stored?.lastError).toBe('handler failed');
-    expect(stored?.lastError).not.toContain('reported text');
+    expect(stored?.lastError).toBe('dispatch_failed');
+    const written = JSON.stringify(logged.mock.calls);
+    expect(written).not.toContain('handler failed');
+    expect(written).not.toContain('reported text');
   });
 });
 
@@ -356,7 +358,7 @@ describe('a handler that throws something that is not an Error', () => {
     await runOnce();
 
     const stored = await readEvent(eventId);
-    expect(stored?.lastError).toBe('Unknown dispatch failure');
+    expect(stored?.lastError).toBe('dispatch_failed');
     expect(stored?.status).toBe('pending');
   });
 });

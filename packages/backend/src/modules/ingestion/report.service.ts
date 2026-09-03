@@ -375,9 +375,13 @@ export async function recordIngressRefusal(
         : { externalReportId: delivery.externalReportId }),
       reason,
     });
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
     logger.error(
-      { err: error, applicationId: context.applicationId, reason },
+      {
+        applicationId: context.applicationId,
+        classification: 'ingress_audit_write_failed',
+        reason,
+      },
       'Failed to record a rejected ingress in the audit trail',
     );
   }

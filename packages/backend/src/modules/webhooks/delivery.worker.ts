@@ -244,20 +244,20 @@ export async function runWebhookPass(
     try {
       await attemptDelivery(delivery, now);
       delivered += 1;
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       /**
        * `attemptDelivery` handles its own failures, so reaching here means the
        * RECORDING failed — the database, not the receiver. The lease expires and
        * the delivery is reclaimed, which is the correct outcome; what must not
        * happen is one broken row ending the pass for every other tenant.
        *
-       * The message only, never the error object: a driver error quotes the
+       * No thrown value, message or stack: a driver error can quote the
        * document it choked on, and that document carries the delivery body.
        */
       logger.error(
         {
+          classification: 'webhook_attempt_record_failed',
           deliveryId: delivery.deliveryId,
-          reason: error instanceof Error ? error.message.slice(0, 200) : 'Unknown failure',
         },
         'Webhook delivery attempt could not be recorded',
       );
@@ -282,8 +282,8 @@ export function startWebhookDeliveryWorker(intervalMs = 1_000): void {
   if (timer) return;
 
   timer = setInterval(() => {
-    void runWebhookPass().catch((error: unknown) => {
-      logger.error({ err: error }, 'Webhook delivery pass failed');
+    void runWebhookPass().catch((_error: unknown) => {
+      logger.error({ classification: 'webhook_delivery_pass_failed' }, 'Webhook delivery pass failed');
     });
   }, intervalMs);
   timer.unref?.();

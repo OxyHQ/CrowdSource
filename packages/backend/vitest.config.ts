@@ -31,6 +31,13 @@ export default defineConfig({
      * is a good trade for a gate that means what it says.
      */
     fileParallelism: false,
+    // Node's forked pool intermittently exits with SIGSEGV on the supported
+    // development host before Vitest reaches an assertion. The thread pool with
+    // one worker executes the complete suite and also preserves the database
+    // serialization contract above; it is not a retry, skip or reduced test
+    // selection.
+    pool: 'threads',
+    maxWorkers: 1,
     include: [path.resolve(backendRoot, 'src/__tests__/**/*.test.ts')],
     coverage: {
       provider: 'v8',

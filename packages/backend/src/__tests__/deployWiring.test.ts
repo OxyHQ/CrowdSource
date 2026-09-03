@@ -309,6 +309,13 @@ describe('the migration interlock', () => {
       expect(workflow).toMatch(/workflow_run\.conclusion == 'success'/);
     }
   });
+
+  it('keeps the backend production deploy closed until the data cutover is attested', () => {
+    const deployJob = /^  deploy:\n([\s\S]*?)(?=^  [a-z][a-z0-9-]*:\n)/m.exec(deployWorkflow)?.[1] ?? '';
+    const directives = directivesOnly(deployJob);
+    expect(directives).toContain("vars.CROWDSOURCE_POSTGRES_CUTOVER_COMPLETE == 'true'");
+    expect(directives).toContain("needs.scope.outputs.deploy == 'true'");
+  });
 });
 
 describe('the secrets the service cannot boot without', () => {
