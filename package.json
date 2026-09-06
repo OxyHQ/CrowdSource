@@ -77,7 +77,7 @@
     "@react-native/babel-preset": "0.85.3",
     "@react-native/metro-babel-transformer": "0.85.3",
     "@react-native/metro-config": "0.85.3",
-    "@oxyhq/bloom": "^1.8.0",
+    "@oxyhq/bloom": "^1.14.0",
     "@oxyhq/core": "^23.0.0",
     "@oxyhq/services": "^30.2.0",
     "brace-expansion": "2.1.4",
