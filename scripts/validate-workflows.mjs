@@ -355,6 +355,18 @@ for (const workflowName of workflowNames) {
           );
         }
 
+        // Everything below reads the PARSED `run:` bodies, never the file text.
+        // A matcher over the source counts prose: the comment above the deploy
+        // step names the command it is defending, so a text search would accept
+        // a workflow whose step had been deleted and its command left in a
+        // comment — the gate would pass with nothing deploying. Mention hit
+        // exactly that false pass on a mutation test.
+        const runBodies = Object.values(workflow?.jobs || {}).flatMap((job) =>
+          (job?.steps || [])
+            .map((step) => step?.run)
+            .filter((body) => typeof body === "string"),
+        );
+
         // The Pages release wrote a proxied CNAME for each hostname into the
         // `oxy.so` zone. A Worker custom domain REFUSES a hostname that already
         // has externally managed records (`code: 100117`), so a release that
@@ -367,7 +379,7 @@ for (const workflowName of workflowNames) {
           "attach-domain",
           "ensure-project",
         ]) {
-          if (source.includes(pagesOnlyStep)) {
+          if (runBodies.some((body) => body.includes(pagesOnlyStep))) {
             failures.push(
               `${workflowName}: '${pagesOnlyStep}' is a Cloudflare Pages operation; these frontends are Workers whose custom domain claims its own hostname and writes its own DNS`,
             );
@@ -381,9 +393,10 @@ for (const workflowName of workflowNames) {
           ["packages/reviewer", "crowdsource.oxy.so"],
           ["packages/console", "console.crowdsource.oxy.so"],
         ]) {
-          if (!source.includes(`cd ${appDirectory} && bunx wrangler@4 deploy`)) {
+          const deployCommand = `cd ${appDirectory} && bunx wrangler@4 deploy`;
+          if (!runBodies.some((body) => body.includes(deployCommand))) {
             failures.push(
-              `${workflowName}: no 'cd ${appDirectory} && bunx wrangler@4 deploy' step, so ${hostname} is either unpublished or published some other way`,
+              `${workflowName}: no step RUNS '${deployCommand}', so ${hostname} is either unpublished or published some other way`,
             );
             continue;
           }
