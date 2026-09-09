@@ -17,12 +17,7 @@
 # `workers_dev = false` leaves `crowdsource.oxy.so` as the only name that
 # reaches this deployment.
 name = "crowdsource-frontend"
-# Pinned to a date the wrangler this release runs (`wranglerVersion: '4.81.0'` in
-# `.github/workflows/deploy-frontends.yml`) actually supports: its bundled runtime
-# refuses anything newer than 2026-04-12, and a Worker whose config its own
-# deployer cannot run locally is one nobody can reproduce. Raise it with the
-# wrangler pin, not on its own.
-compatibility_date = "2026-04-12"
+compatibility_date = "2026-09-09"
 
 workers_dev = false
 
@@ -40,12 +35,18 @@ directory = "./dist"
 # only a genuine miss gets the shell.
 not_found_handling = "single-page-application"
 
-# `public/_headers` survives the move and is still the source of the one-year
-# immutable rules for `/_expo/static/*` and `/fonts/*` that
+# `public/_headers` survives the move and is still the ONLY thing applying the
+# one-year immutable rules for `/_expo/static/*` and `/fonts/*` that
 # `.github/scripts/smoke-frontend.sh` asserts against the live deployment.
 # Workers static assets read it exactly as Pages did: wrangler excludes
 # `_headers` and `_redirects` from the asset manifest and uploads each as a
-# deployment module instead.
+# deployment module instead. Confirmed against `wrangler dev` here — it logs
+# `Parsed 2 valid header rules`, and a hashed bundle came back
+# `Cache-Control: public, max-age=31536000, immutable`.
+#
+# There is no Worker script to set them instead, and adding one would not work:
+# with `run_worker_first` unset the asset router serves an existing file WITHOUT
+# invoking the script, so a script could only ever see a miss.
 
 # The only way in, and the reason the release no longer writes DNS by hand.
 # Cloudflare creates the record for a custom domain itself, which is why the

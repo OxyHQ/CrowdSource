@@ -41,6 +41,36 @@ for (const workflowName of workflowNames) {
       }
     }
 
+    // `cloudflare/wrangler-action` must never come back, in ANY workflow.
+    //
+    // The action installs its own wrangler and picks the package manager by
+    // looking for a lockfile beside its `workingDirectory`. This is a monorepo:
+    // the lockfile is at the ROOT, so beside any package the action finds none,
+    // falls back to npm, and npm cannot resolve `workspace:*`. Homiio took a
+    // production outage from exactly this on 2026-08-09 (run 31292337344,
+    // `Fail extracting tarball for "wrangler"`) — the step failed after the
+    // build, so it published nothing and left a stale bundle serving against a
+    // changed API — and moved off the action in its #291.
+    //
+    // The failure is invisible until the deploy runs, which is why this is a
+    // static check and not something a review is expected to catch.
+    //
+    // Read off the PARSED steps rather than the file text: what is forbidden is
+    // USING the action, and the comment above explaining why would trip a
+    // substring match on the source.
+    for (const [jobName, job] of Object.entries(workflow?.jobs || {})) {
+      for (const step of job?.steps || []) {
+        if (
+          typeof step?.uses === "string" &&
+          step.uses.startsWith("cloudflare/wrangler-action")
+        ) {
+          failures.push(
+            `${workflowName}: job '${jobName}' uses ${step.uses}. The action resolves its package manager from a lockfile beside the app directory, finds none in this monorepo and falls back to npm, which cannot resolve workspace:* — run 'bunx wrangler@4 <command>' directly instead`,
+          );
+        }
+      }
+    }
+
     // The lockfile gate is the only thing enforcing that a manifest change and
     // its bun.lock update land in one commit. That rule was skipped once already,
     // and two npm versions were burned publishing from states that were never
@@ -351,7 +381,12 @@ for (const workflowName of workflowNames) {
           ["packages/reviewer", "crowdsource.oxy.so"],
           ["packages/console", "console.crowdsource.oxy.so"],
         ]) {
-          if (!source.includes(`workingDirectory: ${appDirectory}`)) continue;
+          if (!source.includes(`cd ${appDirectory} && bunx wrangler@4 deploy`)) {
+            failures.push(
+              `${workflowName}: no 'cd ${appDirectory} && bunx wrangler@4 deploy' step, so ${hostname} is either unpublished or published some other way`,
+            );
+            continue;
+          }
           const configurationPath = resolve(
             repositoryRoot,
             appDirectory,

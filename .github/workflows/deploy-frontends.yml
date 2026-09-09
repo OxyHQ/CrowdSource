@@ -111,16 +111,26 @@ jobs:
       # hostname — which is why this job no longer attaches a domain or writes a
       # DNS record: Cloudflare writes the record for a custom domain itself, and
       # REFUSES the hostname if one already exists (`code: 100117`).
+      #
+      # wrangler is invoked DIRECTLY, not through `cloudflare/wrangler-action`,
+      # and `scripts/validate-workflows.mjs` fails the build if the action comes
+      # back. The action installs its own wrangler and chooses the package
+      # manager by looking for a lockfile beside its `workingDirectory`; in a
+      # monorepo the lockfile is at the ROOT, so it falls back to npm and npm
+      # chokes on `workspace:*`. Homiio took a production outage from exactly
+      # this on 2026-08-09 (run 31292337344: `Fail extracting tarball for
+      # "wrangler"`) — it published nothing and left a stale bundle running
+      # against a changed API — and moved off the action in its #291.
+      #
+      # `wrangler@4` is pinned to the major on purpose: unpinned, `bunx wrangler`
+      # re-resolves the newest major on every run, which changes the deploy path
+      # with no diff to show for it.
       - name: Deploy the Worker
         id: production
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: bun
-          wranglerVersion: '4.81.0'
-          workingDirectory: packages/reviewer
-          command: deploy
+        run: cd packages/reviewer && bunx wrangler@4 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       # A custom domain that has never served has no certificate yet, so the
       # first deployment can fail the TLS handshake for a few minutes. The gate
@@ -165,17 +175,13 @@ jobs:
           steps.production.outcome == 'success' &&
           steps.production_smoke.outcome == 'failure' &&
           steps.previous.outputs.has_previous == 'true'
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: bun
-          wranglerVersion: '4.81.0'
-          workingDirectory: packages/reviewer
-          # `--yes` because there is no terminal here. wrangler resolves the
-          # previous version itself, which is why nothing had to be captured for
-          # this step beyond whether one exists at all.
-          command: rollback --yes --message "Production smoke failed for ${{ env.DEPLOY_SHA }}"
+        # `--yes` because there is no terminal here. wrangler resolves the
+        # previous version itself, which is why nothing had to be captured for
+        # this step beyond whether one exists at all.
+        run: cd packages/reviewer && bunx wrangler@4 rollback --yes --message "Production smoke failed for $DEPLOY_SHA"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   # The developer + Trust & Safety console (PLAN §4.2, §4.3). A separate Cloudflare
   # Worker because it is a separate Expo web export with its own entry bundle, and a
@@ -245,16 +251,14 @@ jobs:
           WORKER_NAME: crowdsource-console
         run: bash .github/scripts/cloudflare-worker.sh capture-worker
 
+      # Direct wrangler, never `cloudflare/wrangler-action` — see the reviewer
+      # job above for the monorepo-lockfile failure that rule exists for.
       - name: Deploy the Worker
         id: production
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: bun
-          wranglerVersion: '4.81.0'
-          workingDirectory: packages/console
-          command: deploy
+        run: cd packages/console && bunx wrangler@4 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Wait for the first certificate on a domain that has never served
         if: steps.previous.outputs.has_previous == 'false'
@@ -285,14 +289,10 @@ jobs:
           steps.production.outcome == 'success' &&
           steps.production_smoke.outcome == 'failure' &&
           steps.previous.outputs.has_previous == 'true'
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: bun
-          wranglerVersion: '4.81.0'
-          workingDirectory: packages/console
-          command: rollback --yes --message "Production smoke failed for ${{ env.DEPLOY_SHA }}"
+        run: cd packages/console && bunx wrangler@4 rollback --yes --message "Production smoke failed for $DEPLOY_SHA"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   record-deployment:
     # Runs only after a green production rollout, so a failed or rolled back

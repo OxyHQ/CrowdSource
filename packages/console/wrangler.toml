@@ -9,12 +9,7 @@
 # of the Oxy application. `workers_dev = false` leaves
 # `console.crowdsource.oxy.so` as the only name that reaches this deployment.
 name = "crowdsource-console"
-# Pinned to a date the wrangler this release runs (`wranglerVersion: '4.81.0'` in
-# `.github/workflows/deploy-frontends.yml`) actually supports: its bundled runtime
-# refuses anything newer than 2026-04-12, and a Worker whose config its own
-# deployer cannot run locally is one nobody can reproduce. Raise it with the
-# wrangler pin, not on its own.
-compatibility_date = "2026-04-12"
+compatibility_date = "2026-09-09"
 
 workers_dev = false
 
