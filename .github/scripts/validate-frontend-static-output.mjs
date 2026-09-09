@@ -3,8 +3,16 @@
 import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+// The static hosting contract for a Cloudflare WORKER serving `[assets]`.
+//
+// Two of the three assertions below are about the same thing from opposite
+// sides: the export must carry the cache rules the live smoke checks for, and it
+// must NOT carry a Worker entry point. A `_worker.js` in the assets directory is
+// the trap this file exists to catch — Pages Advanced Mode loaded it, a Worker
+// does not, so leaving one there makes it inert AND publishes the script as a
+// public asset. `main` in `wrangler.toml` is where a Worker script belongs.
 const outputDirectory = resolve(
-  process.argv[2] || "packages/frontend/dist",
+  process.argv[2] || "packages/reviewer/dist",
 );
 const failures = [];
 
@@ -41,9 +49,20 @@ if (!(await exists(headersPath))) {
   }
 }
 
-if (await exists(resolve(outputDirectory, "_routes.json"))) {
+for (const workerEntryPoint of ["_worker.js", "_worker.js.map", "_routes.json"]) {
+  if (await exists(resolve(outputDirectory, workerEntryPoint))) {
+    failures.push(
+      `${workerEntryPoint} must not be published; this deployment serves static assets only, and a Worker entry point inside the assets directory is never executed — it is uploaded as a public file`,
+    );
+  }
+}
+
+// `not_found_handling = "single-page-application"` in wrangler.toml is what
+// answers a deep link now. A `_redirects` left behind would be a second,
+// silently-diverging copy of that rule.
+if (await exists(resolve(outputDirectory, "_redirects"))) {
   failures.push(
-    "_routes.json must not be published; the Pages project is static and has no Worker",
+    "_redirects must not be published; the SPA fallback is not_found_handling in wrangler.toml",
   );
 }
 
@@ -54,5 +73,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Frontend static output contains immutable asset headers and no Worker routes: ${outputDirectory}`,
+  `Frontend static output contains immutable asset headers and no Worker entry point: ${outputDirectory}`,
 );

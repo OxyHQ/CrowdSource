@@ -41,6 +41,36 @@ for (const workflowName of workflowNames) {
       }
     }
 
+    // `cloudflare/wrangler-action` must never come back, in ANY workflow.
+    //
+    // The action installs its own wrangler and picks the package manager by
+    // looking for a lockfile beside its `workingDirectory`. This is a monorepo:
+    // the lockfile is at the ROOT, so beside any package the action finds none,
+    // falls back to npm, and npm cannot resolve `workspace:*`. Homiio took a
+    // production outage from exactly this on 2026-08-09 (run 31292337344,
+    // `Fail extracting tarball for "wrangler"`) — the step failed after the
+    // build, so it published nothing and left a stale bundle serving against a
+    // changed API — and moved off the action in its #291.
+    //
+    // The failure is invisible until the deploy runs, which is why this is a
+    // static check and not something a review is expected to catch.
+    //
+    // Read off the PARSED steps rather than the file text: what is forbidden is
+    // USING the action, and the comment above explaining why would trip a
+    // substring match on the source.
+    for (const [jobName, job] of Object.entries(workflow?.jobs || {})) {
+      for (const step of job?.steps || []) {
+        if (
+          typeof step?.uses === "string" &&
+          step.uses.startsWith("cloudflare/wrangler-action")
+        ) {
+          failures.push(
+            `${workflowName}: job '${jobName}' uses ${step.uses}. The action resolves its package manager from a lockfile beside the app directory, finds none in this monorepo and falls back to npm, which cannot resolve workspace:* — run 'bunx wrangler@4 <command>' directly instead`,
+          );
+        }
+      }
+    }
+
     // The lockfile gate is the only thing enforcing that a manifest change and
     // its bun.lock update land in one commit. That rule was skipped once already,
     // and two npm versions were burned publishing from states that were never
@@ -310,19 +340,88 @@ for (const workflowName of workflowNames) {
 
         const productionSmokeIndex = source.indexOf("id: production_smoke");
         const rollbackIndex = source.indexOf(
-          "Roll back Cloudflare Pages after a failed production smoke",
+          "Roll back the Worker after a failed production smoke",
         );
         if (productionSmokeIndex < 0 || rollbackIndex < productionSmokeIndex) {
           failures.push(
-            `${workflowName}: the exact Pages smoke and its rollback must remain separate and ordered`,
+            `${workflowName}: the public-hostname smoke and its rollback must remain separate and ordered`,
           );
         }
         if (
           !source.includes("steps.production_smoke.outcome == 'failure'")
         ) {
           failures.push(
-            `${workflowName}: only a failed Pages smoke may roll back a Pages deployment`,
+            `${workflowName}: only a failed production smoke may roll back a Worker deployment`,
           );
+        }
+
+        // Everything below reads the PARSED `run:` bodies, never the file text.
+        // A matcher over the source counts prose: the comment above the deploy
+        // step names the command it is defending, so a text search would accept
+        // a workflow whose step had been deleted and its command left in a
+        // comment — the gate would pass with nothing deploying. Mention hit
+        // exactly that false pass on a mutation test.
+        const runBodies = Object.values(workflow?.jobs || {}).flatMap((job) =>
+          (job?.steps || [])
+            .map((step) => step?.run)
+            .filter((body) => typeof body === "string"),
+        );
+
+        // The Pages release wrote a proxied CNAME for each hostname into the
+        // `oxy.so` zone. A Worker custom domain REFUSES a hostname that already
+        // has externally managed records (`code: 100117`), so a release that
+        // starts writing them again cannot take the domain — and the failure
+        // arrives as an opaque Cloudflare code at deploy time, on the one run
+        // where the hostname is unclaimed.
+        for (const pagesOnlyStep of [
+          "pages deploy",
+          "ensure-dns-record",
+          "attach-domain",
+          "ensure-project",
+        ]) {
+          if (runBodies.some((body) => body.includes(pagesOnlyStep))) {
+            failures.push(
+              `${workflowName}: '${pagesOnlyStep}' is a Cloudflare Pages operation; these frontends are Workers whose custom domain claims its own hostname and writes its own DNS`,
+            );
+          }
+        }
+
+        // The whole point of the migration: a Pages project always serves
+        // <project>.pages.dev, and only `workers_dev = false` in each app's
+        // wrangler.toml leaves the real hostname as the single way in.
+        for (const [appDirectory, hostname] of [
+          ["packages/reviewer", "crowdsource.oxy.so"],
+          ["packages/console", "console.crowdsource.oxy.so"],
+        ]) {
+          const deployCommand = `cd ${appDirectory} && bunx wrangler@4 deploy`;
+          if (!runBodies.some((body) => body.includes(deployCommand))) {
+            failures.push(
+              `${workflowName}: no step RUNS '${deployCommand}', so ${hostname} is either unpublished or published some other way`,
+            );
+            continue;
+          }
+          const configurationPath = resolve(
+            repositoryRoot,
+            appDirectory,
+            "wrangler.toml",
+          );
+          if (!existsSync(configurationPath)) {
+            failures.push(
+              `${workflowName}: deploys ${appDirectory} as a Worker but ${appDirectory}/wrangler.toml does not exist`,
+            );
+            continue;
+          }
+          const configuration = readFileSync(configurationPath, "utf8");
+          if (!/^\s*workers_dev\s*=\s*false\s*$/m.test(configuration)) {
+            failures.push(
+              `${appDirectory}/wrangler.toml: workers_dev must be false, or this deployment gets a second public hostname on workers.dev — the exact defect that moved it off Pages`,
+            );
+          }
+          if (!configuration.includes(`pattern = "${hostname}"`)) {
+            failures.push(
+              `${appDirectory}/wrangler.toml: no custom-domain route for ${hostname}, which is the hostname this workflow smokes`,
+            );
+          }
         }
       }
     }

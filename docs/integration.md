@@ -41,10 +41,10 @@ minimum integration ask for `crowdsource:reports:write`,
 ### Pending: the console UI is not deployed
 
 `console.crowdsource.oxy.so` does not resolve today (`NXDOMAIN`, checked), and
-the Cloudflare Pages job that would publish it is gated on the repository
-variable `CROWDSOURCE_CONSOLE_PAGES == 'ready'`
-(`.github/workflows/deploy-frontends.yml:232`) — deliberately, because the job
-creates a project and writes DNS into the zone carrying every live Oxy backend.
+the Cloudflare Worker job that would publish it is gated on the repository
+variable `CROWDSOURCE_CONSOLE_WORKER == 'ready'`
+(`.github/workflows/deploy-frontends.yml`) — deliberately, because the job creates
+a Worker and claims a hostname in the zone carrying every live Oxy backend.
 
 Until it is deployed, the three routes above are reachable only by a client that
 already holds an Oxy session token. The API itself is live

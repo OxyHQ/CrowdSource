@@ -58,10 +58,22 @@ bun run --cwd packages/console typecheck
 
 ## Deployment
 
-Cloudflare Pages project `crowdsource-console` at `console.crowdsource.oxy.so`,
-via the `deploy-console` job in `.github/workflows/deploy-frontends.yml`. That job
-is **gated on the repository variable `CROWDSOURCE_CONSOLE_PAGES` being `ready`**:
-it creates a Pages project and writes a DNS record into the `oxy.so` zone, which
-carries every live Oxy backend, so merging the workflow must not do either on its
-own. The console host also has to be registered as an additional redirect URI on
-CrowdSource's Oxy application before interactive sign-in works there.
+Cloudflare **Worker** `crowdsource-console` at `console.crowdsource.oxy.so`
+(`wrangler.toml` here), via the `deploy-console` job in
+`.github/workflows/deploy-frontends.yml`. That job is **gated on the repository
+variable `CROWDSOURCE_CONSOLE_WORKER` being `ready`**: it creates a Worker and
+claims a hostname in the `oxy.so` zone, which carries every live Oxy backend, so
+merging the workflow must not do either on its own. The console host also has to
+be registered as an additional redirect URI on CrowdSource's Oxy application
+before interactive sign-in works there.
+
+Not a Pages project, and the reason is this surface specifically: a Pages project
+always serves `<project>.pages.dev` with no way to switch it off, which would put
+a second sign-in page for a STAFF console on a hostname that is not a registered
+redirect URI. `workers_dev = false` leaves `console.crowdsource.oxy.so` as the
+only name that reaches it.
+
+Because Cloudflare writes the DNS record for a Worker custom domain itself, the
+hostname must carry no pre-existing record when the job first runs: a custom
+domain refuses a hostname that already has externally managed records
+(`code: 100117`).

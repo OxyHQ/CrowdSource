@@ -77,7 +77,7 @@ jobs:
         run: |
           bash -n .github/scripts/*.sh
           bash .github/scripts/test-deploy-ecs-image.sh
-          bash .github/scripts/test-cloudflare-pages.sh
+          bash .github/scripts/test-cloudflare-worker.sh
           bun .github/scripts/test-runtime-image-audit.mjs
           bun .github/scripts/test-assert-test-floor.mjs
           bun scripts/test-check-lockfile-sync.mjs

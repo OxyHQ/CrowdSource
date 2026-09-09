@@ -40,3 +40,6 @@ app-example
 
 android/
 ios/
+
+# Local wrangler state (`wrangler dev`), never part of the deployed assets.
+.wrangler/

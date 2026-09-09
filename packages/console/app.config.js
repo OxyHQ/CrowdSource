@@ -6,7 +6,7 @@ const pkg = require('./package.json')
  * The reviewer app's config is the reference, and what is missing here is the
  * point: no `ios`/`android` block, no `plugins` that touch a native project, no
  * launcher icon set, no `eas.json`. The console is a static web export served
- * from Cloudflare Pages and there is no native build to configure. Adding an
+ * by a Cloudflare Worker and there is no native build to configure. Adding an
  * iOS/Android target later is a deliberate decision with its own signing and
  * shared-keychain consequences, not something a config file should imply is
  * already true.
@@ -34,11 +34,11 @@ module.exports = function (_config) {
       },
       web: {
         bundler: 'metro',
-        // A single-page export. Cloudflare Pages serves `public/_redirects`
-        // (`/* /index.html 200`), so a deep link like
-        // `/applications/<id>/webhooks` is answered by the shell and routed
-        // client-side. A static multi-page export would have to pre-render
-        // routes whose ids are only known at runtime.
+        // A single-page export. The Cloudflare Worker serving it sets
+        // `not_found_handling = "single-page-application"` (`wrangler.toml`), so
+        // a deep link like `/applications/<id>/webhooks` is answered by the
+        // shell and routed client-side. A static multi-page export would have to
+        // pre-render routes whose ids are only known at runtime.
         output: 'single',
         // The ONLY head tag the Metro web export derives from this block (with
         // `lang` and `description`): it appends `<meta name="theme-color">`.
