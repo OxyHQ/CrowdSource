@@ -20,7 +20,27 @@ set -euo pipefail
 # permission or outage fault is a hard failure here and never an answer.
 #
 # Endpoint used (Cloudflare API v4):
-#   GET /accounts/{account}/workers/scripts/{script}
+#   GET /accounts/{account}/workers/services/{service}
+#
+# NOT `/workers/scripts/{script}`, which this used first and which answers 204
+# — neither 200 nor 404 — for a Worker that has no script of its own. That is
+# not an edge case here: it is what BOTH of this repository's Workers are.
+# `packages/reviewer/wrangler.toml` and `packages/console/wrangler.toml` declare
+# `[assets]` with no `main`, so there is no script body to return and the
+# endpoint has nothing to send. Measured across the fleet, same token, same
+# call:
+#
+#   crowdsource-frontend   scripts/ 204   services/ 200   (assets only)
+#   crowdsource-console    scripts/ 204   services/ 200   (assets only)
+#   allo-frontend          scripts/ 204   services/ 200   (assets only)
+#   homiio-frontend        scripts/ 204   services/ 200   (assets only)
+#   noted                  scripts/ 200   services/ 200   (has main)
+#   clarity                scripts/ 200   services/ 200   (has main)
+#   <no such worker>       scripts/ 404   services/ 404
+#
+# The 204 fell into the "unknown state" branch below and failed the release of a
+# Worker that plainly existed. `services/` answers 200 or 404 for every one of
+# them, which is the question this is asking.
 #
 # The rollback itself is `wrangler rollback`, run from the workflow: wrangler
 # already resolves the previous version, and reimplementing that against the
@@ -75,7 +95,7 @@ write_output() {
 # arms a rollback with nothing to roll back to.
 capture_worker() {
   local status
-  status="$(api GET "/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${WORKER_NAME}")"
+  status="$(api GET "/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/services/${WORKER_NAME}")"
 
   if [[ "$status" == "200" ]]; then
     echo "Worker ${WORKER_NAME} already exists; this release has a rollback target."
