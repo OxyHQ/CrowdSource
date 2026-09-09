@@ -310,19 +310,70 @@ for (const workflowName of workflowNames) {
 
         const productionSmokeIndex = source.indexOf("id: production_smoke");
         const rollbackIndex = source.indexOf(
-          "Roll back Cloudflare Pages after a failed production smoke",
+          "Roll back the Worker after a failed production smoke",
         );
         if (productionSmokeIndex < 0 || rollbackIndex < productionSmokeIndex) {
           failures.push(
-            `${workflowName}: the exact Pages smoke and its rollback must remain separate and ordered`,
+            `${workflowName}: the public-hostname smoke and its rollback must remain separate and ordered`,
           );
         }
         if (
           !source.includes("steps.production_smoke.outcome == 'failure'")
         ) {
           failures.push(
-            `${workflowName}: only a failed Pages smoke may roll back a Pages deployment`,
+            `${workflowName}: only a failed production smoke may roll back a Worker deployment`,
           );
+        }
+
+        // The Pages release wrote a proxied CNAME for each hostname into the
+        // `oxy.so` zone. A Worker custom domain REFUSES a hostname that already
+        // has externally managed records (`code: 100117`), so a release that
+        // starts writing them again cannot take the domain — and the failure
+        // arrives as an opaque Cloudflare code at deploy time, on the one run
+        // where the hostname is unclaimed.
+        for (const pagesOnlyStep of [
+          "pages deploy",
+          "ensure-dns-record",
+          "attach-domain",
+          "ensure-project",
+        ]) {
+          if (source.includes(pagesOnlyStep)) {
+            failures.push(
+              `${workflowName}: '${pagesOnlyStep}' is a Cloudflare Pages operation; these frontends are Workers whose custom domain claims its own hostname and writes its own DNS`,
+            );
+          }
+        }
+
+        // The whole point of the migration: a Pages project always serves
+        // <project>.pages.dev, and only `workers_dev = false` in each app's
+        // wrangler.toml leaves the real hostname as the single way in.
+        for (const [appDirectory, hostname] of [
+          ["packages/reviewer", "crowdsource.oxy.so"],
+          ["packages/console", "console.crowdsource.oxy.so"],
+        ]) {
+          if (!source.includes(`workingDirectory: ${appDirectory}`)) continue;
+          const configurationPath = resolve(
+            repositoryRoot,
+            appDirectory,
+            "wrangler.toml",
+          );
+          if (!existsSync(configurationPath)) {
+            failures.push(
+              `${workflowName}: deploys ${appDirectory} as a Worker but ${appDirectory}/wrangler.toml does not exist`,
+            );
+            continue;
+          }
+          const configuration = readFileSync(configurationPath, "utf8");
+          if (!/^\s*workers_dev\s*=\s*false\s*$/m.test(configuration)) {
+            failures.push(
+              `${appDirectory}/wrangler.toml: workers_dev must be false, or this deployment gets a second public hostname on workers.dev — the exact defect that moved it off Pages`,
+            );
+          }
+          if (!configuration.includes(`pattern = "${hostname}"`)) {
+            failures.push(
+              `${appDirectory}/wrangler.toml: no custom-domain route for ${hostname}, which is the hostname this workflow smokes`,
+            );
+          }
         }
       }
     }

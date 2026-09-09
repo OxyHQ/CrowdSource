@@ -1,0 +1,37 @@
+# The developer + Trust & Safety console is a Worker, not a Pages project, for
+# the reason set out in `../reviewer/wrangler.toml`: a Pages project ALWAYS
+# serves `<project>.pages.dev` and Cloudflare offers no way to switch it off.
+#
+# It matters more here than there. This is a STAFF surface, and a second
+# hostname serving it is a second place to try to sign in — one that is not the
+# origin `EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI` and `EXPO_PUBLIC_WEB_BASE_URL` name
+# in `.github/workflows/deploy-frontends.yml`, and not a registered redirect URI
+# of the Oxy application. `workers_dev = false` leaves
+# `console.crowdsource.oxy.so` as the only name that reaches this deployment.
+name = "crowdsource-console"
+# Pinned to a date the wrangler this release runs (`wranglerVersion: '4.81.0'` in
+# `.github/workflows/deploy-frontends.yml`) actually supports: its bundled runtime
+# refuses anything newer than 2026-04-12, and a Worker whose config its own
+# deployer cannot run locally is one nobody can reproduce. Raise it with the
+# wrangler pin, not on its own.
+compatibility_date = "2026-04-12"
+
+workers_dev = false
+
+# Static assets with no `main`: no Worker script runs, every request is served
+# from the uploaded directory.
+[assets]
+directory = "./dist"
+
+# Replaces `public/_redirects` (`/*  /index.html  200`), deleted in the same
+# change. `public/_headers` stays and still carries the immutable rules for
+# `/_expo/static/*` and `/fonts/*`; Workers static assets read it exactly as
+# Pages did.
+not_found_handling = "single-page-application"
+
+# The only way in. The hostname must carry NO pre-existing record at the moment
+# of the first deploy: a Worker custom domain refuses one that already has
+# externally managed records (`code: 100117`).
+[[routes]]
+pattern = "console.crowdsource.oxy.so"
+custom_domain = true

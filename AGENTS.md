@@ -161,10 +161,17 @@ touched. It reads exactly like someone else's broken commit.
 
 ## Deployment
 
-Port `3000` · `api.crowdsource.oxy.so` · reviewer and console on Cloudflare
-Pages · ECR `oxy/crowdsource` · `git push origin main` → `deploy-aws.yml` +
-`deploy-frontends.yml`, both gated on CI. Detail:
-`docs/architecture/engineering-rules.md` § AWS deployment.
+Port `3000` · `api.crowdsource.oxy.so` · reviewer and console are Cloudflare
+**Workers** (`packages/*/wrangler.toml`), never Pages · ECR `oxy/crowdsource` ·
+`git push origin main` → `deploy-aws.yml` + `deploy-frontends.yml`, both gated on
+CI. Detail: `docs/architecture/engineering-rules.md` § AWS deployment.
+
+- **A frontend hostname carries no hand-written DNS record.** `custom_domain`
+  claims it and Cloudflare writes the record; a Worker custom domain REFUSES a
+  hostname that already has externally managed records (`code: 100117`), so
+  adding one back breaks the deploy rather than helping it. `workers_dev = false`
+  is likewise load-bearing: without it the app gets a second public hostname that
+  is in no CORS allowlist and no redirect-URI list.
 
 - **`DATABASE_URL` is required to boot** — absent, the task exits at start rather
   than degrading a route, so it must be live in the task definition before an

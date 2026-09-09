@@ -26,7 +26,7 @@ jobs:
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     outputs:
-      # One output per Pages project. They are separate targets with separate markers,
+      # One output per Worker. They are separate targets with separate markers,
       # so a console-only change must not redeploy the reviewer and vice versa.
       reviewer: ${{ steps.reviewer.outputs.deploy }}
       console: ${{ steps.console.outputs.deploy }}
@@ -90,71 +90,28 @@ jobs:
       - name: Verify current main before production changes
         run: bash .github/scripts/require-current-main.sh
 
-      # `wrangler pages deploy` publishes into a project and cannot create one,
-      # so without this the very first push to a new repository fails with
-      # nothing to deploy into. Idempotent, so run N is a single GET.
-      - name: Ensure the Cloudflare Pages project exists
-        id: project
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PAGES_PROJECT_NAME: crowdsource-frontend
-          PAGES_PRODUCTION_BRANCH: main
-        run: bash .github/scripts/cloudflare-pages.sh ensure-project
-
-      - name: Capture the current production deployment
+      # MUST run BEFORE the deploy. Afterwards the Worker exists whatever the
+      # answer was, so a capture placed after it reports `true` on the very
+      # first release and arms a rollback with nothing to roll back to. Reads
+      # only; an API fault is a hard failure rather than a guess.
+      - name: Determine whether this Worker has ever been deployed
         id: previous
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PAGES_PROJECT_NAME: crowdsource-frontend
-        run: bash .github/scripts/cloudflare-pages.sh capture-production
+          WORKER_NAME: crowdsource-frontend
+        run: bash .github/scripts/cloudflare-worker.sh capture-worker
 
-      - name: Deploy an immutable Cloudflare Pages preview
-        id: preview
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: bun
-          wranglerVersion: '4.81.0'
-          command: pages deploy packages/reviewer/dist --project-name=crowdsource-frontend --branch=candidate-${{ env.DEPLOY_SHA }}
-
-      # A Pages project that has never released has no certificate for its
-      # *.pages.dev names yet, so the first deployment can fail the TLS
-      # handshake for a few minutes. The gate is a FACT, not an error shape:
-      # `has_previous` is false only until a production deployment has ever
-      # succeeded, so once one has, this step never runs again and the same
-      # handshake failure stays immediately fatal in the smoke below — where it
-      # means a broken certificate rather than an unissued one.
-      - name: Wait for the first certificate on a project that has never released
-        if: steps.previous.outputs.has_previous == 'false'
-        env:
-          PREVIEW_ORIGIN: ${{ steps.preview.outputs.deployment-url }}
-        run: |
-          set -euo pipefail
-          for attempt in $(seq 1 20); do
-            # Any HTTP response means the handshake completed, which is all this
-            # step is waiting for; the smoke that follows judges the content.
-            if curl --silent --output /dev/null --max-time 15 "$PREVIEW_ORIGIN/"; then
-              echo "TLS is serving after ${attempt} attempt(s)."
-              exit 0
-            fi
-            echo "::notice::No certificate yet for the new project; retrying in 15s (${attempt}/20)."
-            sleep 15
-          done
-          echo "::error::TLS did not come up within 5 minutes on a newly created Pages project."
-          exit 1
-
-      - name: Smoke test the exact preview deployment
-        env:
-          WEB_ORIGIN: ${{ steps.preview.outputs.deployment-url }}
-        run: bash .github/scripts/smoke-frontend.sh
-
-      - name: Re-verify current main before production promotion
-        run: bash .github/scripts/require-current-main.sh
-
-      - name: Promote the validated assets to Cloudflare Pages production
+      # A WORKER, not a Pages project. A Pages project always serves
+      # `<project>.pages.dev` with no way to turn it off, which put a second copy
+      # of the reviewer app on a hostname that is in no CORS allowlist and is not
+      # a registered redirect URI. `workers_dev = false` in
+      # `packages/reviewer/wrangler.toml` leaves `crowdsource.oxy.so` as the only
+      # way in, and `[[routes]] custom_domain = true` there is what claims the
+      # hostname — which is why this job no longer attaches a domain or writes a
+      # DNS record: Cloudflare writes the record for a custom domain itself, and
+      # REFUSES the hostname if one already exists (`code: 100117`).
+      - name: Deploy the Worker
         id: production
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
@@ -162,74 +119,82 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           packageManager: bun
           wranglerVersion: '4.81.0'
-          command: pages deploy packages/reviewer/dist --project-name=crowdsource-frontend --branch=main
+          workingDirectory: packages/reviewer
+          command: deploy
 
-      - name: Smoke test the exact production deployment
+      # A custom domain that has never served has no certificate yet, so the
+      # first deployment can fail the TLS handshake for a few minutes. The gate
+      # is a FACT, not an error shape: `has_previous` is false only until the
+      # Worker has ever been deployed, so once it has, this step never runs
+      # again and the same handshake failure stays immediately fatal in the
+      # smoke below — where it means a broken certificate rather than an
+      # unissued one.
+      - name: Wait for the first certificate on a domain that has never served
+        if: steps.previous.outputs.has_previous == 'false'
+        env:
+          WEB_ORIGIN: https://crowdsource.oxy.so
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            # Any HTTP response means the handshake completed, which is all this
+            # step is waiting for; the smoke that follows judges the content.
+            if curl --silent --output /dev/null --max-time 15 "$WEB_ORIGIN/"; then
+              echo "TLS is serving after ${attempt} attempt(s)."
+              exit 0
+            fi
+            echo "::notice::No certificate yet for the new custom domain; retrying in 15s (${attempt}/20)."
+            sleep 15
+          done
+          echo "::error::TLS did not come up within 5 minutes on a newly claimed custom domain."
+          exit 1
+
+      # The public hostname, which is now the same surface the deploy published
+      # to. Under Pages this smoked an immutable per-deployment URL first and the
+      # public name never; a Worker with `workers_dev = false` has no second
+      # surface to rehearse on, so the check moved onto the real one and the
+      # rollback below is what bounds the exposure.
+      - name: Smoke test the public hostname
         id: production_smoke
         env:
-          DEPLOYMENT_ORIGIN: ${{ steps.production.outputs.deployment-url }}
-        run: WEB_ORIGIN="$DEPLOYMENT_ORIGIN" bash .github/scripts/smoke-frontend.sh
+          WEB_ORIGIN: https://crowdsource.oxy.so
+        run: bash .github/scripts/smoke-frontend.sh
 
-      # Runs after the production smoke so the public hostname is only ever
-      # pointed at a release whose assets have already been verified. Idempotent,
-      # and self-healing if the domain is ever detached by hand.
-      - name: Attach the public custom domain
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PAGES_PROJECT_NAME: crowdsource-frontend
-          PAGES_CUSTOM_DOMAIN: crowdsource.oxy.so
-        run: bash .github/scripts/cloudflare-pages.sh attach-domain
-
-      # Attaching the domain is only half of it: Cloudflare does not write the
-      # DNS record, so without this the attachment stays `pending` forever,
-      # waiting on a record nothing is going to create. Refuses to touch a
-      # record it did not write — this zone carries the ecosystem's production
-      # DNS.
-      - name: Ensure the public DNS record
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PAGES_PROJECT_NAME: crowdsource-frontend
-          PAGES_CUSTOM_DOMAIN: crowdsource.oxy.so
-          PAGES_DNS_ZONE: oxy.so
-        run: bash .github/scripts/cloudflare-pages.sh ensure-dns-record
-
-      - name: Roll back Cloudflare Pages after a failed production smoke
+      - name: Roll back the Worker after a failed production smoke
         if: >-
           failure() &&
           steps.production.outcome == 'success' &&
           steps.production_smoke.outcome == 'failure' &&
           steps.previous.outputs.has_previous == 'true'
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PREVIOUS_DEPLOYMENT_ID: ${{ steps.previous.outputs.deployment_id }}
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error \
-            --request POST \
-            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            --header 'Content-Type: application/json' \
-            --data '{}' \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/crowdsource-frontend/deployments/$PREVIOUS_DEPLOYMENT_ID/rollback" \
-            >/dev/null
-          echo "::warning::Cloudflare Pages rolled back to $PREVIOUS_DEPLOYMENT_ID."
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: bun
+          wranglerVersion: '4.81.0'
+          workingDirectory: packages/reviewer
+          # `--yes` because there is no terminal here. wrangler resolves the
+          # previous version itself, which is why nothing had to be captured for
+          # this step beyond whether one exists at all.
+          command: rollback --yes --message "Production smoke failed for ${{ env.DEPLOY_SHA }}"
 
   # The developer + Trust & Safety console (PLAN §4.2, §4.3). A separate Cloudflare
-  # Pages project because it is a separate Expo web export with its own entry bundle,
-  # and a separate hostname because the console and the reviewer app are different
+  # Worker because it is a separate Expo web export with its own entry bundle, and a
+  # separate hostname because the console and the reviewer app are different
   # audiences — one of them staff.
   #
   # GATED ON A REPOSITORY VARIABLE, and deliberately. The steps below create a
-  # Cloudflare Pages project and write a DNS record into the `oxy.so` zone, which
-  # carries every live Oxy backend. Merging this workflow must not do either of those
-  # things on its own: set `CROWDSOURCE_CONSOLE_PAGES` to `ready` when the hostname is
+  # Worker and claim `console.crowdsource.oxy.so` in the `oxy.so` zone, which carries
+  # every live Oxy backend. Merging this workflow must not do either of those things
+  # on its own: set `CROWDSOURCE_CONSOLE_WORKER` to `ready` when the hostname is
   # agreed, and the job starts running on the next push to main. Until then the job is
   # skipped and nothing else about the release changes.
+  #
+  # The variable was `CROWDSOURCE_CONSOLE_PAGES` and is renamed here rather than
+  # aliased. It has never been set, so nothing changes behaviour; whoever turns the
+  # console on sets the name that describes what it turns on.
   deploy-console:
     needs: scope
-    if: needs.scope.outputs.console == 'true' && vars.CROWDSOURCE_CONSOLE_PAGES == 'ready'
+    if: needs.scope.outputs.console == 'true' && vars.CROWDSOURCE_CONSOLE_WORKER == 'ready'
     runs-on: ubuntu-latest
     timeout-minutes: 70
     environment: production
@@ -272,58 +237,15 @@ jobs:
       - name: Verify current main before production changes
         run: bash .github/scripts/require-current-main.sh
 
-      - name: Ensure the Cloudflare Pages project exists
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PAGES_PROJECT_NAME: crowdsource-console
-          PAGES_PRODUCTION_BRANCH: main
-        run: bash .github/scripts/cloudflare-pages.sh ensure-project
-
-      - name: Capture the current production deployment
+      - name: Determine whether this Worker has ever been deployed
         id: previous
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PAGES_PROJECT_NAME: crowdsource-console
-        run: bash .github/scripts/cloudflare-pages.sh capture-production
+          WORKER_NAME: crowdsource-console
+        run: bash .github/scripts/cloudflare-worker.sh capture-worker
 
-      - name: Deploy an immutable Cloudflare Pages preview
-        id: preview
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: bun
-          wranglerVersion: '4.81.0'
-          command: pages deploy packages/console/dist --project-name=crowdsource-console --branch=candidate-${{ env.DEPLOY_SHA }}
-
-      - name: Wait for the first certificate on a project that has never released
-        if: steps.previous.outputs.has_previous == 'false'
-        env:
-          PREVIEW_ORIGIN: ${{ steps.preview.outputs.deployment-url }}
-        run: |
-          set -euo pipefail
-          for attempt in $(seq 1 20); do
-            if curl --silent --output /dev/null --max-time 15 "$PREVIEW_ORIGIN/"; then
-              echo "TLS is serving after ${attempt} attempt(s)."
-              exit 0
-            fi
-            echo "::notice::No certificate yet for the new project; retrying in 15s (${attempt}/20)."
-            sleep 15
-          done
-          echo "::error::TLS did not come up within 5 minutes on a newly created Pages project."
-          exit 1
-
-      - name: Smoke test the exact preview deployment
-        env:
-          WEB_ORIGIN: ${{ steps.preview.outputs.deployment-url }}
-        run: bash .github/scripts/smoke-frontend.sh
-
-      - name: Re-verify current main before production promotion
-        run: bash .github/scripts/require-current-main.sh
-
-      - name: Promote the validated assets to Cloudflare Pages production
+      - name: Deploy the Worker
         id: production
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
@@ -331,51 +253,46 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           packageManager: bun
           wranglerVersion: '4.81.0'
-          command: pages deploy packages/console/dist --project-name=crowdsource-console --branch=main
+          workingDirectory: packages/console
+          command: deploy
 
-      - name: Smoke test the exact production deployment
+      - name: Wait for the first certificate on a domain that has never served
+        if: steps.previous.outputs.has_previous == 'false'
+        env:
+          WEB_ORIGIN: https://console.crowdsource.oxy.so
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            if curl --silent --output /dev/null --max-time 15 "$WEB_ORIGIN/"; then
+              echo "TLS is serving after ${attempt} attempt(s)."
+              exit 0
+            fi
+            echo "::notice::No certificate yet for the new custom domain; retrying in 15s (${attempt}/20)."
+            sleep 15
+          done
+          echo "::error::TLS did not come up within 5 minutes on a newly claimed custom domain."
+          exit 1
+
+      - name: Smoke test the public hostname
         id: production_smoke
         env:
-          DEPLOYMENT_ORIGIN: ${{ steps.production.outputs.deployment-url }}
-        run: WEB_ORIGIN="$DEPLOYMENT_ORIGIN" bash .github/scripts/smoke-frontend.sh
+          WEB_ORIGIN: https://console.crowdsource.oxy.so
+        run: bash .github/scripts/smoke-frontend.sh
 
-      - name: Attach the public custom domain
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PAGES_PROJECT_NAME: crowdsource-console
-          PAGES_CUSTOM_DOMAIN: console.crowdsource.oxy.so
-        run: bash .github/scripts/cloudflare-pages.sh attach-domain
-
-      - name: Ensure the public DNS record
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PAGES_PROJECT_NAME: crowdsource-console
-          PAGES_CUSTOM_DOMAIN: console.crowdsource.oxy.so
-          PAGES_DNS_ZONE: oxy.so
-        run: bash .github/scripts/cloudflare-pages.sh ensure-dns-record
-
-      - name: Roll back Cloudflare Pages after a failed production smoke
+      - name: Roll back the Worker after a failed production smoke
         if: >-
           failure() &&
           steps.production.outcome == 'success' &&
           steps.production_smoke.outcome == 'failure' &&
           steps.previous.outputs.has_previous == 'true'
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PREVIOUS_DEPLOYMENT_ID: ${{ steps.previous.outputs.deployment_id }}
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error \
-            --request POST \
-            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            --header 'Content-Type: application/json' \
-            --data '{}' \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/crowdsource-console/deployments/$PREVIOUS_DEPLOYMENT_ID/rollback" \
-            >/dev/null
-          echo "::warning::Cloudflare Pages rolled back to $PREVIOUS_DEPLOYMENT_ID."
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: bun
+          wranglerVersion: '4.81.0'
+          workingDirectory: packages/console
+          command: rollback --yes --message "Production smoke failed for ${{ env.DEPLOY_SHA }}"
 
   record-deployment:
     # Runs only after a green production rollout, so a failed or rolled back

@@ -1,0 +1,58 @@
+# The reviewer app is a Worker, not a Pages project.
+#
+# WHY: a Pages project ALWAYS serves `<project>.pages.dev` and Cloudflare offers
+# no way to switch it off — `wrangler pages project` has only `list`, `create`
+# and `delete`.
+#
+# That is not hypothetical here. Measured before this change:
+#
+#   crowdsource.oxy.so              200  3812 bytes  md5 d75ea3dbba9d61e4
+#   crowdsource-frontend.pages.dev  200  3812 bytes  md5 d75ea3dbba9d61e4
+#
+# The same deployment under two names. The second is outside the `oxy.so` apex
+# family, and `packages/backend/src/app.ts` uses `createOxyCors()` with no
+# `appOrigins` — deny-by-default, apex family only — so that copy renders the
+# shell and fails every call it makes. It is also not a registered redirect URI
+# of CrowdSource's Oxy application, so it cannot even finish a sign-in.
+# `workers_dev = false` leaves `crowdsource.oxy.so` as the only name that
+# reaches this deployment.
+name = "crowdsource-frontend"
+# Pinned to a date the wrangler this release runs (`wranglerVersion: '4.81.0'` in
+# `.github/workflows/deploy-frontends.yml`) actually supports: its bundled runtime
+# refuses anything newer than 2026-04-12, and a Worker whose config its own
+# deployer cannot run locally is one nobody can reproduce. Raise it with the
+# wrangler pin, not on its own.
+compatibility_date = "2026-04-12"
+
+workers_dev = false
+
+# Static assets with no `main`: no Worker script runs, every request is served
+# from the uploaded directory. `.github/scripts/validate-frontend-static-output.mjs`
+# fails the release if a `_worker.js` ever appears in `dist/`, because one there
+# is inert AND published as a public asset.
+[assets]
+directory = "./dist"
+
+# `expo export --platform web` emits ONE `index.html` plus hashed assets — a
+# client-routed SPA, not per-route static HTML — so this is what makes a deep
+# link work. It replaces `public/_redirects` (`/*  /index.html  200`), deleted in
+# the same change, and behaves identically: real assets are matched first, and
+# only a genuine miss gets the shell.
+not_found_handling = "single-page-application"
+
+# `public/_headers` survives the move and is still the source of the one-year
+# immutable rules for `/_expo/static/*` and `/fonts/*` that
+# `.github/scripts/smoke-frontend.sh` asserts against the live deployment.
+# Workers static assets read it exactly as Pages did: wrangler excludes
+# `_headers` and `_redirects` from the asset manifest and uploads each as a
+# deployment module instead.
+
+# The only way in, and the reason the release no longer writes DNS by hand.
+# Cloudflare creates the record for a custom domain itself, which is why the
+# hostname must carry NO pre-existing record at the moment of the first deploy:
+# a Worker custom domain refuses a hostname that already has externally managed
+# records (`code: 100117`). The proxied CNAME the old `ensure-dns-record` step
+# created is exactly such a record and has to be deleted first.
+[[routes]]
+pattern = "crowdsource.oxy.so"
+custom_domain = true

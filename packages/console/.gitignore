@@ -26,3 +26,6 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Local wrangler state (`wrangler dev`), never part of the deployed assets.
+.wrangler/
