@@ -63,6 +63,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install exact dependency graph
         run: bun install --frozen-lockfile --ignore-scripts
+      - name: Verify Oxy dependency health
+        run: bun run doctor:oxy
       - name: Verify workspace, build, lint and typecheck
         run: bun run check
       # The dist-orphan check is inside `bun run check` above, as `check:dist`, and

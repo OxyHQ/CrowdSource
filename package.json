@@ -26,6 +26,7 @@
     "test:backend-cutover:realdb": "bun ./scripts/test-crowdsource-backend-cutover-postgres.mjs",
     "check:injection-sinks": "bun ./scripts/check-injection-sinks.mjs --min-files=200",
     "doctor": "bun ./scripts/doctor.mjs",
+    "doctor:oxy": "oxy-doctor --ci",
     "check": "bun run doctor && bun run validate:workflows && bun run validate:agents-md && bun run audit:security && bun run check:injection-sinks && bun run check:peers && bun run check:app-postgres-only && bun run check:backend-postgres-only && bun run build && bun run check:dist && bun run check:migrations && bun run check:schemas && bun run check:module-format && bun run --cwd packages/reviewer typecheck && bun run --cwd packages/console typecheck && bun run lint",
     "test": "bun run test:contracts && bun run test:backend && bun run test:sdk && bun run test:testing && bun run test:sdk-express && bun run test:app && bun run test:reviewer && bun run test:console",
     "test:contracts": "bun run --cwd packages/contracts test",
@@ -61,6 +62,7 @@
     "check:migrations": "bun ./scripts/check-published-migrations.mjs && bun ./scripts/test-check-published-migrations.mjs"
   },
   "devDependencies": {
+    "@oxy.so/doctor": "1.0.0",
     "@types/node": "^26.1.1",
     "typescript": "~5.9.3",
     "yaml": "^2.9.0"
