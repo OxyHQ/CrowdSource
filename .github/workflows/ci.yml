@@ -129,8 +129,24 @@ jobs:
             build: bun run build:contracts
             postgres: true
           - package: reviewer
-            command: bun run --cwd packages/reviewer test:coverage -- --coverageDirectory="$RUNNER_TEMP/reviewer-coverage"
+            command: bun run --cwd packages/reviewer test:coverage -- --coverageDirectory="$RUNNER_TEMP/reviewer-coverage" --json --outputFile="$RUNNER_TEMP/reviewer-tests.json"
             coverage: true
+            # `coverage: true` buys REPORTING, not enforcement. This package's
+            # jest config (the `jest` key in its package.json) sets
+            # `collectCoverageFrom` and `coverageReporters` and NO
+            # `coverageThreshold`, and there is no jest.config.* in the package
+            # or at the repo root — so `--coverage` collects the numbers, prints
+            # them, and can never fail on them. `backend` is the opposite case
+            # and needs no entry here: its vitest.config.ts carries enforcing
+            # thresholds (97/92/96/98), so a suite that ran nothing scores 0%
+            # and fails already.
+            #
+            # Measured 2026-08-11 on a green run: 139 tests across 13 suites.
+            # RETIREMENT CONDITION, stated here rather than in a pull request
+            # nobody reads twice: raise this as the suite grows, and lower it
+            # ONLY in the same change that deletes the tests, naming them. A
+            # floor edited to match whatever ran is not a floor.
+            minimum_tests: 139
           # The four published packages. Every Oxy app is about to depend on them,
           # so an untested change here breaks adopters rather than us. The floor is
           # a minimum, not a target: a suite that runs nothing exits 0, and without
@@ -192,8 +208,18 @@ jobs:
           # the upload step below with `if-no-files-found: error`, which is a CI failure
           # about an artifact rather than about the code.
           - package: console
-            command: bun run --cwd packages/console test
+            command: bun run --cwd packages/console test -- --json --outputFile="$RUNNER_TEMP/console-tests.json"
             coverage: false
+            # The only matrix entry with NO floor of any kind before this: no
+            # `minimum_tests`, and `coverage: false` so there is not even a
+            # percentage to fall through. A jest-expo preset failure, a
+            # moduleNameMapper that stops resolving, or a glob that matches
+            # nothing exits 0 and the job is green.
+            #
+            # Measured 2026-08-11 on a green run: 118 tests across 14 suites.
+            # RETIREMENT CONDITION: raise it as the suite grows; lower it ONLY in
+            # the same change that deletes the tests, naming them.
+            minimum_tests: 118
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
