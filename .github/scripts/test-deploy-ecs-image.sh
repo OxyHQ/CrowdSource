@@ -664,7 +664,7 @@ fi
 #     at desired=0 by exactly that mechanism. Real. Run.
 #
 # Excluding the one-shot DEADLOCKS a parked service: it is the `post` migration
-# phase, @oxyhq/db's ledger is a high-water mark, and the next release's `pre`
+# phase, @oxy.so/db's ledger is a high-water mark, and the next release's `pre`
 # run is refused behind an unapplied `post` one -- so the deploy that was
 # supposed to "catch up later" fails at its migration step instead. Measured in
 # alia: four consecutive merges deployed red behind an unapplied 0016.
