@@ -1,4 +1,4 @@
-import type { AppealReason } from '@oxyhq/crowdsource-contracts';
+import type { AppealReason } from '@oxy.so/crowdsource-contracts';
 
 import { defineTenantCollection } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';

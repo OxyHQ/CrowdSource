@@ -9,7 +9,7 @@ import {
   type Resource,
   type TaxonomyCode,
   type TaxonomyFamily,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import type { CaseDocument } from '../cases/case.collection';
 import type { ResolvedPolicy } from '../policy/policy.registry';

@@ -2,7 +2,7 @@ import {
   REVIEWER_SENSITIVITY_CLASSES,
   type ReviewerState,
   type TaxonomyFamily,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { defineUnscopedCollection } from '../../db/collections';
 import type { ReviewerRelationSource } from '../../db/postgres/schema/reviewers';

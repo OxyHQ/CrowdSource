@@ -46,7 +46,7 @@ import {
   type Resource,
   type SubjectType,
   type TaxonomyCode,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { DEFAULT_POLICY, allegationsForbiddingCommunityReview, defaultPrivacy } from './defaults.js';
 import { canonicalJson, resourceDigest, sha256Digest, type CanonicalValue } from './digest.js';

@@ -1,4 +1,4 @@
-# @oxyhq/crowdsource-contracts
+# @oxy.so/crowdsource-contracts
 
 The versioned contracts every CrowdSource surface agrees on — the backend, the
 reviewer and console clients, the published SDKs, and third-party integrators.

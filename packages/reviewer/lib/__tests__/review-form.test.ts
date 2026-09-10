@@ -16,7 +16,7 @@ import {
   type ReviewFormAction,
   type ReviewFormState,
 } from '@/lib/review-form';
-import type { PolicyRule } from '@oxyhq/crowdsource-contracts';
+import type { PolicyRule } from '@oxy.so/crowdsource-contracts';
 
 /**
  * The published `PolicyRule` shape: `description`, and `taxonomyCodes` PLURAL.

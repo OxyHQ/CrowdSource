@@ -35,7 +35,7 @@ function healthyTree() {
       name,
       {
         manifest: {
-          name: `@oxyhq/${name}`,
+          name: `@oxy.so/${name}`,
           type: "commonjs",
           exports: {
             ".": {
@@ -70,7 +70,7 @@ const cases = [
   {
     name: "import and require resolving to the SAME file is caught",
     expectFailure: true,
-    mustMention: "@oxyhq/sdk-express",
+    mustMention: "@oxy.so/sdk-express",
     // The exact 0.3.0 defect that took a backend down.
     mutate: (tree) => {
       tree["sdk-express"].manifest.exports["."].import = "./dist/index.js";

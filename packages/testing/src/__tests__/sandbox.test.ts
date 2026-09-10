@@ -1,7 +1,7 @@
 /**
  * The path an integrator actually has to get right, end to end.
  *
- * The real `@oxyhq/crowdsource` client is pointed at the sandbox, so what is
+ * The real `@oxy.so/crowdsource` client is pointed at the sandbox, so what is
  * exercised is the client's own envelope composition, its idempotency key, its
  * error mapping and its transport — not a mock of any of them. The only thing
  * standing in for the service is the service.
@@ -12,7 +12,7 @@ import {
   CrowdSourceApiError,
   parseServiceKey,
   type ReportInput,
-} from '@oxyhq/crowdsource';
+} from '@oxy.so/crowdsource';
 import { describe, expect, it } from 'vitest';
 
 import { caseDecidedEventFixture, caseEnvelopeFixture, decisionFixture } from '../fixtures.js';

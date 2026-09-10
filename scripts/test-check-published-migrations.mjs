@@ -30,7 +30,7 @@ function healthyTree() {
       name,
       {
         manifest: {
-          name: `@oxyhq/${name}`,
+          name: `@oxy.so/${name}`,
           version: "0.0.0",
           files: ["dist/**/*", "src/**/*", "!src/**/__tests__/**"],
         },
@@ -53,7 +53,7 @@ const cases = [
   {
     name: "a migrations folder moved into the published source is caught",
     expectFailure: true,
-    mustMention: "@oxyhq/app",
+    mustMention: "@oxy.so/app",
     // The exact edit the design document predicts: somebody tidies the folder out
     // of `__tests__/`, everything still works locally, and it ships.
     mutate: (tree) => {
@@ -64,7 +64,7 @@ const cases = [
   {
     name: "a stray .sql anywhere in the published tree is caught",
     expectFailure: true,
-    mustMention: "@oxyhq/sdk",
+    mustMention: "@oxy.so/sdk",
     mutate: (tree) => {
       tree.sdk.files["src/backfill.sql"] = "update t set x = 1;\n";
       return tree;
@@ -73,7 +73,7 @@ const cases = [
   {
     name: "a Migrations folder with a capital M is caught too",
     expectFailure: true,
-    mustMention: "@oxyhq/testing",
+    mustMention: "@oxy.so/testing",
     mutate: (tree) => {
       tree.testing.files["dist/Migrations/index.js"] = "module.exports = {};\n";
       return tree;

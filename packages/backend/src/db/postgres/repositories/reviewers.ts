@@ -1,6 +1,6 @@
 import { and, asc, eq, gte, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 
-import { sqlColumnName } from '@oxyhq/db';
+import { sqlColumnName } from '@oxy.so/db';
 
 import {
   reviewerAffinities,
@@ -205,7 +205,7 @@ export async function insertReviewerProfileIfAbsent(
  * caller of `mutateProfile` consumes — `openCalibrationIfReady` reads the state
  * it just wrote off this row.
  *
- * `updated_at` is deliberately not set here: `@oxyhq/db`'s `updatedAt()` carries
+ * `updated_at` is deliberately not set here: `@oxy.so/db`'s `updatedAt()` carries
  * `$onUpdate`, which the query BUILDER applies. It would NOT apply to a raw
  * `db.execute`, which is why this is built rather than written as one SQL string.
  */

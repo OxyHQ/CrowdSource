@@ -6,7 +6,7 @@
  *
  * ## Why this exists
  *
- * On 2026-07-30 `@oxyhq/crowdsource-express@0.3.0` took a consumer's backend
+ * On 2026-07-30 `@oxy.so/crowdsource-express@0.3.0` took a consumer's backend
  * down. Every package shipped CommonJS only, with `exports["."].import` pointing
  * at the CommonJS file. Plain Node survives that — its ESM loader handles a CJS
  * package — so a `node -e "import(...)"` smoke test goes green. A bundler
@@ -16,7 +16,7 @@
  *     Error: Dynamic require of "zod" is not supported
  *
  * The first response was to document a consumer-side workaround
- * (`--external:@oxyhq/*`). That was reversed, and rightly: it pushed a permanent
+ * (`--external:@oxy.so/*`). That was reversed, and rightly: it pushed a permanent
  * special case onto seven consumer builds whose failure mode is a container that
  * starts and dies, to avoid fixing a misconfiguration that was ours. A
  * TypeScript library publishing real ESM is the ordinary thing.

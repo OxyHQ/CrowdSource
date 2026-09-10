@@ -5,10 +5,10 @@ environment variable and the object being reported**, so this guide is short. If
 it grows, that is a finding about the packages, not about the writing.
 
 ```bash
-bun add @oxyhq/crowdsource @oxyhq/crowdsource-contracts
+bun add @oxy.so/crowdsource @oxy.so/crowdsource-contracts
 ```
 
-`@oxyhq/crowdsource-contracts` is a **peer dependency** of every published
+`@oxy.so/crowdsource-contracts` is a **peer dependency** of every published
 package here. Two copies of it in one tree is a failure with no diagnostic —
 `tsc` stays silent and every delivery answers `400`, which reads as a signature
 problem. Declare it once and own its version.
@@ -93,7 +93,7 @@ is stored, so nothing — including this service — can recover it.
 ## 2. Send a report
 
 ```ts
-import { CrowdSource } from '@oxyhq/crowdsource';
+import { CrowdSource } from '@oxy.so/crowdsource';
 
 const crowdsource = new CrowdSource();
 
@@ -217,7 +217,7 @@ CROWDSOURCE_WEBHOOK_SECRET=…
 ```
 
 ```ts
-import { crowdsourceWebhooks } from '@oxyhq/crowdsource-express';
+import { crowdsourceWebhooks } from '@oxy.so/crowdsource-express';
 
 app.post('/webhooks/crowdsource', crowdsourceWebhooks({
   on: {
@@ -265,7 +265,7 @@ reputation figure directly. You emit a report; CrowdSource emits a decision.
 ## 5. Test the whole path before a jury has ever sat
 
 ```ts
-import { createCrowdSourceSandbox } from '@oxyhq/crowdsource-testing';
+import { createCrowdSourceSandbox } from '@oxy.so/crowdsource-testing';
 
 const sandbox = createCrowdSourceSandbox();
 const crowdsource = new CrowdSource({
@@ -310,12 +310,12 @@ what that means and what a jury will actually be asked.
 
 | Variable | Package | |
 | --- | --- | --- |
-| `CROWDSOURCE_SERVICE_KEY` | `@oxyhq/crowdsource` | Required. `applicationId:credentialId:secret`. |
-| `CROWDSOURCE_BASE_URL` | `@oxyhq/crowdsource` | Optional. Overrides the host. `http://` is accepted for `localhost` and refused otherwise. |
-| `CROWDSOURCE_WEBHOOK_SECRET` | `@oxyhq/crowdsource-express` | The active signing secret. |
-| `CROWDSOURCE_WEBHOOK_SECRET_PREVIOUS` | `@oxyhq/crowdsource-express` | The secret being retired. Set during a rotation overlap; clear it after `previousSecret.expiresAt`. |
+| `CROWDSOURCE_SERVICE_KEY` | `@oxy.so/crowdsource` | Required. `applicationId:credentialId:secret`. |
+| `CROWDSOURCE_BASE_URL` | `@oxy.so/crowdsource` | Optional. Overrides the host. `http://` is accepted for `localhost` and refused otherwise. |
+| `CROWDSOURCE_WEBHOOK_SECRET` | `@oxy.so/crowdsource-express` | The active signing secret. |
+| `CROWDSOURCE_WEBHOOK_SECRET_PREVIOUS` | `@oxy.so/crowdsource-express` | The secret being retired. Set during a rotation overlap; clear it after `previousSecret.expiresAt`. |
 
-**`@oxyhq/crowdsource` is server-side only.** A service credential is your whole
+**`@oxy.so/crowdsource` is server-side only.** A service credential is your whole
 moderation stream; shipping one to a browser or a mobile bundle hands every user
 of your application the ability to file reports as you, read your cases and
 exhaust your quota. The package depends on `node:crypto` and does not build for

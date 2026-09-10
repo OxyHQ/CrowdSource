@@ -8,7 +8,7 @@
  * about policy, and policy is step 2's subject.
  */
 
-import { Checkbox } from '@oxyhq/bloom/checkbox';
+import { Checkbox } from '@oxy.so/bloom/checkbox';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
@@ -22,7 +22,7 @@ import {
   type ReviewFormAction,
   type ReviewFormState,
 } from '@/lib/review-form';
-import type { ReviewerResource } from '@oxyhq/crowdsource-contracts';
+import type { ReviewerResource } from '@oxy.so/crowdsource-contracts';
 
 interface DescriptiveStepProps {
   state: ReviewFormState;

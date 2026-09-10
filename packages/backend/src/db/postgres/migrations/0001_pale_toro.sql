@@ -13,7 +13,7 @@
 -- PROVISIONING DEPENDENCY. `crowdsource_migrator` and `crowdsource_app` must
 -- already exist, with the migrator OWNING the database and default privileges
 -- granting the application role DML on tables it creates — oxy-infra runbook 30
--- §2A. Ownership rather than a schema grant is load-bearing: `@oxyhq/db`'s
+-- §2A. Ownership rather than a schema grant is load-bearing: `@oxy.so/db`'s
 -- ledger lives in its own `drizzle` schema, and `CREATE SCHEMA` needs CREATE on
 -- the DATABASE, so a schema-only grant fails before any table exists.
 

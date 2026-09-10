@@ -14,7 +14,7 @@
  * screen that asked for it and `back` returns to it with its scroll intact.
  */
 
-import { ContentPanel } from '@oxyhq/bloom/content-panel';
+import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { Slot, Stack } from 'expo-router';
 import React from 'react';
 import { Platform, View } from 'react-native';

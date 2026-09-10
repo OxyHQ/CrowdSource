@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { isCheckViolation, isUniqueViolation } from '@oxyhq/db';
+import { isCheckViolation, isUniqueViolation } from '@oxy.so/db';
 
 import * as reviewsRepository from '../db/postgres/repositories/reviews';
 import { reviews } from '../db/postgres/schema/sortition';

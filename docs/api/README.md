@@ -13,7 +13,7 @@ staging host. An application's own pre-production is a property of the *report*
 | [`webhooks.md`](./webhooks.md) | Not a caller — what CrowdSource sends *you*. |
 
 The request and response *documents* are published as Zod schemas and generated
-JSON Schema by `@oxyhq/crowdsource-contracts`, which is the same package the
+JSON Schema by `@oxy.so/crowdsource-contracts`, which is the same package the
 server validates with. Where a shape below is not in that package — the HTTP
 error body, the report receipt, the case view — it is a shape the backend
 composes in the route file, and each section names the file.
@@ -35,7 +35,7 @@ Three properties hold these apart, and each is structural rather than a rule
 somebody remembers at each route:
 
 - **A service credential cannot satisfy a session route.** Session verification
-  is `createOptionalOxyAuth` from `@oxyhq/core/server`
+  is `createOptionalOxyAuth` from `@oxy.so/core/server`
   (`modules/identity/oxySession.ts`), which does not recognise a CrowdSource
   service token as an Oxy session, so the guard behind it answers `401`. A
   leaked integrator key therefore cannot read a console or an assignment.
@@ -85,7 +85,7 @@ carries scalars only — never reported material (`http/apiError.ts`,
 
 **Retry `408`, `425`, `429`, `500`, `502`, `503`, `504`. Do not retry anything
 else** — that split is `RETRYABLE_STATUSES` in `packages/sdk/src/errors.ts`, and
-`@oxyhq/crowdsource` exposes it as a `retryable` boolean on every error it
+`@oxy.so/crowdsource` exposes it as a `retryable` boolean on every error it
 throws, so a delivery worker never has to re-derive it.
 
 `401` and `403` are not interchangeable. A credential that authenticates but

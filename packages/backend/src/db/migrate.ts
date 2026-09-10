@@ -5,7 +5,7 @@ import {
   readTargetDatabase,
   runMigrations,
   type MigrationRun,
-} from '@oxyhq/db/migrate';
+} from '@oxy.so/db/migrate';
 
 /**
  * Applying this service's PostgreSQL migrations — everything about it except
@@ -21,7 +21,7 @@ import {
  * ## Why not `drizzle-kit migrate`
  *
  * `drizzle-kit` is a devDependency and the runtime image installs production
- * dependencies only, so it cannot reach production at all. `@oxyhq/db/migrate`
+ * dependencies only, so it cannot reach production at all. `@oxy.so/db/migrate`
  * wraps drizzle's own migrator, which is a runtime dependency, and adds the
  * preconditions this estate learned the hard way — the right database, an
  * unbroken ledger, and only the migrations safe for this side of the rollout.
@@ -97,7 +97,7 @@ export function readMigratorDatabaseUrl(env: NodeJS.ProcessEnv): string {
 /**
  * Read `--phase=<pre|post|all>` out of an argument list, defaulting to `all`.
  *
- * Parsed here rather than in `@oxyhq/db`, which takes a `run` option rather
+ * Parsed here rather than in `@oxy.so/db`, which takes a `run` option rather
  * than a flag: how a caller spells it on its own command line is the caller's
  * business. An unrecognised value throws rather than falling back, because
  * silently running `all` for somebody who typed `--phase=pre-deploy` applies
@@ -133,7 +133,7 @@ export interface BackendMigrationOptions {
  * Apply this service's migrations.
  *
  * `--target-database=<name>` is required on every run, dry ones included. The
- * guard is adopted rather than inherited — `@oxyhq/db` leaves it optional — and
+ * guard is adopted rather than inherited — `@oxy.so/db` leaves it optional — and
  * it is the one whose absence does not fail loudly: pointed at the wrong
  * database a migrator finds an empty ledger, applies the whole journal, logs a
  * success line and exits 0, leaving the real database untouched.

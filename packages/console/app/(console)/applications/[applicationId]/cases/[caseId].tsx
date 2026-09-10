@@ -35,7 +35,7 @@
  * test so a palette tidy-up cannot merge them.
  */
 
-import { Button } from '@oxyhq/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';

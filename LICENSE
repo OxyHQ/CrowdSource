@@ -684,15 +684,15 @@ libraries, not the application, and they keep the license they are published
 under today. Their own package.json license field governs them, and it is
 unchanged by this file.
 
-  -   @oxyhq/crowdsource (packages/sdk)
+  -   @oxy.so/crowdsource (packages/sdk)
 
-  -   @oxyhq/crowdsource-contracts (packages/contracts)
+  -   @oxy.so/crowdsource-contracts (packages/contracts)
 
-  -   @oxyhq/crowdsource-express (packages/sdk-express)
+  -   @oxy.so/crowdsource-express (packages/sdk-express)
 
-  -   @oxyhq/crowdsource-testing (packages/testing)
+  -   @oxy.so/crowdsource-testing (packages/testing)
 
-  -   @oxyhq/crowdsource-app (packages/app)
+  -   @oxy.so/crowdsource-app (packages/app)
 
 They are held back deliberately. Sweeping them into these terms would narrow
 the license under every consumer who already depends on them, which is the

@@ -8,10 +8,10 @@
  * answer, not a failure.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import { CircleCheck_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
-import { getNormalizedUserHandle } from '@oxyhq/core';
-import { useAuth } from '@oxyhq/services/ui/client';
+import { Button } from '@oxy.so/bloom/button';
+import { CircleCheck_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { getNormalizedUserHandle } from '@oxy.so/core';
+import { useAuth } from '@oxy.so/services/ui/client';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,7 @@ import { Panel, Screen } from '@/components/Screen';
 import { assignmentBlockers } from '@/lib/eligibility';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { useRequestNextAssignment, useReviewerProfile } from '@/lib/reviewer-api/queries';
-import type { ReviewerProfileView } from '@oxyhq/crowdsource-contracts';
+import type { ReviewerProfileView } from '@oxy.so/crowdsource-contracts';
 
 export default function HomeScreen() {
   const { user } = useAuth();

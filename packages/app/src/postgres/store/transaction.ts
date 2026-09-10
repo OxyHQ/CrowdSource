@@ -23,7 +23,7 @@ import type { ModerationTransactionRunner } from '../../store/types.js';
  * `Seems like the schema generic is missing - did you forget to add it to your DB
  * type?` — an error about `query`, on a store call that never touches the
  * relational query builder. Pass your schema to `drizzle()` (or use
- * `createDatabase({ databaseUrl, schema })` from `@oxyhq/db`) and it resolves.
+ * `createDatabase({ databaseUrl, schema })` from `@oxy.so/db`) and it resolves.
  * Both directions are verified in this package's own type-check.
  */
 export type ModerationPgHandle = PgDatabase<

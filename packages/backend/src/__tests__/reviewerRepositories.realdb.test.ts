@@ -1,8 +1,8 @@
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
-import { isCheckViolation } from '@oxyhq/db';
+import type { TaxonomyFamily } from '@oxy.so/crowdsource-contracts';
+import { isCheckViolation } from '@oxy.so/db';
 
 import * as reviewerRepository from '../db/postgres/repositories/reviewers';
 import { reviewerProfiles } from '../db/postgres/schema/reviewers';

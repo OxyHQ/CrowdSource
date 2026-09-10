@@ -3,7 +3,7 @@ import type {
   RecommendedAction,
   ReviewFinding,
   ReviewOutcome,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { defineUnscopedCollection } from '../../db/collections';
 

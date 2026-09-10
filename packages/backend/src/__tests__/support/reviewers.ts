@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { RequestHandler } from 'express';
-import type { ReviewerState, TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import type { ReviewerState, TaxonomyFamily } from '@oxy.so/crowdsource-contracts';
 
 import { TRAINING_MODULES } from '../../modules/reviewer/calibration';
 import { personhoodConfidence } from '../../modules/reviewer/personhood';
@@ -55,7 +55,7 @@ import {
  * session still produces this service's own `401` through `requireReviewerSession`,
  * and the profile is still created and resolved by `ensureReviewerProfile`. So
  * the AUTHORISATION rules this phase owns are exercised for real, and only the
- * AUTHENTICATION that belongs to `@oxyhq/core` is stubbed.
+ * AUTHENTICATION that belongs to `@oxy.so/core` is stubbed.
  */
 export function stubOxySession(): RequestHandler {
   return (request, _response, next) => {

@@ -18,8 +18,8 @@ import { stubOxySession } from './support/reviewers';
  * the honest way to test a guard whose job is to catch what should be
  * impossible.
  */
-vi.mock('@oxyhq/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxyhq/core/server')>();
+vi.mock('@oxy.so/core/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
   return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
 });
 

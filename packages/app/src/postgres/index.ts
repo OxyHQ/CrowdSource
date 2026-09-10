@@ -1,5 +1,5 @@
 /**
- * `@oxyhq/crowdsource-app/postgres` — the PostgreSQL half.
+ * `@oxy.so/crowdsource-app/postgres` — the PostgreSQL half.
  *
  * An adopting application chooses its storage by which subpath it imports, and
  * gets the same moderation pipeline either way. Everything drizzle-shaped lives
@@ -8,16 +8,16 @@
  * gates, and the store the integration is wired with.
  *
  * ```ts
- * import { createModerationIntegration } from '@oxyhq/crowdsource-app';
+ * import { createModerationIntegration } from '@oxy.so/crowdsource-app';
  * import {
  *   moderationTables,
  *   moderationReportColumns,
  *   moderationReportTableExtras,
  *   postgresModerationStore,
- * } from '@oxyhq/crowdsource-app/postgres';
+ * } from '@oxy.so/crowdsource-app/postgres';
  * ```
  *
- * `drizzle-orm`, `postgres` and `@oxyhq/db` are OPTIONAL peers, which is what this
+ * `drizzle-orm`, `postgres` and `@oxy.so/db` are OPTIONAL peers, which is what this
  * split buys: a deployment on Mongo never installs them, and a bundler never has
  * to resolve them. Importing this subpath without them fails at the import, by
  * name — which is the failure you want, rather than a driver quietly missing at

@@ -7,7 +7,7 @@
 
 Each package README says what it holds. **Do NOT record per-package build status in this file.** The sentence that used to sit here said the reviewer app was "the foundation without review surfaces" long after `packages/reviewer/app/(app)/review.tsx`, `recuse.tsx`, `history.tsx`, `training.tsx`, `reliability.tsx` and `wellbeing.tsx` had all shipped, so it read as an instruction not to go looking. Read the tree.
 
-**Rebuild `contracts` before believing a red typecheck.** `@oxyhq/crowdsource-contracts` is consumed through its BUILT `dist` — backend, sdk, sdk-express, testing and app all import the published shape, never `src`. After any rebase or checkout that pulls in a contracts change, every other package still compiles against the previous build and reports the newly-landed symbols as missing (`TS2305`) in files nobody touched. It reads exactly like someone else's broken commit. `cd packages/contracts && bun run build` first; only an error that survives that is real.
+**Rebuild `contracts` before believing a red typecheck.** `@oxy.so/crowdsource-contracts` is consumed through its BUILT `dist` — backend, sdk, sdk-express, testing and app all import the published shape, never `src`. After any rebase or checkout that pulls in a contracts change, every other package still compiles against the previous build and reports the newly-landed symbols as missing (`TS2305`) in files nobody touched. It reads exactly like someone else's broken commit. `cd packages/contracts && bun run build` first; only an error that survives that is real.
 
 The four integration packages target **near-zero configuration**, which is a product requirement rather than a nicety: one environment variable and the object being reported. Two consequences bind every change to them.
 
@@ -53,11 +53,11 @@ BullMQ mechanics on the shared Valkey: queue names and custom job ids cannot con
 | 12.7 | Row Level Security | enabled and forced on every tenant-owned table |
 | 12.7 | relational constraints | PostgreSQL primary, unique and check constraints |
 
-Apply the same rule beyond this table. Anything the ecosystem already solves once — session handling, device-first cold boot, media resolution — is consumed from the shared SDK, never reimplemented here, and a bug in `@oxyhq/*` or Bloom is fixed upstream, never patched locally.
+Apply the same rule beyond this table. Anything the ecosystem already solves once — session handling, device-first cold boot, media resolution — is consumed from the shared SDK, never reimplemented here, and a bug in `@oxy.so/*` or Bloom is fixed upstream, never patched locally.
 
 ### Persistence
 
-`@oxyhq/crowdsource-app` (`packages/app`) and `@crowdsource/backend` are PostgreSQL-only in the current source tree. Neither package installs or boots a Mongo driver. Files still go through the Oxy media chokepoint, and Valkey holds nothing that must survive. Historical plans below this directory may describe the state before the cut; treat them as evidence, not runtime documentation.
+`@oxy.so/crowdsource-app` (`packages/app`) and `@crowdsource/backend` are PostgreSQL-only in the current source tree. Neither package installs or boots a Mongo driver. Files still go through the Oxy media chokepoint, and Valkey holds nothing that must survive. Historical plans below this directory may describe the state before the cut; treat them as evidence, not runtime documentation.
 
 **The backend runtime cut is recorded in [`postgres-runtime-cut.md`](./postgres-runtime-cut.md); production data cutover is a separate, still-blocked operation.** It requires the two-role/RLS provisioning and the freeze/export/import/reconcile runbook. The retired `databaseIdentity.ts` Mongo override must not return under another name.
 

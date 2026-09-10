@@ -40,8 +40,8 @@ import { stubOxySession } from './support/reviewers';
  * thought to name.
  */
 
-vi.mock('@oxyhq/core/server', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('@oxyhq/core/server');
+vi.mock('@oxy.so/core/server', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@oxy.so/core/server');
   return { ...actual, createOxyAuthMiddleware: () => stubOxySession() };
 });
 

@@ -1,6 +1,6 @@
 {
   // ---------------------------------------------------------------------------
-  // @oxyhq/crowdsource-contracts
+  // @oxy.so/crowdsource-contracts
   //
   // The versioned contracts every CrowdSource surface agrees on: the backend
   // (Node/Bun, CommonJS), the reviewer and console clients (Metro/Expo bundler),

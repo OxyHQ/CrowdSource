@@ -1,11 +1,11 @@
 import { isIP } from 'node:net';
 
-import { BLOCKED_HOSTNAMES, isBlockedIp } from '@oxyhq/core/server';
+import { BLOCKED_HOSTNAMES, isBlockedIp } from '@oxy.so/core/server';
 import {
   CreateReportRequestSchema,
   type CaseEnvelope,
   type CreateReportRequest,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 import { z } from 'zod';
 
 import type { TenantContext } from '../../db/tenantScope';
@@ -139,7 +139,7 @@ function envelopeUrls(envelope: CaseEnvelope): { path: string; url: string }[] {
  * pretending otherwise would be the more dangerous of the two mistakes — DNS can
  * change between this check and any later fetch, so the check that counts is the
  * one taken at fetch time with the connection pinned to the validated address.
- * That is `safeFetch` from `@oxyhq/core/server`, which is where every outbound
+ * That is `safeFetch` from `@oxy.so/core/server`, which is where every outbound
  * request must go. The primitives used here come from the same module, so there
  * is one denylist in the ecosystem rather than a second one drifting alongside it.
  */

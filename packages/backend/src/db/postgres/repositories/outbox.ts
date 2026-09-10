@@ -163,7 +163,7 @@ export interface OutboxClaim {
  *  - **`inArray`, never a bare array.** A bare array interpolated into a `sql`
  *    template renders as a ROW CONSTRUCTOR, which matches nothing and reads as an
  *    empty queue.
- *  - **`updated_at` is not set here.** `@oxyhq/db`'s `updatedAt()` carries
+ *  - **`updated_at` is not set here.** `@oxy.so/db`'s `updatedAt()` carries
  *    `$onUpdate`, which the query BUILDER applies; it would not apply to a raw
  *    `db.execute`, which is why the claim is built rather than written as one SQL
  *    string. The realdb file asserts the stamp actually moved.

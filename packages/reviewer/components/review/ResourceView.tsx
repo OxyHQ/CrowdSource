@@ -21,13 +21,13 @@
  *    `content_unavailable` and recusal are for.
  */
 
-import type { ReviewerResource } from '@oxyhq/crowdsource-contracts';
+import type { ReviewerResource } from '@oxy.so/crowdsource-contracts';
 import { Image } from 'expo-image';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { useImageResolver } from '@oxyhq/bloom/image-resolver';
+import { useImageResolver } from '@oxy.so/bloom/image-resolver';
 
 interface ResourceViewProps {
   resource: ReviewerResource;

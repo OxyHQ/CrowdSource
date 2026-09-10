@@ -11,7 +11,7 @@
  * The root layout decides when this screen is shown. Nothing here navigates.
  */
 
-import { OxySignInButton } from '@oxyhq/services/ui/client';
+import { OxySignInButton } from '@oxy.so/services/ui/client';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';

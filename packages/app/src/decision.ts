@@ -1,4 +1,4 @@
-import { DecisionSchema, type Decision } from '@oxyhq/crowdsource-contracts';
+import { DecisionSchema, type Decision } from '@oxy.so/crowdsource-contracts';
 import type { EnforcementExecutor } from './enforcement/executor.js';
 import { primaryAction } from './enforcement/planner.js';
 import { localStatusForDecision } from './reportStatus.js';

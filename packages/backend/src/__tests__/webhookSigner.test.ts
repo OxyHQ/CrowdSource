@@ -5,7 +5,7 @@ import path from 'node:path';
 import {
   buildWebhookSignedPayload,
   WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -309,7 +309,7 @@ describe('how a signature is compared', () => {
   }
 
   it('goes through the ecosystem’s constant-time helper', () => {
-    expect(signatureModule).toContain("import { verifySecret } from '@oxyhq/core/server';");
+    expect(signatureModule).toContain("import { verifySecret } from '@oxy.so/core/server';");
     expect(signatureModule).toContain('verifySecret(input.signature, expected)');
   });
 

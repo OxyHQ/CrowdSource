@@ -19,7 +19,7 @@
  * screen's copy out of step with them.
  */
 
-import { TextField, TextFieldInput, TextFieldLabel } from '@oxyhq/bloom/text-field';
+import { TextField, TextFieldInput, TextFieldLabel } from '@oxy.so/bloom/text-field';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';

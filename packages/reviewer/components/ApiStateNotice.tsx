@@ -10,7 +10,7 @@
  * When the endpoint ships, the same screens light up with no changes here.
  */
 
-import * as Skeleton from '@oxyhq/bloom/skeleton';
+import * as Skeleton from '@oxy.so/bloom/skeleton';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';

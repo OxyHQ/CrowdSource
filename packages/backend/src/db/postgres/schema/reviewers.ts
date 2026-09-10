@@ -12,9 +12,9 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { REVIEWER_STATES } from '@oxyhq/crowdsource-contracts';
+import { REVIEWER_STATES } from '@oxy.so/crowdsource-contracts';
 
-import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
 /**
  * Where a reviewer's declared relationship came from (§8.5).

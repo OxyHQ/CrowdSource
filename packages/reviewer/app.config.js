@@ -189,10 +189,10 @@ module.exports = function(_config) {
           // Android sharedUserId for cross-app authentication
           './plugins/withSharedUserId',
           // Reader side of the shared-identity native module (ships in
-          // @oxyhq/services): request the signature permission + <queries>
+          // @oxy.so/services): request the signature permission + <queries>
           // so cold boot can silently read the Commons-hosted shared
           // identity (silent "Sign in with Oxy").
-          '@oxyhq/services/plugins/withSharedIdentityReader',
+          '@oxy.so/services/plugins/withSharedIdentityReader',
         ]
 
         if (PLATFORM === 'web') {

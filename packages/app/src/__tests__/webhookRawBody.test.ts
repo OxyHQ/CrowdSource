@@ -11,12 +11,12 @@
  * the router. `scripts/test-invariants.mjs` flips the mount order in
  * `support/webhookApp.ts` and asserts the first test below fails.
  *
- * Deliveries are signed by `@oxyhq/crowdsource-testing`, which signs exactly the
+ * Deliveries are signed by `@oxy.so/crowdsource-testing`, which signs exactly the
  * way the service does, and travel over a real socket. Nothing at the boundary
  * is faked.
  */
 
-import { createCrowdSourceSandbox, WebhookSimulator } from '@oxyhq/crowdsource-testing';
+import { createCrowdSourceSandbox, WebhookSimulator } from '@oxy.so/crowdsource-testing';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Harness } from './support/backend.js';
 import { startWebhookApp, type RunningWebhookApp } from './support/webhookApp.js';
@@ -42,7 +42,7 @@ describe.each(BACKENDS)('$name', (backend) => {
 
   async function decidedEvent(): Promise<unknown> {
     const sandbox = createCrowdSourceSandbox({ webhookSecret: WEBHOOK_SECRET });
-    const { CrowdSource } = await import('@oxyhq/crowdsource');
+    const { CrowdSource } = await import('@oxy.so/crowdsource');
     const client = new CrowdSource({
       serviceKey: sandbox.serviceKey,
       baseUrl: sandbox.baseUrl,

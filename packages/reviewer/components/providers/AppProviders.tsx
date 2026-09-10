@@ -5,8 +5,8 @@
  * re-render never remounts the providers underneath it.
  */
 
-import { OxyServices } from '@oxyhq/core';
-import { OxyProvider } from '@oxyhq/services/ui/client';
+import { OxyServices } from '@oxy.so/core';
+import { OxyProvider } from '@oxy.so/services/ui/client';
 import { QueryClient } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import React, { memo, useCallback } from 'react';

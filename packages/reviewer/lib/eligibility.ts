@@ -11,7 +11,7 @@
  * server-side, which is the only place that matters.
  */
 
-import type { ReviewerProfileView } from '@oxyhq/crowdsource-contracts';
+import type { ReviewerProfileView } from '@oxy.so/crowdsource-contracts';
 
 export type AssignmentBlocker =
   | 'onboarding_incomplete'

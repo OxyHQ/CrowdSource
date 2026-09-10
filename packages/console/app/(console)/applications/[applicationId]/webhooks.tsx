@@ -25,8 +25,8 @@
  * before it, and no delivery is ever signed with a key the receiver does not have.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import { toast } from '@oxyhq/bloom/toast';
+import { Button } from '@oxy.so/bloom/button';
+import { toast } from '@oxy.so/bloom/toast';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native';

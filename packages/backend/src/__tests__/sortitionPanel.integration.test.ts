@@ -25,8 +25,8 @@ import { stubOxySession } from './support/reviewers';
  * indexes, the exclusions, the transaction that writes the draw record and the
  * assignments together, and every authorisation decision.
  */
-vi.mock('@oxyhq/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxyhq/core/server')>();
+vi.mock('@oxy.so/core/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
   return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
 });
 

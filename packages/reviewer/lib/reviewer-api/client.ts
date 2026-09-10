@@ -19,7 +19,7 @@ import {
   type ReviewerCalibrationSubmission,
   type ReviewerPreferencesUpdate,
   type ReviewSubmission,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { API_URL } from '@/config';
 import { oxyServices } from '@/lib/oxyServices';

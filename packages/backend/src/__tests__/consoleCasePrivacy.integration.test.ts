@@ -18,8 +18,8 @@ import { stubOxySession } from './support/reviewers';
  * The values searched for are the dangerous ones by category: a reviewer id, the
  * reported text, a reporter fingerprint, and the internal triage figures.
  */
-vi.mock('@oxyhq/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxyhq/core/server')>();
+vi.mock('@oxy.so/core/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
   return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
 });
 

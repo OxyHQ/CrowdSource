@@ -23,7 +23,7 @@
     "noEmit": true,
     "types": ["node", "vitest/globals"],
     // The emitting project sets `rootDir: "./"`, which this project must widen
-    // rather than inherit: its `paths` resolves @oxyhq/crowdsource-contracts to
+    // rather than inherit: its `paths` resolves @oxy.so/crowdsource-contracts to
     // ../contracts/src, and every file there is then TS6059 "not under rootDir".
     // Harmless to widen, because nothing is emitted here. Omitting the key does
     // NOT work — the extended value is inherited.

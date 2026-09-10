@@ -10,9 +10,9 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { CONTEXT_SUFFICIENCIES, REVIEW_OUTCOMES } from '@oxyhq/crowdsource-contracts';
+import { CONTEXT_SUFFICIENCIES, REVIEW_OUTCOMES } from '@oxy.so/crowdsource-contracts';
 
-import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
 import { SLOT_TYPES } from '../../../modules/sortition/panelSpec';
 import { REVIEW_POOLS } from '../../../modules/triage/triage';

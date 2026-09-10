@@ -1,5 +1,5 @@
-import { OxyServices } from '@oxyhq/core';
-import { createOptionalOxyAuth } from '@oxyhq/core/server';
+import { OxyServices } from '@oxy.so/core';
+import { createOptionalOxyAuth } from '@oxy.so/core/server';
 import type { Request, RequestHandler } from 'express';
 
 import { config } from '../../config';
@@ -19,7 +19,7 @@ import { ApiError } from '../../http/apiError';
  * failure message, is a second and divergent definition of what a valid Oxy
  * session is; the day the two disagree, one of them is wrong in production and
  * nothing says which. So verification itself belongs entirely to
- * `@oxyhq/core/server` and this file holds the wiring around it.
+ * `@oxy.so/core/server` and this file holds the wiring around it.
  *
  * What a session means is NOT decided here. A reviewer profile, an organization
  * membership and a Trust & Safety role are three different authorizations built

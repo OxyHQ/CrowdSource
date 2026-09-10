@@ -1,4 +1,4 @@
-import { createDatabase, type OxyDatabase } from '@oxyhq/db';
+import { createDatabase, type OxyDatabase } from '@oxy.so/db';
 
 import { config } from '../../config';
 import * as schema from './schema';

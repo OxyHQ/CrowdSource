@@ -10,13 +10,13 @@
  * the way every Bloom icon does — `theme.colors.primary` resolves per mode, so
  * the mark stays legible in light and in dark.
  *
- * The prop surface mirrors `LogoIcon`/`LogoText` in `@oxyhq/services` on
+ * The prop surface mirrors `LogoIcon`/`LogoText` in `@oxy.so/services` on
  * purpose: `color` for the explicit override a splash or an inverted surface
  * needs, `height` in pixels with the width derived from the viewBox. Anything
  * rendering an Oxy-ecosystem mark should look the same from the call site.
  */
 
-import { useTheme } from '@oxyhq/bloom/theme';
+import { useTheme } from '@oxy.so/bloom/theme';
 import type React from 'react';
 import type { ReactElement } from 'react';
 import type { ViewStyle } from 'react-native';

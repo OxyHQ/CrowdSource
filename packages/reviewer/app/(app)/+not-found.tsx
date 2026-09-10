@@ -11,8 +11,8 @@
  * what one correctly resolves to.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import { MagnifyingGlassX_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
+import { Button } from '@oxy.so/bloom/button';
+import { MagnifyingGlassX_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';

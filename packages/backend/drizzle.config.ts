@@ -1,5 +1,5 @@
 import { defineConfig } from 'drizzle-kit';
-import { DATABASE_CASING } from '@oxyhq/db';
+import { DATABASE_CASING } from '@oxy.so/db';
 
 /**
  * drizzle-kit configuration for this service's own schema.

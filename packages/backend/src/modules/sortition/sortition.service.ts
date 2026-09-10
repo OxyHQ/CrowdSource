@@ -1,5 +1,5 @@
 import type { TransactionSession } from '../../db/collections';
-import { taxonomyFamilyOf, type TaxonomyCode, type TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import { taxonomyFamilyOf, type TaxonomyCode, type TaxonomyFamily } from '@oxy.so/crowdsource-contracts';
 
 import { withTransaction } from '../../db/transaction';
 import type { TenantContext } from '../../db/tenantScope';

@@ -10,7 +10,7 @@
  *   decides which row is read;
  * - the newest APPLIED row is deliberately not the first action in the declared
  *   array, so `inArray` decides rather than array order;
- * - every `created_at` is set explicitly and spaced by seconds. `@oxyhq/db`'s
+ * - every `created_at` is set explicitly and spaced by seconds. `@oxy.so/db`'s
  *   default is `date_trunc('milliseconds', now())`, so rows written in one tight
  *   loop can share a timestamp and the ordering becomes arbitrary — a test that
  *   passed or failed on timing rather than on the predicate.
@@ -18,7 +18,7 @@
 
 import postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createDatabase } from '@oxyhq/db';
+import { createDatabase } from '@oxy.so/db';
 import { postgresEnforcementStore } from '../postgres/store/enforcement.js';
 import type { ModerationPgHandle } from '../postgres/store/transaction.js';
 import type {

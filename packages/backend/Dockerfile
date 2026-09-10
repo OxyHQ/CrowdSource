@@ -24,12 +24,12 @@ RUN bun install --frozen-lockfile --ignore-scripts --lockfile-only
 FROM manifests AS prod-deps
 RUN --mount=type=cache,target=/root/.bun/install/cache \
   bun install --frozen-lockfile --omit=dev --omit=peer --omit=optional --ignore-scripts \
-    --filter @oxyhq/crowdsource-contracts --filter @crowdsource/backend
+    --filter @oxy.so/crowdsource-contracts --filter @crowdsource/backend
 
 FROM manifests AS builder
 RUN --mount=type=cache,target=/root/.bun/install/cache \
   bun install --frozen-lockfile --ignore-scripts --omit=peer --omit=optional \
-    --filter @oxyhq/crowdsource-contracts --filter @crowdsource/backend
+    --filter @oxy.so/crowdsource-contracts --filter @crowdsource/backend
 
 # The repo-root `scripts/` are build inputs, not just developer tooling:
 # `packages/contracts`'s build script runs `../../scripts/write-esm-marker.mjs`

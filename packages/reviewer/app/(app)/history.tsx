@@ -11,8 +11,8 @@
  * revisit.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import { Clock_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
+import { Button } from '@oxy.so/bloom/button';
+import { Clock_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';

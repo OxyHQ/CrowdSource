@@ -23,7 +23,7 @@
 ##
 ## That URL names the always-present `postgres` maintenance database on purpose:
 ## every test creates its own throwaway database on that server and drops it
-## again (`createTestDatabase` from `@oxyhq/db/testing`), so nothing in the suite
+## again (`createTestDatabase` from `@oxy.so/db/testing`), so nothing in the suite
 ## writes to a database a developer might care about.
 ##
 

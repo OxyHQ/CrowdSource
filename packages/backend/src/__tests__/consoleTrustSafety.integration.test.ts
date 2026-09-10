@@ -15,8 +15,8 @@ import { stubOxySession } from './support/reviewers';
  * different role, and a row with the right role — because "403 for a stranger" is
  * equally consistent with a working check and a route that refuses everybody.
  */
-vi.mock('@oxyhq/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxyhq/core/server')>();
+vi.mock('@oxy.so/core/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
   return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
 });
 

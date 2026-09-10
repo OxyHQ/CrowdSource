@@ -32,7 +32,7 @@
  * snapshot below is reference-stable while unchanged so it does not loop.
  */
 
-import type { AssignmentPackage, IssuedAssignmentPackage } from '@oxyhq/crowdsource-contracts';
+import type { AssignmentPackage, IssuedAssignmentPackage } from '@oxy.so/crowdsource-contracts';
 import { useSyncExternalStore } from 'react';
 
 /**

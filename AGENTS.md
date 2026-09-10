@@ -55,14 +55,14 @@ one is wrong even if it passes review.
 
 ```
 packages/
-  contracts/    @oxyhq/crowdsource-contracts  Zod + JSON Schema contracts (published)
+  contracts/    @oxy.so/crowdsource-contracts  Zod + JSON Schema contracts (published)
   backend/      @crowdsource/backend          Express modular monolith
   reviewer/     @crowdsource/reviewer         Expo Router reviewer app (web + native)
   console/      @crowdsource/console          Developer + Trust & Safety console (web only)
-  sdk/          @oxyhq/crowdsource            TypeScript client (published)
-  sdk-express/  @oxyhq/crowdsource-express    Webhook middleware (published)
-  testing/      @oxyhq/crowdsource-testing    Fixtures + webhook simulator (published)
-  app/          @oxyhq/crowdsource-app        The application half (published)
+  sdk/          @oxy.so/crowdsource            TypeScript client (published)
+  sdk-express/  @oxy.so/crowdsource-express    Webhook middleware (published)
+  testing/      @oxy.so/crowdsource-testing    Fixtures + webhook simulator (published)
+  app/          @oxy.so/crowdsource-app        The application half (published)
 ```
 
 **Do NOT record per-package build status here** — read the tree. The sentence
@@ -92,7 +92,7 @@ touched. It reads exactly like someone else's broken commit.
   dependency. A domain write and its outbox row commit through the SAME Drizzle
   transaction; workers claim durable rows with bounded leases. Never create work
   without the outbox row that makes it re-derivable.
-- **`@oxyhq/crowdsource-app` is PostgreSQL-only.** Do not restore a Mongoose
+- **`@oxy.so/crowdsource-app` is PostgreSQL-only.** Do not restore a Mongoose
   export, dependency or runtime path. Adopter migrations preserve exact ids and
   reconcile counts plus canonical SHA-256 digests against an empty target.
 - **Isolation is enforced by PostgreSQL RLS and the scoped repository types.** A
@@ -138,7 +138,7 @@ touched. It reads exactly like someone else's broken commit.
 ## Oxy integration
 
 - **Two authentication surfaces, neither bypassing the other.** Reviewer, console
-  and Trust & Safety callers are Oxy sessions verified with `@oxyhq/core/server`
+  and Trust & Safety callers are Oxy sessions verified with `@oxy.so/core/server`
   — never an app-local bearer parser or `AuthRequest` type — defined ONCE in
   `src/modules/identity/oxySession.ts`. Application-API callers
   are service credentials. A service credential must never reach a session route,

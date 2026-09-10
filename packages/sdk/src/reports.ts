@@ -12,7 +12,7 @@ import {
   CreateReportResponseSchema,
   type CreateReportResponse,
   type ReportStatus,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 import { z } from 'zod';
 
 import { composeCaseEnvelope, defaultIdempotencyKey, type ReportInput } from './envelope.js';
@@ -22,7 +22,7 @@ import type { Transport } from './transport.js';
 /**
  * `GET /v1/reports/{id}` (§10.2 "receipt, caseId and limited status").
  *
- * Declared here because `@oxyhq/crowdsource-contracts` publishes the DOCUMENTS
+ * Declared here because `@oxy.so/crowdsource-contracts` publishes the DOCUMENTS
  * that travel over the API and not every HTTP response shape. The receipt and
  * the case view below both belong in contracts; until they move, these are the
  * types integrators compile against and the loose parse is what keeps a newer

@@ -13,7 +13,7 @@ had contributors install MongoDB against a backend that exits without
 `DATABASE_URL`. Comments and markdown are exempt from those guards deliberately
 and correctly — a ledger is what covers them instead.
 
-**Current repository state.** `@oxyhq/crowdsource-app` and
+**Current repository state.** `@oxy.so/crowdsource-app` and
 `@crowdsource/backend` are PostgreSQL-only in source. The former Mongoose subpath,
 backend dependencies, boot path, test harness and deploy wiring are removed and
 gated. This does not prove a live data or task-definition cutover: production

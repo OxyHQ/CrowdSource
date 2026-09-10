@@ -1,23 +1,23 @@
-# `@oxyhq/crowdsource-app` — PostgreSQL Implementation Plan
+# `@oxy.so/crowdsource-app` — PostgreSQL Implementation Plan
 
 > **Archived, superseded plan.** This document preserves the design sequence
 > proposed on 2026-08-06. It is not current implementation guidance:
-> `@oxyhq/crowdsource-app` and CrowdSource's backend are PostgreSQL-only, and
+> `@oxy.so/crowdsource-app` and CrowdSource's backend are PostgreSQL-only, and
 > the former Mongoose subpath/runtime no longer exists. In current operations,
 > MongoDB may be used only inside the pinned, network-isolated archive recovery
 > reader; no live-source connector remains.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** give `@oxyhq/crowdsource-app` a PostgreSQL implementation, so an adopting backend chooses its storage by which subpath it imports and gets an identical moderation pipeline either way. Syra's moderation vertical — the last task of its Mongo→Postgres port — is blocked on this.
+**Goal:** give `@oxy.so/crowdsource-app` a PostgreSQL implementation, so an adopting backend chooses its storage by which subpath it imports and gets an identical moderation pipeline either way. Syra's moderation vertical — the last task of its Mongo→Postgres port — is blocked on this.
 
 **Architecture:** an internal store port that **the package implements twice**. The core (intake, delivery, the decision worker, the outbox service, the webhook receiver, reconciliation, enforcement planning and execution) becomes storage-free and takes one `store`. Two subpaths supply one:
 
 ```
-@oxyhq/crowdsource-app             storage-free core + createModerationIntegration({ store, … })
-@oxyhq/crowdsource-app/mongoose    mongooseModerationStore({ connection, reportModel, … })
+@oxy.so/crowdsource-app             storage-free core + createModerationIntegration({ store, … })
+@oxy.so/crowdsource-app/mongoose    mongooseModerationStore({ connection, reportModel, … })
                                    + moderationReportSchemaFields() + applyModerationReportIndexes()
-@oxyhq/crowdsource-app/postgres    postgresModerationStore({ db, reportTable, tables })
+@oxy.so/crowdsource-app/postgres    postgresModerationStore({ db, reportTable, tables })
                                    + moderationTables({ enforcementActions })
                                    + moderationReportColumns()
                                    + moderationExpirySweepTargets() + moderationIdColumnsWithoutForeignKey()
@@ -25,7 +25,7 @@
 
 An adopter never writes a store. The rejection recorded at `packages/app/src/models/report.ts:15-19` — *"a store port with ten methods for the application to implement was rejected"* — is about **who implements it**, and stays intact.
 
-**Tech Stack:** `drizzle-orm` 0.45.2, `postgres` 3.4.9, `drizzle-kit` 0.31.10, `@oxyhq/db@^0.1.2`, mongoose 8/9, vitest 4, bun.
+**Tech Stack:** `drizzle-orm` 0.45.2, `postgres` 3.4.9, `drizzle-kit` 0.31.10, `@oxy.so/db@^0.1.2`, mongoose 8/9, vitest 4, bun.
 
 **Spec:** [`../specs/2026-08-06-crowdsource-app-postgres-design.md`](../specs/2026-08-06-crowdsource-app-postgres-design.md)
 
@@ -35,21 +35,21 @@ An adopter never writes a store. The rejection recorded at `packages/app/src/mod
 
 - **bun only.** Never `npm`, `yarn`, `npx` — use `bunx`. `bun.lock` is committed in the same commit as any `package.json` change; `scripts/check-lockfile-sync.mjs` is a required CI job and will fail otherwise.
 - **CrowdSource's own server (`packages/backend`) stays on MongoDB.** That is a recorded owner decision (`AGENTS.md`). Nothing in this plan touches it. The scope is the ADOPTER half only — `packages/app`.
-- **The package holds MECHANISMS, the consumer holds REGISTRIES.** `@oxyhq/db` is consumed, never re-implemented; a missing export is a defect to report upstream. The one place this package legitimately names tables is its OWN three — so it exports ready-made `ExpirySweepTarget`s and id-column ledger entries built over them, and the adopter merges those into its own registries.
-- **The package ships NO migrations folder in the published tarball.** `@oxyhq/db`'s ledger applies a migration only when its journal timestamp is strictly newer than the newest recorded one (`migrate/ledger.ts:119-132`); two journals against one `drizzle.__drizzle_migrations` table interleave and the loser is skipped **in silence with exit 0**. The package ships table *definitions*; the adopter's own drizzle-kit run produces the SQL in the adopter's own journal. Task 13 gates this against the packed tarball, because §8 of the spec names it "the single recommendation most likely to be reversed by someone trying to be helpful".
+- **The package holds MECHANISMS, the consumer holds REGISTRIES.** `@oxy.so/db` is consumed, never re-implemented; a missing export is a defect to report upstream. The one place this package legitimately names tables is its OWN three — so it exports ready-made `ExpirySweepTarget`s and id-column ledger entries built over them, and the adopter merges those into its own registries.
+- **The package ships NO migrations folder in the published tarball.** `@oxy.so/db`'s ledger applies a migration only when its journal timestamp is strictly newer than the newest recorded one (`migrate/ledger.ts:119-132`); two journals against one `drizzle.__drizzle_migrations` table interleave and the loser is skipped **in silence with exit 0**. The package ships table *definitions*; the adopter's own drizzle-kit run produces the SQL in the adopter's own journal. Task 13 gates this against the packed tarball, because §8 of the spec names it "the single recommendation most likely to be reversed by someone trying to be helpful".
 - **The drizzle handle type is `PgDatabase<PgQueryResultHKT, Record<string, unknown>, TablesRelationalConfig>`.** Verified by the spec's probe 2: it accepts both a real `PostgresJsDatabase` and the `tx` inside `db.transaction(cb)`, and the full builder API is reachable through it. The obvious narrow spelling (`Record<string, never>` for both schema generics) accepts **neither** — the schema generic is invariant, `TS2345`.
 - **`PgTransaction` is a real runtime export of `drizzle-orm/pg-core`** (verified: `typeof === 'function'`, an abstract class extending `PgDatabase`). `tx instanceof PgTransaction` is the direct analogue of `session.inTransaction()`.
 - **Postgres transactions run at READ COMMITTED, explicitly** — `db.transaction(cb, { isolationLevel: 'read committed' })`. Not `repeatable read`: neither multi-statement transaction (report insert + outbox upsert; event update + outbox upsert) reads-then-decides in a way snapshot isolation protects, and `repeatable read` imports `40001` serialization failures and a retry loop for no benefit. Intake's duplicate-check-then-insert is **not serialized by either backend** — Mongo's snapshot isolation does not prevent that phantom either, and the "one report per reporter per object" unique index is explicitly the application's (`models/report.ts:134-137`). Both backends are equally advisory here; do not re-discover it as a Postgres defect.
 - **`SKIP LOCKED` is load-bearing, not tuning.** The claim is `UPDATE … WHERE id IN (SELECT id … ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING …`. Without it, under READ COMMITTED the subselect is evaluated once, the loser blocks on the head row and then returns **zero rows** — `claim` answers `null`, `dispatch` breaks out of its batch (`outbox/service.ts:456`), and a multi-task deployment silently drains at 1/N the rate with nothing failing.
 - **`INSERT … ON CONFLICT (id) DO NOTHING` everywhere an insert-if-absent is needed. Never `DO UPDATE`.** `DO UPDATE` reintroduces the exact bug the Mongo side's `timestamps: false` exists to prevent: a repeated enqueue becomes a real write, which conflicts with a live lease and aborts the enclosing transaction.
 - **The revision guard lives in the WHERE clause**: `or(isNull(decisionRevision), lte(decisionRevision, revision))`. `$exists: false` ≡ `IS NULL` because the port stores an absent value as NULL. `<=` not `<` is deliberate — a redelivery of the same revision rewrites.
-- **Driver errors are read through `@oxyhq/db`'s predicates, never `error.code`.** drizzle wraps the driver failure, so `code` and `constraint_name` live on `cause`; a hand-written check matches **nothing** and every call site is a `catch` that rethrows. Use `isUniqueViolation(error, constraintName)`, `constraintNameOf`, `describeDriverError`.
+- **Driver errors are read through `@oxy.so/db`'s predicates, never `error.code`.** drizzle wraps the driver failure, so `code` and `constraint_name` live on `cause`; a hand-written check matches **nothing** and every call site is a `catch` that rethrows. Use `isUniqueViolation(error, constraintName)`, `constraintNameOf`, `describeDriverError`.
 - **Never log a driver error object.** postgres.js attaches the failing statement and its bound parameters, and Postgres's `detail` reads `Failing row contains (…)`. `logger.warn(msg, { error })` therefore publishes reported material into a log, which breaks the package's standing invariant that sensitive content never reaches logs. Every catch that logs uses `describeDriverError(error)`.
-- **Every Postgres column is named explicitly** — `text('crowdsource_report_id')`, not `crowdSourceReportId: text()`. Drizzle's snake_case derivation mangles digit- and capital-adjacent names (`cacheS3Key` → `cache_s_3_key`), the SQL name must match what the adopter's migration created, and a derived name is a name nobody decided. `DATABASE_CASING` from `@oxyhq/db` is still configured on the handle, because it is what `sqlColumnName`/`qualified` and the adopter's `drizzle.config.ts` read.
+- **Every Postgres column is named explicitly** — `text('crowdsource_report_id')`, not `crowdSourceReportId: text()`. Drizzle's snake_case derivation mangles digit- and capital-adjacent names (`cacheS3Key` → `cache_s_3_key`), the SQL name must match what the adopter's migration created, and a derived name is a name nobody decided. `DATABASE_CASING` from `@oxy.so/db` is still configured on the handle, because it is what `sqlColumnName`/`qualified` and the adopter's `drizzle.config.ts` read.
 - **String bounds are `varchar(n)` AND the existing application-side slices stay.** `reason` 500, `skippedReason` 300, `lastError` 2000, `lastDeliveryError` 2000, `localStatusReason` 300, `details` 2000 (default). Mongoose validators *throw* on overflow and Postgres errors `22001` rather than truncating — the slices at `executor.ts:189`, `:250` and `service.ts:331` are what make both dialects agree. Do not remove them.
-- **Closed value sets are `text` + a CHECK built from the same tuple that types the column** (`inList` / `textArrayLiteral` from `@oxyhq/db`), never a Postgres `enum` type. Adding an enforcement action therefore becomes a migration where Mongo only needed a restart. That is the correct trade: a stored action outside the declared set is exactly what the enum exists to refuse.
-- **Retention.** `MODERATION_OUTBOX_RETENTION_SECONDS` and `MODERATION_EVENT_RETENTION_SECONDS` are both `90 * 24 * 60 * 60`. Mongo's two TTL indexes (`expireAfterSeconds: 0` on `expiresAt`) have no Postgres counterpart; `@oxyhq/db/expiry` is the replacement and a table ported without a registry entry grows forever with no error and no failing test.
-- **No adopters exist.** No committed manifest in `~/Oxy` depends on `@oxyhq/crowdsource-app`. Every breaking change in this plan is a **clean cut**: remove the old identifier entirely, update every call site including comments, ship. No `@deprecated`, no alias, no re-export shim, no migration guide.
+- **Closed value sets are `text` + a CHECK built from the same tuple that types the column** (`inList` / `textArrayLiteral` from `@oxy.so/db`), never a Postgres `enum` type. Adding an enforcement action therefore becomes a migration where Mongo only needed a restart. That is the correct trade: a stored action outside the declared set is exactly what the enum exists to refuse.
+- **Retention.** `MODERATION_OUTBOX_RETENTION_SECONDS` and `MODERATION_EVENT_RETENTION_SECONDS` are both `90 * 24 * 60 * 60`. Mongo's two TTL indexes (`expireAfterSeconds: 0` on `expiresAt`) have no Postgres counterpart; `@oxy.so/db/expiry` is the replacement and a table ported without a registry entry grows forever with no error and no failing test.
+- **No adopters exist.** No committed manifest in `~/Oxy` depends on `@oxy.so/crowdsource-app`. Every breaking change in this plan is a **clean cut**: remove the old identifier entirely, update every call site including comments, ship. No `@deprecated`, no alias, no re-export shim, no migration guide.
 - **Mongo stays first-class.** Six of the seven candidate backends declare only `mongoose`. Every task that touches the shared half must leave the Mongo suite green.
 - Standing repo rules: no `as any`, no `@ts-ignore`/`@ts-expect-error`, no `!` non-null assertion, no `any` in a signature, no silent `catch {}`, no TODO/FIXME/HACK, no `console.log`, no re-export barrels.
 - **`SqlExecutor.execute` is NOT generic** — `execute(query: SQL): Promise<Record<string, unknown>[]>`. Row typing comes from the free function `executeRows<TRow>(executor, query)`, which **rejects named `interface`s**: declare row shapes as `type` aliases or get `TS2344`.
@@ -63,10 +63,10 @@ An adopter never writes a store. The rejection recorded at `packages/app/src/mod
 Five claims in the design do not survive contact with the tree. Each is decided now so no task re-litigates it.
 
 1. **"Not one test body changes" (§4.1) is false.** All five storage test files assert directly against Mongoose models — `harness.moderation.models.outbox.countDocuments({})`, `harness.reports.findById(id).lean()`, `harness.widgets.create({…})`, `new mongoose.Types.ObjectId()` — and `outboxTransactionCoupling.test.ts` additionally drives `connection.startSession()` / `session.withTransaction()` directly and hands the session to `enqueue`. `describe.each` over two backends is impossible until those assertions go through a backend-neutral façade. **Task 5 exists entirely for this** and is the largest single deviation from the spec's sizing.
-2. **G13 evaporates, and its "explicit branch" must not be written.** The spec assumes a `uuid`-typed report id, which raises `22P02 invalid_text_representation` on a garbage id. `@oxyhq/db`'s `generatedId()` is **`text`**, deliberately, so ObjectId hex and uuid v7 can coexist in one id space. A malformed id against a `text` column matches no rows and `findById` answers `null` — which is exactly the Mongo behaviour `delivery.ts:88-97` already handles. Use `text`. Keep a test that proves it (Task 10); do not add a branch.
+2. **G13 evaporates, and its "explicit branch" must not be written.** The spec assumes a `uuid`-typed report id, which raises `22P02 invalid_text_representation` on a garbage id. `@oxy.so/db`'s `generatedId()` is **`text`**, deliberately, so ObjectId hex and uuid v7 can coexist in one id space. A malformed id against a `text` column matches no rows and `findById` answers `null` — which is exactly the Mongo behaviour `delivery.ts:88-97` already handles. Use `text`. Keep a test that proves it (Task 10); do not add a branch.
 3. **`check:module-format` already enumerates every `exports` subpath** (`Object.entries(manifest.exports)`), so new subpaths are covered the moment they are declared. The spec's worry is misplaced — but its conclusion is right for a different reason: the script's vacuity floor is `entriesChecked < PUBLISHED.length`, a scalar that does not rise, so a manifest that silently *loses* `./postgres` still passes. Task 3 replaces the scalar with a per-package minimum.
 4. **The id-column ledger is eight columns, not six (§3).** `findIdColumnViolations` skips a column only when `column.primary` is set, and a composite primary key declared in a table's extra config does **not** set `column.primary` on its members. So `moderation_enforcements.decision_id` is scanned despite being part of the PK. The full set is enumerated in Task 6.
-5. **Uncertainty 6 is resolved: `@oxyhq/crowdsource-testing` is storage-free.** `grep -rln 'mongoose\|mongodb' packages/testing/src` returns nothing across `fixtures.ts`, `sandbox.ts`, `webhook-simulator.ts`, `index.ts`. No half-day contingency needed.
+5. **Uncertainty 6 is resolved: `@oxy.so/crowdsource-testing` is storage-free.** `grep -rln 'mongoose\|mongodb' packages/testing/src` returns nothing across `fixtures.ts`, `sandbox.ts`, `webhook-simulator.ts`, `index.ts`. No half-day contingency needed.
 
 Two further public-surface moves the spec's "nothing else in the public surface moves" (§1.2) does not mention, both unavoidable and both clean cuts: `ModerationIntegration` loses `models: ModerationModels` (three Mongoose `Model`s) and `outbox`, neither of which any non-test caller reads; and `moderationReportSchemaFields` / `applyModerationReportIndexes` / the `MODERATION_*_COLLECTION` constants / `Moderation*Document` types move from the root to `/mongoose`.
 
@@ -329,7 +329,7 @@ A new export condition is what took a consumer's backend down on 2026-07-30 (`RE
 - Modify: `packages/app/README.md`
 
 **Interfaces:**
-- Produces: `@oxyhq/crowdsource-app/mongoose` exporting `mongooseModerationStore`, `moderationReportSchemaFields`, `applyModerationReportIndexes`, `MODERATION_LOCAL_STATUSES`, `MODERATION_OUTBOX_COLLECTION`, `MODERATION_EVENT_COLLECTION`, `MODERATION_ENFORCEMENT_COLLECTION`, and the three `Moderation*Document` types plus `ModerationReportSchemaOptions`.
+- Produces: `@oxy.so/crowdsource-app/mongoose` exporting `mongooseModerationStore`, `moderationReportSchemaFields`, `applyModerationReportIndexes`, `MODERATION_LOCAL_STATUSES`, `MODERATION_OUTBOX_COLLECTION`, `MODERATION_EVENT_COLLECTION`, `MODERATION_ENFORCEMENT_COLLECTION`, and the three `Moderation*Document` types plus `ModerationReportSchemaOptions`.
 - Root keeps: `createModerationIntegration`, every error class, `MODERATION_OUTBOX_RETENTION_SECONDS`, `MODERATION_EVENT_RETENTION_SECONDS`, the planner exports, `createSubjectRegistry`, `snapshotHash`, `localStatusForDecision`, `createProcessedEventStore`, and every type in `types.ts` and `src/store/types.ts`.
 
 - [ ] **Step 1: Declare the subpath**
@@ -351,22 +351,22 @@ The CHECK is what breaks. `check-module-format.mjs` looks the marker up as `reso
 
 ```json
 "peerDependencies": {
-  "@oxyhq/crowdsource-contracts": "^0.4.0",
-  "@oxyhq/db": "^0.1.2",
+  "@oxy.so/crowdsource-contracts": "^0.4.0",
+  "@oxy.so/db": "^0.1.2",
   "drizzle-orm": "^0.45.2",
   "express": ">=4.18.0 <6",
   "mongoose": "^8.0.0 || ^9.0.0",
   "postgres": "^3.4.9"
 },
 "peerDependenciesMeta": {
-  "@oxyhq/db": { "optional": true },
+  "@oxy.so/db": { "optional": true },
   "drizzle-orm": { "optional": true },
   "mongoose": { "optional": true },
   "postgres": { "optional": true }
 }
 ```
 
-`express` and `@oxyhq/crowdsource-contracts` stay required. `postgres` is listed even though this package never imports it: `@oxyhq/db` peers on it, and an optional peer here makes the transitive requirement visible at install time rather than at first import. Add all four to `devDependencies` — a peer is not installed for you, and `check-peer-contracts.mjs` already enforces that rule for contracts.
+`express` and `@oxy.so/crowdsource-contracts` stay required. `postgres` is listed even though this package never imports it: `@oxy.so/db` peers on it, and an optional peer here makes the transitive requirement visible at install time rather than at first import. Add all four to `devDependencies` — a peer is not installed for you, and `check-peer-contracts.mjs` already enforces that rule for contracts.
 
 - [ ] **Step 3: Raise the module-format vacuity floor**
 
@@ -381,9 +381,9 @@ The two manual checks from `README.md:51-75`, now per subpath. They fail differe
 ```bash
 cd /home/nate/Oxy/CrowdSource/packages/app && bun run build && bun pm pack
 mkdir -p /tmp/claude-1000/-home-nate-Oxy-Syra/*/scratchpad/esm-check && cd $_
-bun add <path>/oxyhq-crowdsource-app-*.tgz @oxyhq/crowdsource-contracts mongoose express
-node --input-type=module -e "import('@oxyhq/crowdsource-app/mongoose').then(m => console.log(Object.keys(m).length))"
-# then an esbuild ESM consumer of the same subpath, with --external:'@oxyhq/*'
+bun add <path>/oxyhq-crowdsource-app-*.tgz @oxy.so/crowdsource-contracts mongoose express
+node --input-type=module -e "import('@oxy.so/crowdsource-app/mongoose').then(m => console.log(Object.keys(m).length))"
+# then an esbuild ESM consumer of the same subpath, with --external:'@oxy.so/*'
 ```
 
 **Paste both outputs.** A non-zero key count from the first and a running bundle from the second.
@@ -560,12 +560,12 @@ The schema half. No store yet — this task's deliverable is DDL that a real `dr
 - Create: `packages/app/drizzle.config.ts` (points at the TEST schema only)
 - Create: `packages/app/src/__tests__/support/postgres/migrations/` (drizzle-kit output — **test-only, never published**)
 - Create: `packages/app/src/__tests__/postgresSchema.test.ts`
-- Modify: `packages/app/package.json` (devDeps `drizzle-orm`, `postgres`, `drizzle-kit`, `@oxyhq/db`; scripts `db:generate`)
+- Modify: `packages/app/package.json` (devDeps `drizzle-orm`, `postgres`, `drizzle-kit`, `@oxy.so/db`; scripts `db:generate`)
 - Create: `docker-compose.postgres.yml` at the repository root
 - Modify: `packages/app/vitest.globalSetup.ts`
 
 **Interfaces:**
-- Consumes: `timestamptz`, `createdAt`, `updatedAt`, `generatedId`, `inList`, `textArrayLiteral`, `DATABASE_CASING`, `sqlColumnName` from `@oxyhq/db`; `ExpirySweepTarget` from `@oxyhq/db/expiry`; `createTestDatabase`, `dropTestDatabase` from `@oxyhq/db/testing`.
+- Consumes: `timestamptz`, `createdAt`, `updatedAt`, `generatedId`, `inList`, `textArrayLiteral`, `DATABASE_CASING`, `sqlColumnName` from `@oxy.so/db`; `ExpirySweepTarget` from `@oxy.so/db/expiry`; `createTestDatabase`, `dropTestDatabase` from `@oxy.so/db/testing`.
 - Produces:
   - `moderationTables(options: { enforcementActions: readonly string[] }): ModerationTables` and `export type ModerationTables = ReturnType<typeof moderationTables>` with members `outbox`, `events`, `enforcements`.
   - `moderationReportColumns(options?: { reportedTypes?: readonly string[]; categories?: readonly string[]; detailsMaxLength?: number })` returning the column map to spread into the adopter's `pgTable`, plus a second return channel for the table-level CHECKs and indexes: `moderationReportTableExtras(columns)` returning the array a `pgTable`'s third argument takes.
@@ -587,9 +587,9 @@ Indexes, each a direct port of a Mongo one:
 - events `(case_id)` ← `:161`; `(state, received_at)` ← `:178`; `(expires_at)` ← `:176`
 - enforcements `(case_id)` ← `:258`; `(subject_type, subject_id, created_at DESC)` ← `:284`; `(subject_type, subject_id, action, applied, created_at DESC)` ← `:286`
 
-The unique index at `:282` has no counterpart because it **is** the composite primary key. The unique constraint and the PK become the same object, there is no surrogate id to keep in step, and `@oxyhq/db`'s `missing_primary_key` invariant is satisfied by the thing that already had to exist.
+The unique index at `:282` has no counterpart because it **is** the composite primary key. The unique constraint and the PK become the same object, there is no surrogate id to keep in step, and `@oxy.so/db`'s `missing_primary_key` invariant is satisfied by the thing that already had to exist.
 
-**The report columns.** `id` uses `generatedId()` from `@oxyhq/db` — `text` primary key with a uuid v7 `$defaultFn`, **not** `uuid`. Explicit SQL names throughout, notably `crowdsource_report_id` and `crowdsource_case_id` (drizzle's derivation from `crowdSourceReportId` would give `crowd_source_report_id`, which is not what the spec's registries name). `categories` is `text('categories').array().notNull()` — this package writes it whole at intake and reads it whole at delivery, never by element — with a `<@ array[…]::text[]` CHECK when `options.categories` is supplied. `details varchar(n)` with `detailsMaxLength ?? 2000`. Indexes: `(local_status, created_at)`, `(crowdsource_case_id)`, `(reporter, reported_id, reported_type)` — the same three `applyModerationReportIndexes` creates, and for the same reasons its doc comment gives.
+**The report columns.** `id` uses `generatedId()` from `@oxy.so/db` — `text` primary key with a uuid v7 `$defaultFn`, **not** `uuid`. Explicit SQL names throughout, notably `crowdsource_report_id` and `crowdsource_case_id` (drizzle's derivation from `crowdSourceReportId` would give `crowd_source_report_id`, which is not what the spec's registries name). `categories` is `text('categories').array().notNull()` — this package writes it whole at intake and reads it whole at delivery, never by element — with a `<@ array[…]::text[]` CHECK when `options.categories` is supplied. `details varchar(n)` with `detailsMaxLength ?? 2000`. Indexes: `(local_status, created_at)`, `(crowdsource_case_id)`, `(reporter, reported_id, reported_type)` — the same three `applyModerationReportIndexes` creates, and for the same reasons its doc comment gives.
 
 **The id-column ledger is eight entries, not the spec's six.** `findIdColumnViolations` exempts a column only when `column.primary` is set, and a composite PK declared in a table's extra config does not set it on its members:
 
@@ -610,9 +610,9 @@ None of them can carry a foreign key, and every one of them would fail an adopte
 
 ```bash
 cd /home/nate/Oxy/CrowdSource
-bun add --cwd packages/app --dev drizzle-orm@0.45.2 postgres@3.4.9 drizzle-kit@0.31.10 @oxyhq/db@^0.1.2
+bun add --cwd packages/app --dev drizzle-orm@0.45.2 postgres@3.4.9 drizzle-kit@0.31.10 @oxy.so/db@^0.1.2
 bun install
-cat node_modules/@oxyhq/db/package.json | grep '"version"'
+cat node_modules/@oxy.so/db/package.json | grep '"version"'
 ```
 
 Expected: `0.1.2`. Commit `bun.lock` in the same commit.
@@ -663,7 +663,7 @@ Expected: no output — `"files"` is `["dist/**/*", "src/**/*", "!src/**/__tests
 
 ### Task 7: The Postgres outbox store
 
-Written first among the four stores, deliberately: it is the answer to the spec's uncertainty 1 (whether the builder-API handle type survives ~600 lines rather than a 40-line probe), and it carries G1, G2, G5 and G6. If the handle type fails, it fails here, cheaply, and the fallback — `SqlExecutor` plus `sql` templates — is already proven in-tree by `@oxyhq/db`'s own expiry sweep.
+Written first among the four stores, deliberately: it is the answer to the spec's uncertainty 1 (whether the builder-API handle type survives ~600 lines rather than a 40-line probe), and it carries G1, G2, G5 and G6. If the handle type fails, it fails here, cheaply, and the fallback — `SqlExecutor` plus `sql` templates — is already proven in-tree by `@oxy.so/db`'s own expiry sweep.
 
 **Files:**
 - Create: `packages/app/src/postgres/store/transaction.ts`, `store/outbox.ts`
@@ -778,7 +778,7 @@ G4 and G8. Two of the eleven proven mutations attack the reversal lookup, so its
 | `releaseClaim` lets the same key be claimed again | `releaseClaim` addressing the wrong columns |
 | `markApplied` with a `previousState` round-trips it unchanged through `jsonb` | writing it as `text` |
 
-Note on the third assertion: give the two rows `created_at` values that differ by more than a millisecond. `@oxyhq/db`'s `createdAt` default is `date_trunc('milliseconds', now())`, so two rows inserted in one tight loop can share a timestamp and the ordering becomes arbitrary — which would make the test pass or fail on timing rather than on the predicate. Set `created_at` explicitly in the fixtures.
+Note on the third assertion: give the two rows `created_at` values that differ by more than a millisecond. `@oxy.so/db`'s `createdAt` default is `date_trunc('milliseconds', now())`, so two rows inserted in one tight loop can share a timestamp and the ordering becomes arbitrary — which would make the test pass or fail on timing rather than on the predicate. Set `created_at` explicitly in the fixtures.
 
 - [ ] **Step 2: Green against a real Postgres, then commit** — `feat(app): the Postgres enforcement store — the idempotency key is the primary key`
 
@@ -847,16 +847,16 @@ Everything converges. 62 tests become 99: 25 storage-free tests run once, 37 run
 
 **Interfaces:**
 - Produces: `postgresModerationStore(input: { db: ModerationPgHandle; reportTable: ModerationReportTable; tables: ModerationTables }): ModerationStore<TReport, ModerationPgHandle>` — composes the four stores from Tasks 7–10 plus the runner, with `ensureSchema()` asserting the three tables and the report table exist (it does not create them; the adopter's migration did).
-- `@oxyhq/crowdsource-app/postgres` exports `postgresModerationStore`, `moderationTables`, `moderationReportColumns`, `moderationReportTableExtras`, `moderationExpirySweepTargets`, `moderationIdColumnsWithoutForeignKey`, and the types `ModerationTables`, `ModerationReportTable`, `ModerationPgHandle`.
+- `@oxy.so/crowdsource-app/postgres` exports `postgresModerationStore`, `moderationTables`, `moderationReportColumns`, `moderationReportTableExtras`, `moderationExpirySweepTargets`, `moderationIdColumnsWithoutForeignKey`, and the types `ModerationTables`, `ModerationReportTable`, `ModerationPgHandle`.
 - Produces: `BACKENDS: readonly ModerationBackend[]` in `support/backend.ts`.
 
 - [ ] **Step 1: Compose the store and declare the subpath**
 
-Mirror Task 3's exports block for `./postgres`, and raise `check-module-format.mjs`'s per-package minimum for `app` to 3. Re-run the two manual load checks from Task 3 Step 4 against `@oxyhq/crowdsource-app/postgres` — a subpath declared is not a subpath loadable, and the two forms of "loadable" are not the same question.
+Mirror Task 3's exports block for `./postgres`, and raise `check-module-format.mjs`'s per-package minimum for `app` to 3. Re-run the two manual load checks from Task 3 Step 4 against `@oxy.so/crowdsource-app/postgres` — a subpath declared is not a subpath loadable, and the two forms of "loadable" are not the same question.
 
 - [ ] **Step 2: Write the Postgres harness**
 
-Same fictional application, second implementation. `widgets` becomes a drizzle table in the test schema from Task 6; the widget subject provider and `testEnforcement`'s `apply` lose their `mongoose.isValidObjectId` guards (a `text` id needs none) and read/write through the handle. `absentId()` returns a uuid v7 from `@oxyhq/db`'s `uuidv7()`. `transaction.run` wraps `db.transaction(cb, { isolationLevel: 'read committed' })` and binds the enqueue to `tx`; `detachedEnqueue()` binds it to the POOL handle instead, with a no-op `dispose`.
+Same fictional application, second implementation. `widgets` becomes a drizzle table in the test schema from Task 6; the widget subject provider and `testEnforcement`'s `apply` lose their `mongoose.isValidObjectId` guards (a `text` id needs none) and read/write through the handle. `absentId()` returns a uuid v7 from `@oxy.so/db`'s `uuidv7()`. `transaction.run` wraps `db.transaction(cb, { isolationLevel: 'read committed' })` and binds the enqueue to `tx`; `detachedEnqueue()` binds it to the POOL handle instead, with a no-op `dispose`.
 
 Every member of the `Harness` façade from Task 5 must be implementable. If one is not, the façade is wrong — fix the façade, do not add a backend conditional to a test body.
 
@@ -983,7 +983,7 @@ Wire Task 6 Step 6's check in permanently: pack the package and fail if any entr
 
 - The **Requirements** section currently says "MongoDB must be a replica set or a sharded cluster". That is now the Mongo backend's requirement only. On Postgres the replica-set precondition disappears entirely — one `BEGIN…COMMIT` on one pooled connection — and a boot-time topology assertion becomes unnecessary. Say both.
 - The four-things table gains its Postgres column: the report model becomes `moderationReportColumns()` spread into a drizzle `pgTable`, and the three package tables become **explicit** — `moderationTables()` returns drizzle tables the adopter re-exports from its schema, and the adopter's drizzle-kit run produces the DDL. That last row is the only genuinely new obligation and it is unavoidable: Mongo creates a collection on first write; Postgres needs DDL, and DDL needs a migration.
-- **The outbox is a TTL'd table that holds unprocessed work**, so `@oxyhq/db/expiry`'s own warning applies with force: document what a stalled dispatcher plus a sweep does to the backlog. The 90-day retention is long enough that this is a documented consequence rather than a hazard, and `dead_letter` rows — the ones a human still has to look at — are inside the same window. A registry entry with no such note reads as "unconditionally safe to sweep".
+- **The outbox is a TTL'd table that holds unprocessed work**, so `@oxy.so/db/expiry`'s own warning applies with force: document what a stalled dispatcher plus a sweep does to the backlog. The 90-day retention is long enough that this is a documented consequence rather than a hazard, and `dead_letter` rows — the ones a human still has to look at — are inside the same window. A registry entry with no such note reads as "unconditionally safe to sweep".
 - Document the adopter's obligation to merge `moderationExpirySweepTargets()` into its own `EXPIRY_SWEEP_TARGETS` and `moderationIdColumnsWithoutForeignKey()` into its own `ID_COLUMNS_WITHOUT_FOREIGN_KEY`. Neither is optional; the first is silent (a table that grows forever) and the second fails the adopter's own gate on day one.
 - The "Before publishing" checklist gains the two new subpaths for both manual load checks.
 
@@ -1016,18 +1016,18 @@ bun run --cwd packages/app test
 - §1.2's subpath layout and optional peers → Tasks 3 and 11. The three rejected alternatives are not re-litigated.
 - §1.3's "the package must not ship a migrations folder" → Global Constraints + Task 6 Step 6 + Task 13 Step 3.
 - §2's fourteen guarantees: G1 → Task 7; G2 → Task 7; G3 → Task 8; G4, G8 → Task 9; G5, G6 → Task 7; G7, G11, G12 → Task 10 (G11's slices in Global Constraints); G9 → Task 6 + Task 13 Step 4; G10 → Task 6; G13 → **decided not to apply**, with its reason, in Corrections; G14 → Global Constraints.
-- §3's `@oxyhq/db` consumption list → Task 6 (columns, casing, expiry, testing, assert) and Task 7 (`SqlExecutor` as the named fallback). The four deliberate non-consumptions — `migrate/*`, `createDatabase`, `ids`/`generatedId` for the outbox and event PKs, `assert/*` as a package dependency — are honoured: the two id columns are deterministic strings, the enforcement PK is the natural triple, and only the report id uses `generatedId()`.
+- §3's `@oxy.so/db` consumption list → Task 6 (columns, casing, expiry, testing, assert) and Task 7 (`SqlExecutor` as the named fallback). The four deliberate non-consumptions — `migrate/*`, `createDatabase`, `ids`/`generatedId` for the outbox and event PKs, `assert/*` as a package dependency — are honoured: the two id columns are deterministic strings, the enforcement PK is the natural triple, and only the report id uses `generatedId()`.
 - §4's `pg-mem` rejection → not proposed anywhere. Real Postgres, per-file throwaway databases, Tasks 6–11.
 - §4.1's `describe.each` → Task 11, with the correction that test bodies do change.
 - §4.2's mutation split and per-backend floor → Task 12.
 - §4.3's CI cost → Task 13 Step 1.
 - §5's clean cut and the module-format obligation → Tasks 3, 4, 11, 13.
-- §6 (Syra's migration path) → **out of scope by construction.** This plan ends at a published `@oxyhq/crowdsource-app` with two backends; Syra's adoption is its own Task 8, unblocked by this work.
+- §6 (Syra's migration path) → **out of scope by construction.** This plan ends at a published `@oxy.so/crowdsource-app` with two backends; Syra's adoption is its own Task 8, unblocked by this work.
 - §7's sizing → below.
 - §8's four "do not"s → all four are Global Constraints or explicit non-tasks. The `pg` driver is not supported; schema-level table prefixing is not built; no data migration is written.
 - §9's six uncertainties: 1 → Task 7 Step 3; 2 → Task 11 Step 5; 3 → Task 12 Step 4; 4 → Task 12's table, which resolves it (both doubted twins exist; a different one does not); 5 → Task 6 Step 3, run against the package's own tables rather than deferred to Syra; 6 → **resolved in Corrections**, `packages/testing` is storage-free.
 
-**One requirement I could not map to a task.** §9's uncertainty 5 says the `withoutForeignKey` obligation should be settled by *"generating the three tables into Syra's schema and running its inherited `@oxyhq/db/assert` suite once"*. Task 6 runs those gates against the package's own test schema instead, which is strictly available here and proves the fragment is complete for these tables. It does **not** prove the fragment composes with a real adopter's registry — a duplicate entry, or a table-name collision with an adopter's own `reports`, would only surface there. That check belongs to Syra's Task 8 and is named as such in this plan's report rather than silently absorbed.
+**One requirement I could not map to a task.** §9's uncertainty 5 says the `withoutForeignKey` obligation should be settled by *"generating the three tables into Syra's schema and running its inherited `@oxy.so/db/assert` suite once"*. Task 6 runs those gates against the package's own test schema instead, which is strictly available here and proves the fragment is complete for these tables. It does **not** prove the fragment composes with a real adopter's registry — a duplicate entry, or a table-name collision with an adopter's own `reports`, would only surface there. That check belongs to Syra's Task 8 and is named as such in this plan's report rather than silently absorbed.
 
 **Placeholder scan.** No "TBD", no "similar to Task N", no "add appropriate error handling", no "write tests for the above". Tasks 8 and 9 are short because their stores are short, not because their content was deferred; each carries its own assertion table naming the change it must catch. Every test is either prose naming a mutation or, where the form is genuinely determined (the SKIP LOCKED holder transaction, the two-fixture type gate), spelled out.
 

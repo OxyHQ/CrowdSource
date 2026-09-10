@@ -1,4 +1,4 @@
-# @oxyhq/crowdsource-express
+# @oxy.so/crowdsource-express
 
 Receiving CrowdSource webhooks, safely, in Express.
 
@@ -9,7 +9,7 @@ CROWDSOURCE_WEBHOOK_SECRET=…
 ```
 
 ```ts
-import { crowdsourceWebhooks } from '@oxyhq/crowdsource-express';
+import { crowdsourceWebhooks } from '@oxy.so/crowdsource-express';
 
 app.post('/webhooks/crowdsource', crowdsourceWebhooks({
   on: {
@@ -27,10 +27,10 @@ No `express.raw`, no body-parser ordering, no secret plumbing, no signature code
 ## Installing
 
 ```bash
-bun add @oxyhq/crowdsource-express @oxyhq/crowdsource-contracts express
+bun add @oxy.so/crowdsource-express @oxy.so/crowdsource-contracts express
 ```
 
-`@oxyhq/crowdsource-contracts` is a **peer dependency**: `Decision` and every
+`@oxy.so/crowdsource-contracts` is a **peer dependency**: `Decision` and every
 event payload type are defined there, and two copies in one tree is a failure
 with no diagnostic — `tsc` stays silent and every delivery answers 400
 `malformed_event`, which reads as a signature problem. Declare it once and own
@@ -98,6 +98,6 @@ not, pass a shared `store` (Redis, your own database) implementing
 
 ## Testing it
 
-`@oxyhq/crowdsource-testing`'s simulator delivers genuinely signed events, and
+`@oxy.so/crowdsource-testing`'s simulator delivers genuinely signed events, and
 can deliver stale, forged and tampered ones on purpose. Asserting that your
 receiver **refuses** those is the half of a webhook test that proves something.

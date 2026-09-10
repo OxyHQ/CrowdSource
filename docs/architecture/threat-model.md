@@ -601,7 +601,7 @@ only about its documentation.
 else: there is no report-abuse flow, no campaign detection, and no reporter
 reliability figure. `reporterPriorityBoost` is an optional input that nothing
 supplies. There is **no rate limiting anywhere in the service** — `express-rate-limit`
-is a dependency only because `@oxyhq/core/server` is a single barrel that requires
+is a dependency only because `@oxy.so/core/server` is a single barrel that requires
 it eagerly, and no limiter is mounted. So §13.1's "límites" and the quota half of
 "aplicación maliciosa" are both absent.
 
@@ -657,7 +657,7 @@ outcomes for exactly that reason.
 returned exactly once
 (`packages/backend/src/modules/tenancy/credential.service.ts`, and
 `serviceCredential.integration.test.ts` asserts both). Comparison uses
-`verifySecret` from `@oxyhq/core/server`, never `!==`, and an unknown credential
+`verifySecret` from `@oxy.so/core/server`, never `!==`, and an unknown credential
 id costs the same as a wrong secret — both compare against a fixed absent-hash
 constant. Every rejection is the same `401` with the same message; distinguishing
 unknown id, wrong secret, revoked credential and suspended application would hand

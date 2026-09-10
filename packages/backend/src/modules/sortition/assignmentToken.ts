@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { verifySecret } from '@oxyhq/core/server';
+import { verifySecret } from '@oxy.so/core/server';
 
 /**
  * The assignment token of §8.7.

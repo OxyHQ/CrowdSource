@@ -1,4 +1,4 @@
-import type { WebhookEventType } from '@oxyhq/crowdsource-contracts';
+import type { WebhookEventType } from '@oxy.so/crowdsource-contracts';
 
 import { createTenantContext, type TenantContext } from '../../db/tenantScope';
 import { appeals } from '../appeals/appeal.collection';

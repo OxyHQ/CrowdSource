@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { crowdsourceWebhooks, type ProcessedEventStore } from '@oxyhq/crowdsource-express';
+import { crowdsourceWebhooks, type ProcessedEventStore } from '@oxy.so/crowdsource-express';
 import type { InboundService } from './inbound.js';
 import type { ModerationLogger, ModerationMetrics } from './types.js';
 
@@ -10,7 +10,7 @@ import type { ModerationLogger, ModerationMetrics } from './types.js';
  *
  * This router MUST be mounted BEFORE `express.json()`. The signature covers
  * `timestamp + "." + rawBody` — the bytes that arrived — and once a JSON parser
- * has run, those bytes are gone. `@oxyhq/crowdsource-express` looks for a raw
+ * has run, those bytes are gone. `@oxy.so/crowdsource-express` looks for a raw
  * Buffer; handed a parsed `req.body` it refuses and raises a configuration error
  * rather than verifying a signature over a re-serialisation. That refusal is the
  * correct behaviour and it is also why the mount order cannot be got wrong

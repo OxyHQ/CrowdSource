@@ -5,7 +5,7 @@ import type {
   DecisionPolicyVersions,
   DecisionRecommendedAction,
   DecisionStatus,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { defineTenantCollection } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';

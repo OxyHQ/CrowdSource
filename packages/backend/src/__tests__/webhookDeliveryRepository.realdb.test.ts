@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { isUniqueViolation } from '@oxyhq/db';
+import { isUniqueViolation } from '@oxy.so/db';
 
 import * as deliveryRepository from '../db/postgres/repositories/webhookDeliveries';
 import { webhookDeliveries } from '../db/postgres/schema/webhooks';

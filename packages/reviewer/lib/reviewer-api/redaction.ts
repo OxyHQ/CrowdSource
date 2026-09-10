@@ -11,7 +11,7 @@
  * Two layers, and they do different jobs:
  *
  *  1. The PARSE is the enforcement. `AssignmentPackageSchema` and its siblings
- *     live in `@oxyhq/crowdsource-contracts` and describe exactly what §9.1
+ *     live in `@oxy.so/crowdsource-contracts` and describe exactly what §9.1
  *     permits; a payload carrying `reportCount` or `authorReputation` is REFUSED
  *     rather than trimmed, so there is no path by which one reaches a screen.
  *     Refusing rather than trimming is the deliberate choice: a blank screen is a
@@ -43,7 +43,7 @@ import {
   type ReviewerProfileView,
   type ReviewerTrainingView,
   type ReviewHistoryPage,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 import type { z } from 'zod';
 
 import { MalformedPayloadError } from './errors';

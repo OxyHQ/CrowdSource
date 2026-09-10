@@ -1,4 +1,4 @@
-import { CaseEnvelopeSchema, type CaseEnvelope } from '@oxyhq/crowdsource-contracts';
+import { CaseEnvelopeSchema, type CaseEnvelope } from '@oxy.so/crowdsource-contracts';
 import { describe, expect, it } from 'vitest';
 
 import { createTenantContext } from '../db/tenantScope';
@@ -111,7 +111,7 @@ describe('assertNoUnsafeUrls', () => {
   });
 
   /**
-   * The addresses that matter, from `@oxyhq/core/server`'s own denylist rather
+   * The addresses that matter, from `@oxy.so/core/server`'s own denylist rather
    * than a second copy of one maintained here.
    */
   it.each([

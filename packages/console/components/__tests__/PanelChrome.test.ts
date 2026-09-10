@@ -14,9 +14,9 @@
  *
  * ## Why this reads source text instead of importing the module
  *
- * `PanelChrome.tsx` imports `PANEL_TOP_INSET` from `@oxyhq/bloom/content-panel`, and the
+ * `PanelChrome.tsx` imports `PANEL_TOP_INSET` from `@oxy.so/bloom/content-panel`, and the
  * `react-native` export condition resolves that to Bloom's published `src/` — ESM that
- * jest-expo's `transformIgnorePatterns` does not transform, because `@oxyhq` is not on
+ * jest-expo's `transformIgnorePatterns` does not transform, because `@oxy.so` is not on
  * its allowlist. Importing the component here would fail on a syntax error in a
  * dependency rather than on anything about this app.
  *
@@ -48,7 +48,7 @@ const BLOOM_CONTENT_PANEL = readFileSync(
     '..',
     '..',
     'node_modules',
-    '@oxyhq',
+    '@oxy.so',
     'bloom',
     'src',
     'content-panel',
@@ -91,7 +91,7 @@ describe('the sticky chrome inset', () => {
     // The published panel draws the gutter; a local copy of the number is how the chrome
     // ends up pinned 8px away from the edge the panel actually has.
     expect(PANEL_CHROME).toMatch(
-      /import \{ PANEL_TOP_INSET \} from '@oxyhq\/bloom\/content-panel';/,
+      /import \{ PANEL_TOP_INSET \} from '@oxy\.so\/bloom\/content-panel';/,
     );
     expect(PANEL_CHROME).not.toMatch(/const PANEL_TOP_INSET =/);
   });

@@ -26,7 +26,7 @@
  * chrome never reflows the content that is being scrolled.
  */
 
-import { setMinimized, useMinimizeState } from '@oxyhq/bloom/tab-bar';
+import { setMinimized, useMinimizeState } from '@oxy.so/bloom/tab-bar';
 import { usePathname } from 'expo-router';
 import React, { createContext, useContext, useEffect } from 'react';
 import { useAnimatedReaction, useSharedValue, type SharedValue } from 'react-native-reanimated';

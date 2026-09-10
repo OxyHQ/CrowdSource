@@ -30,7 +30,7 @@
  * one, and the client has no way to know its own application.
  */
 
-import { IdentifierSchema } from '@oxyhq/crowdsource-contracts';
+import { IdentifierSchema } from '@oxy.so/crowdsource-contracts';
 
 import { CrowdSourceConfigurationError } from './errors.js';
 

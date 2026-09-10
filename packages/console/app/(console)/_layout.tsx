@@ -17,7 +17,7 @@
  * is always visible and never behind a tap.
  */
 
-import { ContentPanel } from '@oxyhq/bloom/content-panel';
+import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { Slot } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';

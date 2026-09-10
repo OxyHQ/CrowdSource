@@ -1,4 +1,4 @@
-import { CaseEnvelopeSchema, type CaseEnvelope } from '@oxyhq/crowdsource-contracts';
+import { CaseEnvelopeSchema, type CaseEnvelope } from '@oxy.so/crowdsource-contracts';
 import { describe, expect, it } from 'vitest';
 
 import {

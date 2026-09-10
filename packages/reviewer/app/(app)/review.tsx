@@ -13,7 +13,7 @@
  * render even if a server sends it.
  */
 
-import { Button } from '@oxyhq/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { useRouter } from 'expo-router';
 import React, { useReducer } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +34,7 @@ import {
 } from '@/lib/review-form';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { useReviewerProfile, useSubmitReview } from '@/lib/reviewer-api/queries';
-import type { AssignmentPackage, ReviewSubmission } from '@oxyhq/crowdsource-contracts';
+import type { AssignmentPackage, ReviewSubmission } from '@oxy.so/crowdsource-contracts';
 
 export default function ReviewScreen() {
   const { t } = useTranslation();

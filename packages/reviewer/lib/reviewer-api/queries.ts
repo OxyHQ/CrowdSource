@@ -33,7 +33,7 @@ import type {
   ReviewerTrainingView,
   ReviewHistoryPage,
   ReviewSubmission,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import {
   clearActiveAssignment,

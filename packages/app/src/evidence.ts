@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import type { ReportInput } from '@oxyhq/crowdsource';
+import type { ReportInput } from '@oxy.so/crowdsource';
 import type {
   ModerationReportFields,
   ModerationSubjectProvider,
@@ -11,7 +11,7 @@ import type {
  * Turning a stored report into the thing the SDK delivers.
  *
  * This is NOT a case-envelope builder, and the difference matters enough to
- * name: `@oxyhq/crowdsource` builds the Case Envelope, and it deliberately does
+ * name: `@oxy.so/crowdsource` builds the Case Envelope, and it deliberately does
  * not export the function that does it. What this module produces is the SDK's
  * `ReportInput` — a description of the material — and the SDK derives the
  * envelope from it: resource ids, relations, digests, pseudonymous principal

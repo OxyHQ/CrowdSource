@@ -1,16 +1,16 @@
-# @oxyhq/crowdsource-testing
+# @oxy.so/crowdsource-testing
 
 Fixtures, a webhook simulator and an in-process sandbox, so an application can
 integrate against CrowdSource before a jury has ever sat.
 
 ## The full path, without real juries or real effects
 
-`@oxyhq/crowdsource-contracts` is a **peer dependency** — the fixtures return
+`@oxy.so/crowdsource-contracts` is a **peer dependency** — the fixtures return
 types defined there, and one copy per tree is the point. Install it alongside.
 
 ```ts
-import { CrowdSource } from '@oxyhq/crowdsource';
-import { createCrowdSourceSandbox } from '@oxyhq/crowdsource-testing';
+import { CrowdSource } from '@oxy.so/crowdsource';
+import { createCrowdSourceSandbox } from '@oxy.so/crowdsource-testing';
 
 const sandbox = createCrowdSourceSandbox();
 const crowdsource = new CrowdSource({
@@ -42,7 +42,7 @@ production. Only the jury is stood in for.
 ## Asserting your receiver says no
 
 ```ts
-import { WebhookSimulator, caseDecidedEventFixture } from '@oxyhq/crowdsource-testing';
+import { WebhookSimulator, caseDecidedEventFixture } from '@oxy.so/crowdsource-testing';
 
 const simulator = new WebhookSimulator({ secret, url });
 

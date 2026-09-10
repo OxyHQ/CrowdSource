@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { boolean, check, doublePrecision, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
 
-import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
 import { APPLICATION_STANDINGS, STANDING_REASONS } from '../../../domain/closedValues';
 

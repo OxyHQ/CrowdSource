@@ -12,7 +12,7 @@
  * Proving it can say no is the part that matters, and it is the part nobody
  * writes unless the tooling makes it a one-liner.
  *
- * Signing lives here rather than in `@oxyhq/crowdsource-express` because the two
+ * Signing lives here rather than in `@oxy.so/crowdsource-express` because the two
  * are opposite sides of the contract: the verifier must never import a signer
  * that could be "corrected" until they agree with each other and both disagree
  * with the service. What they share instead is
@@ -28,7 +28,7 @@ import {
   WEBHOOK_SIGNATURE_VERSION,
   WEBHOOK_TIMESTAMP_HEADER,
   buildWebhookSignedPayload,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 export interface SignedWebhookDelivery {
   /** Headers as CrowdSource sends them, plus `content-type`. */

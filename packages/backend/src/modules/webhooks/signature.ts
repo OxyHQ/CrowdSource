@@ -1,13 +1,13 @@
 import { createHmac } from 'node:crypto';
 
-import { verifySecret } from '@oxyhq/core/server';
+import { verifySecret } from '@oxy.so/core/server';
 import {
   buildWebhookSignedPayload,
   WEBHOOK_SIGNATURE_VERSION,
   WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS,
   WebhookSignatureHeaderSchema,
   WebhookTimestampHeaderSchema,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 /**
  * The webhook signature (§10.8).
@@ -32,13 +32,13 @@ import {
  *     what stops a receiver from validating one document and acting on another.
  *  2. **The timestamp is the header value verbatim.** Re-deriving it from a
  *     parsed number is the mistake the signature exists to catch.
- *  3. **Comparison is constant time.** `verifySecret` from `@oxyhq/core/server`,
+ *  3. **Comparison is constant time.** `verifySecret` from `@oxy.so/core/server`,
  *     never `!==` — a short-circuiting compare leaks a valid signature one byte
  *     at a time, and a webhook signature is exactly the thing an attacker would
  *     grind for.
  *
  * The verifier below is the receiver's side of the contract, and the shipped
- * implementation integrators use is `@oxyhq/crowdsource-express`. This one exists
+ * implementation integrators use is `@oxy.so/crowdsource-express`. This one exists
  * so the signer is proven against an independent implementation instead of
  * against itself — a check that can only agree with the code it checks is not a
  * check.

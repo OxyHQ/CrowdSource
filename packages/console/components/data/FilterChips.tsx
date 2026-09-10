@@ -11,7 +11,7 @@
  * to see that no filter is applied.
  */
 
-import { Chip } from '@oxyhq/bloom/chip';
+import { Chip } from '@oxy.so/bloom/chip';
 import React from 'react';
 import { Text, View } from 'react-native';
 

@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
-import { POLICY_SET_STATUSES } from '@oxyhq/crowdsource-contracts';
-import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import { POLICY_SET_STATUSES } from '@oxy.so/crowdsource-contracts';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
 import { AUDIT_ACTIONS, AUDIT_REASONS } from '../../../domain/closedValues';
 

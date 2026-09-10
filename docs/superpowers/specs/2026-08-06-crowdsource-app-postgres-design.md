@@ -1,8 +1,8 @@
-# `@oxyhq/crowdsource-app` gains a PostgreSQL backend
+# `@oxy.so/crowdsource-app` gains a PostgreSQL backend
 
 > **Archived, superseded design.** The dual-store design below records the
 > 2026-08-06 decision process; it is not the current runtime. CrowdSource and
-> `@oxyhq/crowdsource-app` now serve only from PostgreSQL. In current operations,
+> `@oxy.so/crowdsource-app` now serve only from PostgreSQL. In current operations,
 > MongoDB is retained solely inside the pinned, network-isolated archive recovery
 > reader; no live-source connector remains.
 
@@ -11,7 +11,7 @@
 **Why this exists.** Syra is porting MongoDB to PostgreSQL, and its moderation
 vertical is the adopter half of CrowdSource. Three routes were possible; **Nate
 chose route 2 on 2026-08-06** (`Syra/docs/superpowers/specs/2026-08-05-syra-mongo-to-postgres-design.md:238`).
-The reason is not a Syra favour: `@oxyhq/crowdsource-app` is multi-tenant
+The reason is not a Syra favour: `@oxy.so/crowdsource-app` is multi-tenant
 moderation infrastructure, so a Mongo-only adopter half pins **every** backend
 that adopts it. Six of the seven candidate backends are Mongo-only today; Mention
 runs both. A Postgres backend unblocks the second half of that list without
@@ -33,9 +33,9 @@ Every claim below was read out of the tree on 2026-08-06, not inferred.
 | Exactly **ten** source files import mongoose | `decision.ts:1`, `delivery.ts:1`, `inbound.ts:1`, `intake.ts:1`, `models/index.ts:1`, `models/report.ts:1`, `outbox/service.ts:2`, `reconciliation.ts:1`, `types.ts:23`, `enforcement/executor.ts:1` |
 | Six source files are already **storage-free** | `webhook.ts`, `client.ts`, `evidence.ts`, `enforcement/planner.ts`, `outbox/dispatcher.ts`, `reportStatus.ts` — zero matches for `model`/`Model`/`mongoose`/`connection` |
 | The package owns three collections | `models/index.ts:67`, `:154`, `:247` |
-| **Nobody consumes it yet.** No committed manifest in `~/Oxy` depends on `@oxyhq/crowdsource-app` | Seven repos pin `@oxyhq/crowdsource` + `-contracts` + `-express` at `0.3.0`; the only `crowdsource-app` references are the package itself and `.worktrees/mention-crowdsource/packages/backend/package.json:26`, which points at a local `0.3.0` tarball on an unmerged branch |
+| **Nobody consumes it yet.** No committed manifest in `~/Oxy` depends on `@oxy.so/crowdsource-app` | Seven repos pin `@oxy.so/crowdsource` + `-contracts` + `-express` at `0.3.0`; the only `crowdsource-app` references are the package itself and `.worktrees/mention-crowdsource/packages/backend/package.json:26`, which points at a local `0.3.0` tarball on an unmerged branch |
 | Syra hand-rolls the adopter half in **18** files | `packages/backend/src/moderation/` — 15 at the top level plus `subjects/{types,registry,providers}.ts`; four `*.test.ts` files excluded. (The brief's "15" counts the top level only.) |
-| `@oxyhq/db` is published at 0.1.2 with a Postgres substrate | `node_modules/@oxyhq/db/package.json` — subpaths `.`, `/migrate`, `/expiry`, `/testing`, `/assert` |
+| `@oxy.so/db` is published at 0.1.2 with a Postgres substrate | `node_modules/@oxy.so/db/package.json` — subpaths `.`, `/migrate`, `/expiry`, `/testing`, `/assert` |
 | Mention already runs a real Postgres in CI and per-file throwaway databases | `Mention/.github/workflows/ci.yml:169-186`, `Mention/packages/backend/vitest.globalSetup.ts:43` |
 | The app suite is 62 tests behind a floor of 48 | `grep -c 'it('` across `src/__tests__/*.test.ts`; `.github/workflows/ci.yml:122` |
 | 11 mutations, each proven to be caught | `scripts/test-invariants.mjs:35-248`, vacuity floor at `:384` |
@@ -150,9 +150,9 @@ between two dialects", and the answer is narrow: the twenty operations above,
 plus a transaction runner, plus an opaque transaction handle.
 
 ```
-@oxyhq/crowdsource-app             the storage-free core + createModerationIntegration({ store })
-@oxyhq/crowdsource-app/mongoose    mongooseModerationStore({ connection, reportModel, … })
-@oxyhq/crowdsource-app/postgres    postgresModerationStore({ db, reportTable, tables })
+@oxy.so/crowdsource-app             the storage-free core + createModerationIntegration({ store })
+@oxy.so/crowdsource-app/mongoose    mongooseModerationStore({ connection, reportModel, … })
+@oxy.so/crowdsource-app/postgres    postgresModerationStore({ db, reportTable, tables })
                                    + moderationTables({ enforcementActions, prefix })
                                    + moderationReportColumns()
 ```
@@ -179,7 +179,7 @@ enforcement config, the logger and the metrics are already storage-free
 **Peer dependencies become optional.** `mongoose`, `drizzle-orm` and `postgres`
 all move under `peerDependenciesMeta: { optional: true }`. A subpath is only
 resolved when imported, so a Postgres adopter never installs mongoose and a Mongo
-adopter never installs drizzle. `express` and `@oxyhq/crowdsource-contracts` stay
+adopter never installs drizzle. `express` and `@oxy.so/crowdsource-contracts` stay
 required peers.
 
 ### 1.3 What the adopter writes, per backend
@@ -198,7 +198,7 @@ That last row is the only genuinely new obligation, and it is unavoidable:
 Mongo creates a collection on first write; Postgres needs DDL, and DDL needs a
 migration.
 
-**The package must not ship a migrations folder.** `@oxyhq/db`'s ledger applies a
+**The package must not ship a migrations folder.** `@oxy.so/db`'s ledger applies a
 migration only when its journal timestamp is strictly newer than the newest
 recorded one (`migrate/ledger.ts:119-132`). Two journals against one
 `drizzle.__drizzle_migrations` table interleave, and the loser is skipped **in
@@ -263,15 +263,15 @@ throws at all, so there is no way to widen the predicate and accidentally swallo
 a connection failure as "already processed". The property at `:81-86` is then
 preserved by *not catching*, which is unbreakable rather than merely correct.
 If a `catch` shape is kept anywhere, it must use `isUniqueViolation(error, name)`
-from `@oxyhq/db` — drizzle wraps the driver error, so `error.code` is on `cause`
-and a naive check matches **nothing** (`@oxyhq/db/src/pgErrors.ts:1-21`).
+from `@oxy.so/db` — drizzle wraps the driver error, so `error.code` is on `cause`
+and a naive check matches **nothing** (`@oxy.so/db/src/pgErrors.ts:1-21`).
 
 **G4 — The enforcement idempotency claim.**
 Mongo: unique index on `(decisionId, decisionRevision, action)`
 (`models/index.ts:282`), claimed *before* the effect so a redelivery loses the
 insert (`executor.ts:170-201`). Postgres: make that triple the **composite primary
 key** — the unique constraint and the PK are then the same object, there is no
-surrogate id to keep in step, and `@oxyhq/db`'s "every table has a primary key"
+surrogate id to keep in step, and `@oxy.so/db`'s "every table has a primary key"
 invariant is satisfied by the thing that already had to exist. Claim with
 `ON CONFLICT DO NOTHING RETURNING`; zero rows is `result: 'duplicate'`.
 
@@ -312,7 +312,7 @@ of `models/index.ts:286`.
 
 **G9 — Retention. Mongo reaps; Postgres does not.**
 Two TTL indexes disappear silently in a port: `models/index.ts:100` (outbox) and
-`:176` (events), both `expireAfterSeconds: 0` on `expiresAt`. `@oxyhq/db/expiry`
+`:176` (events), both `expireAfterSeconds: 0` on `expiresAt`. `@oxy.so/db/expiry`
 is the replacement mechanism and its header says exactly why this is the quietest
 failure in a Mongo port (`expiry.ts:11-26`).
 **The registry belongs to the consumer, but these two tables belong to the
@@ -320,7 +320,7 @@ package** — so the package exports two `ExpirySweepTarget`s built over its own
 tables and the adopter merges them into its own list. That is not a violation of
 the registry rule; it is the rule applied correctly, because the package is the
 owner of the tables it names.
-`@oxyhq/db`'s own warning applies here with force (`expiry.ts:41-49`): a TTL'd
+`@oxy.so/db`'s own warning applies here with force (`expiry.ts:41-49`): a TTL'd
 table holding unprocessed work needs an explicit note about what a stalled
 consumer plus a sweep does to the backlog. The outbox is that table. The 90-day
 retention (`models/index.ts:66`) is long enough that this is a documented
@@ -380,9 +380,9 @@ Postgres defect.
 
 ---
 
-## 3. Where `@oxyhq/db` fits — and where it does not
+## 3. Where `@oxy.so/db` fits — and where it does not
 
-`@oxyhq/db` should be a **peer dependency of the `/postgres` subpath**, on the
+`@oxy.so/db` should be a **peer dependency of the `/postgres` subpath**, on the
 same reasoning it uses for drizzle itself: three repos sharing types only works
 with one installed copy.
 
@@ -446,7 +446,7 @@ of claim, so the Postgres side needs the same standard.
 **Rejected: `pg-mem`.** It is the direct analogue of the mocked driver this
 package already refuses. It does not implement `FOR UPDATE SKIP LOCKED` (G6),
 real MVCC concurrency (G2's concurrent-uncommitted case), or advisory locks. A
-fake that answers queries cannot validate the queries — the third `@oxyhq/db`
+fake that answers queries cannot validate the queries — the third `@oxy.so/db`
 lesson, applied.
 
 **Adopted: a real Postgres, per-file throwaway databases.** This is proven in the
@@ -538,7 +538,7 @@ uses, is the pattern (`Mention/docker-compose.postgres.yml`).
 ## 5. Existing adopters
 
 **There are none.** No committed manifest in `~/Oxy` depends on
-`@oxyhq/crowdsource-app`; the seven candidate backends pin the *client* packages
+`@oxy.so/crowdsource-app`; the seven candidate backends pin the *client* packages
 at `0.3.0` and hand-roll the adopter half. The only reference is
 `.worktrees/mention-crowdsource/packages/backend/package.json:26`, an unmerged
 branch pointing at a local `0.3.0` tarball.
@@ -612,7 +612,7 @@ the package and is worth keeping. Two routes change one line each —
 `routes/reports.routes.ts:3` calls `moderation.createReport`,
 `routes/crowdsourceWebhook.routes.ts` mounts `moderation.webhookRouter()`.
 
-Syra also bumps `@oxyhq/crowdsource*` from `0.3.0` to `0.4.x`
+Syra also bumps `@oxy.so/crowdsource*` from `0.3.0` to `0.4.x`
 (`packages/backend/package.json:24-26`).
 
 **Ordering.** Syra's phase 6 is already scheduled last for exactly this reason
@@ -663,7 +663,7 @@ both behind subpaths. Anything else makes one adopter class pay for the other.
 likely to be reversed by someone trying to be helpful, and it fails silently
 (exit 0, migration skipped).
 
-**Defer a `pg` (node-postgres) driver.** `@oxyhq/db` peers on `postgres` (3.4.9)
+**Defer a `pg` (node-postgres) driver.** `@oxy.so/db` peers on `postgres` (3.4.9)
 and every Oxy backend uses it. Supporting a second driver is speculative
 generality with a real cost — `isUniqueViolation` walks the `cause` chain for
 postgres.js's field names specifically (`pgErrors.ts:88-95`).
@@ -682,13 +682,13 @@ If some adopter later needs one, the outbox is re-derivable from reports by the
 reconciliation sweep (`reconciliation.ts:9-39`) — which is the correct mechanism
 and already exists.
 
-**Question worth asking before starting:** whether `@oxyhq/crowdsource-app` should
-consume `@oxyhq/db` at all, or copy the four helpers it needs. Consuming it means
+**Question worth asking before starting:** whether `@oxy.so/crowdsource-app` should
+consume `@oxy.so/db` at all, or copy the four helpers it needs. Consuming it means
 a published moderation package takes a release dependency on a 0.1.x package with
-three consumers, and a bad `@oxyhq/db` publish becomes a moderation outage.
+three consumers, and a bad `@oxy.so/db` publish becomes a moderation outage.
 **Recommendation: consume it**, as a peer — the alternative is a second copy of
 `isUniqueViolation` and the expiry sweep, which is the exact divergence
-`@oxyhq/db` was extracted to end. But the risk is real and belongs in the record.
+`@oxy.so/db` was extracted to end. But the risk is real and belongs in the record.
 
 ---
 
@@ -699,7 +699,7 @@ three consumers, and a bad `@oxyhq/db` publish becomes a moderation outage.
    compiles for every query in probe 3, but the probes are ~40 lines and the real
    store is ~600. *Settled by:* writing the outbox store first and type-checking
    it before anything else is built. The fallback — `SqlExecutor` plus `sql`
-   templates — is already proven in-tree by `@oxyhq/db`'s own expiry sweep, so
+   templates — is already proven in-tree by `@oxy.so/db`'s own expiry sweep, so
    this is a cost question, not a feasibility one.
 
 2. **How much of the current 62-test suite actually needs to run twice.**
@@ -726,10 +726,10 @@ three consumers, and a bad `@oxyhq/db` publish becomes a moderation outage.
    The `withoutForeignKey` obligation (§3) is derived from reading
    `assert/idColumns.ts`, not from running a gate over a real migrated schema.
    *Settled by:* generating the three tables into Syra's schema and running its
-   inherited `@oxyhq/db/assert` suite once. Cheap, and it either confirms the
+   inherited `@oxy.so/db/assert` suite once. Cheap, and it either confirms the
    ~10-line fragment or names a second one.
 
-6. **Whether `@oxyhq/crowdsource-testing`'s sandbox is storage-coupled.**
+6. **Whether `@oxy.so/crowdsource-testing`'s sandbox is storage-coupled.**
    The full-loop test drives a real sandbox and a signed webhook over a real
    socket (`README.md:83-95`). It was not audited for storage assumptions. *Settled
    by:* reading `packages/testing/src` before the harness work starts. If it is

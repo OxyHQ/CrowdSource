@@ -42,14 +42,14 @@ config.resolver = {
     /README/,
   ],
   extraNodeModules: {
-    '@oxyhq/crowdsource-contracts': path.join(monorepoRoot, 'packages/contracts'),
+    '@oxy.so/crowdsource-contracts': path.join(monorepoRoot, 'packages/contracts'),
   },
   nodeModulesPaths: [
     path.join(projectRoot, 'node_modules'),
     path.join(monorepoRoot, 'node_modules'),
   ],
   unstable_enableSymlinks: true,
-  // Required by @oxyhq/bloom's subpath exports.
+  // Required by @oxy.so/bloom's subpath exports.
   unstable_enablePackageExports: true,
   // Oxy's published UI still imports the `@expo/vector-icons` barrel even
   // though it only renders Ionicons and MaterialCommunityIcons. The barrel

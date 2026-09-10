@@ -11,7 +11,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
 import { CASE_STATUSES } from '../../../domain/closedValues';
 
@@ -27,7 +27,7 @@ import { CASE_STATUSES } from '../../../domain/closedValues';
  *
  * Column names are written out explicitly rather than left to drizzle's
  * derivation, which mangles a capital run — `caseS3Key` becomes `case_s_3_key`.
- * The exception is `@oxyhq/db`'s `timestamptz` family, which takes no name and
+ * The exception is `@oxy.so/db`'s `timestamptz` family, which takes no name and
  * derives through the one shared `DATABASE_CASING` value, so the DDL and the
  * queries cannot disagree about it.
  */

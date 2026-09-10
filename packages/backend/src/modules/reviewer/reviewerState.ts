@@ -1,10 +1,10 @@
-import { REVIEWER_STATES, type ReviewerState } from '@oxyhq/crowdsource-contracts';
+import { REVIEWER_STATES, type ReviewerState } from '@oxy.so/crowdsource-contracts';
 
 /**
  * What the reviewer onboarding states MEAN (§8.1) — the ladder, the legal moves,
  * and who may decide a real case.
  *
- * The seven states themselves are declared in `@oxyhq/crowdsource-contracts`
+ * The seven states themselves are declared in `@oxy.so/crowdsource-contracts`
  * (`reviewer-surface.ts`) because they cross the reviewer API boundary: the app
  * displays them, and when they were declared twice the two copies drifted into
  * `community` against `community_reviewer` with nothing to catch it. This file

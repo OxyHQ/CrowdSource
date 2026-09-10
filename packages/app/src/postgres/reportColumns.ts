@@ -16,7 +16,7 @@ import {
   textArrayLiteral,
   timestamptz,
   updatedAt,
-} from '@oxyhq/db';
+} from '@oxy.so/db';
 import type { ModerationLocalStatus } from '../types.js';
 
 /**

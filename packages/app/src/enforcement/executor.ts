@@ -1,4 +1,4 @@
-import type { Decision } from '@oxyhq/crowdsource-contracts';
+import type { Decision } from '@oxy.so/crowdsource-contracts';
 import { planEnforcement } from './planner.js';
 import type {
   ModerationEnforcementKey,

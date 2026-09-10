@@ -10,7 +10,7 @@
  * matters most: what they DO when a decision says `violation`.
  *
  * So this sandbox implements the two ends and lets the test drive the middle.
- * It accepts reports over a `fetch` the real `@oxyhq/crowdsource` client can be
+ * It accepts reports over a `fetch` the real `@oxy.so/crowdsource` client can be
  * pointed at — same transport, same idempotency, same 409, same tenant check —
  * and `decide()` publishes a decision the way consensus eventually will, which
  * `deliver()` then sends as a genuinely signed `case.decided`.
@@ -42,7 +42,7 @@ import {
   type DecisionRecommendedAction,
   type KnownWebhookEvent,
   type TaxonomyCode,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { WebhookSimulator, type WebhookDeliveryResult } from './webhook-simulator.js';
 

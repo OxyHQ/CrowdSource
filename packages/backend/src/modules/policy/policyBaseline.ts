@@ -3,7 +3,7 @@ import {
   TAXONOMY_CODES_BY_FAMILY,
   UNIVERSAL_TAXONOMY_VERSION,
   type PolicySetVersion,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { policyVersionToken } from '../cases/caseDedupKey';
 
