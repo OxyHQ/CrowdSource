@@ -34,7 +34,7 @@ async function runAudit(
       AUDIT_ROOT: fixtureRoot,
       EXPECTED_RUNTIME_ENTRY: "packages/backend/dist/server.js",
       EXPECTED_WORKSPACE_PACKAGES:
-        "@crowdsource/backend,@oxyhq/crowdsource-contracts",
+        "@crowdsource/backend,@oxy.so/crowdsource-contracts",
       ...extraEnvironment,
     },
     stdout: "pipe",
@@ -59,7 +59,7 @@ try {
     name: "@crowdsource/backend",
   });
   await writeJson("packages/shared-types/package.json", {
-    name: "@oxyhq/crowdsource-contracts",
+    name: "@oxy.so/crowdsource-contracts",
   });
   await mkdir(resolve(fixtureRoot, "packages/backend/dist"), {
     recursive: true,
