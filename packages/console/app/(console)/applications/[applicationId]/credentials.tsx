@@ -20,8 +20,8 @@
  * at any role — the enum in the request schema rejects them before the domain does.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import { toast } from '@oxyhq/bloom/toast';
+import { Button } from '@oxy.so/bloom/button';
+import { toast } from '@oxy.so/bloom/toast';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';

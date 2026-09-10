@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import type { Resource } from '@oxyhq/crowdsource-contracts';
+import type { Resource } from '@oxy.so/crowdsource-contracts';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -35,8 +35,8 @@ import { stubOxySession } from './support/reviewers';
  * must not carry.
  */
 
-vi.mock('@oxyhq/core/server', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('@oxyhq/core/server');
+vi.mock('@oxy.so/core/server', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@oxy.so/core/server');
   return { ...actual, createOxyAuthMiddleware: () => stubOxySession() };
 });
 

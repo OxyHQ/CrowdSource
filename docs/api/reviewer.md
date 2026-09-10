@@ -60,7 +60,7 @@ adult-attestation refusal has to be remembered.
 
 `POST /v1/reviewer/assignments/next` returns the package **plus a `token`**,
 once. Only its hash is stored. Present it as `x-assignment-token`
-(`ASSIGNMENT_TOKEN_HEADER` in `@oxyhq/crowdsource-contracts`) on the three
+(`ASSIGNMENT_TOKEN_HEADER` in `@oxy.so/crowdsource-contracts`) on the three
 routes addressed by assignment id.
 
 ## `POST /v1/reviewer/assignments/next`

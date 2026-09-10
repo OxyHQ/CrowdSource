@@ -12,7 +12,7 @@
  * note is never required — nobody has to explain themselves to leave.
  */
 
-import { Button } from '@oxyhq/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +23,7 @@ import { ChoiceRow } from '@/components/ChoiceRow';
 import { Panel, Screen } from '@/components/Screen';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { useRecuseFromAssignment } from '@/lib/reviewer-api/queries';
-import { RECUSAL_REASONS, type RecusalReason } from '@oxyhq/crowdsource-contracts';
+import { RECUSAL_REASONS, type RecusalReason } from '@oxy.so/crowdsource-contracts';
 
 /**
  * §4.1's four reasons, from the contract.

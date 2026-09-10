@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '../app';
 
 /**
- * CORS is enforced by `createOxyCors` from `@oxyhq/core/server`, and these
+ * CORS is enforced by `createOxyCors` from `@oxy.so/core/server`, and these
  * cases exist because its failure is invisible from the server side: the
  * request succeeds, the response is correct, and the BROWSER discards it. No
  * log, no status code, no test that exercises a route will ever notice.

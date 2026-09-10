@@ -14,8 +14,8 @@
  * out rather than derived.
  */
 
-import { Chip } from '@oxyhq/bloom/chip';
-import type { AccentFill, AccentTone } from '@oxyhq/bloom/theme';
+import { Chip } from '@oxy.so/bloom/chip';
+import type { AccentFill, AccentTone } from '@oxy.so/bloom/theme';
 import React from 'react';
 
 import type { Tone } from '@/lib/console-api/presentation';

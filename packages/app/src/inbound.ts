@@ -1,4 +1,4 @@
-import type { ProcessedEventStore } from '@oxyhq/crowdsource-express';
+import type { ProcessedEventStore } from '@oxy.so/crowdsource-express';
 import { decisionApplyEventId, type OutboxService } from './outbox/service.js';
 import { MODERATION_EVENT_RETENTION_SECONDS } from './retention.js';
 import type { ModerationEventStore, ModerationTransactionRunner } from './store/types.js';
@@ -24,7 +24,7 @@ import type { ModerationEventStore, ModerationTransactionRunner } from './store/
 /**
  * The webhook dedupe store, backed by the moderation event log.
  *
- * `@oxyhq/crowdsource-express` defaults to an in-process store and says exactly
+ * `@oxy.so/crowdsource-express` defaults to an in-process store and says exactly
  * when that is not enough: two instances behind a load balancer each keep their
  * own, so a redelivery landing on the other instance is not deduplicated. Every
  * Oxy backend runs several tasks behind one load balancer, so this is that case.

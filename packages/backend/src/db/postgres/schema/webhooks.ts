@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
-import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
 import {
   WEBHOOK_ATTEMPT_OUTCOMES,
@@ -159,7 +159,7 @@ export const webhookSecrets = pgTable(
  * THIS TABLE IS THE ONE WITH A RETENTION DEADLINE. On Mongo a TTL index on
  * `attempted_at` deleted rows after 90 days silently, on a clock nobody ran.
  * Postgres has no equivalent, so the deadline is carried by an
- * `@oxyhq/db/expiry` sweep target AND a caller that runs it — a registry nothing
+ * `@oxy.so/db/expiry` sweep target AND a caller that runs it — a registry nothing
  * runs is how another Oxy service served expired rows for hours while every code
  * search came up clean. See `db/postgres/expiry.ts`.
  */

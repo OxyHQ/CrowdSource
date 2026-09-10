@@ -1,10 +1,10 @@
 /**
- * `@oxyhq/crowdsource-testing` — integrate against CrowdSource before a jury
+ * `@oxy.so/crowdsource-testing` — integrate against CrowdSource before a jury
  * exists.
  *
  * ```ts
- * import { createCrowdSourceSandbox } from '@oxyhq/crowdsource-testing';
- * import { CrowdSource } from '@oxyhq/crowdsource';
+ * import { createCrowdSourceSandbox } from '@oxy.so/crowdsource-testing';
+ * import { CrowdSource } from '@oxy.so/crowdsource';
  *
  * const sandbox = createCrowdSourceSandbox();
  * const crowdsource = new CrowdSource({

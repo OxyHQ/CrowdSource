@@ -1,5 +1,5 @@
 import { and, asc, count, eq, sql } from 'drizzle-orm';
-import { uuidv7 } from '@oxyhq/db';
+import { uuidv7 } from '@oxy.so/db';
 import { createModerationIntegration } from '../../integration.js';
 import { createOutboxService, type OutboxService } from '../../outbox/service.js';
 import { postgresModerationStore } from '../../postgres/store/index.js';

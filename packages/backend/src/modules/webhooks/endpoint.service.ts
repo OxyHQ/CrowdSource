@@ -1,7 +1,7 @@
 import { isIP } from 'node:net';
 
-import { BLOCKED_HOSTNAMES, isBlockedIp } from '@oxyhq/core/server';
-import { WEBHOOK_EVENT_TYPES, type WebhookEventType } from '@oxyhq/crowdsource-contracts';
+import { BLOCKED_HOSTNAMES, isBlockedIp } from '@oxy.so/core/server';
+import { WEBHOOK_EVENT_TYPES, type WebhookEventType } from '@oxy.so/crowdsource-contracts';
 import type { TransactionSession } from '../../db/collections';
 
 import type { TenantContext } from '../../db/tenantScope';

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { LanguageTagSchema, TAXONOMY_FAMILIES } from '@oxyhq/crowdsource-contracts';
+import { LanguageTagSchema, TAXONOMY_FAMILIES } from '@oxy.so/crowdsource-contracts';
 
 import { DEFAULT_CASE_AXIS, REVIEWER_AXES, type ReviewerAxis } from './support/reviewerAxes';
 

@@ -2,7 +2,7 @@
 --
 -- Additive only: five CREATE TABLEs and their indexes, nothing dropped, renamed
 -- or narrowed. `pre` is therefore safe while the previous image is still serving
--- traffic, which is what that phase means — @oxyhq/db's runner refuses a
+-- traffic, which is what that phase means — @oxy.so/db's runner refuses a
 -- migration that does not say which side of a deploy it belongs on, rather than
 -- guessing and running a narrowing statement against a live old image.
 --

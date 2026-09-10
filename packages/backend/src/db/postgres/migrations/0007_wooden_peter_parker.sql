@@ -36,7 +36,7 @@
 -- DATABASE rather than at the contract.
 --
 -- All six render from a tuple via `inList` — four from
--- `@oxyhq/crowdsource-contracts`, two from `db/postgres/schema/webhooks.ts`,
+-- `@oxy.so/crowdsource-contracts`, two from `db/postgres/schema/webhooks.ts`,
 -- which is where this change moves them so drizzle-kit does not load mongoose at
 -- generate time. `sql.raw` on the value list is required: an ordinary
 -- interpolation into `check()` emits the bound parameter `$1` and fails at APPLY

@@ -1,6 +1,6 @@
-# `@oxyhq/crowdsource-app` PostgreSQL cutover
+# `@oxy.so/crowdsource-app` PostgreSQL cutover
 
-This runbook is for an application moving from `@oxyhq/crowdsource-app` 0.6.x
+This runbook is for an application moving from `@oxy.so/crowdsource-app` 0.6.x
 to the PostgreSQL-only 0.7.x line. It does **not** cut over the CrowdSource ECS
 service; use the separate backend cutover runbook for service-owned data.
 
@@ -12,7 +12,7 @@ emit the manifest below.
 
 ## Non-negotiable preconditions
 
-1. Pin the running application to `@oxyhq/crowdsource-app` 0.6.x while exporting.
+1. Pin the running application to `@oxy.so/crowdsource-app` 0.6.x while exporting.
 2. Create a separately named PostgreSQL target. Never point the importer at a
    shared or existing application database by resemblance of its name.
 3. Apply the adopter's Drizzle migrations, including the report table and the
@@ -90,7 +90,7 @@ counts and hashes, timestamps are valid, and source/target identities differ.
 3. Run the package's PostgreSQL tests and `store.ensureSchema()` against the
    target using a credential with only the application's normal privileges.
 4. Deploy the application release that imports only
-   `@oxyhq/crowdsource-app/postgres`.
+   `@oxy.so/crowdsource-app/postgres`.
 5. Probe report creation, outbox claim/complete, signed webhook replay and one
    reversible enforcement path. Confirm the exact deployed artifact separately.
 6. Keep the source intact for the approved rollback window. Data deletion is a

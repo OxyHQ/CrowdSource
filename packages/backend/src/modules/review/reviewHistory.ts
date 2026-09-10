@@ -7,7 +7,7 @@ import {
   type ReviewHistoryQuery,
   type TaxonomyCode,
   type TaxonomyFamily,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { createTenantContext, type TenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';

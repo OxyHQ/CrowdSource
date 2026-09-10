@@ -3,7 +3,7 @@
  * mints once.
  *
  * This is the half of the webhook integration that used to have no client at
- * all: `@oxyhq/crowdsource-express` verifies deliveries against
+ * all: `@oxy.so/crowdsource-express` verifies deliveries against
  * `CROWDSOURCE_WEBHOOK_SECRET`, and there was no supported way to obtain that
  * value except hand-rolling an HTTP call with the bearer half of the service
  * key. "Near-zero configuration" cannot mean an integrator writes their own
@@ -93,7 +93,7 @@ export interface RegisterWebhookEndpointInput {
   readonly url: string;
   /**
    * The event types to subscribe to. Import `WEBHOOK_EVENT_TYPES` from
-   * `@oxyhq/crowdsource-contracts` for the current set; unknown types are
+   * `@oxy.so/crowdsource-contracts` for the current set; unknown types are
    * accepted so a newer contract does not need a new client.
    */
   readonly eventTypes: readonly string[];

@@ -1,5 +1,5 @@
 import { defineConfig } from 'drizzle-kit';
-import { DATABASE_CASING } from '@oxyhq/db';
+import { DATABASE_CASING } from '@oxy.so/db';
 
 /**
  * drizzle-kit configuration — for the TEST schema, and only ever that.
@@ -9,7 +9,7 @@ import { DATABASE_CASING } from '@oxyhq/db';
  * can run against a real migrated database; an ADOPTER generates its own
  * migrations from its own schema, in its own journal.
  *
- * That is not a preference. `@oxyhq/db`'s ledger applies a migration only when
+ * That is not a preference. `@oxy.so/db`'s ledger applies a migration only when
  * its journal timestamp is strictly newer than the newest recorded one, so two
  * journals against one `drizzle.__drizzle_migrations` table interleave and the
  * loser is SKIPPED — silently, with exit 0. Shipping a migrations folder from a
@@ -27,7 +27,7 @@ import { DATABASE_CASING } from '@oxyhq/db';
  * in `tsconfig.test.json` now.
  *
  * `casing` decides what the DDL CREATES; the same value passed to `drizzle()`
- * decides what queries REFERENCE. Both read `DATABASE_CASING` from `@oxyhq/db`,
+ * decides what queries REFERENCE. Both read `DATABASE_CASING` from `@oxy.so/db`,
  * so they cannot drift apart.
  */
 

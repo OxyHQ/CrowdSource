@@ -1,8 +1,8 @@
 import { resolve } from 'node:path';
 import postgres from 'postgres';
-import { createDatabase, type OxyDatabase } from '@oxyhq/db';
-import { runMigrations } from '@oxyhq/db/migrate';
-import { createTestDatabase, dropTestDatabase } from '@oxyhq/db/testing';
+import { createDatabase, type OxyDatabase } from '@oxy.so/db';
+import { runMigrations } from '@oxy.so/db/migrate';
+import { createTestDatabase, dropTestDatabase } from '@oxy.so/db/testing';
 import * as schema from './schema.js';
 
 /**

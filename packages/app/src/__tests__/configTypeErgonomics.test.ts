@@ -20,7 +20,7 @@
 
 import postgres from 'postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { DATABASE_CASING } from '@oxyhq/db';
+import { DATABASE_CASING } from '@oxy.so/db';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { describe, expect, it } from 'vitest';
 import {

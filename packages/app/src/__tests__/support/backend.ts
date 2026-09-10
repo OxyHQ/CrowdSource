@@ -15,7 +15,7 @@
  * whichever test used it.
  */
 
-import type { Decision, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
+import type { Decision, TaxonomyCode } from '@oxy.so/crowdsource-contracts';
 import type {
   EnforcementPreviousState,
   ModerationEnforcementConfig,

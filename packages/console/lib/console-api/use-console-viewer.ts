@@ -6,7 +6,7 @@
  * nothing in it that can be wrong without being obvious.
  */
 
-import { useAuth } from '@oxyhq/services/ui/client';
+import { useAuth } from '@oxy.so/services/ui/client';
 import { useMemo } from 'react';
 
 import { resolveViewer, type ConsoleViewer } from './viewer';

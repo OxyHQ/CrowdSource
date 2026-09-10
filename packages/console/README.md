@@ -34,7 +34,7 @@ reasoning per field is in `caseExplorer.service.ts`.
 
 ## Session
 
-ONE `OxyProvider` from `@oxyhq/services`, web included, `webAuthMode="popup"`. No
+ONE `OxyProvider` from `@oxy.so/services`, web included, `webAuthMode="popup"`. No
 app-local auth routes, token providers or `Authorization` headers; the API client
 is `oxyServices.createLinkedClient({ baseURL })`. `EXPO_PUBLIC_OXY_CLIENT_ID` has
 no default in source — the value is supplied at build time.

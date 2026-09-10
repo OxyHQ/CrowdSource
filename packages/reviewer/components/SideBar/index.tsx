@@ -16,9 +16,9 @@ import {
     Growth_Stroke2_Corner0_Rounded,
     Heart2_Stroke2_Corner0_Rounded,
     Home_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
-import { ProfileButton } from '@oxyhq/services';
-import { useAuth } from '@oxyhq/services/ui/client';
+} from '@oxy.so/bloom/icons';
+import { ProfileButton } from '@oxy.so/services';
+import { useAuth } from '@oxy.so/services/ui/client';
 import { asViewStyle, type WebViewStyle } from '@/types/webStyles';
 
 const WindowHeight = Dimensions.get('window').height;

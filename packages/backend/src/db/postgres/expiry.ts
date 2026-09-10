@@ -1,4 +1,4 @@
-import type { ExpirySweepTarget } from '@oxyhq/db/expiry';
+import type { ExpirySweepTarget } from '@oxy.so/db/expiry';
 
 import { webhookAttempts } from './schema/webhooks';
 

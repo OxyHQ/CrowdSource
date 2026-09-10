@@ -1,11 +1,11 @@
 /**
- * `@oxyhq/crowdsource` — the TypeScript client for the CrowdSource moderation
+ * `@oxy.so/crowdsource` — the TypeScript client for the CrowdSource moderation
  * API.
  *
  * The smallest integration this package supports, in full:
  *
  * ```ts
- * import { CrowdSource } from '@oxyhq/crowdsource';
+ * import { CrowdSource } from '@oxy.so/crowdsource';
  *
  * const crowdsource = new CrowdSource();
  *
@@ -29,7 +29,7 @@
  * `envelope.ts` for what each one is derived from and why it cannot be left to
  * the caller.
  *
- * Types come from `@oxyhq/crowdsource-contracts`. This package re-exports none
+ * Types come from `@oxy.so/crowdsource-contracts`. This package re-exports none
  * of them: an integrator imports the contract from the contract package, so a
  * `Decision` or a `TaxonomyCode` has exactly one definition.
  */

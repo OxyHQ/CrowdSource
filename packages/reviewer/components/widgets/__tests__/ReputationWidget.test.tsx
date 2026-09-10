@@ -7,7 +7,7 @@
  *
  * The third guards a live upstream defect. The `/reputation/:id/balance`
  * response was narrowed for non-owners — they receive `userId`, `total` and
- * `trustTier` only — but `@oxyhq/core`'s types still declare `breakdown`,
+ * `trustTier` only — but `@oxy.so/core`'s types still declare `breakdown`,
  * `influence` and `reliability` as REQUIRED. TypeScript therefore states that
  * `balance.reliability.reportAccuracyScore` is safe when at runtime it is not.
  * A type that lies confidently cannot be leaned on, so the test feeds the widget
@@ -29,7 +29,7 @@ jest.mock('@tanstack/react-query', () => ({
   useQuery: (...args: unknown[]) => mockUseQuery(...args),
 }));
 
-jest.mock('@oxyhq/services/ui/client', () => ({
+jest.mock('@oxy.so/services/ui/client', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
@@ -43,10 +43,10 @@ jest.mock('@/lib/oxyServices', () => ({
 
 // Bloom's leaves resolve colours through `useTheme`, which throws outside a
 // provider. Nothing under test is a colour, so they stand in as plain nodes.
-jest.mock('@oxyhq/bloom/icons', () => ({
+jest.mock('@oxy.so/bloom/icons', () => ({
   Growth_Stroke2_Corner0_Rounded: () => null,
 }));
-jest.mock('@oxyhq/bloom/skeleton', () => ({
+jest.mock('@oxy.so/bloom/skeleton', () => ({
   Box: () => null,
 }));
 

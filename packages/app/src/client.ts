@@ -1,4 +1,4 @@
-import { CrowdSource } from '@oxyhq/crowdsource';
+import { CrowdSource } from '@oxy.so/crowdsource';
 import type { CrowdSourceConnectionConfig, ModerationLogger } from './types.js';
 
 /**

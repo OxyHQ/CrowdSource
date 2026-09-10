@@ -3,7 +3,7 @@ import {
   ReviewerCalibrationSubmissionSchema,
   ReviewerPreferencesUpdateSchema,
   type ReviewerCalibrationResultView,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { ApiError } from '../../http/apiError';
 import { parseOrThrow } from '../../http/parseBody';

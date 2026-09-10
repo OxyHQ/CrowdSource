@@ -19,29 +19,29 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const checker = resolve(dirname(fileURLToPath(import.meta.url)), "check-peer-contracts.mjs");
-const CONTRACTS = "@oxyhq/crowdsource-contracts";
+const CONTRACTS = "@oxy.so/crowdsource-contracts";
 
 /** A tree that must pass: peers admit the workspace version, nothing bundles it. */
 function healthyTree() {
   return {
     contracts: { name: CONTRACTS, version: "0.2.0" },
     sdk: {
-      name: "@oxyhq/crowdsource",
+      name: "@oxy.so/crowdsource",
       peerDependencies: { [CONTRACTS]: "^0.2.0" },
       devDependencies: { [CONTRACTS]: "workspace:*" },
     },
     "sdk-express": {
-      name: "@oxyhq/crowdsource-express",
+      name: "@oxy.so/crowdsource-express",
       peerDependencies: { [CONTRACTS]: "^0.2.0" },
       devDependencies: { [CONTRACTS]: "workspace:*" },
     },
     testing: {
-      name: "@oxyhq/crowdsource-testing",
+      name: "@oxy.so/crowdsource-testing",
       peerDependencies: { [CONTRACTS]: "^0.2.0" },
       devDependencies: { [CONTRACTS]: "workspace:*" },
     },
     app: {
-      name: "@oxyhq/crowdsource-app",
+      name: "@oxy.so/crowdsource-app",
       peerDependencies: { [CONTRACTS]: "^0.2.0" },
       devDependencies: { [CONTRACTS]: "workspace:*" },
     },
@@ -57,7 +57,7 @@ const cases = [
   {
     name: "a peer range that excludes the workspace version is caught",
     expectFailure: true,
-    mustMention: "@oxyhq/crowdsource-express",
+    mustMention: "@oxy.so/crowdsource-express",
     // The exact shape that is strictly worse than an exact pin: ^0.1.0 refuses
     // 0.2.0, so the duplicate appears when the two copies differ MOST.
     mutate: (tree) => {
@@ -68,7 +68,7 @@ const cases = [
   {
     name: "contracts back in dependencies is caught",
     expectFailure: true,
-    mustMention: "@oxyhq/crowdsource",
+    mustMention: "@oxy.so/crowdsource",
     mutate: (tree) => {
       tree.sdk.dependencies = { [CONTRACTS]: "0.2.0" };
       return tree;
@@ -77,7 +77,7 @@ const cases = [
   {
     name: "a missing peer declaration is caught",
     expectFailure: true,
-    mustMention: "@oxyhq/crowdsource-testing",
+    mustMention: "@oxy.so/crowdsource-testing",
     mutate: (tree) => {
       delete tree.testing.peerDependencies;
       return tree;
@@ -86,7 +86,7 @@ const cases = [
   {
     name: "a missing devDependency is caught",
     expectFailure: true,
-    mustMention: "@oxyhq/crowdsource-testing",
+    mustMention: "@oxy.so/crowdsource-testing",
     mutate: (tree) => {
       delete tree.testing.devDependencies;
       return tree;
@@ -95,7 +95,7 @@ const cases = [
   {
     name: "contracts as a normal dependency of the app package is caught",
     expectFailure: true,
-    mustMention: "@oxyhq/crowdsource-app",
+    mustMention: "@oxy.so/crowdsource-app",
     // The app package is the one an adopter installs ALONGSIDE contracts, so a
     // nested second copy here is the shape that reaches production soonest.
     mutate: (tree) => {
@@ -106,7 +106,7 @@ const cases = [
   {
     name: "a contracts bump that outruns every peer range is caught",
     expectFailure: true,
-    mustMention: "@oxyhq/crowdsource",
+    mustMention: "@oxy.so/crowdsource",
     // The lockstep failure the peer range exists to make loud: contracts moves
     // to 0.3.0 and nobody widened the ranges.
     mutate: (tree) => {

@@ -1,14 +1,14 @@
-# @oxyhq/crowdsource
+# @oxy.so/crowdsource
 
 The TypeScript client for the CrowdSource moderation API.
 
 ## Installing
 
 ```bash
-bun add @oxyhq/crowdsource @oxyhq/crowdsource-contracts
+bun add @oxy.so/crowdsource @oxy.so/crowdsource-contracts
 ```
 
-`@oxyhq/crowdsource-contracts` is a **peer dependency**, so you declare it and
+`@oxy.so/crowdsource-contracts` is a **peer dependency**, so you declare it and
 own its version. That is deliberate: every type this client returns is defined
 there, and if two copies of it existed in one tree the compiler would report
 nothing at all while parsing failed at runtime. One copy, chosen by you.
@@ -20,7 +20,7 @@ CROWDSOURCE_SERVICE_KEY=app_…:csk_…:…
 ```
 
 ```ts
-import { CrowdSource } from '@oxyhq/crowdsource';
+import { CrowdSource } from '@oxy.so/crowdsource';
 
 const crowdsource = new CrowdSource();
 
@@ -141,7 +141,7 @@ it is reporting. Putting them through the chokepoint asks for nothing new.
 ## Registering the webhook your decisions arrive on
 
 A decision reaches an application over a webhook, not by polling — see
-`@oxyhq/crowdsource-express`. Tell CrowdSource where to deliver, and store the
+`@oxy.so/crowdsource-express`. Tell CrowdSource where to deliver, and store the
 secret it mints:
 
 ```ts

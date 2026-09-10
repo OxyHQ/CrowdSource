@@ -1,6 +1,6 @@
 {
-  "name": "@oxyhq/crowdsource-testing",
-  "version": "0.4.0",
+  "name": "@oxy.so/crowdsource-testing",
+  "version": "1.0.0",
   "description": "Fixtures, a webhook simulator and a sandbox harness for integrating with CrowdSource",
   "type": "commonjs",
   "main": "dist/index.js",
@@ -42,8 +42,8 @@
     "access": "public"
   },
   "devDependencies": {
-    "@oxyhq/crowdsource": "workspace:*",
-    "@oxyhq/crowdsource-contracts": "workspace:*",
+    "@oxy.so/crowdsource": "workspace:*",
+    "@oxy.so/crowdsource-contracts": "workspace:*",
     "@types/node": "^25.9.5",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
@@ -54,6 +54,6 @@
     "!src/**/__tests__/**"
   ],
   "peerDependencies": {
-    "@oxyhq/crowdsource-contracts": "^0.4.0"
+    "@oxy.so/crowdsource-contracts": "^1.0.0"
   }
 }

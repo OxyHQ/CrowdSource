@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Platform, Text, StyleSheet } from "react-native";
 import { useTranslation } from 'react-i18next';
-import { Button } from '@oxyhq/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { useRouter } from 'expo-router';
 import { BaseWidget } from './widgets/BaseWidget';
 import { ReputationWidget } from './widgets/ReputationWidget';

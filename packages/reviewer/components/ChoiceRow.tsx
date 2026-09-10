@@ -6,8 +6,8 @@
  * `RadioIndicator` with Bloom's `Item` rather than growing an app-local control.
  */
 
-import { Item } from '@oxyhq/bloom/item';
-import { RadioIndicator } from '@oxyhq/bloom/radio-indicator';
+import { Item } from '@oxy.so/bloom/item';
+import { RadioIndicator } from '@oxy.so/bloom/radio-indicator';
 import React from 'react';
 
 interface ChoiceRowProps {

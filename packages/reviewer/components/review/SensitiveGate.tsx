@@ -13,8 +13,8 @@
  * again at any time, which is the other half of §13.7.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import type { ReviewerSensitivityClass, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
+import { Button } from '@oxy.so/bloom/button';
+import type { ReviewerSensitivityClass, TaxonomyCode } from '@oxy.so/crowdsource-contracts';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';

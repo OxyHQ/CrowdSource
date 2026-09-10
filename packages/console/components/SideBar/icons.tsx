@@ -15,7 +15,7 @@ import {
   Key_Stroke2_Corner2_Rounded,
   PaperPlane_Stroke2_Corner0_Rounded,
   Shield_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
+} from '@oxy.so/bloom/icons';
 import React from 'react';
 
 import type { NavIconId } from '@/lib/navigation';

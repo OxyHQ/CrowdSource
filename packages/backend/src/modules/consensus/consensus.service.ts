@@ -8,7 +8,7 @@ import {
   type RecommendedAction,
   type TaxonomyCode,
   type TaxonomyFamily,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import type { TenantContext } from '../../db/tenantScope';
 import { logger } from '../../utils/logger';

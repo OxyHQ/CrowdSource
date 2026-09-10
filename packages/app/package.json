@@ -1,6 +1,6 @@
 {
-  "name": "@oxyhq/crowdsource-app",
-  "version": "0.7.0",
+  "name": "@oxy.so/crowdsource-app",
+  "version": "1.0.0",
   "description": "The application half of a CrowdSource integration: a transactional outbox, delivery, a webhook receiver, decision application and idempotent enforcement, wired to your own subjects",
   "type": "commonjs",
   "main": "dist/index.js",
@@ -54,13 +54,13 @@
     "access": "public"
   },
   "dependencies": {
-    "@oxyhq/crowdsource": "workspace:*",
-    "@oxyhq/crowdsource-express": "workspace:*"
+    "@oxy.so/crowdsource": "workspace:*",
+    "@oxy.so/crowdsource-express": "workspace:*"
   },
   "devDependencies": {
-    "@oxyhq/crowdsource-contracts": "workspace:*",
-    "@oxyhq/crowdsource-testing": "workspace:*",
-    "@oxyhq/db": "^0.1.2",
+    "@oxy.so/crowdsource-contracts": "workspace:*",
+    "@oxy.so/crowdsource-testing": "workspace:*",
+    "@oxy.so/db": "^1.0.0",
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.5",
     "drizzle-kit": "^0.31.10",
@@ -76,14 +76,14 @@
     "!src/**/__tests__/**"
   ],
   "peerDependencies": {
-    "@oxyhq/crowdsource-contracts": "^0.4.0",
-    "@oxyhq/db": "^0.1.2",
+    "@oxy.so/crowdsource-contracts": "^1.0.0",
+    "@oxy.so/db": "^1.0.0",
     "drizzle-orm": "^0.45.2",
     "express": ">=4.18.0 <6",
     "postgres": "^3.4.9"
   },
   "peerDependenciesMeta": {
-    "@oxyhq/db": {
+    "@oxy.so/db": {
       "optional": true
     },
     "drizzle-orm": {

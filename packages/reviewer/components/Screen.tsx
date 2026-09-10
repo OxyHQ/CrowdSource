@@ -18,8 +18,8 @@
  * because both read the one signal in `BottomBarVisibilityContext`.
  */
 
-import { Bars3_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
-import { IconButton } from '@oxyhq/bloom/button';
+import { Bars3_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { IconButton } from '@oxy.so/bloom/button';
 import React, { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View, type LayoutChangeEvent } from 'react-native';

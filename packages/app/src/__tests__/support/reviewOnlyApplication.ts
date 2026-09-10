@@ -1,5 +1,5 @@
-import { CrowdSource } from '@oxyhq/crowdsource';
-import { createCrowdSourceSandbox, type CrowdSourceSandbox } from '@oxyhq/crowdsource-testing';
+import { CrowdSource } from '@oxy.so/crowdsource';
+import { createCrowdSourceSandbox, type CrowdSourceSandbox } from '@oxy.so/crowdsource-testing';
 import { createModerationIntegration, type ModerationIntegration } from '../../integration.js';
 import type { ModerationStore } from '../../store/types.js';
 import type { ModerationEnforcementConfig, ModerationReportFields } from '../../types.js';

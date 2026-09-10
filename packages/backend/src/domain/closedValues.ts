@@ -3,7 +3,7 @@
  *
  * Keeping each tuple here prevents a TypeScript union, a runtime branch and a
  * database constraint from becoming three independent lists. Values that cross
- * the public API boundary remain owned by `@oxyhq/crowdsource-contracts`.
+ * the public API boundary remain owned by `@oxy.so/crowdsource-contracts`.
  */
 
 export const ORGANIZATION_STATUSES = ['active', 'suspended'] as const;

@@ -4,7 +4,7 @@ The surface an application talks to, authenticated by a **service credential**.
 An Oxy session never satisfies any route here — see
 [the four caller classes](./README.md#four-caller-classes-and-none-of-them-substitutes-for-another).
 
-Most integrators should not write these calls by hand. `@oxyhq/crowdsource`
+Most integrators should not write these calls by hand. `@oxy.so/crowdsource`
 composes the envelope, the digests, the principal refs and the idempotency key,
 and getting any of those wrong has consequences that surface days later. This
 document is the contract underneath it, for people debugging it or writing a
@@ -77,7 +77,7 @@ characters of `[A-Za-z0-9._:-]`. A missing or malformed one is `400`. The SDK
 sends `report.<externalReportId>`.
 
 Body: `{ externalReportId, envelope }` — the envelope is
-`CaseEnvelopeSchema` from `@oxyhq/crowdsource-contracts`, and the outer
+`CaseEnvelopeSchema` from `@oxy.so/crowdsource-contracts`, and the outer
 `externalReportId` must equal the one inside it.
 
 Answers **`202`** and only `202`:
@@ -264,7 +264,7 @@ a working day.
 `signingStartsAt` is what makes the overlap a procedure rather than a guess:
 deliveries begin carrying the new signature at that instant, and the old secret
 stays valid until `previousSecret.expiresAt`. Serve both in between and no
-delivery is dropped — `@oxyhq/crowdsource-express` reads the retiring one from
+delivery is dropped — `@oxy.so/crowdsource-express` reads the retiring one from
 `CROWDSOURCE_WEBHOOK_SECRET_PREVIOUS`.
 
 ## Evidence

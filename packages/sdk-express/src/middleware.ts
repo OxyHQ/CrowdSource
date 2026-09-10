@@ -46,7 +46,7 @@ import {
   type KnownWebhookEvent,
   type WebhookEventEnvelope,
   type WebhookEventType,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { memoryProcessedEventStore, type ProcessedEventStore } from './store.js';
 import { verifyWebhookDelivery, type WebhookRejection } from './verify.js';

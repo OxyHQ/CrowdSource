@@ -1,4 +1,4 @@
-import { getOxyUserId } from '@oxyhq/core/server';
+import { getOxyUserId } from '@oxy.so/core/server';
 import type { Request, RequestHandler } from 'express';
 
 import { ApiError } from '../../http/apiError';
@@ -22,7 +22,7 @@ import { trustSafetyStaff, type StaffRole, type TrustSafetyStaffDocument } from 
  *     account in existence satisfies (1); a handful satisfy (3).
  *
  * A service credential can satisfy NONE of them. It presents a bearer token that
- * `@oxyhq/core/server` does not recognise as an Oxy session, so it never gets past
+ * `@oxy.so/core/server` does not recognise as an Oxy session, so it never gets past
  * (1) — which is the structural reason a leaked integrator key cannot read the
  * console, rather than a rule somebody has to remember at each route.
  */

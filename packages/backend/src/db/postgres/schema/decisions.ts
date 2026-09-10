@@ -11,13 +11,13 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 import {
   APPEAL_REASONS,
   CONTEXT_SUFFICIENCIES,
   DECISION_OUTCOMES,
   DECISION_STATUSES,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 /**
  * A jury's decision on a case, and the appeal that can supersede it.

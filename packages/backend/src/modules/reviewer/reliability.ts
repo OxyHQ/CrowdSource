@@ -1,4 +1,4 @@
-import type { TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import type { TaxonomyFamily } from '@oxy.so/crowdsource-contracts';
 
 import type { ReviewerProfileDocument } from './reviewer.collection';
 

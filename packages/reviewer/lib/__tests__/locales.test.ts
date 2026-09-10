@@ -10,7 +10,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { FINDING_CONTEXTS, RECOMMENDED_ACTIONS, RELATION_TYPES, RESOURCE_TYPES, REVIEWER_ELIGIBILITY_REQUIREMENTS, REVIEWER_SENSITIVITY_CLASSES, REVIEWER_STATES, TAXONOMY_FAMILIES } from '@oxyhq/crowdsource-contracts';
+import { FINDING_CONTEXTS, RECOMMENDED_ACTIONS, RELATION_TYPES, RESOURCE_TYPES, REVIEWER_ELIGIBILITY_REQUIREMENTS, REVIEWER_SENSITIVITY_CLASSES, REVIEWER_STATES, TAXONOMY_FAMILIES } from '@oxy.so/crowdsource-contracts';
 
 import { REVIEWER_RECOMMENDED_ACTIONS } from '@/lib/review-form';
 import en from '@/locales/en.json';

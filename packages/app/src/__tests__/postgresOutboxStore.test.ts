@@ -16,7 +16,7 @@
 import { eq, sql } from 'drizzle-orm';
 import postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { executeRows } from '@oxyhq/db';
+import { executeRows } from '@oxy.so/db';
 import { ModerationOutboxTransactionError } from '../outbox/service.js';
 import { postgresOutboxStore } from '../postgres/store/outbox.js';
 import { postgresTransactionRunner } from '../postgres/store/transaction.js';

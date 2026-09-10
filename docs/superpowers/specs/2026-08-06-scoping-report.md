@@ -1,4 +1,4 @@
-# Scoping report — `@oxyhq/crowdsource-app` gains a PostgreSQL backend
+# Scoping report — `@oxy.so/crowdsource-app` gains a PostgreSQL backend
 
 > **Archived measurement.** This report describes the pre-cutover tree on
 > 2026-08-06 and is not current implementation guidance. CrowdSource and the
@@ -40,7 +40,7 @@ inside the package keeps that rejection completely intact: an adopter still writ
 only its four things, and still never re-derives a query.
 
 Shape: one package, three subpaths.
-`@oxyhq/crowdsource-app` (storage-free core, `createModerationIntegration({ store })`),
+`@oxy.so/crowdsource-app` (storage-free core, `createModerationIntegration({ store })`),
 `/mongoose`, `/postgres`. `mongoose`, `drizzle-orm` and `postgres` become
 **optional** peers, so a Postgres adopter never installs mongoose and vice versa.
 Rejected: two packages (duplicates ~1,000 lines whose whole point is being
@@ -57,8 +57,8 @@ Ten source files import mongoose (`decision.ts:1`, `delivery.ts:1`,
 **The one new adopter obligation:** the three package-owned tables need DDL. The
 package exports `moderationTables()`; the adopter re-exports them from its own
 drizzle schema and generates the migration itself. **The package must not ship a
-migrations folder** — `@oxyhq/db`'s ledger applies only entries strictly newer
-than the high-water mark (`@oxyhq/db/src/migrate/ledger.ts:119-132`), so a second
+migrations folder** — `@oxy.so/db`'s ledger applies only entries strictly newer
+than the high-water mark (`@oxy.so/db/src/migrate/ledger.ts:119-132`), so a second
 journal interleaved with the adopter's is skipped **in silence with exit 0**.
 
 ---
@@ -82,7 +82,7 @@ Fourteen, in the design's §2. The ones that decide the work:
   throws, so a connection failure cannot be widened into "already processed"
   (`inbound.ts:81-86`). If any catch survives, it **must** use
   `isUniqueViolation` — drizzle wraps the driver error, so `error.code` matches
-  nothing (`@oxyhq/db/src/pgErrors.ts:1-21`).
+  nothing (`@oxy.so/db/src/pgErrors.ts:1-21`).
 - **G4 enforcement claim.** Make `(decision_id, decision_revision, action)` the
   composite **primary key** — the Mongo unique index (`models/index.ts:282`) and
   the required PK become one object.
@@ -99,7 +99,7 @@ Fourteen, in the design's §2. The ones that decide the work:
 - **G8 reversal reads the newest APPLIED row** (`executor.ts:139-148`) plus the
   supporting index (`models/index.ts:286`). Two proven mutations attack it.
 - **G9 Mongo reaps; Postgres does not.** Two TTL indexes vanish silently
-  (`models/index.ts:100`, `:176`). `@oxyhq/db/expiry` replaces them, and its own
+  (`models/index.ts:100`, `:176`). `@oxy.so/db/expiry` replaces them, and its own
   header names this as the quietest failure in a Mongo port (`expiry.ts:11-26`).
   The package exports the two targets over its own tables; the adopter merges
   them into its registry. The outbox is exactly the "TTL'd table holding
@@ -155,7 +155,7 @@ package already refuses (`vitest.globalSetup.ts:20-27`). It does not implement
 answers queries cannot validate the queries.
 
 **Adopted: a real Postgres with per-file throwaway databases** —
-`@oxyhq/db/testing`'s `createTestDatabase`, proven in-ecosystem by Mention
+`@oxy.so/db/testing`'s `createTestDatabase`, proven in-ecosystem by Mention
 (`Mention/.github/workflows/ci.yml:169-186`,
 `Mention/packages/backend/vitest.globalSetup.ts:43`). Plain `postgres:17`;
 nothing here needs PostGIS.
@@ -185,7 +185,7 @@ Accepted.
 
 ## 5. Existing adopters — there are none
 
-**No committed manifest in `~/Oxy` depends on `@oxyhq/crowdsource-app`.** Seven
+**No committed manifest in `~/Oxy` depends on `@oxy.so/crowdsource-app`.** Seven
 backends (Mention, Homiio, Mercaria, Moovo, Allo, Alia, Syra) pin the *client*
 packages at `0.3.0` and hand-roll the adopter half. The only reference is
 `.worktrees/mention-crowdsource/packages/backend/package.json:26` — an unmerged
@@ -223,10 +223,10 @@ the same two manual load checks (`:51-75`), and `check:module-format`
   90-day transients, and the outbox is already re-derivable from reports by the
   reconciliation sweep (`reconciliation.ts:9-39`). A general migrator for a
   package with zero adopters is work for a case that does not exist.
-- **Worth deciding before starting:** whether the package consumes `@oxyhq/db` at
-  all. Consuming it makes a bad `@oxyhq/db` publish a moderation outage.
+- **Worth deciding before starting:** whether the package consumes `@oxy.so/db` at
+  all. Consuming it makes a bad `@oxy.so/db` publish a moderation outage.
   Recommendation is **consume it, as a peer** — the alternative is a second copy
-  of `isUniqueViolation` and the expiry sweep, the exact divergence `@oxyhq/db`
+  of `isUniqueViolation` and the expiry sweep, the exact divergence `@oxy.so/db`
   was extracted to end — but the risk belongs in the record.
 
 ---
@@ -236,7 +236,7 @@ the same two manual load checks (`:51-75`), and `check:module-format`
 1. **Whether the builder-API handle type survives a 600-line store.** Probe 3 is
    ~40 lines. *Settle:* write the outbox store first and type-check before
    anything else. The `SqlExecutor` fallback is already proven in-tree by
-   `@oxyhq/db`'s expiry sweep, so this is cost, not feasibility.
+   `@oxy.so/db`'s expiry sweep, so this is cost, not feasibility.
 2. **How much of the 37 storage-backed tests genuinely needs to run twice.** The
    25/37 split is by file, from imports. *Settle:* classify each by which §2
    guarantee it exercises.
@@ -247,7 +247,7 @@ the same two manual load checks (`:51-75`), and `check:module-format`
 4. **Whether every mutation has a Postgres twin.** G2 and G3 are structural.
    *Settle:* attempt each during implementation and record the ones that cannot
    exist, with the reason.
-5. **What the adopter's `@oxyhq/db/assert` gates say about the package's tables.**
+5. **What the adopter's `@oxy.so/db/assert` gates say about the package's tables.**
    The `withoutForeignKey` obligation is derived from reading
    `assert/idColumns.ts:1-32`, not from running a gate. Six `*_id` columns
    (`case_id`, `decision_id`, `subject_id`, `crowdsource_report_id`,
@@ -255,7 +255,7 @@ the same two manual load checks (`:51-75`), and `check:module-format`
    rows in CrowdSource's database. Unclassified, the first adopter's gate fails on
    adoption. *Settle:* generate the tables into Syra's schema and run its
    inherited assert suite once.
-6. **Whether `@oxyhq/crowdsource-testing`'s sandbox is storage-coupled.** Not
+6. **Whether `@oxy.so/crowdsource-testing`'s sandbox is storage-coupled.** Not
    audited. *Settle:* read `packages/testing/src` (`sandbox.ts`,
    `webhook-simulator.ts`) before harness work. Likely a non-issue — it simulates
    the CrowdSource *server* — but half a day if not.
@@ -312,7 +312,7 @@ conclusion — 13 of the 18 are deleted by adoption, plus three models.
   forgets the migration gets a `42P01` at the first report — loud, at least. The
   worse version is forgetting the **expiry registry entries** (G9), which is
   silent forever.
-- **`@oxyhq/db` at 0.1.2 becomes a release dependency of moderation.** Small
+- **`@oxy.so/db` at 0.1.2 becomes a release dependency of moderation.** Small
   surface, three consumers, two days old. Recommended anyway, flagged deliberately.
 - **CrowdSource's server stays on MongoDB.** After this lands, the same repo ships
   a Mongo server and a package whose reference backend for new adopters is

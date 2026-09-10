@@ -6,15 +6,15 @@ import { createHash } from 'node:crypto';
  * one byte at a time.
  *
  * It also explains why `express-rate-limit` is a dependency of this package
- * despite nothing here calling it: `@oxyhq/core/server` is a single barrel whose
+ * despite nothing here calling it: `@oxy.so/core/server` is a single barrel whose
  * `rateLimit` module requires it eagerly, so importing ANYTHING from that
  * subpath pulls it in. The production image installs with `--omit=peer`, so
  * without the declaration the container would crash at boot with
  * MODULE_NOT_FOUND rather than fail anywhere a test would see it. The barrel
- * should load a peer lazily; that is an upstream fix in `@oxyhq/core`, not
+ * should load a peer lazily; that is an upstream fix in `@oxy.so/core`, not
  * something to work around here.
  */
-import { verifySecret } from '@oxyhq/core/server';
+import { verifySecret } from '@oxy.so/core/server';
 
 import { createTenantContext, type TenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';
@@ -34,7 +34,7 @@ import { applicationCredentials, applications } from './tenancy.collections';
  * an Oxy session (reviewers, Trust & Safety) and a service credential
  * (applications). A service credential never reaches a reviewer route, and an
  * Oxy session never satisfies an application-API route. Oxy sessions are
- * verified with `@oxyhq/core/server`; this file covers only the credential side.
+ * verified with `@oxy.so/core/server`; this file covers only the credential side.
  */
 
 /** A token is `<credentialId>.<secret>` — one separator, neither half optional. */
@@ -135,4 +135,3 @@ export async function authenticateServiceCredential(
     tenant: createTenantContext(application.organizationId, application.applicationId),
   };
 }
-

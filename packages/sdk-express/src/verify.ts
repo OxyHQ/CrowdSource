@@ -38,7 +38,7 @@ import {
   WebhookSignatureHeaderSchema,
   WebhookTimestampHeaderSchema,
   buildWebhookSignedPayload,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 /**
  * Why a delivery was refused. Terse on purpose: it goes back on the wire, into

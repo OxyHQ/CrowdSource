@@ -1,4 +1,4 @@
-import type { CaseEnvelope } from '@oxyhq/crowdsource-contracts';
+import type { CaseEnvelope } from '@oxy.so/crowdsource-contracts';
 
 import {
   duplicateKeyViolation,

@@ -4,7 +4,7 @@ import type {
   FindingScope,
   Severity,
   TaxonomyCode,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 /**
  * How far a confirmed finding reaches (§6.5), as data.

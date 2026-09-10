@@ -10,9 +10,9 @@
  * controls, not as quotas to hit.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import { Checkbox } from '@oxyhq/bloom/checkbox';
-import { Switch } from '@oxyhq/bloom/switch';
+import { Button } from '@oxy.so/bloom/button';
+import { Checkbox } from '@oxy.so/bloom/checkbox';
+import { Switch } from '@oxy.so/bloom/switch';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +32,7 @@ import type {
   ReviewerPreferencesUpdate,
   ReviewerProfileView,
   TaxonomyFamily,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 import { CONSENTABLE_FAMILIES, OPT_IN_FAMILIES } from '@/lib/taxonomy';
 
 const DAILY_LIMIT_OPTIONS = [5, 10, 20, 40];

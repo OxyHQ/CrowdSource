@@ -18,7 +18,7 @@
 /**
  * The machine-readable codes §10.5 assigns a meaning to.
  *
- * Declared here rather than imported because `@oxyhq/crowdsource-contracts`
+ * Declared here rather than imported because `@oxy.so/crowdsource-contracts`
  * does not publish the HTTP error vocabulary — it publishes the documents that
  * travel over HTTP. That is a gap worth closing in contracts rather than a
  * decision to state the list twice: the backend has the same union in

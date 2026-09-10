@@ -17,7 +17,7 @@ import { createHash } from 'node:crypto';
  * components rather than being an implementation detail of this service.
  *
  * The `:` separator is only unambiguous because none of the four components can
- * contain one: `@oxyhq/crowdsource-contracts` excludes `:` from every identifier
+ * contain one: `@oxy.so/crowdsource-contracts` excludes `:` from every identifier
  * schema for exactly this reason, the content hash is `sha256:<hex>` with a
  * single fixed-position colon, and `policyVersionToken` below composes its two
  * halves with `@`. Without that, two different tuples could flatten to one

@@ -1,10 +1,10 @@
 /**
- * `@oxyhq/crowdsource-express` — receiving CrowdSource webhooks safely.
+ * `@oxy.so/crowdsource-express` — receiving CrowdSource webhooks safely.
  *
  * The whole integration:
  *
  * ```ts
- * import { crowdsourceWebhooks } from '@oxyhq/crowdsource-express';
+ * import { crowdsourceWebhooks } from '@oxy.so/crowdsource-express';
  *
  * app.post('/webhooks/crowdsource', crowdsourceWebhooks({
  *   on: {

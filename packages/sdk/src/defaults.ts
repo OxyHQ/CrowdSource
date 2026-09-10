@@ -19,7 +19,7 @@
  * moved, two reports about one post would open two cases.
  */
 
-import type { CasePolicyRef, CasePrivacy, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
+import type { CasePolicyRef, CasePrivacy, TaxonomyCode } from '@oxy.so/crowdsource-contracts';
 
 /** Where the service lives. One deployment; there is no sandbox host. */
 export const DEFAULT_BASE_URL = 'https://api.crowdsource.oxy.so';

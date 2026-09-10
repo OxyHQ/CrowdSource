@@ -88,7 +88,7 @@ export class ModerationOutboxTransactionError extends Error {
 /**
  * A failure that says whether trying the same payload again could ever work.
  *
- * Every error `@oxyhq/crowdsource` throws carries `retryable`, which is the only
+ * Every error `@oxy.so/crowdsource` throws carries `retryable`, which is the only
  * thing a delivery worker needs from it. Anything else — a bug in this code, a
  * Mongo error — is treated as retryable, because assuming a defect is permanent
  * is how a recoverable outage becomes lost moderation work.

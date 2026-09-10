@@ -1,4 +1,4 @@
-import { DecisionSchema, type Decision } from '@oxyhq/crowdsource-contracts';
+import { DecisionSchema, type Decision } from '@oxy.so/crowdsource-contracts';
 
 /**
  * A published decision, built through the real `DecisionSchema`.
@@ -9,7 +9,7 @@ import { DecisionSchema, type Decision } from '@oxyhq/crowdsource-contracts';
  * jury arithmetic and the revision/supersedes rules are enforced on every
  * fixture that uses this.
  *
- * `@oxyhq/crowdsource-testing`'s `decisionFixture` covers the common shapes but
+ * `@oxy.so/crowdsource-testing`'s `decisionFixture` covers the common shapes but
  * fixes `findings` and `recommendedActions` to the outcome; the planner is
  * exactly the thing that has to be exercised across arbitrary combinations of
  * those two, which is why this exists alongside it.

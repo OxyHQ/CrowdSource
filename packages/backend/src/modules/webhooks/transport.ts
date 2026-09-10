@@ -1,6 +1,6 @@
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 
-import { safeFetch } from '@oxyhq/core/server';
+import { safeFetch } from '@oxy.so/core/server';
 
 import { WEBHOOK_RESPONSE_PREVIEW_LIMIT } from './redaction';
 
@@ -9,7 +9,7 @@ import { WEBHOOK_RESPONSE_PREVIEW_LIMIT } from './redaction';
  *
  * Delivery is the only place CrowdSource contacts an address a tenant chose, so
  * it is the only place SSRF can happen, and it goes through `safeFetch` from
- * `@oxyhq/core/server` — the ecosystem's one implementation. What that buys and
+ * `@oxy.so/core/server` — the ecosystem's one implementation. What that buys and
  * why a second implementation would be wrong:
  *
  *  - Every hop is validated against the private, loopback, link-local and

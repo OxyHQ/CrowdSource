@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, Text, Platform, Pressable, type ViewStyle, type TextStyle } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { useTheme } from '@oxyhq/bloom/theme';
+import { useTheme } from '@oxy.so/bloom/theme';
 import { cn } from '@/lib/utils';
 
 const WEB_BG_TRANSITION: ViewStyle | undefined = Platform.OS === 'web'

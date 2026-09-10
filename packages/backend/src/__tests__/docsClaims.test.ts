@@ -27,7 +27,7 @@ import {
   WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS,
   ASSIGNMENT_TOKEN_HEADER,
   DecisionFindingSchema,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 import { describe, expect, it } from 'vitest';
 
 import { config } from '../config';

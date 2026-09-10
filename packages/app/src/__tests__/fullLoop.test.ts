@@ -8,16 +8,16 @@
  * → the same dispatcher applies the decision → enforcement changes the widget.
  *
  * Nothing between those steps is stubbed. The one substitution is the SERVICE:
- * `@oxyhq/crowdsource-testing`'s sandbox stands in for CrowdSource itself, and
+ * `@oxy.so/crowdsource-testing`'s sandbox stands in for CrowdSource itself, and
  * it applies the real rules. This is the test an adopter should copy.
  */
 
-import { CrowdSource } from '@oxyhq/crowdsource';
+import { CrowdSource } from '@oxy.so/crowdsource';
 import {
   createCrowdSourceSandbox,
   WebhookSimulator,
   type CrowdSourceSandbox,
-} from '@oxyhq/crowdsource-testing';
+} from '@oxy.so/crowdsource-testing';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Harness } from './support/backend.js';
 import { startWebhookApp, type RunningWebhookApp } from './support/webhookApp.js';

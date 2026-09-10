@@ -3,7 +3,7 @@
 **Status:** accepted, implemented (phase 8, §15.9).
 **Scope:** `packages/backend/src/modules/appeals`, the appeal rungs in
 `sortition/panelSpec.ts`, `AppealStandard` in `consensus/consensus.ts`, and
-`appeals.ts` in `@oxyhq/crowdsource-contracts`.
+`appeals.ts` in `@oxy.so/crowdsource-contracts`.
 
 §9.8 states six rules for an appeal — a new jury, blindness, additional context,
 provisional effect, correction, audit — and leaves the questions an

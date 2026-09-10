@@ -1,5 +1,5 @@
-import { createDatabase, type OxyDatabase } from '@oxyhq/db';
-import { createTestDatabase, dropTestDatabase } from '@oxyhq/db/testing';
+import { createDatabase, type OxyDatabase } from '@oxy.so/db';
+import { createTestDatabase, dropTestDatabase } from '@oxy.so/db/testing';
 import postgres from 'postgres';
 
 import { runBackendMigrations } from '../../db/migrate';
@@ -110,7 +110,7 @@ async function provisionRoles(admin: postgres.Sql, databaseName: string): Promis
    * MIGRATOR is the owner and the application role owns nothing.
    *
    * Ownership rather than a bare schema grant, and the difference is not
-   * cosmetic: `@oxyhq/db`'s migration ledger lives in its own `drizzle` schema,
+   * cosmetic: `@oxy.so/db`'s migration ledger lives in its own `drizzle` schema,
    * and `CREATE SCHEMA` needs `CREATE` on the DATABASE, which
    * `GRANT CREATE ON SCHEMA public` does not confer. Provisioned with schema
    * grants alone, the very first migration fails with

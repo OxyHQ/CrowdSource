@@ -23,8 +23,8 @@
  * constantly, and putting them behind a tap would cost a click on each.
  */
 
-import { ProfileButton } from '@oxyhq/services';
-import { useAuth } from '@oxyhq/services/ui/client';
+import { ProfileButton } from '@oxy.so/services';
+import { useAuth } from '@oxy.so/services/ui/client';
 import { usePathname } from 'expo-router';
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';

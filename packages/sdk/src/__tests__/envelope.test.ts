@@ -9,7 +9,7 @@
  * juries and, eventually, two penalties for one incident.
  */
 
-import { CaseEnvelopeSchema } from '@oxyhq/crowdsource-contracts';
+import { CaseEnvelopeSchema } from '@oxy.so/crowdsource-contracts';
 import { describe, expect, it } from 'vitest';
 
 import { canonicalJson, sha256Digest } from '../digest.js';

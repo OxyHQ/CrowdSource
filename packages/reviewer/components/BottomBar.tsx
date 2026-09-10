@@ -5,17 +5,17 @@ import {
     Growth_Stroke2_Corner0_Rounded,
     Heart2_Stroke2_Corner0_Rounded,
     Home_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
+} from '@oxy.so/bloom/icons';
 import { useRouter, usePathname } from 'expo-router';
 import React, { useCallback, useMemo } from 'react';
 
-import { useHaptics } from '@oxyhq/bloom/hooks';
+import { useHaptics } from '@oxy.so/bloom/hooks';
 import {
     TabBar,
     TabBarButton,
     useTabBarFootprint,
     type TabBarItem,
-} from '@oxyhq/bloom/tab-bar';
+} from '@oxy.so/bloom/tab-bar';
 import { useTranslation } from 'react-i18next';
 
 /** Rendered size (px) of the tab glyphs; Bloom centers each one in its own glyph box. */

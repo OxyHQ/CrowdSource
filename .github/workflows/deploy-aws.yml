@@ -115,7 +115,7 @@ jobs:
           # (packages/backend/package.json, and the `--filter` arguments in
           # packages/backend/Dockerfile). The audit fails in both directions, so
           # this must track the manifests, not the product name.
-          EXPECTED_WORKSPACE_PACKAGES: '@crowdsource/backend,@oxyhq/crowdsource-contracts'
+          EXPECTED_WORKSPACE_PACKAGES: '@crowdsource/backend,@oxy.so/crowdsource-contracts'
         run: bash .github/scripts/audit-runtime-image.sh
 
       - name: Verify current main before production changes

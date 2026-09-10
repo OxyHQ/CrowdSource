@@ -6,7 +6,7 @@ import {
   type ReviewerSensitivityClass,
   type ReviewerTrainingView,
   type TaxonomyFamily,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import {
   CALIBRATION_PASS_SCORE,

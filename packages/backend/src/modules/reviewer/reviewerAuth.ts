@@ -1,5 +1,5 @@
 import type { Request, RequestHandler } from 'express';
-import { getOxyUserId } from '@oxyhq/core/server';
+import { getOxyUserId } from '@oxy.so/core/server';
 
 import { ApiError } from '../../http/apiError';
 import { sessionSaysVerified, verifyOxySession } from '../identity/oxySession';

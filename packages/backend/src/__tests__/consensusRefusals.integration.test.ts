@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { TaxonomyCode } from '@oxyhq/crowdsource-contracts';
-import { constraintNameOf, sqlStateOf } from '@oxyhq/db';
+import type { TaxonomyCode } from '@oxy.so/crowdsource-contracts';
+import { constraintNameOf, sqlStateOf } from '@oxy.so/db';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
@@ -23,8 +23,8 @@ import { stubOxySession } from './support/reviewers';
  * it does not weaken the swap, it removes it, and shows that the failure is a
  * refused write rather than two contradictory decisions and two webhooks.
  */
-vi.mock('@oxyhq/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxyhq/core/server')>();
+vi.mock('@oxy.so/core/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
   return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
 });
 
@@ -49,7 +49,7 @@ const { registerWebhookEndpoint } = await import('../modules/webhooks/endpoint.s
 const { OUTBOX_EVENT_TYPES } = await import('../modules/outbox/outbox.collection');
 const { newPublicId } = await import('../utils/identifiers');
 const { CASE_ENVELOPE_SCHEMA_VERSION, UNIVERSAL_TAXONOMY_VERSION, OXY_CONDUCT_POLICY_VERSION } =
-  await import('@oxyhq/crowdsource-contracts');
+  await import('@oxy.so/crowdsource-contracts');
 const { BASELINE_POLICY_VERSION } = await import('../modules/policy/policyBaseline');
 const { deliveryBody, drainUntil, provisionTenant, startDatabase, stopDatabase } = await import(
   './support/tenants'

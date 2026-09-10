@@ -1,4 +1,4 @@
-# `@oxyhq/crowdsource-app`
+# `@oxy.so/crowdsource-app`
 
 The application-side CrowdSource integration for PostgreSQL applications. It
 stores a report and its outbox event atomically, delivers reports with retries,
@@ -13,8 +13,8 @@ rows have been migrated and reconciled.
 ## Install
 
 ```sh
-bun add @oxyhq/crowdsource-app @oxyhq/crowdsource-contracts \
-  @oxyhq/db drizzle-orm postgres express
+bun add @oxy.so/crowdsource-app @oxy.so/crowdsource-contracts \
+  @oxy.so/db drizzle-orm postgres express
 ```
 
 ## Schema and store
@@ -27,13 +27,13 @@ webhook event ledger and enforcement ledger.
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { DATABASE_CASING } from '@oxyhq/db';
+import { DATABASE_CASING } from '@oxy.so/db';
 import {
   moderationReportColumns,
   moderationReportTableExtras,
   moderationTables,
   postgresModerationStore,
-} from '@oxyhq/crowdsource-app/postgres';
+} from '@oxy.so/crowdsource-app/postgres';
 
 const REPORT_MODERATION = {
   reportedTypes: ['listing', 'review'],
@@ -74,7 +74,7 @@ does not replace migrations.
 
 ```ts
 import express from 'express';
-import { createModerationIntegration } from '@oxyhq/crowdsource-app';
+import { createModerationIntegration } from '@oxy.so/crowdsource-app';
 
 const integration = createModerationIntegration({
   store,

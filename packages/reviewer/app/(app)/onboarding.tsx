@@ -17,8 +17,8 @@
  * `POST /v1/reviewer/onboarding`, which has never existed on any server.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import { Checkbox } from '@oxyhq/bloom/checkbox';
+import { Button } from '@oxy.so/bloom/button';
+import { Checkbox } from '@oxy.so/bloom/checkbox';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';

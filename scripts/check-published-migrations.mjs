@@ -5,14 +5,14 @@
  *
  * ## Why this is a check and not a convention
  *
- * `@oxyhq/db`'s migration ledger applies a migration only when its journal
+ * `@oxy.so/db`'s migration ledger applies a migration only when its journal
  * timestamp is strictly newer than the newest one already recorded. Two journals
  * against one `drizzle.__drizzle_migrations` table therefore interleave, and the
  * loser is **skipped in silence, with exit 0**. A library that ships its own
  * migrations does not conflict with an adopter's — it makes one of them
  * disappear, on a schedule nobody controls, with no error anywhere.
  *
- * So `@oxyhq/crowdsource-app` ships table DEFINITIONS and the adopter's own
+ * So `@oxy.so/crowdsource-app` ships table DEFINITIONS and the adopter's own
  * `drizzle-kit generate` produces the SQL, in the adopter's own journal. The
  * package's own migrations exist only under `src/__tests__/`, which `files`
  * excludes.

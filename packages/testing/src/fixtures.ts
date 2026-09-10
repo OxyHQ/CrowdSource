@@ -22,7 +22,7 @@ import {
   type Decision,
   type KnownWebhookEvent,
   type TaxonomyCode,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 import { createHash } from 'node:crypto';
 
 /** Deterministic, so a fixture used twice produces the same bytes. */

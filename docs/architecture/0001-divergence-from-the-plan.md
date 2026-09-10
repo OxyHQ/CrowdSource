@@ -402,7 +402,7 @@ something:
 4. Applying the same rule beyond this table: anything the ecosystem already
    solves once — session handling, device-first cold boot, media resolution — is
    consumed from the shared SDK and never reimplemented here, and a bug in
-   `@oxyhq/*` or Bloom is fixed upstream rather than patched locally.
+   `@oxy.so/*` or Bloom is fixed upstream rather than patched locally.
 
 ## Gaps recorded by this ADR
 

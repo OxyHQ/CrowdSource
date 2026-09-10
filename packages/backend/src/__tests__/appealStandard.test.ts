@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DecisionFinding, DecisionRecommendedAction } from '@oxyhq/crowdsource-contracts';
+import type { DecisionFinding, DecisionRecommendedAction } from '@oxy.so/crowdsource-contracts';
 
 import {
   appealRequiredVotes,

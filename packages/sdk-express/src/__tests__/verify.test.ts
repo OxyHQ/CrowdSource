@@ -30,7 +30,7 @@ import {
   WEBHOOK_SIGNATURE_VERSION,
   WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS,
   buildWebhookSignedPayload,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 import { describe, expect, it } from 'vitest';
 
 import {

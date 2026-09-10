@@ -1,8 +1,8 @@
 import { getTableName } from 'drizzle-orm';
 import type { Column } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
-import { sqlColumnName } from '@oxyhq/db';
-import type { ExpirySweepTarget } from '@oxyhq/db/expiry';
+import { sqlColumnName } from '@oxy.so/db';
+import type { ExpirySweepTarget } from '@oxy.so/db/expiry';
 import {
   MODERATION_EVENT_RETENTION_SECONDS,
   MODERATION_OUTBOX_RETENTION_SECONDS,
@@ -13,7 +13,7 @@ import type { ModerationTables } from './tables.js';
 /**
  * The two registry FRAGMENTS an adopter merges into its own gates.
  *
- * `@oxyhq/db` holds the mechanisms — the expiry sweep, the id-column
+ * `@oxy.so/db` holds the mechanisms — the expiry sweep, the id-column
  * classification gate — and the REGISTRIES belong to the consumer, because they
  * name the consumer's own tables. This package's three tables are in the
  * adopter's database, so the entries for them are the adopter's to declare and

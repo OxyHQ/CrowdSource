@@ -5,7 +5,7 @@ import {
   ReviewSubmissionSchema,
   type AssignmentPackage,
   type IssuedAssignmentPackage,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { createTenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';

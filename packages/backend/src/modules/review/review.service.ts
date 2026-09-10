@@ -1,4 +1,4 @@
-import type { ReviewSubmission } from '@oxyhq/crowdsource-contracts';
+import type { ReviewSubmission } from '@oxy.so/crowdsource-contracts';
 
 import { createTenantContext } from '../../db/tenantScope';
 import { duplicateKeyViolation, withTransaction } from '../../db/transaction';

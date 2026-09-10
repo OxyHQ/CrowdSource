@@ -8,7 +8,7 @@
  * one vote — a high figure here buys more invitations, never a louder one.
  */
 
-import { Growth_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
+import { Growth_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';

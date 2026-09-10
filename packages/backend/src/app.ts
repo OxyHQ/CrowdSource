@@ -1,4 +1,4 @@
-import { createOxyCors } from '@oxyhq/core/server';
+import { createOxyCors } from '@oxy.so/core/server';
 import compression from 'compression';
 import express, { type Express, Router } from 'express';
 import helmet from 'helmet';
@@ -44,7 +44,7 @@ export function createApp(): Express {
 
   app.use(helmet());
   /**
-   * Deny-by-default CORS from `@oxyhq/core/server`, never a hand-rolled
+   * Deny-by-default CORS from `@oxy.so/core/server`, never a hand-rolled
    * allowlist: the shared helper echoes the exact matched origin, refuses to
    * reflect an arbitrary one, and never pairs a wildcard with credentials.
    *
@@ -73,7 +73,7 @@ export function createApp(): Express {
 
   /**
    * The reviewer API (§10.3). A different caller class entirely: an Oxy session,
-   * verified through `@oxyhq/core/server`, carrying no tenant — a reviewer is
+   * verified through `@oxy.so/core/server`, carrying no tenant — a reviewer is
    * drawn across every application. A service credential never satisfies these
    * routes and an Oxy session never satisfies the ones above.
    *

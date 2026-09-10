@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@oxyhq/crowdsource"><img alt="npm" src="https://img.shields.io/npm/v/@oxyhq/crowdsource?style=flat-square&color=440151&label=%40oxyhq%2Fcrowdsource"></a>
+  <a href="https://www.npmjs.com/package/@oxy.so/crowdsource"><img alt="npm" src="https://img.shields.io/npm/v/@oxy.so/crowdsource?style=flat-square&color=440151&label=%40oxyhq%2Fcrowdsource"></a>
   <a href="./LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/license-MIT-informational?style=flat-square"></a>
   <img alt="Expo SDK 56" src="https://img.shields.io/badge/Expo-SDK%2056-000020?style=flat-square&logo=expo&logoColor=white">
   <img alt="React Native 0.85" src="https://img.shields.io/badge/React%20Native-0.85-61DAFB?style=flat-square&logo=react&logoColor=black">
@@ -62,23 +62,23 @@ These come from the approved product specification. They are not preferences. A 
 
 | Package | Path | What it holds |
 |---|---|---|
-| [`@oxyhq/crowdsource-contracts`](https://www.npmjs.com/package/@oxyhq/crowdsource-contracts) | [`packages/contracts`](./packages/contracts) | The versioned contracts every surface agrees on, as Zod schemas and JSON Schema: case envelope, resources, taxonomy, policies, reviews, decisions, webhooks, reputation events |
+| [`@oxy.so/crowdsource-contracts`](https://www.npmjs.com/package/@oxy.so/crowdsource-contracts) | [`packages/contracts`](./packages/contracts) | The versioned contracts every surface agrees on, as Zod schemas and JSON Schema: case envelope, resources, taxonomy, policies, reviews, decisions, webhooks, reputation events |
 | `@crowdsource/backend` | [`packages/backend`](./packages/backend) | PostgreSQL/Drizzle Express 5 modular monolith: RLS-scoped tenancy, ingestion, evidence, cases, sortition, review, consensus, decisions and webhook delivery |
 | `@crowdsource/reviewer` | [`packages/reviewer`](./packages/reviewer) | The reviewer app, Expo Router and React Native Web from one codebase |
 | `@crowdsource/console` | [`packages/console`](./packages/console) | Developer and Trust and Safety console, Expo Router on the web only |
-| [`@oxyhq/crowdsource`](https://www.npmjs.com/package/@oxyhq/crowdsource) | [`packages/sdk`](./packages/sdk) | TypeScript client for integrators: reports, uploads, cases, decisions |
-| [`@oxyhq/crowdsource-express`](https://www.npmjs.com/package/@oxyhq/crowdsource-express) | [`packages/sdk-express`](./packages/sdk-express) | Express webhook receiver: raw body capture, HMAC verification, replay protection, typed events |
-| `@oxyhq/crowdsource-app` | [`packages/app`](./packages/app) | PostgreSQL-only application integration: transactional outbox, delivery, receiver, decision application and idempotent enforcement. The 0.7 source is a breaking migration from the former Mongoose subpath; publication is separate. |
-| [`@oxyhq/crowdsource-testing`](https://www.npmjs.com/package/@oxyhq/crowdsource-testing) | [`packages/testing`](./packages/testing) | Fixtures, a webhook simulator and an in process sandbox, so you can integrate before a jury has ever sat |
+| [`@oxy.so/crowdsource`](https://www.npmjs.com/package/@oxy.so/crowdsource) | [`packages/sdk`](./packages/sdk) | TypeScript client for integrators: reports, uploads, cases, decisions |
+| [`@oxy.so/crowdsource-express`](https://www.npmjs.com/package/@oxy.so/crowdsource-express) | [`packages/sdk-express`](./packages/sdk-express) | Express webhook receiver: raw body capture, HMAC verification, replay protection, typed events |
+| `@oxy.so/crowdsource-app` | [`packages/app`](./packages/app) | PostgreSQL-only application integration: transactional outbox, delivery, receiver, decision application and idempotent enforcement. The 0.7 source is a breaking migration from the former Mongoose subpath; publication is separate. |
+| [`@oxy.so/crowdsource-testing`](https://www.npmjs.com/package/@oxy.so/crowdsource-testing) | [`packages/testing`](./packages/testing) | Fixtures, a webhook simulator and an in process sandbox, so you can integrate before a jury has ever sat |
 
 Each package README says what that package holds.
 
 ## Integrating
 
-An adopting application writes four things and nothing else: its subject providers, its category to allegation mapping, its enforcement tables plus one `apply`, and its own PostgreSQL report table. Everything it would otherwise copy, the outbox, delivery, the webhook receiver, cross instance dedupe, decision application, the enforcement claim and the enforcement planning algorithm, lives in `@oxyhq/crowdsource-app`.
+An adopting application writes four things and nothing else: its subject providers, its category to allegation mapping, its enforcement tables plus one `apply`, and its own PostgreSQL report table. Everything it would otherwise copy, the outbox, delivery, the webhook receiver, cross instance dedupe, decision application, the enforcement claim and the enforcement planning algorithm, lives in `@oxy.so/crowdsource-app`.
 
 ```bash
-bun add @oxyhq/crowdsource @oxyhq/crowdsource-express
+bun add @oxy.so/crowdsource @oxy.so/crowdsource-express
 ```
 
 Two rules follow from that design and bind every change to those packages.
@@ -125,7 +125,7 @@ Rebuild `contracts` before you believe a red type check. Every other package imp
 
 CrowdSource is a product of its own, not a feature of any application that uses it. It began as a fork of [Mention](https://github.com/OxyHQ/Mention), taken for the Expo and Bloom monorepo foundation only, and shares no data, identity, service or deployment with it.
 
-Reviewers, developers and Trust and Safety staff sign in with their [Oxy](https://github.com/OxyHQ/oxy) account. The apps mount one `OxyProvider` from `@oxyhq/services` and the backend verifies sessions with `@oxyhq/core/server`, in one place, never an app local bearer parser. Applications calling the ingestion API use CrowdSource's own service credentials instead, and the two authentication surfaces never satisfy each other's routes.
+Reviewers, developers and Trust and Safety staff sign in with their [Oxy](https://github.com/OxyHQ/oxy) account. The apps mount one `OxyProvider` from `@oxy.so/services` and the backend verifies sessions with `@oxy.so/core/server`, in one place, never an app local bearer parser. Applications calling the ingestion API use CrowdSource's own service credentials instead, and the two authentication surfaces never satisfy each other's routes.
 
 Reputation only ever moves in one direction. CrowdSource emits an authenticated event and Oxy Trust's own consequence engine decides the effect.
 

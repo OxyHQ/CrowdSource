@@ -262,7 +262,7 @@ function sourceGroup(source) {
   const dependency = source.match(/\/node_modules\/((?:@[^/]+\/)?[^/]+)/);
   if (dependency) return dependency[1];
   if (source.includes("/packages/reviewer/")) return "@crowdsource/reviewer";
-  if (source.includes("/packages/contracts/")) return "@oxyhq/crowdsource-contracts";
+  if (source.includes("/packages/contracts/")) return "@oxy.so/crowdsource-contracts";
   return "other";
 }
 

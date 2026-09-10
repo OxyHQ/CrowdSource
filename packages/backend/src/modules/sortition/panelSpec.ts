@@ -1,4 +1,4 @@
-import type { ReviewerState, TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import type { ReviewerState, TaxonomyFamily } from '@oxy.so/crowdsource-contracts';
 
 import type { ReviewPool } from '../triage/triage';
 import { REVIEWER_STATE_RANK } from '../reviewer/reviewerState';

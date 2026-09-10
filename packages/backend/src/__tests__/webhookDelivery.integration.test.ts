@@ -1,5 +1,5 @@
-import { SsrfRejection } from '@oxyhq/core/server';
-import { KnownWebhookEventSchema } from '@oxyhq/crowdsource-contracts';
+import { SsrfRejection } from '@oxy.so/core/server';
+import { KnownWebhookEventSchema } from '@oxy.so/crowdsource-contracts';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 

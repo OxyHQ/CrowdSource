@@ -1,5 +1,5 @@
 /**
- * Public entry point for `@oxyhq/crowdsource-contracts`.
+ * Public entry point for `@oxy.so/crowdsource-contracts`.
  *
  * The contracts every CrowdSource surface agrees on: the backend, the reviewer
  * and console clients, the published SDKs, and third-party integrators. One

@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { boolean, check, index, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
-import { REPORT_STATUSES } from '@oxyhq/crowdsource-contracts';
-import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import { REPORT_STATUSES } from '@oxy.so/crowdsource-contracts';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
 /**
  * A report as delivered by an application, and its link to the case it joined.
@@ -29,7 +29,7 @@ export const reports = pgTable(
      *
      * `jsonb` rather than a child table, and rather than columns: nothing queries
      * or filters on it — every read is by a scalar key — and the zod contract in
-     * `@oxyhq/crowdsource-contracts` is the single authority on its shape.
+     * `@oxy.so/crowdsource-contracts` is the single authority on its shape.
      * Normalising it here would create a second, drifting description of a
      * structure this service deliberately does not interpret.
      */

@@ -1,5 +1,5 @@
 import { Router, type Request } from 'express';
-import { AppealSubmissionSchema } from '@oxyhq/crowdsource-contracts';
+import { AppealSubmissionSchema } from '@oxy.so/crowdsource-contracts';
 
 import { ApiError } from '../../http/apiError';
 import { isPublicId } from '../../utils/identifiers';

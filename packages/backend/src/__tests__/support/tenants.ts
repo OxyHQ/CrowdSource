@@ -4,7 +4,7 @@ import {
   CaseEnvelopeSchema,
   type CaseEnvelope,
   type Resource,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 import { config } from '../../config';
 import { pingPostgres } from '../../db/postgres/database';

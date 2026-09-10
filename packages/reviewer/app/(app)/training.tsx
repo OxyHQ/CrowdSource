@@ -19,14 +19,14 @@
  *    items that were wrong and stops there.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import { Beaker_Stroke2_Corner2_Rounded } from '@oxyhq/bloom/icons';
+import { Button } from '@oxy.so/bloom/button';
+import { Beaker_Stroke2_Corner2_Rounded } from '@oxy.so/bloom/icons';
 import {
   SegmentedControl,
   SegmentedControlItem,
   SegmentedControlItemText,
-} from '@oxyhq/bloom/segmented-control';
-import type { ReviewerCalibrationSubmission } from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/bloom/segmented-control';
+import type { ReviewerCalibrationSubmission } from '@oxy.so/crowdsource-contracts';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';

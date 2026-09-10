@@ -14,7 +14,7 @@
  * the read-back for one it already has an id for.
  */
 
-import { DecisionSchema, type Decision, type TaxonomyCode } from '@oxyhq/crowdsource-contracts';
+import { DecisionSchema, type Decision, type TaxonomyCode } from '@oxy.so/crowdsource-contracts';
 import { z } from 'zod';
 
 import { CrowdSourceTransportError } from './errors.js';

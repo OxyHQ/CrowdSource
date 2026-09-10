@@ -91,6 +91,6 @@ describe('active assignment store', () => {
     // nothing from `utils/storage.ts` or the SDK's session store — a token or a
     // package that outlived the sitting would let a reload reopen material the
     // reviewer had closed.
-    expect(imported.sort()).toEqual(['@oxyhq/crowdsource-contracts', 'react']);
+    expect(imported.sort()).toEqual(['@oxy.so/crowdsource-contracts', 'react']);
   });
 });

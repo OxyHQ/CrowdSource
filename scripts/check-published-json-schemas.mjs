@@ -139,7 +139,7 @@ if (import.meta.main) {
       cwd: contractsDirectory,
     });
     if (pack.exitCode !== 0) {
-      console.error("Packing @oxyhq/crowdsource-contracts failed:");
+      console.error("Packing @oxy.so/crowdsource-contracts failed:");
       console.error(new TextDecoder().decode(pack.stderr));
       process.exit(1);
     }

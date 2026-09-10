@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { check, index, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
-import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
 import {
   APPLICATION_STATUSES,
@@ -27,7 +27,7 @@ import {
  * anybody.
  *
  * Column names are written out explicitly rather than left to drizzle's
- * derivation, which mangles a capital run. The exception is `@oxyhq/db`'s
+ * derivation, which mangles a capital run. The exception is `@oxy.so/db`'s
  * `timestamptz` family, which takes no name and derives through the one shared
  * `DATABASE_CASING`.
  */

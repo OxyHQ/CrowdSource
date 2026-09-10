@@ -18,7 +18,7 @@
  * points, and it was.
  */
 
-import { WebhookSimulator } from '@oxyhq/crowdsource-testing';
+import { WebhookSimulator } from '@oxy.so/crowdsource-testing';
 import { afterEach, describe, expect, it } from 'vitest';
 import { planEnforcement } from '../enforcement/planner.js';
 import { decision } from './support/decisions.js';

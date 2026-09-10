@@ -12,12 +12,12 @@
  * the category the reporter picked.
  */
 
-import { Checkbox } from '@oxyhq/bloom/checkbox';
+import { Checkbox } from '@oxy.so/bloom/checkbox';
 import {
   SegmentedControl,
   SegmentedControlItem,
   SegmentedControlItemText,
-} from '@oxyhq/bloom/segmented-control';
+} from '@oxy.so/bloom/segmented-control';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, TextInput, View } from 'react-native';
@@ -37,7 +37,7 @@ import {
 import type {
   AssignmentPackage,
   ContextSufficiency,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 
 const CONTEXT_SUFFICIENCY: readonly ContextSufficiency[] = ['sufficient', 'insufficient'];
 

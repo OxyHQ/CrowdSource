@@ -11,7 +11,7 @@ const expectedNodeVersion = "22.17.0";
 // The Bloom release the whole workspace is pinned to — manifest range, root
 // override and installed copy must all agree on it. Bump this ONE constant when
 // taking a new Bloom.
-const expectedBloomVersion = "1.14.0";
+const expectedBloomVersion = "1.0.0";
 const failures = [];
 
 if (!expectedBunVersion) {
@@ -49,18 +49,18 @@ if (Object.keys(rootManifest.dependencies || {}).length > 0) {
 }
 
 const installedExpo = await readJson("node_modules/expo/package.json");
-const installedBloom = await readJson("node_modules/@oxyhq/bloom/package.json");
+const installedBloom = await readJson("node_modules/@oxy.so/bloom/package.json");
 
 if (!String(installedExpo.version || "").startsWith("56.")) {
   failures.push(`Installed Expo must be version 56.x (found ${String(installedExpo.version)}).`);
 }
 if (
-  rootManifest.overrides?.["@oxyhq/bloom"] !== `^${expectedBloomVersion}` ||
+  rootManifest.overrides?.["@oxy.so/bloom"] !== `^${expectedBloomVersion}` ||
   installedBloom.version !== expectedBloomVersion
 ) {
   failures.push(
     `Bloom must stay aligned at override ^${expectedBloomVersion} and installed ${expectedBloomVersion} ` +
-      `(found ${String(rootManifest.overrides?.["@oxyhq/bloom"])}, ${String(installedBloom.version)}).`,
+      `(found ${String(rootManifest.overrides?.["@oxy.so/bloom"])}, ${String(installedBloom.version)}).`,
   );
 }
 
@@ -86,10 +86,10 @@ for (const appName of ["reviewer", "console"]) {
       `The ${appName} app must target React Native 0.85.3 (found ${String(manifest.dependencies?.["react-native"])}).`,
     );
   }
-  if (manifest.dependencies?.["@oxyhq/bloom"] !== `^${expectedBloomVersion}`) {
+  if (manifest.dependencies?.["@oxy.so/bloom"] !== `^${expectedBloomVersion}`) {
     failures.push(
       `The ${appName} app must declare Bloom ^${expectedBloomVersion} ` +
-        `(found ${String(manifest.dependencies?.["@oxyhq/bloom"])}).`,
+        `(found ${String(manifest.dependencies?.["@oxy.so/bloom"])}).`,
     );
   }
 }
@@ -99,12 +99,12 @@ for (const appName of ["reviewer", "console"]) {
 for (const packageName of ["backend", "reviewer", "console", "sdk", "sdk-express", "testing"]) {
   const manifest = await readJson(`packages/${packageName}/package.json`);
   const range =
-    manifest.dependencies?.["@oxyhq/crowdsource-contracts"] ??
-    manifest.devDependencies?.["@oxyhq/crowdsource-contracts"];
+    manifest.dependencies?.["@oxy.so/crowdsource-contracts"] ??
+    manifest.devDependencies?.["@oxy.so/crowdsource-contracts"];
 
   if (range !== "workspace:*") {
     failures.push(
-      `packages/${packageName}/package.json must declare @oxyhq/crowdsource-contracts as workspace:* (found ${String(range)}).`,
+      `packages/${packageName}/package.json must declare @oxy.so/crowdsource-contracts as workspace:* (found ${String(range)}).`,
     );
   }
 }
@@ -112,7 +112,7 @@ for (const packageName of ["backend", "reviewer", "console", "sdk", "sdk-express
 // The image audit fails in BOTH directions, so the workspaces it expects must
 // track the Dockerfile's `--filter` arguments. A rename that updates one and not
 // the other passes locally and fails only during a production rollout.
-const runtimeWorkspaces = ["@crowdsource/backend", "@oxyhq/crowdsource-contracts"];
+const runtimeWorkspaces = ["@crowdsource/backend", "@oxy.so/crowdsource-contracts"];
 const backendDockerfile = await readFile(
   resolve(repositoryRoot, "packages/backend/Dockerfile"),
   "utf8",

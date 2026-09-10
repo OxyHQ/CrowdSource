@@ -1,5 +1,5 @@
 /**
- * `@oxyhq/crowdsource-app` — the application half of a CrowdSource integration.
+ * `@oxy.so/crowdsource-app` — the application half of a CrowdSource integration.
  *
  * An application that adopts CrowdSource has to solve the same six problems
  * every other application does: store a report and its promise of delivery
@@ -15,8 +15,8 @@
  * PostgreSQL store factory.
  *
  * ```ts
- * import { createModerationIntegration } from '@oxyhq/crowdsource-app';
- * import { postgresModerationStore } from '@oxyhq/crowdsource-app/postgres';
+ * import { createModerationIntegration } from '@oxy.so/crowdsource-app';
+ * import { postgresModerationStore } from '@oxy.so/crowdsource-app/postgres';
  *
  * const moderation = createModerationIntegration({
  *   store,
@@ -48,7 +48,7 @@
  * 2. The webhook receiver reads raw bytes. Mounted after a JSON parser it
  *    refuses rather than verifying a signature over a re-serialisation.
  *
- * Types come from `@oxyhq/crowdsource-contracts` and `@oxyhq/crowdsource`. This
+ * Types come from `@oxy.so/crowdsource-contracts` and `@oxy.so/crowdsource`. This
  * package re-exports none of them: a `Decision` or a `TaxonomyCode` has exactly
  * one definition.
  */

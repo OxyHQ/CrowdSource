@@ -5,7 +5,7 @@
  * was meant to produce it, which is the only way three particular classes of
  * defect are visible at all:
  *
- * - a **derived** column name. Two of `@oxyhq/db`'s builders take no name
+ * - a **derived** column name. Two of `@oxy.so/db`'s builders take no name
  *   argument, so those SQL names come from `DATABASE_CASING`; its derivation
  *   mangles digit- and capital-adjacent names, and the result is a working
  *   column called something nobody chose. The exact name sets below are what
@@ -24,12 +24,12 @@
 
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { executeRows, sqlColumnName } from '@oxyhq/db';
+import { executeRows, sqlColumnName } from '@oxy.so/db';
 import {
   findIdColumnViolations,
   findSchemaInvariantViolations,
   findUnsupportedExpiryColumns,
-} from '@oxyhq/db/assert';
+} from '@oxy.so/db/assert';
 import {
   createPostgresTestDatabase,
   type PostgresTestDatabase,
@@ -287,7 +287,7 @@ describe('the registry fragments an adopter merges', () => {
      * name, and these two columns are declared through `timestamptz()`, which
      * takes no name — so `.name` answers `expiresAt` while the database holds
      * `expires_at`. This assertion was written the wrong way first and failed
-     * for exactly that reason, which is the trap `@oxyhq/db`'s casing module
+     * for exactly that reason, which is the trap `@oxy.so/db`'s casing module
      * exists to close: in a catalogue query the same mistake silently matches
      * nothing.
      */

@@ -4,7 +4,7 @@ import {
   constraintNameOf,
   isUniqueViolation,
   sqlStateOf,
-} from '@oxyhq/db';
+} from '@oxy.so/db';
 
 import { getPostgresDatabase } from './postgres/database';
 import type { PgTransactionHandle } from './postgres/withTenant';

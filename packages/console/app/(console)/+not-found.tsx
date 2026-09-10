@@ -12,8 +12,8 @@
  * have been there.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import { PageX_Stroke2_Corner0_Rounded_Large } from '@oxyhq/bloom/icons';
+import { Button } from '@oxy.so/bloom/button';
+import { PageX_Stroke2_Corner0_Rounded_Large } from '@oxy.so/bloom/icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';

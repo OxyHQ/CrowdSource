@@ -2,7 +2,7 @@
  * The middleware, over a real socket.
  *
  * Every test here starts an Express app on an ephemeral port and delivers to it
- * with `@oxyhq/crowdsource-testing`'s simulator, which signs exactly the way the
+ * with `@oxy.so/crowdsource-testing`'s simulator, which signs exactly the way the
  * service does. Nothing is faked at the boundary that matters: the bytes go
  * through a kernel socket, through Express's own routing, and into the handler,
  * because the failure this package exists to prevent — verifying a signature
@@ -13,7 +13,7 @@
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 
-import { WebhookSimulator, caseDecidedEventFixture } from '@oxyhq/crowdsource-testing';
+import { WebhookSimulator, caseDecidedEventFixture } from '@oxy.so/crowdsource-testing';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

@@ -29,7 +29,7 @@ process.env.WEBHOOK_SECRET_ENCRYPTION_KEY ??=
  * correct production behaviour and would make every reviewer test assert that
  * instead of what it is about. The value is never dialled: the integration tests
  * replace `createOptionalOxyAuth` with a stub, so session VERIFICATION is out of
- * scope here — it belongs to `@oxyhq/core` — while the authorisation this
+ * scope here — it belongs to `@oxy.so/core` — while the authorisation this
  * service actually owns is exercised for real.
  */
 process.env.OXY_API_URL ??= 'https://api.oxy.invalid';

@@ -17,8 +17,8 @@
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 
-import { CrowdSource } from '@oxyhq/crowdsource';
-import { createCrowdSourceSandbox } from '@oxyhq/crowdsource-testing';
+import { CrowdSource } from '@oxy.so/crowdsource';
+import { createCrowdSourceSandbox } from '@oxy.so/crowdsource-testing';
 import express from 'express';
 import { afterEach, describe, expect, it } from 'vitest';
 

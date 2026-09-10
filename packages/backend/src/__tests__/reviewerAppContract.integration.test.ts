@@ -56,8 +56,8 @@ import type {
  * hand-wrote that body would have passed on the day the app was sending
  * `descriptive` and `appliedExceptionIds` to a `.strict()` schema.
  */
-vi.mock('@oxyhq/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxyhq/core/server')>();
+vi.mock('@oxy.so/core/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
   return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
 });
 
@@ -97,7 +97,7 @@ const { buildReviewSubmission, createInitialReviewFormState, reviewFormReducer }
   '../../../reviewer/lib/review-form'
 );
 
-const { ASSIGNMENT_TOKEN_HEADER } = await import('@oxyhq/crowdsource-contracts');
+const { ASSIGNMENT_TOKEN_HEADER } = await import('@oxy.so/crowdsource-contracts');
 
 type ProvisionedTenant = Awaited<ReturnType<typeof provisionTenant>>;
 

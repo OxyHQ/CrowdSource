@@ -2,7 +2,7 @@
  * How the reviewer app PRESENTS the universal taxonomy families (PLAN §6.3).
  *
  * The families themselves are `TAXONOMY_FAMILIES` in
- * `@oxyhq/crowdsource-contracts` — layer one is CrowdSource's own (§6.1) and a
+ * `@oxy.so/crowdsource-contracts` — layer one is CrowdSource's own (§6.1) and a
  * second copy of a shared vocabulary is how two copies drift. What lives here is
  * only what a SCREEN needs and the contract has no business knowing: whether a
  * family may be ticked during onboarding, and whether its material is routinely
@@ -13,7 +13,7 @@
  * belong to the policy brief the server sends with a case.
  */
 
-import { TAXONOMY_FAMILIES, type TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import { TAXONOMY_FAMILIES, type TaxonomyFamily } from '@oxy.so/crowdsource-contracts';
 
 export interface FamilyPresentation {
   id: TaxonomyFamily;

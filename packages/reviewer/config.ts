@@ -28,7 +28,7 @@ export const OXY_BASE_URL =
 
 /**
  * CrowdSource's registered Oxy OAuth client id (ApplicationCredential publicKey),
- * required by @oxyhq/services for the cross-app device sign-in flow.
+ * required by @oxy.so/services for the cross-app device sign-in flow.
  *
  * There is deliberately NO fallback: no client has been registered for
  * CrowdSource yet, so a hard-coded value here would be another product's

@@ -30,7 +30,7 @@
  * plus the rounded top corners ALSO mask content bleeding into the panel's corners.
  */
 
-import { PANEL_TOP_INSET } from '@oxyhq/bloom/content-panel';
+import { PANEL_TOP_INSET } from '@oxy.so/bloom/content-panel';
 import React from 'react';
 import { View } from 'react-native';
 

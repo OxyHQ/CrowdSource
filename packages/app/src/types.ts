@@ -20,13 +20,13 @@
  * imported, not written.
  */
 
-import type { ContextInput, ReportSubjectInput, ResourceInput } from '@oxyhq/crowdsource';
+import type { ContextInput, ReportSubjectInput, ResourceInput } from '@oxy.so/crowdsource';
 import type {
   Decision,
   RecommendedAction,
   Severity,
   TaxonomyCode,
-} from '@oxyhq/crowdsource-contracts';
+} from '@oxy.so/crowdsource-contracts';
 import type { ModerationStore } from './store/types.js';
 
 /* ------------------------------------------------------------------------- */
@@ -616,7 +616,7 @@ export interface ModerationIntegrationConfig<
    * Where everything this package writes goes.
    *
    * Built by `postgresModerationStore` from
-   * `@oxyhq/crowdsource-app/postgres` and passed in whole rather than assembled
+   * `@oxy.so/crowdsource-app/postgres` and passed in whole rather than assembled
    * here. A store built over two connections would type-check and quietly put a
    * report and its outbox row in different transactions.
    */

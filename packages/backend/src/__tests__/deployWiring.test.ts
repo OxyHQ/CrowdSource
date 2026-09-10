@@ -149,7 +149,7 @@ describe('the migration entrypoint the deploy runs', () => {
  * Every module `scripts/migrate.ts` pulls in, following relative imports only.
  *
  * Package imports are not followed on purpose: the question is what of THIS
- * SERVICE the entrypoint drags in, and `pino` or `@oxyhq/db` reaching for
+ * SERVICE the entrypoint drags in, and `pino` or `@oxy.so/db` reaching for
  * something of ours is not a shape this repository has.
  */
 function reachableFrom(entry: string): Set<string> {
@@ -214,7 +214,7 @@ describe('migrationEntrypointIsolation', () => {
 
 describe('the migration interlock', () => {
   /**
-   * `@oxyhq/db`'s runner states in its own header that it takes NO lock against
+   * `@oxy.so/db`'s runner states in its own header that it takes NO lock against
    * a second concurrent migrator — drizzle reads the ledger's high-water mark
    * outside its transaction, so two runs read the same mark and both attempt the
    * same DDL — and assigns the interlock to the caller, naming this exact case:

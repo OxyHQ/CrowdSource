@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { isCheckViolation, isUniqueViolation } from '@oxyhq/db';
+import { isCheckViolation, isUniqueViolation } from '@oxy.so/db';
 
 import * as sortitionRepository from '../db/postgres/repositories/sortition';
 import { assignments, sortitionDraws } from '../db/postgres/schema/sortition';

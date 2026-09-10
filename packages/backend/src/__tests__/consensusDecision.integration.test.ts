@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { RecommendedAction, Severity, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
+import type { RecommendedAction, Severity, TaxonomyCode } from '@oxy.so/crowdsource-contracts';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
@@ -23,8 +23,8 @@ import { stubOxySession } from './support/reviewers';
  * decision, the compare-and-swap that makes it happen once, and the webhook
  * fan-out that hands the decision back to the application.
  */
-vi.mock('@oxyhq/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxyhq/core/server')>();
+vi.mock('@oxy.so/core/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
   return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
 });
 
@@ -41,7 +41,7 @@ const { outboxEvents, OUTBOX_EVENT_TYPES } = await import('../modules/outbox/out
 const { registerWebhookEndpoint } = await import('../modules/webhooks/endpoint.service');
 const { webhookDeliveries } = await import('../modules/webhooks/webhook.collections');
 const { OXY_CONDUCT_POLICY_VERSION, UNIVERSAL_TAXONOMY_VERSION } = await import(
-  '@oxyhq/crowdsource-contracts'
+  '@oxy.so/crowdsource-contracts'
 );
 const { BASELINE_POLICY_VERSION } = await import('../modules/policy/policyBaseline');
 const { createReviewerPool } = await import('./support/reviewers');

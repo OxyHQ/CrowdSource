@@ -10,7 +10,7 @@ import {
   text,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { createdAt, inList, timestamptz, updatedAt } from '@oxyhq/db';
+import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 import type {
   EnforcementPreviousState,
   ModerationEnforcementMode,
@@ -50,7 +50,7 @@ import type {
  */
 
 /**
- * `timestamptz()` from `@oxyhq/db` takes NO name argument, so these column names
+ * `timestamptz()` from `@oxy.so/db` takes NO name argument, so these column names
  * are DERIVED from the property by `DATABASE_CASING` rather than written out.
  *
  * That is the one exception to naming every column explicitly, and it is the

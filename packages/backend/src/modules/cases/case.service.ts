@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { TransactionSession } from '../../db/collections';
-import type { CaseEnvelope, Decision, TaxonomyCode } from '@oxyhq/crowdsource-contracts';
+import type { CaseEnvelope, Decision, TaxonomyCode } from '@oxy.so/crowdsource-contracts';
 
 import type { TenantContext } from '../../db/tenantScope';
 import { upsertCaseForReport } from '../../db/postgres/repositories/scoped/cases';

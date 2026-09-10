@@ -14,7 +14,7 @@
  *
  * ## Why this reads source text instead of importing the module
  *
- * `PanelChrome.tsx` imports `PANEL_TOP_INSET` from `@oxyhq/bloom/content-panel`, and the
+ * `PanelChrome.tsx` imports `PANEL_TOP_INSET` from `@oxy.so/bloom/content-panel`, and the
  * `react-native` export condition resolves that to Bloom's published `src/` — ESM that
  * jest-expo's `transformIgnorePatterns` does not transform, because `@oxyhq` is not on
  * its allowlist. Importing the component here would fail on a syntax error in a

@@ -40,8 +40,8 @@
     // backend changes see un-built type updates immediately.
     "baseUrl": ".",
     "paths": {
-      "@oxyhq/crowdsource-contracts": ["../contracts/src"],
-      "@oxyhq/crowdsource-contracts/*": ["../contracts/src/*"]
+      "@oxy.so/crowdsource-contracts": ["../contracts/src"],
+      "@oxy.so/crowdsource-contracts/*": ["../contracts/src/*"]
     }
   },
   // `scripts/**` is compiled, not just type-checked: the migration entrypoint

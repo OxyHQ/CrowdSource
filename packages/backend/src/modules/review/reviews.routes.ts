@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ReviewHistoryQuerySchema } from '@oxyhq/crowdsource-contracts';
+import { ReviewHistoryQuerySchema } from '@oxy.so/crowdsource-contracts';
 
 import { parseOrThrow } from '../../http/parseBody';
 import { requestReviewer, requireReviewerSession } from '../reviewer/reviewerAuth';

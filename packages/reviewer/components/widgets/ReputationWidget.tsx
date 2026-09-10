@@ -24,9 +24,9 @@
  * quietly show a stale zero, if it is ever pointed anywhere else.
  */
 
-import { Growth_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
-import * as Skeleton from '@oxyhq/bloom/skeleton';
-import { useAuth } from '@oxyhq/services/ui/client';
+import { Growth_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import * as Skeleton from '@oxy.so/bloom/skeleton';
+import { useAuth } from '@oxy.so/services/ui/client';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { useTranslation } from 'react-i18next';

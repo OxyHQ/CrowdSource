@@ -1,4 +1,4 @@
-import type { TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import type { TaxonomyFamily } from '@oxy.so/crowdsource-contracts';
 
 /**
  * Who owns which `(family, language)` cell of the global reviewer space.

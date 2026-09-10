@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
 /**
- * The four published packages agree about `@oxyhq/crowdsource-contracts`.
+ * The four published packages agree about `@oxy.so/crowdsource-contracts`.
  *
- * `@oxyhq/crowdsource`, `-express` and `-testing` declare contracts as a PEER
+ * `@oxy.so/crowdsource`, `-express` and `-testing` declare contracts as a PEER
  * dependency rather than a normal one, so an integrator installs exactly one copy
  * and owns its version. That is not a style preference — it is the fix for a
  * failure mode with no diagnostic. When two copies of contracts exist and their
@@ -32,7 +32,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CONTRACTS = "@oxyhq/crowdsource-contracts";
+const CONTRACTS = "@oxy.so/crowdsource-contracts";
 /** Every published package that consumes the contracts package. */
 const CONSUMERS = ["sdk", "sdk-express", "testing", "app"];
 

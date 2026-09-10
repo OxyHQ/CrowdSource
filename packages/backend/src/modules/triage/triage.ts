@@ -1,4 +1,4 @@
-import { taxonomyFamilyOf, type TaxonomyCode, type TaxonomyFamily } from '@oxyhq/crowdsource-contracts';
+import { taxonomyFamilyOf, type TaxonomyCode, type TaxonomyFamily } from '@oxy.so/crowdsource-contracts';
 
 /**
  * Triage (§7.4, §7.5) — deterministic, and with no AI in it.
@@ -72,7 +72,7 @@ const STANDARD_ROUTE: Route = Object.freeze({
  * §7.5's table, as data.
  *
  * A code absent from this map routes to `STANDARD_ROUTE`. That default is safe
- * because the taxonomy is closed (`@oxyhq/crowdsource-contracts` rejects a code
+ * because the taxonomy is closed (`@oxy.so/crowdsource-contracts` rejects a code
  * it does not know), so "absent" means "a code we classified as ordinary", never
  * "a code nobody has looked at".
  */

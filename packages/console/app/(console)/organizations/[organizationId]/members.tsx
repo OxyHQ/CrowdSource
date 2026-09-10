@@ -17,9 +17,9 @@
  *    unreachable through every other route.
  */
 
-import { Button } from '@oxyhq/bloom/button';
-import { TextField, TextFieldInput, TextFieldLabel } from '@oxyhq/bloom/text-field';
-import { toast } from '@oxyhq/bloom/toast';
+import { Button } from '@oxy.so/bloom/button';
+import { TextField, TextFieldInput, TextFieldLabel } from '@oxy.so/bloom/text-field';
+import { toast } from '@oxy.so/bloom/toast';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';

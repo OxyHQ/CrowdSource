@@ -1,5 +1,5 @@
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
-import { createdAt, generatedId, updatedAt } from '@oxyhq/db';
+import { createdAt, generatedId, updatedAt } from '@oxy.so/db';
 import {
   moderationReportColumns,
   moderationReportTableExtras,

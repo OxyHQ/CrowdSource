@@ -56,7 +56,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@oxyhq/crowdsource-contracts': path.resolve(__dirname, '../contracts/src'),
+      '@oxy.so/crowdsource-contracts': path.resolve(__dirname, '../contracts/src'),
     },
   },
 });
