@@ -62,7 +62,7 @@
     "@oxy.so/crowdsource-testing": "workspace:*",
     "@oxy.so/db": "^1.0.0",
     "@types/express": "^5.0.6",
-    "@types/node": "^25.9.5",
+    "@types/node": "^26.4.1",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
