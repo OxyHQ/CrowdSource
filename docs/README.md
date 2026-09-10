@@ -11,6 +11,7 @@ first decision, in five steps.
 | | |
 | --- | --- |
 | [`integration.md`](./integration.md) | Send a report, receive a decision. One environment variable and the object being reported. |
+| [`dependencies.md`](./dependencies.md) | Reviewable Oxy updates and the read-only Doctor gate. |
 | [`api/`](./api/README.md) | The HTTP contracts, organised by the four caller classes: application service credentials, reviewer sessions, developer-console sessions, Trust & Safety staff sessions. |
 | [`policies/`](./policies/README.md) | The universal taxonomy, the baseline policy set, and what a jury is actually asked. For the people who judge cases. |
 | [`runbooks/`](./runbooks/README.md) | Dead letters, outbox backlogs, cases that cannot empanel, and the two audit trails. |
