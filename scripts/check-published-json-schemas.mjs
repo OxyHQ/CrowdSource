@@ -170,7 +170,7 @@ if (import.meta.main) {
       process.exit(1);
     }
 
-    const entry = resolve(scratch, "node_modules", "@oxyhq", "crowdsource-contracts", "dist", "index.js");
+    const entry = resolve(scratch, "node_modules", "@oxy.so", "crowdsource-contracts", "dist", "index.js");
     const contracts = await import(entry);
 
     const failures = assertJsonSchemaSurface(contracts);
