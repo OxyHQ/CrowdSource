@@ -68,7 +68,7 @@
     "express": "^5.2.1",
     "postgres": "^3.4.9",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.10"
+    "vitest": "^5.0.0"
   },
   "files": [
     "dist/**/*",
