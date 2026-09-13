@@ -1,3 +1,4 @@
+import { ecosystemActivityMiddleware } from './ecosystemActivity';
 import { createOxyCors } from '@oxy.so/core/server';
 import compression from 'compression';
 import express, { type Express, Router } from 'express';
@@ -36,6 +37,7 @@ import { healthRouter } from './routes/health.routes';
  */
 export function createApp(): Express {
   const app = express();
+  app.use(ecosystemActivityMiddleware);
 
   app.disable('x-powered-by');
   // One proxy hop: the shared ALB terminates TLS and sets X-Forwarded-*.
