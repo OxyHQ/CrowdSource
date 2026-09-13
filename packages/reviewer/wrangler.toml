@@ -17,15 +17,15 @@
 # `workers_dev = false` leaves `crowdsource.oxy.so` as the only name that
 # reaches this deployment.
 name = "crowdsource-frontend"
+main = "worker/index.js"
 compatibility_date = "2026-09-09"
 
 workers_dev = false
 
-# Static assets with no `main`: no Worker script runs, every request is served
-# from the uploaded directory. `.github/scripts/validate-frontend-static-output.mjs`
-# fails the release if a `_worker.js` ever appears in `dist/`, because one there
-# is inert AND published as a public asset.
+# Every request is observed; ASSETS retains routing and public/_headers.
 [assets]
+binding = "ASSETS"
+run_worker_first = true
 directory = "./dist"
 
 # `expo export --platform web` emits ONE `index.html` plus hashed assets — a
