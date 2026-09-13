@@ -1,3 +1,4 @@
+import { startEcosystemActivity, stopEcosystemActivity } from './src/ecosystemActivity';
 import http from 'node:http';
 
 import { createApp } from './src/app';
@@ -40,6 +41,7 @@ process.on('uncaughtException', (_error: Error) => {
 });
 
 const server = http.createServer(createApp());
+startEcosystemActivity(() => server.listening);
 
 /**
  * Connect BEFORE listening. A task that accepts traffic without its database
@@ -135,7 +137,7 @@ function shutdown(signal: NodeJS.Signals): void {
       process.exit(1);
       return;
     }
-    Promise.allSettled([closePostgresDatabase()])
+    Promise.allSettled([closePostgresDatabase(), stopEcosystemActivity()])
       .then(([postgres]) => {
         if (postgres.status === 'rejected') {
           logger.error(

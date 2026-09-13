@@ -9,13 +9,15 @@
 # of the Oxy application. `workers_dev = false` leaves
 # `console.crowdsource.oxy.so` as the only name that reaches this deployment.
 name = "crowdsource-console"
+main = "worker/index.js"
 compatibility_date = "2026-09-09"
 
 workers_dev = false
 
-# Static assets with no `main`: no Worker script runs, every request is served
-# from the uploaded directory.
+# Every request is observed; ASSETS retains routing and public/_headers.
 [assets]
+binding = "ASSETS"
+run_worker_first = true
 directory = "./dist"
 
 # Replaces `public/_redirects` (`/*  /index.html  200`), deleted in the same
