@@ -10,7 +10,6 @@ import { ecosystemActivityMiddleware, observeEcosystemSocket, startEcosystemActi
 
 describe('ecosystem activity lifecycle', () => {
   beforeEach(() => {
-    vi.stubEnv('OXY_ECOSYSTEM_ACTIVITY_ENABLED', 'true');
     vi.stubEnv('OXY_SERVICE_API_KEY', 'test-key');
     vi.stubEnv('OXY_SERVICE_API_SECRET', 'test-secret');
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -18,8 +17,8 @@ describe('ecosystem activity lifecycle', () => {
   });
   afterEach(async () => { await stopEcosystemActivity(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
-  it('does not start or publish when explicitly disabled', () => {
-    vi.stubEnv('OXY_ECOSYSTEM_ACTIVITY_ENABLED', 'false');
+  it('does not start or publish when the API key is missing', () => {
+    vi.stubEnv('OXY_SERVICE_API_KEY', undefined);
     startEcosystemActivity(() => true);
     expect(create).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalled();
@@ -30,16 +29,18 @@ describe('ecosystem activity lifecycle', () => {
     expect(publisher.observeSocket).not.toHaveBeenCalled();
   });
 
-  it('makes missing activation visible without starting a publisher', () => {
-    vi.stubEnv('OXY_ECOSYSTEM_ACTIVITY_ENABLED', undefined);
+  it('does not start or publish when the API secret is missing', () => {
+    vi.stubEnv('OXY_SERVICE_API_SECRET', undefined);
     startEcosystemActivity(() => true);
     expect(create).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalled();
   });
 
-  it('rejects a misspelled activation instead of silently losing coverage', () => {
-    vi.stubEnv('OXY_ECOSYSTEM_ACTIVITY_ENABLED', 'tru');
-    expect(() => startEcosystemActivity(() => true)).toThrow('must be true or false');
+  it('treats a blank credential the same as an absent one', () => {
+    vi.stubEnv('OXY_SERVICE_API_KEY', '   ');
+    startEcosystemActivity(() => true);
+    expect(create).not.toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalled();
   });
 
   it('fails boot when the shared collector rejects its configuration', () => {
