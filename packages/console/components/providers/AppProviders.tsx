@@ -18,7 +18,8 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { ConsoleIdentityBoundary } from '@/components/providers/ConsoleIdentityBoundary';
 import { OXY_AUTH_REDIRECT_URI, OXY_CLIENT_ID } from '@/config';
-import i18n from '@/lib/i18n';
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from '@/lib/constants';
+import i18n, { setLanguage } from '@/lib/i18n';
 import { createScopedLogger } from '@/lib/logger';
 
 const logger = createScopedLogger('AppProviders');
@@ -36,6 +37,10 @@ export const AppProviders = memo(function AppProviders({
 }: AppProvidersProps) {
   const handleBoundaryError = useCallback((error: Error, errorInfo: React.ErrorInfo) => {
     logger.error('Error caught by boundary', { error, errorInfo });
+  }, []);
+
+  const handleLanguageError = useCallback((error: unknown, locale: string) => {
+    logger.error('Failed to follow the Oxy-resolved language', { error, locale });
   }, []);
 
   return (
@@ -69,6 +74,17 @@ export const AppProviders = memo(function AppProviders({
             webAuthMode="popup"
             storageKeyPrefix="crowdsource-console"
             queryClient={queryClient}
+            // Oxy resolves which language the console shows — the signed-in
+            // account's primary locale, or the device/guest locale while signed
+            // out — and calls `setLanguage` whenever it changes. The console
+            // keeps its own translation catalog (`locales/en.json`,
+            // `locales/es.json`) untouched; it just stops deciding for itself.
+            language={{
+              supportedLocales: SUPPORTED_LANGUAGES,
+              fallbackLocale: DEFAULT_LANGUAGE,
+              onChange: setLanguage,
+              onError: handleLanguageError,
+            }}
           >
             {/*
              * Inside OxyProvider because it reads the SDK's auth state and the
