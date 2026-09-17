@@ -7,14 +7,14 @@
  */
 
 import {
-  BulletList_Stroke2_Corner0_Rounded,
-  Clipboard_Stroke2_Corner2_Rounded,
-  Group3_Stroke2_Corner0_Rounded,
-  Growth_Stroke2_Corner0_Rounded,
-  Home_Stroke2_Corner0_Rounded,
-  Key_Stroke2_Corner2_Rounded,
-  PaperPlane_Stroke2_Corner0_Rounded,
-  Shield_Stroke2_Corner0_Rounded,
+  RiListUnordered,
+  RiClipboardLine,
+  RiGroupLine,
+  RiSeedlingLine,
+  RiHomeLine,
+  RiKey2Line,
+  RiSendPlaneLine,
+  RiShieldLine,
 } from '@oxy.so/bloom/icons';
 import React from 'react';
 
@@ -32,20 +32,20 @@ export function NavIcon({ id }: { id: NavIconId }) {
 
   switch (id) {
     case 'organizations':
-      return <Group3_Stroke2_Corner0_Rounded {...props} />;
+      return <RiGroupLine {...props} />;
     case 'overview':
-      return <Home_Stroke2_Corner0_Rounded {...props} />;
+      return <RiHomeLine {...props} />;
     case 'credentials':
-      return <Key_Stroke2_Corner2_Rounded {...props} />;
+      return <RiKey2Line {...props} />;
     case 'webhooks':
-      return <PaperPlane_Stroke2_Corner0_Rounded {...props} />;
+      return <RiSendPlaneLine {...props} />;
     case 'cases':
-      return <BulletList_Stroke2_Corner0_Rounded {...props} />;
+      return <RiListUnordered {...props} />;
     case 'audit':
-      return <Clipboard_Stroke2_Corner2_Rounded {...props} />;
+      return <RiClipboardLine {...props} />;
     case 'trust-safety':
-      return <Shield_Stroke2_Corner0_Rounded {...props} />;
+      return <RiShieldLine {...props} />;
     case 'metrics':
-      return <Growth_Stroke2_Corner0_Rounded {...props} />;
+      return <RiSeedlingLine {...props} />;
   }
 }

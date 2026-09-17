@@ -36,7 +36,7 @@ directory = "./dist"
 not_found_handling = "single-page-application"
 
 # `public/_headers` survives the move and is still the ONLY thing applying the
-# one-year immutable rules for `/_expo/static/*` and `/fonts/*` that
+# one-year immutable rules for `/_expo/static/*` and `/assets/*` (Bloom's fonts) that
 # `.github/scripts/smoke-frontend.sh` asserts against the live deployment.
 # Workers static assets read it exactly as Pages did: wrangler excludes
 # `_headers` and `_redirects` from the asset manifest and uploads each as a

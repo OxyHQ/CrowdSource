@@ -8,7 +8,7 @@
  * one vote — a high figure here buys more invitations, never a louder one.
  */
 
-import { Growth_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiSeedlingLine } from '@oxy.so/bloom/icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
@@ -43,7 +43,7 @@ export default function ReliabilityScreen() {
             {profileQuery.data.standings.length === 0 ? (
               <EmptyState
                 icon={
-                  <Growth_Stroke2_Corner0_Rounded
+                  <RiSeedlingLine
                     width={28}
                     height={28}
                     fill="currentColor"

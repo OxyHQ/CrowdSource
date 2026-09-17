@@ -44,7 +44,7 @@ jest.mock('@/lib/oxyServices', () => ({
 // Bloom's leaves resolve colours through `useTheme`, which throws outside a
 // provider. Nothing under test is a colour, so they stand in as plain nodes.
 jest.mock('@oxy.so/bloom/icons', () => ({
-  Growth_Stroke2_Corner0_Rounded: () => null,
+  RiSeedlingLine: () => null,
 }));
 jest.mock('@oxy.so/bloom/skeleton', () => ({
   Box: () => null,
