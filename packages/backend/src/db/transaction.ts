@@ -77,6 +77,10 @@ export function duplicateKeyViolation(error: unknown): DuplicateKeyViolation | n
     ],
     appeals_application_idempotency_key: ['applicationId', 'idempotencyKey'],
     appeals_application_case_revision_key: ['applicationId', 'caseId', 'supersededRevision'],
+    community_notes_application_idempotency_key: ['applicationId', 'idempotencyKey'],
+    community_notes_application_subject_author_key: ['applicationId', 'externalSubjectId', 'authorPrincipalId'],
+    community_note_ratings_application_idempotency_key: ['applicationId', 'idempotencyKey'],
+    community_note_ratings_application_note_rater_key: ['applicationId', 'noteId', 'raterPrincipalId'],
   };
 
   return {

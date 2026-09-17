@@ -75,6 +75,8 @@ export const APPLICATION_SCOPES = [
   'crowdsource:webhooks:manage',
   'crowdsource:policies:manage',
   'crowdsource:schemas:manage',
+  'crowdsource:community-notes:write',
+  'crowdsource:community-notes:read',
 ] as const;
 export type ApplicationScope = (typeof APPLICATION_SCOPES)[number];
 

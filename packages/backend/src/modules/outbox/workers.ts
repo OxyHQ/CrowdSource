@@ -1,3 +1,4 @@
+import { registerCommunityNotesWorker } from '../communityNotes/communityNotes.worker';
 import { registerConsensusWorker } from '../consensus/consensus.worker';
 import { registerSortitionWorkers } from '../sortition/sortition.worker';
 import { registerTriageWorker } from '../triage/triage.worker';
@@ -28,5 +29,6 @@ export function registerOutboxWorkers(): void {
   registerTriageWorker();
   registerSortitionWorkers();
   registerConsensusWorker();
+  registerCommunityNotesWorker();
   registerWebhookFanout();
 }

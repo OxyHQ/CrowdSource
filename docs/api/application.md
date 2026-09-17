@@ -41,7 +41,8 @@ it is declared. Grantable to an application credential
 `crowdsource:reports:write` · `crowdsource:reports:read` ·
 `crowdsource:cases:read` · `crowdsource:appeals:write` ·
 `crowdsource:enforcement:write` · `crowdsource:webhooks:manage` ·
-`crowdsource:policies:manage` · `crowdsource:schemas:manage`
+`crowdsource:policies:manage` · `crowdsource:schemas:manage` ·
+`crowdsource:community-notes:write` · `crowdsource:community-notes:read`
 
 Not grantable at any seat (`PRIVILEGED_SCOPES`): `crowdsource:decisions:emit`,
 `reputation:moderation:apply`, `crowdsource:trust-safety:operate`. Asking for
@@ -64,9 +65,17 @@ holding `crowdsource:enforcement:write` can do nothing with it today.
 | GET | `/v1/decisions/{decisionId}` | `crowdsource:cases:read` |
 | POST | `/v1/webhook-endpoints` | `crowdsource:webhooks:manage` |
 | POST | `/v1/webhook-endpoints/{webhookEndpointId}/rotate-secret` | `crowdsource:webhooks:manage` |
+| POST | `/v1/community-notes` | `crowdsource:community-notes:write` |
+| POST | `/v1/community-notes/assignments` | `crowdsource:community-notes:write` |
+| POST | `/v1/community-notes/{noteId}/withdraw` | `crowdsource:community-notes:write` |
+| POST | `/v1/community-notes/{noteId}/ratings` | `crowdsource:community-notes:write` |
+| GET | `/v1/community-notes/shown` | `crowdsource:community-notes:read` |
+| GET | `/v1/community-notes/principals/{principalId}/notes` | `crowdsource:community-notes:read` |
+| GET | `/v1/community-notes/principals/{principalId}/ratings` | `crowdsource:community-notes:read` |
 
-That is the whole application API. There is no list route, no search route and
-no delete route anywhere on it.
+That is the whole application API. There is no search route and no delete route
+anywhere on it, and no list of cases or reports. The only lists are a principal's
+OWN community notes and ratings, each bounded to the newest 50.
 
 ---
 
@@ -221,6 +230,37 @@ hostile text itself survives — an author defending a post that quoted a threat
 has to be able to quote it back. See
 [the appeals ADR](../architecture/appeals.md) for every choice and its reason.
 
+## Community notes
+
+Reader-written context under an application's subjects, shown once raters of
+different viewpoints agree it is helpful. A separate mechanism from moderation:
+it never opens a case, feeds a decision or produces a reputation effect. See
+[the community notes ADR](../architecture/community-notes.md) for every choice
+and its reason. Every `POST` requires `Idempotency-Key`.
+
+- `POST /v1/community-notes` writes a note for `authorPrincipalId` about
+  `externalSubjectId`, naming the subject's author in `subjectAuthorPrincipalId`.
+  `201`, or `200` on a retry. `409` for a second note by the same writer on the
+  same subject (a note is never rewritten); `429` past five notes per writer per
+  rolling day.
+- `POST /v1/community-notes/{noteId}/withdraw` — only the writer; anyone else's
+  note answers `404`, so authorship is not disclosed.
+- `POST /v1/community-notes/assignments` draws up to ten notes for one rater:
+  still `needs_ratings`, in the rater's languages (primary subtag), not written
+  by them and not on a subject they authored. A retry with the same key returns
+  the same batch. Assignments expire after 24 hours.
+- `POST /v1/community-notes/{noteId}/ratings` — `403` unless the note was
+  assigned to that rater; `409` if already rated, expired or withdrawn. Reasons
+  must belong to the rating given. Every rating queues a rescore of the tenant's
+  notes, which may emit `community_note.status_changed`.
+- `GET /v1/community-notes/shown?subjects=a,b` — at most one shown note per
+  subject, 1–50 subjects. Unaudited: it is a feed page's read.
+- `GET /v1/community-notes/principals/{principalId}/notes|ratings` — that
+  principal's own notes, or ratings with the notes they rated.
+
+A note returned by any of these carries no principal, no rating count and no
+score.
+
 ## `POST /v1/webhook-endpoints`
 
 ```json
@@ -318,7 +358,7 @@ checked too — every documented row must exist, every served route must be
 documented, and every one of them must be behind a service credential.
 
 ```docs-claims
-application-scopes: crowdsource:reports:write, crowdsource:reports:read, crowdsource:cases:read, crowdsource:appeals:write, crowdsource:enforcement:write, crowdsource:webhooks:manage, crowdsource:policies:manage, crowdsource:schemas:manage
+application-scopes: crowdsource:reports:write, crowdsource:reports:read, crowdsource:cases:read, crowdsource:appeals:write, crowdsource:enforcement:write, crowdsource:webhooks:manage, crowdsource:policies:manage, crowdsource:schemas:manage, crowdsource:community-notes:write, crowdsource:community-notes:read
 privileged-scopes: crowdsource:decisions:emit, reputation:moderation:apply, crowdsource:trust-safety:operate
 decision-outcomes: violation, no_violation, insufficient_context, inconclusive, content_unavailable, duplicate, escalated
 report-statuses: received, merged, invalid, withdrawn, closed

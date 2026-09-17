@@ -78,7 +78,7 @@ describe('the vocabularies this console validates against', () => {
       join(BACKEND, 'modules', 'tenancy', 'scopes.ts'),
       'APPLICATION_SCOPES',
     );
-    expect(server.length).toBe(8);
+    expect(server.length).toBe(10);
     expect([...APPLICATION_SCOPES]).toEqual(server);
   });
 

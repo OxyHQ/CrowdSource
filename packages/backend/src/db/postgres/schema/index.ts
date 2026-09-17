@@ -10,6 +10,7 @@
  * `Decision` and `Appeal` from the Mongo registry.
  */
 export * from './cases';
+export * from './communityNotes';
 export * from './console';
 export * from './decisions';
 export * from './governance';

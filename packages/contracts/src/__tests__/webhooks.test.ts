@@ -27,6 +27,7 @@ describe('the event catalogue', () => {
       'appeal.created',
       'appeal.decided',
       'case.closed',
+      'community_note.status_changed',
     ]);
   });
 });

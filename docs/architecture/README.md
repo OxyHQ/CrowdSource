@@ -13,6 +13,7 @@ backend or production cutover.
 | [ADR 0001](0001-divergence-from-the-plan.md) | Where CrowdSource diverges from the plan's infrastructure, and what each divergence costs. |
 | [ADR 0002](0002-the-universal-case-envelope.md) | One Case Envelope for every application, why resources and policies are versioned, and what the envelope refuses to carry. |
 | [ADR 0003](0003-reputation-axes.md) | Why contribution, conduct, reporting, reviewing and personhood are separate axes and never one number. |
+| [Community notes](community-notes.md) | Reader-written context: who writes and rates, why ratings need an assignment, the bridging scorer, and anonymity. |
 | [Threat model](threat-model.md) | PLAN §13.1 revised against what the system now is: each threat, its control, the file that implements it, and whether a test proves it. |
 
 The plan's §15.1 also asked for an ADR of the service architecture itself — own

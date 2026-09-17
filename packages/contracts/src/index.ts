@@ -43,6 +43,7 @@ export * from './reviews.js';
 export * from './reviewer-surface.js';
 export * from './decisions.js';
 export * from './appeals.js';
+export * from './community-notes.js';
 export * from './webhooks.js';
 export * from './reputation-events.js';
 export * from './json-schema.js';

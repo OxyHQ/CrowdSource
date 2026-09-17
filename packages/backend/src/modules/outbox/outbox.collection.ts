@@ -87,6 +87,18 @@ export const OUTBOX_EVENT_TYPES = {
    * changed the outcome is a correction.
    */
   appealDecided: 'appeal.decided',
+  /**
+   * A community note received a rating, so the tenant's notes must be rescored
+   * (the community notes ADR). Written in the same transaction as the rating: a rating whose
+   * rescore was only ever requested in memory is a rating the model never sees.
+   */
+  communityNoteRated: 'community_note.rated',
+  /**
+   * A community note changed status — rescored, or withdrawn by its writer.
+   * Separate from `community_note.rated` because one outbox type has one handler:
+   * the rescore consumes the first, the webhook fan-out consumes this one.
+   */
+  communityNoteStatusChanged: 'community_note.status_changed',
 } as const;
 
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[keyof typeof OUTBOX_EVENT_TYPES];
@@ -105,6 +117,9 @@ export interface OutboxEventPayload {
   readonly assignmentId?: string;
   readonly decisionId?: string;
   readonly appealId?: string;
+  readonly communityNoteId?: string;
+  /** The status revision a `community_note.status_changed` event announces. */
+  readonly communityNoteRevision?: number;
 }
 
 /**

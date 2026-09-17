@@ -21,6 +21,7 @@
  */
 
 import { Cases, Decisions } from './cases.js';
+import { CommunityNotes } from './communityNotes.js';
 import { parseServiceKey, type ServiceCredential } from './credential.js';
 import { DEFAULT_BASE_URL } from './defaults.js';
 import { CrowdSourceConfigurationError } from './errors.js';
@@ -77,6 +78,8 @@ export class CrowdSource {
   readonly decisions: Decisions;
   /** Where decisions get delivered, and the secret that signs them (§10.2). */
   readonly webhookEndpoints: WebhookEndpoints;
+  /** Community notes: write, withdraw, draw to rate, rate, and the reads. */
+  readonly communityNotes: CommunityNotes;
 
   constructor(options: CrowdSourceOptions = {}) {
     const credential: ServiceCredential = parseServiceKey(
@@ -111,6 +114,7 @@ export class CrowdSource {
     this.cases = new Cases(transport);
     this.decisions = new Decisions(transport);
     this.webhookEndpoints = new WebhookEndpoints(transport);
+    this.communityNotes = new CommunityNotes(transport);
   }
 }
 

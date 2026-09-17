@@ -19,6 +19,10 @@ export const APPLICATION_SCOPES = [
   'crowdsource:webhooks:manage',
   'crowdsource:policies:manage',
   'crowdsource:schemas:manage',
+  /** Write and withdraw community notes, and draw and submit ratings (the community notes ADR). */
+  'crowdsource:community-notes:write',
+  /** Read shown notes and a principal's own notes and ratings (the community notes ADR). */
+  'crowdsource:community-notes:read',
 ] as const;
 
 /**

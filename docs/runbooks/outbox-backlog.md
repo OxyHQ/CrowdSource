@@ -151,7 +151,7 @@ case never got a panel.
 outbox-statuses: pending, dispatching, dispatched, failed
 outbox-max-attempts: 8
 outbox-lease-ms: 60000
-outbox-event-types: report.received, case.ready_for_triage, case.ready_for_review, assignment.vacated, review.submitted, case.decided, decision.corrected, appeal.created, appeal.decided
+outbox-event-types: report.received, case.ready_for_triage, case.ready_for_review, assignment.vacated, review.submitted, case.decided, decision.corrected, appeal.created, appeal.decided, community_note.rated, community_note.status_changed
 no-incident-module: true
 no-queue-dependency: true
 ```

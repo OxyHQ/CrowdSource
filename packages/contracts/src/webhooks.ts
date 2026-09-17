@@ -23,8 +23,9 @@
 import { z } from 'zod';
 
 import { CreateReportResponseSchema } from './case-envelope.js';
+import { CommunityNoteStatusSchema } from './community-notes.js';
 import { DecisionSchema } from './decisions.js';
-import { IdentifierSchema, TimestampSchema } from './primitives.js';
+import { ExternalIdSchema, IdentifierSchema, TimestampSchema } from './primitives.js';
 import type { Closed } from './closed.js';
 
 /** §10.6. */
@@ -37,6 +38,7 @@ export const WEBHOOK_EVENT_TYPES = [
   'appeal.created',
   'appeal.decided',
   'case.closed',
+  'community_note.status_changed',
 ] as const;
 export const WebhookEventTypeSchema = z.enum(WEBHOOK_EVENT_TYPES);
 export type WebhookEventType = z.infer<typeof WebhookEventTypeSchema>;
@@ -141,7 +143,28 @@ const CaseClosedEventSchema = z.looseObject({
 });
 
 /**
- * The eight events of §10.6, discriminated on `type`.
+ * A community note moved to another status (the community notes ADR).
+ *
+ * Carries the writer's `authorPrincipalId` and nothing about any rater: the
+ * application named the writer when it filed the note, so returning the id to
+ * that same tenant discloses nothing, and it is what lets the application tell
+ * the writer their note is now shown. It is never an id a reader should see.
+ */
+const CommunityNoteStatusChangedEventSchema = z.looseObject({
+  ...webhookEnvelopeShape,
+  type: z.literal('community_note.status_changed'),
+  data: z.looseObject({
+    noteId: IdentifierSchema,
+    externalSubjectId: ExternalIdSchema,
+    authorPrincipalId: ExternalIdSchema,
+    previousStatus: CommunityNoteStatusSchema,
+    status: CommunityNoteStatusSchema,
+  }),
+});
+
+/**
+ * The eight events of §10.6, plus the community notes ADR's community-note event, discriminated
+ * on `type`.
  *
  * Only `case.decided` has its payload specified in the plan (§10.7). The other
  * seven carry the case they are about and whatever identifies the object that
@@ -157,6 +180,7 @@ export const KnownWebhookEventSchema = z.discriminatedUnion('type', [
   AppealCreatedEventSchema,
   AppealDecidedEventSchema,
   CaseClosedEventSchema,
+  CommunityNoteStatusChangedEventSchema,
 ]);
 export type KnownWebhookEvent = Closed<z.infer<typeof KnownWebhookEventSchema>>;
 

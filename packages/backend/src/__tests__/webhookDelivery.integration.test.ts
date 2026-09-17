@@ -363,6 +363,7 @@ describe('fan-out', () => {
       OUTBOX_EVENT_TYPES.decisionCorrected,
       OUTBOX_EVENT_TYPES.appealCreated,
       OUTBOX_EVENT_TYPES.appealDecided,
+      OUTBOX_EVENT_TYPES.communityNoteStatusChanged,
     ]);
   });
 
