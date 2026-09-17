@@ -37,6 +37,7 @@ silently:
 | --- | --- |
 | `packages/backend/src/__tests__/docsClaims.test.ts` | The route tables in `api/`, parsed from the visible markdown, against every route the backend mounts **and the caller class each is mounted behind**; the "what is not served" list, as patterns no served route may match; and the fenced `docs-claims` blocks in the integration guide, the API reference, the policy document and the runbooks. |
 | `packages/backend/src/__tests__/appealsAdr.test.ts` | The appeals ADR's `adr-claims` block, and that it still answers each question the specification left open. |
+| `packages/backend/src/__tests__/communityNotesAdr.test.ts` | The community notes ADR's `adr-claims` block: the scorer's thresholds and version, the caps and the statuses. |
 
 The route gate is the one worth understanding. It parses the tables a human
 reads rather than a duplicate of them, so a route added to the wrong router — or

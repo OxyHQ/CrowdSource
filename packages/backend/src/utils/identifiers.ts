@@ -84,6 +84,14 @@ export const ID_PREFIX = {
    * appealed.
    */
   appeal: 'apl',
+  /**
+   * Community notes (the community notes ADR): a note, a rating, the assignment that is the only
+   * door to a rating, and one status revision of a note.
+   */
+  communityNote: 'cnt',
+  communityNoteRating: 'cnr',
+  communityNoteAssignment: 'cna',
+  communityNoteRevision: 'cnv',
 } as const;
 
 export type PublicIdKind = keyof typeof ID_PREFIX;

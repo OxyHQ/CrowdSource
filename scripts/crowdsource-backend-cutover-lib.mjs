@@ -37,7 +37,7 @@ export const MIGRATOR_ROLE = 'crowdsource_migrator';
 // Changing covered DDL or privileges requires an intentional canonical-catalog
 // review; host collation versions are validated before this digest is computed.
 export const EXPECTED_POSTGRES_CATALOG_SHA256 =
-  'sha256:f585f227d394bdadbd87277ce13855775d7a40c9538b013bfdaf64d7ef1f0fa3';
+  'sha256:f5e3882259be7f163461eec18778f79cb5971adc6bffe0eb8f78a3bc26fa0d6b';
 
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/;

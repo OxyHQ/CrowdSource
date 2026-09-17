@@ -3,6 +3,7 @@ import type { WebhookEventType } from '@oxy.so/crowdsource-contracts';
 import { createTenantContext, type TenantContext } from '../../db/tenantScope';
 import { appeals } from '../appeals/appeal.collection';
 import { appealDecision, appealView } from '../appeals/appeal.service';
+import { communityNoteStatusChange } from '../communityNotes/communityNotes.service';
 import { decisions } from '../decision/decision.collection';
 import { decisionView } from '../decision/decision.service';
 import { reports } from '../ingestion/report.collection';
@@ -161,6 +162,20 @@ const buildAppealData: WebhookDataBuilder = async (context, event) => {
  * A table rather than a switch so the set is readable in one place and a missing
  * consumer is a visibly empty row rather than a fallthrough.
  */
+/**
+ * `community_note.status_changed` — the community notes ADR.
+ *
+ * The revision the outbox event named, with the one before it, so each move is
+ * announced as it happened. Carries the writer's principal id (the tenant supplied
+ * it) and nothing about any rater, and never the note's text.
+ */
+const buildCommunityNoteStatusData: WebhookDataBuilder = async (context, event) => {
+  const noteId = event.payload.communityNoteId;
+  const revision = event.payload.communityNoteRevision;
+  if (!noteId || revision === undefined) return null;
+  return await communityNoteStatusChange(context, noteId, revision);
+};
+
 const WEBHOOK_EVENT_SOURCES: ReadonlyMap<OutboxEventType, WebhookEventSource> = new Map([
   [
     OUTBOX_EVENT_TYPES.reportReceived,
@@ -181,6 +196,10 @@ const WEBHOOK_EVENT_SOURCES: ReadonlyMap<OutboxEventType, WebhookEventSource> = 
   [
     OUTBOX_EVENT_TYPES.appealDecided,
     { webhookEventType: 'appeal.decided', buildData: buildAppealData },
+  ],
+  [
+    OUTBOX_EVENT_TYPES.communityNoteStatusChanged,
+    { webhookEventType: 'community_note.status_changed', buildData: buildCommunityNoteStatusData },
   ],
 ]);
 

@@ -6,6 +6,7 @@ import helmet from 'helmet';
 
 import { errorHandler, notFoundHandler } from './http/errorHandler';
 import { appealsRouter } from './modules/appeals/appeals.routes';
+import { communityNotesRouter } from './modules/communityNotes/communityNotes.routes';
 import { casesRouter } from './modules/cases/cases.routes';
 import { consoleRouter } from './modules/console/console.routes';
 import { trustSafetyRouter } from './modules/console/trustSafety.routes';
@@ -70,6 +71,7 @@ export function createApp(): Express {
   v1.use(reportsRouter);
   v1.use(casesRouter);
   v1.use(appealsRouter);
+  v1.use(communityNotesRouter);
   v1.use(decisionsRouter);
   v1.use(webhookEndpointsRouter);
 
