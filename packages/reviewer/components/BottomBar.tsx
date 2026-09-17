@@ -1,10 +1,10 @@
 import { View } from 'react-native';
 import {
-    Beaker_Stroke2_Corner2_Rounded,
-    Clock_Stroke2_Corner0_Rounded,
-    Growth_Stroke2_Corner0_Rounded,
-    Heart2_Stroke2_Corner0_Rounded,
-    Home_Stroke2_Corner0_Rounded,
+  RiFlaskLine,
+  RiTimeLine,
+  RiSeedlingLine,
+  RiHeartLine,
+  RiHomeLine,
 } from '@oxy.so/bloom/icons';
 import { useRouter, usePathname } from 'expo-router';
 import React, { useCallback, useMemo } from 'react';
@@ -78,32 +78,32 @@ export const BottomBar = () => {
         {
             name: 'home',
             label: t('bottomBar.home'),
-            icon: <Home_Stroke2_Corner0_Rounded width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={inactiveGlyphClass} />,
-            activeIcon: <Home_Stroke2_Corner0_Rounded width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={activeGlyphClass} />,
+            icon: <RiHomeLine width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={inactiveGlyphClass} />,
+            activeIcon: <RiHomeLine width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={activeGlyphClass} />,
         },
         {
             name: 'training',
             label: t('bottomBar.training'),
-            icon: <Beaker_Stroke2_Corner2_Rounded width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={inactiveGlyphClass} />,
-            activeIcon: <Beaker_Stroke2_Corner2_Rounded width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={activeGlyphClass} />,
+            icon: <RiFlaskLine width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={inactiveGlyphClass} />,
+            activeIcon: <RiFlaskLine width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={activeGlyphClass} />,
         },
         {
             name: 'history',
             label: t('bottomBar.history'),
-            icon: <Clock_Stroke2_Corner0_Rounded width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={inactiveGlyphClass} />,
-            activeIcon: <Clock_Stroke2_Corner0_Rounded width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={activeGlyphClass} />,
+            icon: <RiTimeLine width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={inactiveGlyphClass} />,
+            activeIcon: <RiTimeLine width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={activeGlyphClass} />,
         },
         {
             name: 'reliability',
             label: t('bottomBar.reliability'),
-            icon: <Growth_Stroke2_Corner0_Rounded width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={inactiveGlyphClass} />,
-            activeIcon: <Growth_Stroke2_Corner0_Rounded width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={activeGlyphClass} />,
+            icon: <RiSeedlingLine width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={inactiveGlyphClass} />,
+            activeIcon: <RiSeedlingLine width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={activeGlyphClass} />,
         },
         {
             name: 'wellbeing',
             label: t('bottomBar.wellbeing'),
-            icon: <Heart2_Stroke2_Corner0_Rounded width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={inactiveGlyphClass} />,
-            activeIcon: <Heart2_Stroke2_Corner0_Rounded width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={activeGlyphClass} />,
+            icon: <RiHeartLine width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={inactiveGlyphClass} />,
+            activeIcon: <RiHeartLine width={ICON_SIZE} height={ICON_SIZE} fill="currentColor" className={activeGlyphClass} />,
         },
     ], [activeGlyphClass, inactiveGlyphClass, t]);
 

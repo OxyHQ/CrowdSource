@@ -24,7 +24,7 @@
  * quietly show a stale zero, if it is ever pointed anywhere else.
  */
 
-import { Growth_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiSeedlingLine } from '@oxy.so/bloom/icons';
 import * as Skeleton from '@oxy.so/bloom/skeleton';
 import { useAuth } from '@oxy.so/services/ui/client';
 import { useQuery } from '@tanstack/react-query';
@@ -114,7 +114,7 @@ export function ReputationWidget({ divider }: { divider?: boolean }) {
           </View>
         ) : (
           <View className="flex-row items-center gap-2">
-            <Growth_Stroke2_Corner0_Rounded
+            <RiSeedlingLine
               width={20}
               height={20}
               fill="currentColor"

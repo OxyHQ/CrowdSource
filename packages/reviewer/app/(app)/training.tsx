@@ -20,7 +20,7 @@
  */
 
 import { Button } from '@oxy.so/bloom/button';
-import { Beaker_Stroke2_Corner2_Rounded } from '@oxy.so/bloom/icons';
+import { RiFlaskLine } from '@oxy.so/bloom/icons';
 import {
   SegmentedControl,
   SegmentedControlItem,
@@ -61,7 +61,7 @@ export default function TrainingScreen() {
             {training.modules.length === 0 ? (
               <EmptyState
                 icon={
-                  <Beaker_Stroke2_Corner2_Rounded
+                  <RiFlaskLine
                     width={28}
                     height={28}
                     fill="currentColor"

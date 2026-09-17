@@ -7,7 +7,6 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 const exactModuleAliases = new Map([
   ['@expo/vector-icons', path.join(projectRoot, 'shims/expo-vector-icons.ts')],
 ]);
-const bloomFontDataShim = path.join(projectRoot, 'shims/bloom-font-data.web.ts');
 
 const config = getDefaultConfig(projectRoot);
 
@@ -57,28 +56,15 @@ config.resolver = {
   // unused assets to a web bundle. Only the exact legacy barrel request is
   // narrowed; this app imports icon-family subpaths directly.
   resolveRequest: (context, moduleName, platform) => {
-    // Bloom publishes its web fonts as base64 strings in `font-data.web.js`.
-    // Those bytes in the entry graph inflate every initial download even though
-    // the browser already has a cacheable font pipeline; `public/fonts/*` plus
-    // the one-year immutable rule in `public/_headers` is that pipeline. The
-    // override is limited to Bloom's own relative import so no unrelated module
-    // can resolve to the shim.
-    const isBloomFontDataRequest =
-      platform === 'web' &&
-      (moduleName === './font-data.web' || moduleName === './font-data.web.js') &&
-      /[\\/]@oxyhq[\\/]bloom[\\/].*[\\/]fonts[\\/]apply-font-faces\.web\.(?:js|ts)$/.test(
-        context.originModulePath ?? '',
-      );
-
     return context.resolveRequest(
       context,
-      isBloomFontDataRequest ? bloomFontDataShim : exactModuleAliases.get(moduleName) ?? moduleName,
+      exactModuleAliases.get(moduleName) ?? moduleName,
       platform,
     );
   },
   sourceExts: [...config.resolver.sourceExts, 'ts', 'tsx'],
-  // Bloom's `apply-font-faces.web.js` imports `.woff2` at module level, and
-  // Metro does not include that extension in `assetExts` by default.
+  // Bloom's `fonts/font-urls.web.js` imports `.woff2` so Metro emits the fonts as
+  // hashed static assets; Metro does not include that extension by default.
   assetExts: [...config.resolver.assetExts.filter((ext) => ext !== 'svg'), 'wasm', 'woff2', 'woff'],
 };
 

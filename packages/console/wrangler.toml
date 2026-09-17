@@ -22,7 +22,7 @@ directory = "./dist"
 
 # Replaces `public/_redirects` (`/*  /index.html  200`), deleted in the same
 # change. `public/_headers` stays and still carries the immutable rules for
-# `/_expo/static/*` and `/fonts/*`; Workers static assets read it exactly as
+# `/_expo/static/*` and `/assets/*` (Bloom's fonts); Workers static assets read it exactly as
 # Pages did.
 not_found_handling = "single-page-application"
 

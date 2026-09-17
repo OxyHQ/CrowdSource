@@ -11,11 +11,11 @@ import { useTranslation } from "react-i18next";
 import { SideBarItem } from "./SideBarItem";
 
 import {
-    Beaker_Stroke2_Corner2_Rounded,
-    Clock_Stroke2_Corner0_Rounded,
-    Growth_Stroke2_Corner0_Rounded,
-    Heart2_Stroke2_Corner0_Rounded,
-    Home_Stroke2_Corner0_Rounded,
+  RiFlaskLine,
+  RiTimeLine,
+  RiSeedlingLine,
+  RiHeartLine,
+  RiHomeLine,
 } from '@oxy.so/bloom/icons';
 import { ProfileButton } from '@oxy.so/services';
 import { useAuth } from '@oxy.so/services/ui/client';
@@ -76,32 +76,32 @@ export function SideBar({ asDrawer = false, onNavigate }: SideBarProps) {
     const sideBarData = useMemo<{ title: string; icon: React.ReactNode; iconActive: React.ReactNode; route?: Href; onPress?: () => void }[]>(() => [
         {
             title: t("sidebar.home"),
-            icon: <Home_Stroke2_Corner0_Rounded width={26} height={26} fill="currentColor" />,
-            iconActive: <Home_Stroke2_Corner0_Rounded width={26} height={26} fill="currentColor" />,
+            icon: <RiHomeLine width={26} height={26} fill="currentColor" />,
+            iconActive: <RiHomeLine width={26} height={26} fill="currentColor" />,
             route: '/',
         },
         {
             title: t("sidebar.training"),
-            icon: <Beaker_Stroke2_Corner2_Rounded width={26} height={26} fill="currentColor" />,
-            iconActive: <Beaker_Stroke2_Corner2_Rounded width={26} height={26} fill="currentColor" />,
+            icon: <RiFlaskLine width={26} height={26} fill="currentColor" />,
+            iconActive: <RiFlaskLine width={26} height={26} fill="currentColor" />,
             route: '/training',
         },
         {
             title: t("sidebar.history"),
-            icon: <Clock_Stroke2_Corner0_Rounded width={26} height={26} fill="currentColor" />,
-            iconActive: <Clock_Stroke2_Corner0_Rounded width={26} height={26} fill="currentColor" />,
+            icon: <RiTimeLine width={26} height={26} fill="currentColor" />,
+            iconActive: <RiTimeLine width={26} height={26} fill="currentColor" />,
             route: '/history',
         },
         {
             title: t("sidebar.reliability"),
-            icon: <Growth_Stroke2_Corner0_Rounded width={26} height={26} fill="currentColor" />,
-            iconActive: <Growth_Stroke2_Corner0_Rounded width={26} height={26} fill="currentColor" />,
+            icon: <RiSeedlingLine width={26} height={26} fill="currentColor" />,
+            iconActive: <RiSeedlingLine width={26} height={26} fill="currentColor" />,
             route: '/reliability',
         },
         {
             title: t("sidebar.wellbeing"),
-            icon: <Heart2_Stroke2_Corner0_Rounded width={26} height={26} fill="currentColor" />,
-            iconActive: <Heart2_Stroke2_Corner0_Rounded width={26} height={26} fill="currentColor" />,
+            icon: <RiHeartLine width={26} height={26} fill="currentColor" />,
+            iconActive: <RiHeartLine width={26} height={26} fill="currentColor" />,
             route: '/wellbeing',
         },
     ], [t]);
