@@ -69,7 +69,7 @@
     "yaml": "^2.9.0"
   },
   "overrides": {
-    "@oxy.so/contracts": "^1.1.1",
+    "@oxy.so/contracts": "^1.2.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo-secure-store": "56.0.4",
     "expo-file-system": "56.0.8",
@@ -99,7 +99,7 @@
     "@oxy.so/telemetry": "^1.1.1"
   },
   "resolutions": {
-    "@oxy.so/contracts": "^1.1.1",
+    "@oxy.so/contracts": "^1.2.0",
     "@oxy.so/telemetry": "^1.1.1"
   }
 }
