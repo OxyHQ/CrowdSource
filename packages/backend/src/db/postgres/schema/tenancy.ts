@@ -90,12 +90,43 @@ export const applications = pgTable(
     name: text('name').notNull(),
     status: text('status').notNull(),
 
+    /**
+     * The Oxy application this one IS, when it is one of Oxy's own.
+     *
+     * Set, the application may authenticate with an Oxy service token instead of
+     * a CrowdSource credential: Oxy already knows which of its services is
+     * calling — an official app proves what it IS rather than holding a secret
+     * (oxy ADR 0026) — and asking it to also carry a second, hand-issued
+     * credential is asking a human to re-state something the platform can prove.
+     *
+     * Null for everyone else, which is every third party. They run where neither
+     * Oxy nor CrowdSource can attest to anything, so a credential a human issued
+     * is exactly the right instrument, and the whole credential path is
+     * unchanged for them.
+     *
+     * A COLUMN and not a second table: an application either is an Oxy
+     * application or is not, one value, and a join table would let it be two.
+     */
+    oxyApplicationId: text('oxy_application_id'),
+
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (table) => [
     /** "Which applications does this organization own" — the console's list. */
     index('applications_organization_id_idx').on(table.organizationId),
+    /**
+     * One Oxy application is at most one CrowdSource application.
+     *
+     * The uniqueness IS the security property: two rows naming one Oxy
+     * application would make "whose tenant is this token" ambiguous, and the
+     * resolver would answer with whichever row the planner returned first.
+     * Partial, so the many applications with no Oxy identity do not collide on
+     * null.
+     */
+    uniqueIndex('applications_oxy_application_id_key')
+      .on(table.oxyApplicationId)
+      .where(sql`${table.oxyApplicationId} is not null`),
     check(
       'applications_status_check',
       sql`${table.status} in (${sql.raw(inList(APPLICATION_STATUSES))})`,

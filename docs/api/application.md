@@ -58,6 +58,7 @@ holding `crowdsource:enforcement:write` can do nothing with it today.
 
 | Method | Path | Scope |
 | --- | --- | --- |
+| GET | `/v1/applications/me` | — |
 | POST | `/v1/reports` | `crowdsource:reports:write` |
 | GET | `/v1/reports/{reportId}` | `crowdsource:reports:read` |
 | GET | `/v1/cases/{caseId}` | `crowdsource:cases:read` |
@@ -72,6 +73,17 @@ holding `crowdsource:enforcement:write` can do nothing with it today.
 | GET | `/v1/community-notes/shown` | `crowdsource:community-notes:read` |
 | GET | `/v1/community-notes/principals/{principalId}/notes` | `crowdsource:community-notes:read` |
 | GET | `/v1/community-notes/principals/{principalId}/ratings` | `crowdsource:community-notes:read` |
+
+`GET /v1/applications/me` answers with the application and organization the
+caller authenticated as. It is the only route with no scope: it returns the
+caller's own identity, which it has already proven, and reads nothing else.
+
+It exists for first-party Oxy services, which authenticate with an Oxy service
+token and therefore hold no credential to read an application id out of — a
+report envelope names its application (§5.1) and the server refuses one that
+disagrees, so a client that cannot name itself cannot file a report. A client
+holding a CrowdSource service key never needs this route: the id is inside the
+key.
 
 That is the whole application API. There is no search route and no delete route
 anywhere on it, and no list of cases or reports. The only lists are a principal's
