@@ -3,6 +3,7 @@ import type { Request, RequestHandler } from 'express';
 import type { TenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';
 import { authenticateServiceCredential, type ServiceCredentialCaller } from './credential.service';
+import { authenticateOxyServiceToken, looksLikeOxyServiceToken } from './oxyApplicationAuth';
 import type { Scope } from './scopes';
 
 /**
@@ -46,7 +47,21 @@ export function requireServiceCredential(scope: Scope): RequestHandler {
         throw new ApiError('unauthorized', 'This endpoint requires a service credential.');
       }
 
-      const caller = await authenticateServiceCredential(token);
+      /**
+       * Two ways to be an application here, and the token says which.
+       *
+       * A CrowdSource credential is `credentialId:secret`; an Oxy service token
+       * is a JWT. Oxy's own services present the latter and hold no credential
+       * at all (`oxyApplicationAuth.ts`), which is what removes the hand-issued
+       * key from every first-party integration. A third party is unaffected:
+       * it presents a credential and takes the path below exactly as before.
+       *
+       * The shape only picks the verifier. Each path verifies its own token in
+       * full, and a malformed one fails whichever it reached.
+       */
+      const caller = looksLikeOxyServiceToken(token)
+        ? await authenticateOxyServiceToken(token, request)
+        : await authenticateServiceCredential(token);
       if (!caller.scopes.includes(scope)) {
         // 403, not 401: the credential is valid, the capability is not granted
         // (§10.5). Answering 401 would send an integrator to rotate a working
