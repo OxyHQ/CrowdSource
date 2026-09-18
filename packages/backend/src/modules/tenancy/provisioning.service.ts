@@ -103,6 +103,10 @@ export async function createApplication(input: {
     applicationId,
     name,
     status: 'active',
+    // Null here and set only by the first-party bootstrap: an application
+    // created through the console is a third party's, and binding one to an Oxy
+    // identity is a separate, deliberate act.
+    oxyApplicationId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   });

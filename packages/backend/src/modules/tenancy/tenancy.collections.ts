@@ -45,6 +45,12 @@ export interface ApplicationDocument {
   applicationId: string;
   name: string;
   status: ApplicationStatus;
+  /**
+   * The Oxy application this one IS, for Oxy's own services — the binding that
+   * lets them authenticate with an Oxy service token and no credential. Null
+   * for every third party; see the column's docblock in the schema.
+   */
+  oxyApplicationId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
