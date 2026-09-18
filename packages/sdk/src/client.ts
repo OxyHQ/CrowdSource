@@ -49,6 +49,19 @@ export interface CrowdSourceOptions {
    * report belongs to is read off this credential — see `credential.ts`.
    */
   readonly serviceKey?: string;
+  /**
+   * A first-party Oxy service authenticating with NO CrowdSource credential.
+   *
+   * Return a current Oxy service token; it is asked for once per request
+   * attempt, so returning a cached token and refreshing it when it expires is
+   * the expected shape (`oxyServices.getServiceToken()` does exactly that).
+   *
+   * With this set, `serviceKey` is neither needed nor read. CrowdSource resolves
+   * the tenant from the Oxy application the token names, so nothing here has to
+   * be issued, stored or rotated by a person. Third parties keep the service
+   * key: they run where Oxy cannot vouch for them.
+   */
+  readonly oxyToken?: () => string | Promise<string>;
   readonly baseUrl?: string;
   /** Per-attempt deadline. Default 10s. */
   readonly timeoutMs?: number;
@@ -70,8 +83,14 @@ export interface CrowdSourceOptions {
 }
 
 export class CrowdSource {
-  /** The application this client acts as, read off the credential. */
-  readonly applicationId: string;
+  /**
+   * The application this client acts as.
+   *
+   * Read off the credential when there is one. With an Oxy token there is
+   * nothing to read it off — the mapping lives in CrowdSource — so it resolves
+   * on first use from `GET /v1/applications/me` and is remembered.
+   */
+  readonly applicationId: string | Promise<string>;
 
   readonly reports: Reports;
   readonly cases: Cases;
@@ -82,9 +101,17 @@ export class CrowdSource {
   readonly communityNotes: CommunityNotes;
 
   constructor(options: CrowdSourceOptions = {}) {
-    const credential: ServiceCredential = parseServiceKey(
-      options.serviceKey ?? process.env[SERVICE_KEY_ENV_VAR] ?? '',
-    );
+    /**
+     * Two ways to be an application, and exactly one of them is configured.
+     *
+     * The Oxy path is checked first so that a deployment which has BOTH — during
+     * the migration off shared secrets — uses the identity it can prove rather
+     * than the secret it still happens to hold. Removing the key is then the
+     * cleanup, not the cutover.
+     */
+    const credential: ServiceCredential | null = options.oxyToken
+      ? null
+      : parseServiceKey(options.serviceKey ?? process.env[SERVICE_KEY_ENV_VAR] ?? '');
 
     const baseUrl = normalisedBaseUrl(
       options.baseUrl ?? process.env[BASE_URL_ENV_VAR] ?? DEFAULT_BASE_URL,
@@ -97,18 +124,19 @@ export class CrowdSource {
       );
     }
 
+    const oxyToken = options.oxyToken;
     const transport = new Transport({
       baseUrl,
-      bearerToken: credential.bearerToken,
+      bearerToken: credential ? () => credential.bearerToken : () => oxyToken!(),
       timeoutMs,
       maxAttempts: options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
       fetch: fetchImpl,
     });
 
-    this.applicationId = credential.applicationId;
+    this.applicationId = credential ? credential.applicationId : lazyApplicationId(transport);
     this.reports = new Reports({
       transport,
-      applicationId: credential.applicationId,
+      applicationId: this.applicationId,
       environment: options.sandbox === true ? 'sandbox' : 'production',
     });
     this.cases = new Cases(transport);
@@ -116,6 +144,45 @@ export class CrowdSource {
     this.webhookEndpoints = new WebhookEndpoints(transport);
     this.communityNotes = new CommunityNotes(transport);
   }
+}
+
+
+/**
+ * Asks CrowdSource which application this client is, once.
+ *
+ * Only the Oxy-token path needs this: a service key carries the id inside it.
+ * The promise is created at construction and awaited wherever the id is used,
+ * so the lookup happens at most once per client and never blocks a caller that
+ * does not need it (community notes never do; a report does, because its
+ * envelope names the application and the server refuses one that disagrees).
+ *
+ * A failure is not swallowed into a placeholder id. An envelope carrying the
+ * wrong application is refused by the server anyway, and a client that invented
+ * one would turn a clear "we could not identify you" into a confusing 403 on
+ * every report.
+ */
+function lazyApplicationId(transport: Transport): Promise<string> {
+  let pending: Promise<string> | null = null;
+  const resolve = () => (pending ??= askApplicationId(transport));
+  // A thenable rather than a promise: nothing is requested until somebody
+  // awaits it, so a client that only reads community notes — which never name
+  // an application — makes no identity call at all. Awaiting it twice still
+  // makes one.
+  return { then: (onFulfilled, onRejected) => resolve().then(onFulfilled, onRejected) } as Promise<string>;
+}
+
+function askApplicationId(transport: Transport): Promise<string> {
+  return transport
+    .request<{ applicationId?: unknown }>({ method: 'GET', path: '/v1/applications/me' })
+    .then((body) => {
+      const applicationId = body?.applicationId;
+      if (typeof applicationId !== 'string' || applicationId.length === 0) {
+        throw new CrowdSourceConfigurationError(
+          'CrowdSource did not name the application this token belongs to.',
+        );
+      }
+      return applicationId;
+    });
 }
 
 function normalisedBaseUrl(value: string): string {

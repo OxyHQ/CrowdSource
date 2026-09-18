@@ -42,7 +42,15 @@ const RETRY_DELAY_CEILING_MS = 5_000;
 
 export interface TransportConfig {
   readonly baseUrl: string;
-  readonly bearerToken: string;
+  /**
+   * What goes in `Authorization`, resolved per attempt.
+   *
+   * A function and not a string because a first-party service authenticates with
+   * an Oxy service token that EXPIRES (oxy ADR 0026) — a value captured once at
+   * construction would work for an hour and then fail forever. A CrowdSource
+   * service key never changes, so its provider simply returns the same string.
+   */
+  readonly bearerToken: () => string | Promise<string>;
   readonly timeoutMs: number;
   readonly maxAttempts: number;
   readonly fetch: FetchLike;
@@ -167,7 +175,10 @@ export class Transport {
   > {
     const headers: Record<string, string> = {
       accept: 'application/json',
-      authorization: `Bearer ${this.config.bearerToken}`,
+      // Resolved per ATTEMPT, not per call: a retry that outlives a short-lived
+      // token must carry the new one, and this is the only place that knows an
+      // attempt is starting.
+      authorization: `Bearer ${await this.config.bearerToken()}`,
     };
     if (request.body !== undefined) headers['content-type'] = 'application/json';
     if (request.idempotencyKey !== undefined) {

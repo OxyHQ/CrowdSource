@@ -262,3 +262,82 @@ describe('read paths', () => {
     );
   });
 });
+
+/**
+ * The credential-free path (oxy ADR 0026).
+ *
+ * A first-party service holds no CrowdSource key: it presents an Oxy service
+ * token and CrowdSource resolves the tenant. Three properties decide whether
+ * that works in a long-running process rather than just in a first request.
+ */
+describe('authenticating with an Oxy service token', () => {
+  const identityResponse = (applicationId: string) =>
+    new Response(JSON.stringify({ applicationId, organizationId: 'org_x' }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+
+  it('needs no service key at all', () => {
+    expect(
+      () => new CrowdSource({ oxyToken: () => 'header.payload.signature', fetch: async () => new Response('{}') }),
+    ).not.toThrow();
+  });
+
+  it('asks for the token on EVERY attempt, so an expiring one is refreshed', async () => {
+    let issued = 0;
+    const seen: string[] = [];
+    const fetchImpl = (async (_url: string, init: RequestInit) => {
+      seen.push(String((init.headers as Record<string, string>).authorization));
+      // The shape `shown` expects; this case is about the header, not the body.
+      return new Response(JSON.stringify({ notes: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as unknown as typeof fetch;
+
+    const crowdsource = new CrowdSource({
+      oxyToken: () => `token-${++issued}`,
+      fetch: fetchImpl,
+    });
+    await crowdsource.communityNotes.shown(['p1']);
+    await crowdsource.communityNotes.shown(['p2']);
+
+    // Two calls, two tokens: nothing captured the first one for the process's
+    // life. And exactly two — reading notes never asks who we are.
+    expect(seen).toEqual(['Bearer token-1', 'Bearer token-2']);
+  });
+
+  it('learns which application it is from CrowdSource, once', async () => {
+    let identityCalls = 0;
+    const fetchImpl = (async (url: string) => {
+      if (String(url).endsWith('/v1/applications/me')) {
+        identityCalls += 1;
+        return identityResponse('app_resolved');
+      }
+      return new Response(JSON.stringify({ notes: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as unknown as typeof fetch;
+
+    const crowdsource = new CrowdSource({ oxyToken: () => 'header.payload.signature', fetch: fetchImpl });
+
+    await crowdsource.communityNotes.shown(['p1']);
+    // Nobody has asked who we are yet, so nobody has been asked.
+    expect(identityCalls).toBe(0);
+
+    await expect(crowdsource.applicationId).resolves.toBe('app_resolved');
+    await expect(crowdsource.applicationId).resolves.toBe('app_resolved');
+    expect(identityCalls).toBe(1);
+  });
+
+  it('prefers the token when a deployment still holds a key, so removing it is cleanup', () => {
+    const crowdsource = new CrowdSource({
+      serviceKey: 'app_1:cred_1:secret',
+      oxyToken: () => 'header.payload.signature',
+      fetch: async () => new Response('{}'),
+    });
+    // A resolved id would mean the key won; a promise means the token did.
+    expect(typeof (crowdsource.applicationId as Promise<string>).then).toBe('function');
+  });
+});

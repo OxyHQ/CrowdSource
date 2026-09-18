@@ -57,12 +57,18 @@ export interface ReportRequestOptions {
 
 export class Reports {
   private readonly transport: Transport;
-  private readonly applicationId: string;
+  /**
+   * Awaited rather than read: with an Oxy service token the client has no
+   * credential to read an application id off, so the id is resolved from
+   * CrowdSource once and this holds that answer (settled or still in flight).
+   * A service key resolves to a plain string, and awaiting one costs nothing.
+   */
+  private readonly applicationId: string | Promise<string>;
   private readonly environment: 'production' | 'sandbox';
 
   constructor(input: {
     transport: Transport;
-    applicationId: string;
+    applicationId: string | Promise<string>;
     environment: 'production' | 'sandbox';
   }) {
     this.transport = input.transport;
@@ -90,7 +96,7 @@ export class Reports {
     options: ReportRequestOptions = {},
   ): Promise<CreateReportResponse> {
     const envelope = composeCaseEnvelope(input, {
-      applicationId: this.applicationId,
+      applicationId: await this.applicationId,
       environment: this.environment,
     });
 

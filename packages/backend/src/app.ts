@@ -11,6 +11,7 @@ import { casesRouter } from './modules/cases/cases.routes';
 import { consoleRouter } from './modules/console/console.routes';
 import { trustSafetyRouter } from './modules/console/trustSafety.routes';
 import { decisionsRouter } from './modules/decision/decisions.routes';
+import { identityRouter } from './modules/tenancy/identity.routes';
 import { reportsRouter } from './modules/ingestion/reports.routes';
 import { reviewsRouter } from './modules/review/reviews.routes';
 import { reviewerRouter } from './modules/reviewer/reviewer.routes';
@@ -68,6 +69,9 @@ export function createApp(): Express {
    * their own paths; neither may ever satisfy the other's middleware.
    */
   const v1: Router = Router();
+  // Identity first: it is the one route that answers before a caller knows
+  // which application it is.
+  v1.use(identityRouter);
   v1.use(reportsRouter);
   v1.use(casesRouter);
   v1.use(appealsRouter);

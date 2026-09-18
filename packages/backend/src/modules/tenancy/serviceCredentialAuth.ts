@@ -84,6 +84,37 @@ export function requireServiceCredential(scope: Scope): RequestHandler {
  * the middleware is a mounting mistake, and it has to fail loudly on the first
  * request rather than quietly serve one tenant's data with no tenant at all.
  */
+/**
+ * Authenticates without requiring any scope.
+ *
+ * For the one question that is not about data: "who am I here". A caller that
+ * has authenticated already knows it is entitled to that answer, and demanding a
+ * data scope to learn one's own application id would mean an integrator needs
+ * `reports:read` to find out where its reports would go.
+ *
+ * Deliberately NOT exported as a general-purpose "authenticate only" middleware:
+ * a route mounted with authentication and no authorization is the mistake
+ * `requireServiceCredential` exists to prevent, and the one caller here is an
+ * identity echo that reads nothing.
+ */
+export function requireAnyServiceCredential(): RequestHandler {
+  return async (request, _response, next) => {
+    try {
+      const token = presentedToken(request);
+      if (!token) {
+        throw new ApiError('unauthorized', 'This endpoint requires a service credential.');
+      }
+      const caller = looksLikeOxyServiceToken(token)
+        ? await authenticateOxyServiceToken(token, request)
+        : await authenticateServiceCredential(token);
+      authenticatedCallers.set(request, caller);
+      next();
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+}
+
 export function serviceCredentialCaller(request: Request): ServiceCredentialCaller {
   const caller = authenticatedCallers.get(request);
   if (!caller) {
