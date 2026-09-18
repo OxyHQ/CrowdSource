@@ -36,8 +36,15 @@ export const MIGRATOR_ROLE = 'crowdsource_migrator';
 // Generated from independently migrated PostgreSQL 17 Docker and RDS catalogs.
 // Changing covered DDL or privileges requires an intentional canonical-catalog
 // review; host collation versions are validated before this digest is computed.
+//
+// Re-pinned 2026-09-18 for `applications.oxy_application_id` and its partial
+// unique index (migration 0016): the column that lets a first-party Oxy service
+// authenticate with no CrowdSource credential. The review is that the DDL is
+// exactly those two objects and nothing else — and the value below was computed
+// twice, on a local Docker catalog and on CI's, which agreed. A digest taken
+// from one run is a digest that can encode whatever that host happened to have.
 export const EXPECTED_POSTGRES_CATALOG_SHA256 =
-  'sha256:f5e3882259be7f163461eec18778f79cb5971adc6bffe0eb8f78a3bc26fa0d6b';
+  'sha256:52d75c52a2f62931cbcdfaa7f789bf6a361f7701b38aa0956ece9c363b81d7ae';
 
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/;
