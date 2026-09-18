@@ -222,6 +222,11 @@ function routeFiles(directory: string): string[] {
 
 const GUARD_CLASSES: ReadonlyMap<string, CallerClass> = new Map([
   ['requireServiceCredential', 'service-credential'],
+  // Same caller class, no scope: the one route that answers "which application
+  // am I", which a caller has already proven and which reads no data. Its
+  // `scope` resolves to null below, exactly as it does for a session guard, so
+  // the scope claims in the docs are unaffected.
+  ['requireAnyServiceCredential', 'service-credential'],
   ['requireReviewerSession', 'reviewer-session'],
   ['requireConsoleSession', 'console-session'],
   ['requireStaffRole', 'staff-session'],
@@ -364,8 +369,12 @@ describe('the route tables describe the routes that are served', () => {
     const scopeOf = new Map(served.map((route) => [route.signature, route.scope]));
 
     for (const route of documentedRoutes(applicationApi)) {
-      expect(route.qualifier, `${route.signature} has no scope column`).not.toBeNull();
-      expect(scopeOf.get(route.signature), `${route.signature}`).toBe(route.qualifier);
+      // A blank cell is an omission and still fails: the column has to SAY
+      // something. An em dash says "no scope", which is a real answer for the
+      // one route that returns the caller's own identity and reads nothing.
+      expect(route.qualifier, `${route.signature} has no scope column`).toBeTruthy();
+      const documented = route.qualifier === '—' ? null : route.qualifier;
+      expect(scopeOf.get(route.signature), `${route.signature}`).toBe(documented);
     }
   });
 

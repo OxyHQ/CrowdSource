@@ -371,6 +371,11 @@ brokenReferences.applications = [{
   organizationId: 'org_absent',
   name: 'Broken fixture',
   status: 'active',
+  // A CANONICAL row, so it carries every nullable column explicitly — the
+  // round-trip check runs before the reference check and compares hashes, so a
+  // field omitted here fails as "cannot round-trip" and this case would stop
+  // testing what it is named for.
+  oxyApplicationId: null,
   createdAt: '2026-09-03T00:00:00.000Z',
   updatedAt: '2026-09-03T00:00:00.000Z',
 }];
