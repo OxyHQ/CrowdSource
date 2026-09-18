@@ -361,6 +361,9 @@ describe('the tenant boundary', () => {
       applicationId,
       name: 'Orphaned Application',
       status: 'active',
+      // Not an Oxy service: the binding is what a first-party application has
+      // INSTEAD of a credential, and a third party's row carries none.
+      oxyApplicationId: null,
       createdAt: now,
       updatedAt: now,
     });

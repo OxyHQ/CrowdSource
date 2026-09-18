@@ -78,13 +78,6 @@ export function requireServiceCredential(scope: Scope): RequestHandler {
 }
 
 /**
- * The caller `requireServiceCredential` authenticated for this request.
- *
- * Throws when the request was never authenticated. A route reachable without
- * the middleware is a mounting mistake, and it has to fail loudly on the first
- * request rather than quietly serve one tenant's data with no tenant at all.
- */
-/**
  * Authenticates without requiring any scope.
  *
  * For the one question that is not about data: "who am I here". A caller that
@@ -92,9 +85,9 @@ export function requireServiceCredential(scope: Scope): RequestHandler {
  * data scope to learn one's own application id would mean an integrator needs
  * `reports:read` to find out where its reports would go.
  *
- * Deliberately NOT exported as a general-purpose "authenticate only" middleware:
- * a route mounted with authentication and no authorization is the mistake
- * `requireServiceCredential` exists to prevent, and the one caller here is an
+ * Exported for exactly one route, and it should stay that way: a route mounted
+ * with authentication and no authorization is the mistake
+ * `requireServiceCredential` exists to prevent, and the single caller is an
  * identity echo that reads nothing.
  */
 export function requireAnyServiceCredential(): RequestHandler {
@@ -115,6 +108,13 @@ export function requireAnyServiceCredential(): RequestHandler {
   };
 }
 
+/**
+ * The caller the authenticating middleware resolved for this request.
+ *
+ * Throws when the request was never authenticated. A route reachable without
+ * the middleware is a mounting mistake, and it has to fail loudly on the first
+ * request rather than quietly serve one tenant's data with no tenant at all.
+ */
 export function serviceCredentialCaller(request: Request): ServiceCredentialCaller {
   const caller = authenticatedCallers.get(request);
   if (!caller) {

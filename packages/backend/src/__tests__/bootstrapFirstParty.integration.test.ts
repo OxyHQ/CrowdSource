@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { bootstrapFirstParty } from '../scripts/bootstrapFirstParty';
+import { bootstrapFirstParty, parseArguments } from '../modules/tenancy/bootstrapFirstParty';
 import { applications, organizations } from '../modules/tenancy/tenancy.collections';
 import { startDatabase, stopDatabase } from './support/tenants';
 
@@ -82,5 +82,64 @@ describe('bootstrapping a first-party application', () => {
     await expect(
       bootstrapFirstParty({ ...args(name, `oxy-app-${randomUUID()}`), organizationSlug: slug }),
     ).rejects.toThrow(/already bound to a different Oxy application/);
+  });
+});
+
+/**
+ * The argv the one-off task is invoked with.
+ *
+ * Worth its own tests because the operator gets ONE shot at typing this into a
+ * `run-task` override, at a moment when the service it onboards is already
+ * deployed and failing to authenticate. A flag silently read as empty, or a
+ * value silently read as a flag, would bind the wrong thing or nothing at all —
+ * and the entrypoint around this function is deliberately too thin to hold an
+ * assertion of its own.
+ */
+describe('reading the arguments', () => {
+  it('reads the two flags that identify the application', () => {
+    expect(parseArguments(['--name', 'Mention', '--oxy-application-id', 'app_1'])).toMatchObject({
+      name: 'Mention',
+      oxyApplicationId: 'app_1',
+    });
+  });
+
+  it('defaults the organization to the one every Oxy service shares', () => {
+    const args = parseArguments(['--name', 'Mention', '--oxy-application-id', 'app_1']);
+
+    expect(args).toMatchObject({ organizationSlug: 'oxy', organizationName: 'Oxy' });
+  });
+
+  it('lets both organization fields be named explicitly', () => {
+    const args = parseArguments([
+      '--name',
+      'Mention',
+      '--oxy-application-id',
+      'app_1',
+      '--organization-slug',
+      'oxy-staging',
+      '--organization-name',
+      'Oxy Staging',
+    ]);
+
+    expect(args).toMatchObject({ organizationSlug: 'oxy-staging', organizationName: 'Oxy Staging' });
+  });
+
+  it.each([
+    ['nothing at all', [], /--name is required/],
+    ['no application', ['--name', 'Mention'], /--oxy-application-id is required/],
+    ['a name that is only spaces', ['--name', '   ', '--oxy-application-id', 'app_1'], /--name is required/],
+    ['a flag with no value', ['--name', 'Mention', '--oxy-application-id'], /Unrecognised argument/],
+    ['a bare word', ['name', 'Mention'], /Unrecognised argument/],
+  ])('refuses %s', (_label, argv, message) => {
+    expect(() => parseArguments(argv)).toThrow(message);
+  });
+
+  it('falls back to the default when an organization flag is blank', () => {
+    // `--organization-slug ''` is what an unset shell variable expands to in a
+    // `run-task` override, and it must not create an organization with an empty
+    // slug.
+    const args = parseArguments(['--name', 'Mention', '--oxy-application-id', 'app_1', '--organization-slug', '  ']);
+
+    expect(args.organizationSlug).toBe('oxy');
   });
 });
