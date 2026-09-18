@@ -94,6 +94,11 @@ describe('the client surface', () => {
   it('has no way to be told which application a report belongs to', () => {
     const optionKeys: keyof import('../client').CrowdSourceOptions extends
       | 'serviceKey'
+      // How a first-party service authenticates, NOT which application it is:
+      // the token names an Oxy application and CrowdSource maps it to a tenant,
+      // so the caller still cannot choose one. That is the invariant this case
+      // protects, and an option that widened it would still fail here.
+      | 'oxyToken'
       | 'baseUrl'
       | 'timeoutMs'
       | 'maxAttempts'
