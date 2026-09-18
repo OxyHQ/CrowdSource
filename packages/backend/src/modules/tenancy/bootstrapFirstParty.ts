@@ -1,5 +1,5 @@
-import { applications, organizations } from '../modules/tenancy/tenancy.collections';
-import { createApplication, createOrganization } from '../modules/tenancy/provisioning.service';
+import { createApplication, createOrganization } from './provisioning.service';
+import { applications, organizations } from './tenancy.collections';
 
 /**
  * Onboards one of Oxy's own applications, so it can authenticate with an Oxy
@@ -28,9 +28,10 @@ import { createApplication, createOrganization } from '../modules/tenancy/provis
  * DIFFERENT CrowdSource application. That last one is a genuine conflict and
  * silently repointing it would move a tenant's data out from under it.
  *
- * This module only DEFINES the work; `runBootstrapFirstParty.ts` is what runs
- * it. A module that acts when imported cannot be tested — importing it once
- * exited the test worker with code 1, which is how that split came about.
+ * This module only DEFINES the work; `scripts/bootstrapFirstParty.ts` is what
+ * runs it. A module that acts when imported acts in every test that imports it —
+ * importing the first version once exited the test worker with code 1, which is
+ * how that split came about.
  */
 
 export interface Arguments {
