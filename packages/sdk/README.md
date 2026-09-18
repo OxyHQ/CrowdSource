@@ -60,7 +60,7 @@ Anything in that table can be overridden per report. Nothing in it has to be.
 
 | Variable | |
 | --- | --- |
-| `CROWDSOURCE_SERVICE_KEY` | Required. The one value an integration configures. |
+| `CROWDSOURCE_SERVICE_KEY` | Required for a third party. The one value an integration configures. An Oxy service sets `oxyToken` instead and configures nothing — see "Oxy's own services" below. |
 | `CROWDSOURCE_BASE_URL` | Optional. Overrides the service host — set it only to point at a local backend. `http://` is accepted for `localhost` and refused for anything else, because a service credential sent in clear is a credential you have to rotate. |
 
 There is **no** `CROWDSOURCE_APP_ID` and there never will be. The application a
@@ -85,6 +85,32 @@ report belongs to is read off the credential; see "The service key" below.
 - **Server-side only.** A service credential is your whole moderation stream;
   this package depends on `node:crypto` and must never reach a browser or a
   mobile bundle.
+
+## Oxy's own services
+
+Mention, Alia, Homiio and the rest hold no service key. They present the Oxy
+service token their own infrastructure already issues, and CrowdSource resolves
+the tenant from the Oxy application it names:
+
+```ts
+const crowdsource = new CrowdSource({
+  oxyToken: () => oxyServices.getServiceToken(),
+});
+```
+
+`oxyToken` is asked once per request attempt, so a cached token refreshed on
+expiry is the expected shape — which is what `getServiceToken()` returns. With it
+set, `CROWDSOURCE_SERVICE_KEY` is neither needed nor read, and there is nothing
+to rotate, store or leak.
+
+The token names an *Oxy* application, so there is no `applicationId` to read off
+it. The client asks `GET /v1/applications/me` once on first use and remembers the
+answer, which is why `applicationId` is a promise on this path and a string on
+the other.
+
+This is not a way around registration: the Oxy application must be bound to a
+CrowdSource one first, and an unbound token authenticates nothing. Third parties
+keep the service key — they run where Oxy cannot vouch for them.
 
 ## The service key
 

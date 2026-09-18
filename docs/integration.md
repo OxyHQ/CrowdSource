@@ -17,6 +17,13 @@ problem. Declare it once and own its version.
 
 ## 1. Get a service key
 
+> **An Oxy service does not do this step at all.** Mention, Alia, Homiio and the
+> rest hold no CrowdSource key: they present the Oxy service token their own
+> infrastructure already issues, and CrowdSource resolves the tenant from the
+> application it names. See [Oxy's own services](#oxys-own-services-hold-no-key)
+> below. Everything from here to the end of this section is for a third party,
+> which is who registration exists for.
+
 ```bash
 CROWDSOURCE_SERVICE_KEY=app_…:cred_…:…
 ```
@@ -306,11 +313,76 @@ version `2026.07` — a pinned immutable version, never "whatever is current" �
 over the universal taxonomy. See [the policy document](./policies/README.md) for
 what that means and what a jury will actually be asked.
 
+## Oxy's own services hold no key
+
+A CrowdSource credential does two jobs: it proves the caller is who it claims,
+and it names the tenant. For a third party both need a credential — nobody can
+vouch for them, and registration is where trust starts.
+
+For Oxy's own services the first job is already done, and done better. Under
+[oxy ADR 0026][adr-0026] an official service proves what it *is* to Oxy using an
+identity its infrastructure issues and rotates, with no secret anybody typed, and
+receives a short-lived Oxy service token naming the application. Handing that
+service a second, hand-issued CrowdSource key means a person re-stating something
+the platform can already prove, and then keeping the restatement in a parameter
+store forever.
+
+So pass the token instead of the key:
+
+```ts
+import { CrowdSource } from '@oxy.so/crowdsource';
+import { OxyServices } from '@oxy.so/core';
+
+const oxy = new OxyServices({ baseURL: 'https://api.oxy.so' });
+
+const crowdsource = new CrowdSource({
+  oxyToken: () => oxy.getServiceToken(),
+});
+```
+
+`oxyToken` is asked once per request attempt, so returning a cached token and
+refreshing it when it expires is the expected shape — which is exactly what
+`getServiceToken()` does. With it set, `CROWDSOURCE_SERVICE_KEY` is neither
+needed nor read.
+
+What is **not** relaxed:
+
+- **The token must be Oxy's**, verified against Oxy's published keys by
+  `@oxy.so/core`. A self-signed token is not a token.
+- **The application must be bound.** A valid Oxy token for an application nobody
+  linked to a CrowdSource tenant authenticates nothing. Binding is an explicit
+  act — one row, no secret — and removing it is how a service is cut off.
+- **The tenant still comes from the stored row**, never from the request, which
+  is the same rule the credential path follows.
+- **Privileged scopes stay unreachable.** A first-party service gets every scope
+  an application credential may hold and nothing beyond it.
+
+Because the token names an Oxy application rather than a CrowdSource one, a
+client built this way has nothing to read its own `applicationId` off. It asks
+`GET /v1/applications/me` once, on first use, and remembers the answer; the SDK
+does this for you and `crowdsource.applicationId` is a promise in that case.
+
+### Binding a service
+
+One row, written by a one-off task inside the VPC — not a console click, because
+nothing about it is a decision a person makes per service:
+
+```bash
+node dist/scripts/bootstrapFirstParty.js --name Mention --oxy-application-id <oxy application id>
+```
+
+It is idempotent: it reuses the `oxy` organization, reuses an existing binding,
+and refuses only when the same Oxy application is already bound to a *different*
+CrowdSource application — which would move a tenant's data out from under the
+service that owns it.
+
+[adr-0026]: https://github.com/OxyHQ/oxy/blob/main/docs/adr/0026-first-party-services-authenticate-as-workloads.md
+
 ## Environment reference
 
 | Variable | Package | |
 | --- | --- | --- |
-| `CROWDSOURCE_SERVICE_KEY` | `@oxy.so/crowdsource` | Required. `applicationId:credentialId:secret`. |
+| `CROWDSOURCE_SERVICE_KEY` | `@oxy.so/crowdsource` | Required for a third party. `applicationId:credentialId:secret`. An Oxy service sets `oxyToken` instead and configures nothing. |
 | `CROWDSOURCE_BASE_URL` | `@oxy.so/crowdsource` | Optional. Overrides the host. `http://` is accepted for `localhost` and refused otherwise. |
 | `CROWDSOURCE_WEBHOOK_SECRET` | `@oxy.so/crowdsource-express` | The active signing secret. |
 | `CROWDSOURCE_WEBHOOK_SECRET_PREVIOUS` | `@oxy.so/crowdsource-express` | The secret being retired. Set during a rotation overlap; clear it after `previousSecret.expiresAt`. |
