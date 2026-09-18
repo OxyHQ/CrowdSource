@@ -80,6 +80,32 @@ describe('crowdsourceWebhooks', () => {
     });
   });
 
+  it('dispatches a community note status change to its handler, not to onUnhandled', async () => {
+    const changed = vi.fn();
+    const unhandled = vi.fn();
+    const { simulator } = await harness({ on: { 'community_note.status_changed': changed }, onUnhandled: unhandled });
+    const event = {
+      id: 'evt_community_note_1',
+      createdAt: '2026-09-02T10:00:00.000Z',
+      organizationId: 'org_1',
+      applicationId: 'app_1',
+      type: 'community_note.status_changed',
+      data: {
+        noteId: 'cnt_1',
+        externalSubjectId: 'post_1',
+        authorPrincipalId: 'user_writer',
+        previousStatus: 'needs_ratings',
+        status: 'shown',
+      },
+    };
+
+    const result = await simulator.deliver(event);
+
+    expect(result.body).toMatchObject({ received: true, handled: true });
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(unhandled).not.toHaveBeenCalled();
+  });
+
   /**
    * The headline case. An application with `express.json()` mounted globally is
    * the normal shape of an Express app, and it is exactly the shape in which a

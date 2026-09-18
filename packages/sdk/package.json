@@ -1,6 +1,6 @@
 {
   "name": "@oxy.so/crowdsource",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TypeScript client for the CrowdSource moderation API: reports, uploads, cases and decisions",
   "type": "commonjs",
   "main": "dist/index.js",
@@ -55,6 +55,6 @@
     "!src/**/__tests__/**"
   ],
   "peerDependencies": {
-    "@oxy.so/crowdsource-contracts": "^1.0.0"
+    "@oxy.so/crowdsource-contracts": "^1.1.0"
   }
 }

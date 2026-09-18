@@ -81,6 +81,10 @@ These PostgreSQL unique indexes/constraints are **required** — every one of th
 - `applicationId + idempotencyKey` — a retry returns the same `reportId`.
 - `applicationId + externalSubjectId + contentHash + policyVersion` — the case dedup key.
 - `caseId + reviewerId + decisionRevision` — one review per juror per revision.
+- `applicationId + idempotencyKey` on `community_notes` and `community_note_ratings` — a retried note or rating returns the stored one.
+- `applicationId + externalSubjectId + authorPrincipalId` — one community note per writer per subject.
+- `applicationId + noteId + raterPrincipalId` on ratings and assignments — one rating, and one live assignment, per rater per note.
+- `applicationId + noteId + revision` — one community note status revision per number.
 - `webhookEndpointId + eventId` — one logical delivery, many attempts.
 - `incidentId + principalId + effectType + decisionRevision` — one reputation effect per incident and revision.
 - Plus operational indexes: case `status + priority + createdAt`, and the reviewer eligibility dimensions (category, language, state, sensitivity).

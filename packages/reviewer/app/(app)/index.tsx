@@ -9,7 +9,7 @@
  */
 
 import { Button } from '@oxy.so/bloom/button';
-import { CircleCheck_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiCheckboxCircleLine } from '@oxy.so/bloom/icons';
 import { getNormalizedUserHandle } from '@oxy.so/core';
 import { useAuth } from '@oxy.so/services/ui/client';
 import { useRouter } from 'expo-router';
@@ -164,7 +164,7 @@ function ReviewerStanding({ profile, hasOpenAssignment }: ReviewerStandingProps)
         {noCaseAvailable ? (
           <EmptyState
             icon={
-              <CircleCheck_Stroke2_Corner0_Rounded
+              <RiCheckboxCircleLine
                 width={28}
                 height={28}
                 fill="currentColor"

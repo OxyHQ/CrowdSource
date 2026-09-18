@@ -28,10 +28,10 @@ attack; keep it if you persist `event.data`.
 
 ## Event catalogue
 
-Eight types are defined (`WEBHOOK_EVENT_TYPES` in
-`@oxy.so/crowdsource-contracts`). **Five are wired and three are not**, and the
+Nine types are defined (`WEBHOOK_EVENT_TYPES` in
+`@oxy.so/crowdsource-contracts`). **Six are wired and three are not**, and the
 difference matters when you decide what to subscribe to. Registration rejects a
-type outside those eight (`assertKnownEventTypes` in
+type outside those nine (`assertKnownEventTypes` in
 `modules/webhooks/endpoint.service.ts`) but accepts the three unwired ones — so
 subscribing to one of those is silently a subscription to nothing.
 
@@ -42,6 +42,7 @@ subscribing to one of those is silently a subscription to nothing.
 | `decision.corrected` | `{ caseId, decision }` (must supersede) | yes |
 | `appeal.created` | `{ caseId, appealId }` | yes |
 | `appeal.decided` | `{ caseId, appealId, decision }` | yes |
+| `community_note.status_changed` | `{ noteId, externalSubjectId, authorPrincipalId, previousStatus, status }` | yes |
 | `case.created` | `{ caseId }` | **no** |
 | `case.escalated` | `{ caseId }` | **no** |
 | `case.closed` | `{ caseId }` | **no** |
@@ -178,8 +179,8 @@ A suite that only ever sends valid deliveries proves the receiver can say yes.
 ## Machine-checked claims
 
 ```docs-claims
-webhook-event-types: report.received, case.created, case.escalated, case.decided, decision.corrected, appeal.created, appeal.decided, case.closed
-wired-webhook-events: report.received, case.decided, decision.corrected, appeal.created, appeal.decided
+webhook-event-types: report.received, case.created, case.escalated, case.decided, decision.corrected, appeal.created, appeal.decided, case.closed, community_note.status_changed
+wired-webhook-events: report.received, case.decided, decision.corrected, appeal.created, appeal.decided, community_note.status_changed
 retry-schedule-seconds: 30, 120, 900, 3600, 21600, 86400
 webhook-max-attempts: 7
 webhook-client-error-max-attempts: 3

@@ -90,6 +90,9 @@ export { Cases, Decisions } from './cases.js';
 export type { CaseView, ReadOptions } from './cases.js';
 
 
+export { CommunityNotes } from './communityNotes.js';
+export type { CommunityNoteReadOptions, CommunityNoteRequestOptions } from './communityNotes.js';
+
 export { WebhookEndpoints } from './webhookEndpoints.js';
 export type {
   RegisterWebhookEndpointInput,

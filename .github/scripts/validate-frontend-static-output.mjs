@@ -35,7 +35,7 @@ if (!(await exists(headersPath))) {
   failures.push("_headers is missing");
 } else {
   const headers = await readFile(headersPath, "utf8");
-  for (const route of ["/_expo/static/*", "/fonts/*"]) {
+  for (const route of ["/_expo/static/*", "/assets/*"]) {
     const escapedRoute = route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const immutableRule = new RegExp(
       `^${escapedRoute}\\s*\\n(?:[ \\t]+[^\\n]*\\n)*?[ \\t]+Cache-Control:\\s*public,\\s*max-age=31536000,\\s*immutable\\s*$`,

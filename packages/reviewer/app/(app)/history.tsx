@@ -12,7 +12,7 @@
  */
 
 import { Button } from '@oxy.so/bloom/button';
-import { Clock_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiTimeLine } from '@oxy.so/bloom/icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
@@ -40,7 +40,7 @@ export default function HistoryScreen() {
           {entries.length === 0 ? (
             <EmptyState
               icon={
-                <Clock_Stroke2_Corner0_Rounded
+                <RiTimeLine
                   width={28}
                   height={28}
                   fill="currentColor"

@@ -18,7 +18,7 @@
  * because both read the one signal in `BottomBarVisibilityContext`.
  */
 
-import { Bars3_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiMenuLine } from '@oxy.so/bloom/icons';
 import { IconButton } from '@oxy.so/bloom/button';
 import React, { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -184,7 +184,7 @@ function MenuButton() {
       // `icon` rather than as a child because the native fork wraps children in
       // a `<Text>`, which is no place for an SVG.
       icon={
-        <Bars3_Stroke2_Corner0_Rounded
+        <RiMenuLine
           width={MENU_ICON_SIZE}
           height={MENU_ICON_SIZE}
           fill="currentColor"

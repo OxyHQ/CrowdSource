@@ -40,6 +40,8 @@ Ingress and access, which is where the tenant boundary is either held or broken:
 | `case.read` | `GET /v1/cases/{id}` hit. |
 | `decision.read` | `GET /v1/decisions/{id}` hit. |
 | `appeal.filed` / `appeal.filed.replayed` | An appeal, as an act and nothing more. |
+| `community_note.written` / `community_note.withdrawn` / `community_note.rated` | A community note act, with the note id as `subjectId` — never its text, never a principal. |
+| `community_note.assignments.issued` | A batch of notes drawn for a rater. No note ids, no rater. |
 | `console.credential.issued` | |
 | `console.credential.revoked` | |
 | `console.webhook.secret.rotated` | |
@@ -212,7 +214,7 @@ before writing the query, not after.
 ```docs-claims
 audit-collection: audit_events
 staff-audit-collection: staff_audit_events
-audit-actions: report.ingress.accepted, report.ingress.replayed, report.ingress.rejected, report.receipt.read, case.read, decision.read, appeal.filed, appeal.filed.replayed, console.credential.issued, console.credential.revoked, console.webhook.secret.rotated, console.delivery.replayed, console.application.created
+audit-actions: report.ingress.accepted, report.ingress.replayed, report.ingress.rejected, report.receipt.read, case.read, decision.read, appeal.filed, appeal.filed.replayed, community_note.written, community_note.withdrawn, community_note.assignments.issued, community_note.rated, console.credential.issued, console.credential.revoked, console.webhook.secret.rotated, console.delivery.replayed, console.application.created
 audit-reasons: schema_invalid, application_mismatch, unsafe_resource_url, policy_unknown, payload_conflict
 staff-audit-actions: staff.applications.read, staff.escalated.read, staff.metrics.read, staff.deadletter.read, staff.standing.changed
 staff-roles: policy, appeals, evidence, security

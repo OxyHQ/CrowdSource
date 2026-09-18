@@ -295,6 +295,8 @@ async function invoke(
       return await call(handlers['appeal.decided'], event);
     case 'case.closed':
       return await call(handlers['case.closed'], event);
+    case 'community_note.status_changed':
+      return await call(handlers['community_note.status_changed'], event);
     default:
       return false;
   }

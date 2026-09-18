@@ -13,7 +13,7 @@
  */
 
 import { Button } from '@oxy.so/bloom/button';
-import { PageX_Stroke2_Corner0_Rounded_Large } from '@oxy.so/bloom/icons';
+import { RiFileCloseLine } from '@oxy.so/bloom/icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +32,7 @@ export default function NotFoundScreen() {
     <Screen title={t('notFound.heading')}>
       <EmptyState
         icon={
-          <PageX_Stroke2_Corner0_Rounded_Large
+          <RiFileCloseLine
             width={NOT_FOUND_ICON_SIZE}
             height={NOT_FOUND_ICON_SIZE}
             fill="currentColor"

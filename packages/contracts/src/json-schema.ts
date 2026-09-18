@@ -29,6 +29,12 @@
 import { z } from 'zod';
 
 import { AppealSchema, AppealSubmissionSchema } from './appeals.js';
+import {
+  CommunityNoteAssignmentRequestSchema,
+  CommunityNoteRatingSubmissionSchema,
+  CommunityNoteSchema,
+  CommunityNoteSubmissionSchema,
+} from './community-notes.js';
 import { CaseEnvelopeSchema, CreateReportRequestSchema, CreateReportResponseSchema } from './case-envelope.js';
 import { DecisionSchema } from './decisions.js';
 import { PolicySetVersionSchema } from './policies.js';
@@ -53,6 +59,10 @@ export const CONTRACT_JSON_SCHEMA_NAMES = [
   'decision',
   'appeal-submission',
   'appeal',
+  'community-note-submission',
+  'community-note-assignment-request',
+  'community-note-rating-submission',
+  'community-note',
   'webhook-event-envelope',
   'known-webhook-event',
   'reputation-event',
@@ -80,6 +90,10 @@ export const CONTRACT_SCHEMAS: Record<ContractJsonSchemaName, z.ZodType> = {
   decision: DecisionSchema,
   'appeal-submission': AppealSubmissionSchema,
   appeal: AppealSchema,
+  'community-note-submission': CommunityNoteSubmissionSchema,
+  'community-note-assignment-request': CommunityNoteAssignmentRequestSchema,
+  'community-note-rating-submission': CommunityNoteRatingSubmissionSchema,
+  'community-note': CommunityNoteSchema,
   'webhook-event-envelope': WebhookEventEnvelopeSchema,
   'known-webhook-event': KnownWebhookEventSchema,
   'reputation-event': ReputationEventSchema,

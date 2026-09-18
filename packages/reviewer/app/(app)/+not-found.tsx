@@ -12,7 +12,7 @@
  */
 
 import { Button } from '@oxy.so/bloom/button';
-import { MagnifyingGlassX_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiSearchLine } from '@oxy.so/bloom/icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -31,7 +31,7 @@ export default function NotFoundScreen() {
     <Screen title={t('notFound.heading')}>
       <EmptyState
         icon={
-          <MagnifyingGlassX_Stroke2_Corner0_Rounded
+          <RiSearchLine
             width={28}
             height={28}
             fill="currentColor"

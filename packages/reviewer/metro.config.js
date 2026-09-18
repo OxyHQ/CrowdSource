@@ -7,7 +7,6 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 const exactModuleAliases = new Map([
   ['@expo/vector-icons', path.join(projectRoot, 'shims/expo-vector-icons.ts')],
 ]);
-const bloomFontDataShim = path.join(projectRoot, 'shims/bloom-font-data.web.ts');
 
 const config = getDefaultConfig(projectRoot);
 
@@ -61,32 +60,16 @@ config.resolver = {
   // unused assets. This app imports icon-family subpaths directly; only the
   // exact legacy barrel request is narrowed here.
   resolveRequest: (context, moduleName, platform) => {
-    // Bloom publishes its web fonts as base64 strings in font-data.web.js.
-    // Keeping those bytes in the entry graph inflates every initial JS download,
-    // even though the browser already has an efficient, cacheable font pipeline.
-    // Limit the override to Bloom's own relative import on web so no unrelated
-    // module can accidentally resolve to the shim.
-    const isBloomFontDataRequest =
-      platform === 'web' &&
-      (moduleName === './font-data.web' || moduleName === './font-data.web.js') &&
-      /[\\/]@oxyhq[\\/]bloom[\\/].*[\\/]fonts[\\/]apply-font-faces\.web\.(?:js|ts)$/.test(
-        context.originModulePath ?? '',
-      );
-
     return context.resolveRequest(
       context,
-      isBloomFontDataRequest
-        ? bloomFontDataShim
-        : exactModuleAliases.get(moduleName) ?? moduleName,
+      exactModuleAliases.get(moduleName) ?? moduleName,
       platform,
     );
   },
   sourceExts: [...config.resolver.sourceExts, 'ts', 'tsx'],
-  // Bloom imports `.woff2` files directly from JS for its bundled font system
-  // (BlomusModernus, Inter Variable, Geist Mono). When Metro bundles for web
-  // (`bundler: "metro"` in app.config.js) it picks `apply-font-faces.web.js`, which
-  // has module-level `.woff2` imports. Metro does not include `.woff2` in default
-  // `assetExts`, so we register it here so those imports resolve as static assets.
+  // Bloom's `fonts/font-urls.web.js` imports its `.woff2` files (BlomusModernus,
+  // Inter, JetBrains Mono) so Metro emits them as hashed static assets under
+  // `/assets/`. Metro does not include `.woff2` in default `assetExts`.
   assetExts: [...config.resolver.assetExts.filter((ext) => ext !== 'svg'), 'wasm', 'woff2', 'woff'],
 };
 
