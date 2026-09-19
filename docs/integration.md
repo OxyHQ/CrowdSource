@@ -25,9 +25,10 @@ entry points of that same package.
 | `@crowdsource.you/core/outbox` | not in this guide — the PostgreSQL application half, in [`packages/core/README.md`](../packages/core/README.md) | `express @oxy.so/db drizzle-orm postgres` |
 
 **The line above is the whole install for an application that only files
-reports.** `express`, `drizzle-orm`, `postgres` and `@oxy.so/db` are optional
-peers of `core`, reached only through `/express` and `/outbox`, so importing the
-root pulls none of them into your graph.
+reports.** `express`, `drizzle-orm`, `postgres`, `@oxy.so/db` and `@oxy.so/core`
+are optional peers of `core`, reached only through `/express`, `/outbox` and —
+for `@oxy.so/core` — [an Oxy service's own factory](#oxys-own-services-hold-no-key),
+so importing the root pulls none of them into your graph.
 
 > **Coming from `@oxy.so/crowdsource*`?**
 >
@@ -358,23 +359,39 @@ service a second, hand-issued CrowdSource key means a person re-stating somethin
 the platform can already prove, and then keeping the restatement in a parameter
 store forever.
 
-So pass the token instead of the key:
+So an Oxy service asks for a client and configures nothing at all:
 
 ```ts
-import { CrowdSource } from '@crowdsource.you/core';
-import { OxyServices } from '@oxy.so/core';
+import { crowdSourceForOxyService } from '@crowdsource.you/core';
 
-const oxy = new OxyServices({ baseURL: 'https://api.oxy.so' });
-
-const crowdsource = new CrowdSource({
-  oxyToken: () => oxy.getServiceToken(),
-});
+const crowdsource = crowdSourceForOxyService();   // undefined where it cannot authenticate
 ```
 
-`oxyToken` is asked once per request attempt, so returning a cached token and
-refreshing it when it expires is the expected shape — which is exactly what
-`getServiceToken()` does. With it set, `CROWDSOURCE_SERVICE_KEY` is neither
-needed nor read.
+That is the whole integration. The factory is built once per process and returns
+the same client afterwards, it presents the Oxy service token
+`@oxy.so/core`'s `getServiceToken()` already mints, and `CROWDSOURCE_SERVICE_KEY`
+is neither needed nor read. `@oxy.so/core` is an **optional** peer dependency,
+required lazily and only on this path — a third party never installs it, and
+importing `@crowdsource.you/core` in a tree without it still works.
+
+**`undefined` is a normal answer, not an error.** A process that can neither
+attest a workload identity (ADR 0026) nor present an
+`OXY_SERVICE_API_KEY`/`OXY_SERVICE_API_SECRET` pair cannot obtain a token, which
+is exactly the state of a local checkout. A report filed there must still be
+stored: the durable row is never gated on having somewhere to send it, and what
+to do about a missing client is your decision, not the library's.
+
+Three options, and nothing else — timeouts, retries, the idempotency key and the
+envelope belong to the client and are not re-asked here:
+
+| | |
+| --- | --- |
+| `oxyToken` | Used in place of the default provider. Set it when the token comes from an SDK instance of your own. |
+| `baseUrl` | Defaults to the client's own. Set it only to point at a local backend. |
+| `logger` | Defaults to none, which is silence rather than `console`. Given one, the factory resolves the tenant once in the background and reports it — a token minted for an Oxy application nobody bound authenticates nothing, and that is otherwise indistinguishable from "no reports yet". Nothing waits on it. |
+
+`resetCrowdSourceForOxyService()` exists for tests. Production builds the client
+once and keeps it for the process.
 
 What is **not** relaxed:
 
@@ -415,6 +432,8 @@ service that owns it.
 | --- | --- | --- |
 | `CROWDSOURCE_SERVICE_KEY` | `@crowdsource.you/core` | Required for a third party. `applicationId:credentialId:secret`. An Oxy service sets `oxyToken` instead and configures nothing. |
 | `CROWDSOURCE_BASE_URL` | `@crowdsource.you/core` | Optional. Overrides the host. `http://` is accepted for `localhost` and refused otherwise. |
+| `OXY_SERVICE_API_KEY` | `@crowdsource.you/core` | Read only by `crowdSourceForOxyService()`, and only where the workload cannot attest. An Oxy service already sets this for the rest of its Oxy calls; nothing here is configured for CrowdSource. |
+| `OXY_SERVICE_API_SECRET` | `@crowdsource.you/core` | Its secret half. Both or neither — one alone, or either left blank, reads as no credential. |
 | `CROWDSOURCE_WEBHOOK_SECRET` | `@crowdsource.you/core/express` | The active signing secret. |
 | `CROWDSOURCE_WEBHOOK_SECRET_PREVIOUS` | `@crowdsource.you/core/express` | The secret being retired. Set during a rotation overlap; clear it after `previousSecret.expiresAt`. |
 

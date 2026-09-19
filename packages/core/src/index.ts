@@ -37,6 +37,14 @@
 export { CrowdSource, SERVICE_KEY_ENV_VAR, BASE_URL_ENV_VAR } from './client.js';
 export type { CrowdSourceOptions } from './client.js';
 
+/**
+ * The first-party shortcut. `@oxy.so/core` is an OPTIONAL peer and is required
+ * lazily inside the factory, so this export costs a consumer that never calls it
+ * nothing — the root entry point still loads in a tree that has no Oxy SDK.
+ */
+export { crowdSourceForOxyService, resetCrowdSourceForOxyService } from './oxyService.js';
+export type { OxyServiceClientLogger, OxyServiceClientOptions } from './oxyService.js';
+
 export { formatServiceKey, parseServiceKey } from './credential.js';
 export type { ServiceCredential } from './credential.js';
 

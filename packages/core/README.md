@@ -14,12 +14,13 @@ transactional outbox and the test sandbox are entry points of the same package.
 | `@crowdsource.you/core/outbox/postgres` | The PostgreSQL store behind `/outbox`: table definitions and the store itself. | as above |
 | `@crowdsource.you/core/testing` | Fixtures, a webhook simulator and an in-process sandbox. | nothing beyond contracts |
 
-**Importing the root pulls in none of `express`, `drizzle-orm`, `postgres` or
-`@oxy.so/db`.** They are OPTIONAL peer dependencies, reached only through
-`/express` and `/outbox`, so an application that files reports and nothing else
-installs a client and a contracts package and stops there. That is the whole
-reason the receiver and the outbox are subpaths rather than a second package:
-there is no version of this package that can disagree with itself.
+**Importing the root pulls in none of `express`, `drizzle-orm`, `postgres`,
+`@oxy.so/db` or `@oxy.so/core`.** They are OPTIONAL peer dependencies, reached
+only through `/express`, `/outbox` and — for `@oxy.so/core` — a lazy require
+inside `crowdSourceForOxyService()`, so an application that files reports and
+nothing else installs a client and a contracts package and stops there. That is
+the whole reason the receiver and the outbox are subpaths rather than a second
+package: there is no version of this package that can disagree with itself.
 
 `@crowdsource.you/contracts` stays a package of its own, and is a **peer
 dependency** here, so you declare it and own its version. That is deliberate:
@@ -107,6 +108,7 @@ Anything in that table can be overridden per report. Nothing in it has to be.
 | --- | --- |
 | `CROWDSOURCE_SERVICE_KEY` | Required for a third party. The one value an integration configures. An Oxy service sets `oxyToken` instead and configures nothing — see "Oxy's own services" below. |
 | `CROWDSOURCE_BASE_URL` | Optional. Overrides the service host — set it only to point at a local backend. `http://` is accepted for `localhost` and refused for anything else, because a service credential sent in clear is a credential you have to rotate. |
+| `OXY_SERVICE_API_KEY` / `OXY_SERVICE_API_SECRET` | Read only by `crowdSourceForOxyService()`, and only where the workload cannot attest. An Oxy service already sets them for the rest of its Oxy calls. Both or neither — one alone, or either left blank, reads as no credential. |
 
 There is **no** `CROWDSOURCE_APP_ID` and there never will be. The application a
 report belongs to is read off the credential; see "The service key" below.
@@ -135,13 +137,37 @@ report belongs to is read off the credential; see "The service key" below.
 
 Mention, Alia, Homiio and the rest hold no service key. They present the Oxy
 service token their own infrastructure already issues, and CrowdSource resolves
-the tenant from the Oxy application it names:
+the tenant from the Oxy application it names — so there is one call and nothing
+to configure:
 
 ```ts
-const crowdsource = new CrowdSource({
-  oxyToken: () => oxyServices.getServiceToken(),
-});
+import { crowdSourceForOxyService } from '@crowdsource.you/core';
+
+const crowdsource = crowdSourceForOxyService();   // undefined where it cannot authenticate
 ```
+
+Three applications each carried their own copy of this: build the client once,
+hand back `undefined` where it cannot be used. None of that was theirs to decide,
+so it lives here now.
+
+- **Built once per process.** Later calls return the same client whatever they
+  ask for; a second one would re-resolve the same tenant and be told the same
+  thing.
+- **`undefined`, never a throw**, where the process can neither attest a workload
+  identity (ADR 0026) nor present an `OXY_SERVICE_API_KEY`/`OXY_SERVICE_API_SECRET`
+  pair. That is a local checkout, and a report filed there must still be stored —
+  the durable row is never gated, and what to do about a missing client is the
+  caller's decision.
+- **`oxyToken` defaults to `@oxy.so/core`'s `getServiceToken()`**, which is an
+  **optional** peer dependency required lazily on this path only. A third party
+  never installs it, and the root import works in a tree without it. Pass your
+  own provider and it is used in place of the default.
+- **`baseUrl` and `logger` are the only other options.** Timeouts, retries, the
+  idempotency key and the envelope are the client's and are not re-asked here.
+  With a logger, the tenant is resolved once in the background and reported, so a
+  token minted for an Oxy application nobody bound is visible at boot rather than
+  on the first report. Nothing waits on it.
+- **`resetCrowdSourceForOxyService()`** is the test hook.
 
 `oxyToken` is asked once per request attempt, so a cached token refreshed on
 expiry is the expected shape — which is what `getServiceToken()` returns. With it
