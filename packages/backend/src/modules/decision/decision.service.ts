@@ -6,7 +6,7 @@ import type {
   DecisionOutcome,
   DecisionPolicyVersions,
   DecisionRecommendedAction,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 import { duplicateKeyViolation, withTransaction } from '../../db/transaction';
 import type { TenantContext } from '../../db/tenantScope';

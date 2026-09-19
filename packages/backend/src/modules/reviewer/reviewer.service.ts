@@ -3,7 +3,7 @@ import {
   TAXONOMY_FAMILIES,
   type ReviewerState,
   type TaxonomyFamily,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 import { ApiError } from '../../http/apiError';
 import { getPostgresDatabase } from '../../db/postgres/database';

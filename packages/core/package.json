@@ -1,0 +1,127 @@
+{
+  "name": "@crowdsource.you/core",
+  "version": "1.2.0",
+  "description": "The CrowdSource integration: the API client at the root, and the Express webhook receiver, the transactional outbox and the test sandbox behind subpaths",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./express": {
+      "types": "./dist/express/index.d.ts",
+      "import": "./dist/esm/express/index.js",
+      "require": "./dist/express/index.js",
+      "default": "./dist/express/index.js"
+    },
+    "./outbox": {
+      "types": "./dist/outbox/index.d.ts",
+      "import": "./dist/esm/outbox/index.js",
+      "require": "./dist/outbox/index.js",
+      "default": "./dist/outbox/index.js"
+    },
+    "./outbox/postgres": {
+      "types": "./dist/outbox/postgres/index.d.ts",
+      "import": "./dist/esm/outbox/postgres/index.js",
+      "require": "./dist/outbox/postgres/index.js",
+      "default": "./dist/outbox/postgres/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/esm/testing/index.js",
+      "require": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "express": ["./dist/express/index.d.ts"],
+      "outbox": ["./dist/outbox/index.d.ts"],
+      "outbox/postgres": ["./dist/outbox/postgres/index.d.ts"],
+      "testing": ["./dist/testing/index.d.ts"]
+    }
+  },
+  "scripts": {
+    "build": "tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "db:generate": "drizzle-kit generate",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",
+    "test": "bun run test:unit && bun run test:express && bun run test:testing && bun run test:outbox && bun run test:invariants && bun run test:table-type",
+    "test:unit": "node ../../node_modules/vitest/vitest.mjs run",
+    "test:express": "node ../../node_modules/vitest/vitest.mjs run -c vitest.express.config.ts",
+    "test:outbox": "node ../../node_modules/vitest/vitest.mjs run -c vitest.outbox.config.ts",
+    "test:testing": "node ../../node_modules/vitest/vitest.mjs run -c vitest.testing.config.ts",
+    "test:invariants": "bun ./scripts/test-invariants.mjs",
+    "test:table-type": "bun ./scripts/test-report-table-type.mjs",
+    "test:watch": "node ../../node_modules/vitest/vitest.mjs",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "crowdsource",
+    "moderation",
+    "sdk",
+    "outbox",
+    "webhooks",
+    "express",
+    "postgresql"
+  ],
+  "author": "OxyHQ",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OxyHQ/CrowdSource",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/OxyHQ/CrowdSource/tree/main/packages/core#readme",
+  "bugs": "https://github.com/OxyHQ/CrowdSource/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@crowdsource.you/contracts": "workspace:*",
+    "@oxy.so/db": "^1.0.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.5",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "postgres": "^3.4.9",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*",
+    "!src/**/__tests__/**"
+  ],
+  "peerDependencies": {
+    "@crowdsource.you/contracts": "^1.1.0",
+    "@oxy.so/db": "^1.0.0",
+    "drizzle-orm": "^0.45.2",
+    "express": ">=4.18.0 <6",
+    "postgres": "^3.4.9"
+  },
+  "peerDependenciesMeta": {
+    "@oxy.so/db": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    },
+    "express": {
+      "optional": true
+    },
+    "postgres": {
+      "optional": true
+    }
+  }
+}

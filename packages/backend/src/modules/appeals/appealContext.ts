@@ -1,4 +1,4 @@
-import type { AppealAuthorContext, MetadataBag } from '@oxy.so/crowdsource-contracts';
+import type { AppealAuthorContext, MetadataBag } from '@crowdsource.you/contracts';
 
 /**
  * §9.8's "validación y redacción" of the author's additional context.

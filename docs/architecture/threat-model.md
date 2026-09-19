@@ -688,7 +688,7 @@ replaying the outbox produces the same pairs and the receiver dedupes on the sam
 string it already saw. The shipped receiver middleware claims before running the
 handler and releases on failure — recording the id first makes a handler failure
 permanent, recording it after lets two concurrent deliveries both run
-(`packages/sdk-express/src/store.ts`).
+(`packages/core/src/express/store.ts`).
 
 **Tested.** `webhookSigner.test.ts` (including verification against an
 independent implementation, so the signer is not checked only against itself),

@@ -27,7 +27,7 @@ export function expirySweepTargets(): ExpirySweepTarget[] {
       column: webhookAttempts.attemptedAt,
       /**
        * The column holds when the attempt HAPPENED, not when it expires, so the
-       * retention window is supplied here. `packages/app`'s targets pass 0
+       * retention window is supplied here. `@crowdsource.you/core/outbox`'s targets pass 0
        * because their column is already a deadline — the difference is the
        * column's meaning, not a tuning choice.
        */

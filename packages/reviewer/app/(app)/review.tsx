@@ -34,7 +34,7 @@ import {
 } from '@/lib/review-form';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { useReviewerProfile, useSubmitReview } from '@/lib/reviewer-api/queries';
-import type { AssignmentPackage, ReviewSubmission } from '@oxy.so/crowdsource-contracts';
+import type { AssignmentPackage, ReviewSubmission } from '@crowdsource.you/contracts';
 
 export default function ReviewScreen() {
   const { t } = useTranslation();

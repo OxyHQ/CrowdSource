@@ -1,5 +1,5 @@
 import type { TransactionSession } from '../../db/collections';
-import type { RecusalReason } from '@oxy.so/crowdsource-contracts';
+import type { RecusalReason } from '@crowdsource.you/contracts';
 
 import { createTenantContext } from '../../db/tenantScope';
 import { getPostgresDatabase } from '../../db/postgres/database';

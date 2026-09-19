@@ -1,7 +1,12 @@
-# `@oxy.so/crowdsource-app` PostgreSQL cutover
+# The application half's PostgreSQL cutover
 
-This runbook is for an application moving from `@oxy.so/crowdsource-app` 0.6.x
-to the PostgreSQL-only 0.7.x line. It does **not** cut over the CrowdSource ECS
+This runbook is for an application moving off the Mongoose store.
+
+The source side is named by the version it is pinned to, and that version only
+ever existed under the old package name: `@oxy.so/crowdsource-app` 0.6.x. The
+destination is `@crowdsource.you/core/outbox` — the same code, published as an
+entry point of `@crowdsource.you/core` since the scope rename, with its
+PostgreSQL half at `@crowdsource.you/core/outbox/postgres`. It does **not** cut over the CrowdSource ECS
 service; use the separate backend cutover runbook for service-owned data.
 
 The application owns its report model and any extra fields. CrowdSource cannot
@@ -90,7 +95,7 @@ counts and hashes, timestamps are valid, and source/target identities differ.
 3. Run the package's PostgreSQL tests and `store.ensureSchema()` against the
    target using a credential with only the application's normal privileges.
 4. Deploy the application release that imports only
-   `@oxy.so/crowdsource-app/postgres`.
+   `@crowdsource.you/core/outbox/postgres`.
 5. Probe report creation, outbox claim/complete, signed webhook replay and one
    reversible enforcement path. Confirm the exact deployed artifact separately.
 6. Keep the source intact for the approved rollback window. Data deletion is a

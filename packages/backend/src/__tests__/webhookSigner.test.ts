@@ -5,7 +5,7 @@ import path from 'node:path';
 import {
   buildWebhookSignedPayload,
   WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {

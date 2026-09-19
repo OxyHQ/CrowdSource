@@ -68,7 +68,7 @@ it meant.
 The form has two steps, and the split exists to reduce anchoring on the
 reporter's chosen category: **describe the material, then evaluate it against a
 rule.** The submission (`ReviewSubmissionSchema` in
-`@oxy.so/crowdsource-contracts`) carries both.
+`@crowdsource.you/contracts`) carries both.
 
 ### Step one — findings
 

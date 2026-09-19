@@ -3,7 +3,7 @@
 ##
 ## Separate from anything that runs the application stack: this file holds only
 ## the database the tests need. TWO suites use it now, and each reads its OWN
-## variable — `packages/app`'s schema and store tests, and `packages/backend`'s
+## variable — `packages/core`'s outbox schema and store tests, and `packages/backend`'s
 ## real-database tests (tenant isolation, the table boundary, the RLS catalogue).
 ##
 ## Usage:

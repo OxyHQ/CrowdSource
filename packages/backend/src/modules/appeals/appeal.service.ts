@@ -4,7 +4,7 @@ import {
   type AppealSubmission,
   type DecisionOutcome,
   type RecommendedAction,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 import { duplicateKeyViolation, withTransaction } from '../../db/transaction';
 import type { TenantContext } from '../../db/tenantScope';

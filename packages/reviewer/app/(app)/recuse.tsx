@@ -23,7 +23,7 @@ import { ChoiceRow } from '@/components/ChoiceRow';
 import { Panel, Screen } from '@/components/Screen';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { useRecuseFromAssignment } from '@/lib/reviewer-api/queries';
-import { RECUSAL_REASONS, type RecusalReason } from '@oxy.so/crowdsource-contracts';
+import { RECUSAL_REASONS, type RecusalReason } from '@crowdsource.you/contracts';
 
 /**
  * §4.1's four reasons, from the contract.

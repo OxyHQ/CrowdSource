@@ -11,7 +11,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
-import { COMMUNITY_NOTE_RATINGS, COMMUNITY_NOTE_STATUSES } from '@oxy.so/crowdsource-contracts';
+import { COMMUNITY_NOTE_RATINGS, COMMUNITY_NOTE_STATUSES } from '@crowdsource.you/contracts';
 
 /**
  * Community notes (the community notes ADR): the note, the ratings it receives, the assignments

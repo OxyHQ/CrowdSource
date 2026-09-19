@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import type { Resource } from '@oxy.so/crowdsource-contracts';
+import type { Resource } from '@crowdsource.you/contracts';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 

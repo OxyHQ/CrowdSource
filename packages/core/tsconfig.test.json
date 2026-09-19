@@ -1,0 +1,34 @@
+{
+  // ---------------------------------------------------------------------------
+  // Type-check-only project covering what the emitting project leaves out: the
+  // tests of all four entry points, the Vitest configs and `drizzle.config.ts`.
+  //
+  // Same split, and the same reason, as `packages/contracts/tsconfig.test.json`:
+  // tests must not reach `dist/` (they would ship in the published tarball) but
+  // must still be type-checked, because a test that does not compile is a test
+  // nobody is running. `bun run lint` runs this project after the emitting one.
+  //
+  // `drizzle.config.ts` is here because it was type-checked by NOTHING: a doc
+  // comment in it once closed itself early (a recursive glob's separator is the
+  // comment terminator) and the only thing that noticed was drizzle-kit, at the
+  // point of use, with an error naming a path rather than a comment.
+  // ---------------------------------------------------------------------------
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "types": ["node"],
+    "rootDir": "."
+  },
+  "include": [
+    "src/**/*",
+    "vitest.config.ts",
+    "vitest.express.config.ts",
+    "vitest.outbox.config.ts",
+    "vitest.testing.config.ts",
+    "drizzle.config.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

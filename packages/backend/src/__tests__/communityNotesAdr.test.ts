@@ -6,7 +6,7 @@ import {
   COMMUNITY_NOTE_ASSIGNMENT_BATCH_MAX,
   COMMUNITY_NOTE_STATUSES,
   COMMUNITY_NOTE_TEXT_MAX_LENGTH,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 import { parseClaims } from './appealsAdr.test';
 import { ASSIGNMENT_TTL_MS, NOTES_PER_AUTHOR_PER_DAY } from '../modules/communityNotes/communityNotes.service';

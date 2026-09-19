@@ -147,46 +147,59 @@ jobs:
             # ONLY in the same change that deletes the tests, naming them. A
             # floor edited to match whatever ran is not a floor.
             minimum_tests: 139
-          # The four published packages. Every Oxy app is about to depend on them,
-          # so an untested change here breaks adopters rather than us. The floor is
-          # a minimum, not a target: a suite that runs nothing exits 0, and without
-          # a stated count that job reads as coverage forever.
+          # The TWO published packages, across the five suites they carry. Every
+          # Oxy app is about to depend on them, so an untested change here breaks
+          # adopters rather than us. The floor is a minimum, not a target: a suite
+          # that runs nothing exits 0, and without a stated count that job reads as
+          # coverage forever.
           #
           # Sized to catch a COLLAPSE, not a single deleted test. One deletion is a
           # deliberate act a reviewer sees; a traversal breaking to near-zero is the
           # invisible failure. So these sit a few tests below current, and they move
           # DOWN when a suite legitimately shrinks — 0.3.0 removed the Uploads tests
-          # and left sdk at 77, which had quietly narrowed its old floor of 75 to
-          # two tests of slack.
+          # and left the client at 77, which had quietly narrowed its old floor of
+          # 75 to two tests of slack.
+          #
+          # `core`, `core-express`, `core-outbox` and `core-testing` are four
+          # SUITES of ONE package (`packages/core`), one per published entry
+          # point, each with its own vitest config. A single entry running all
+          # four would need a single floor over the union, and a floor over a
+          # union cannot say which half collapsed — which is the only thing these
+          # numbers are for. `validate-workflows.mjs` requires a matrix entry
+          # NAMED for every package directory with a test script, which the
+          # `core` entry is.
           - package: contracts
             command: bun run --cwd packages/contracts test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/contracts-tests.json"
             # Raised with the appeals contracts (§9.8): the suite runs 201, and a
             # floor of 170 would let all 25 of those tests be deleted with the job
             # still green — which is the erosion this gate exists to catch.
             minimum_tests: 195
-          - package: sdk
-            command: bun run --cwd packages/sdk test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/sdk-tests.json"
+          # The root entry point: the API client a consumer gets from
+          # `@crowdsource.you/core` itself.
+          - package: core
+            label: packages/core (the root entry point)
+            command: bun run --cwd packages/core test:unit -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/core-tests.json"
             minimum_tests: 73
-          - package: sdk-express
-            command: bun run --cwd packages/sdk-express test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/sdk-express-tests.json"
-            build: bun run build:contracts && bun run --cwd packages/sdk build && bun run --cwd packages/testing build
+          - package: core-express
+            label: packages/core (the ./express entry point)
+            command: bun run --cwd packages/core test:express -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/core-express-tests.json"
             minimum_tests: 47
-          - package: testing
-            command: bun run --cwd packages/testing test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/testing-tests.json"
-            build: bun run build:contracts && bun run --cwd packages/sdk build
+          - package: core-testing
+            label: packages/core (the ./testing entry point)
+            command: bun run --cwd packages/core test:testing -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/core-testing-tests.json"
             minimum_tests: 12
-          # `test:unit` rather than `test`, because the package's own `test` chains
-          # the invariant mutation run and the reporter flags below would land on
-          # that script instead of on vitest. Both halves still run here: the
-          # mutation script is what proves the two invariant tests can fail at all,
-          # so a job that skipped it would gate nothing that matters.
-          - package: app
-            # `test:table-type` is listed explicitly rather than reached through the
-            # package's own `test` script, because this command replaces it: a gate
-            # chained into a script CI does not call is a gate that never runs, and
-            # an absent check is indistinguishable from a passing one.
-            command: bun run --cwd packages/app test:unit -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/app-tests.json" && bun run --cwd packages/app test:invariants && bun run --cwd packages/app test:table-type
-            build: bun run build:contracts && bun run --cwd packages/sdk build && bun run --cwd packages/sdk-express build && bun run --cwd packages/testing build
+          # `test:outbox` rather than the package's own `test`, because that script
+          # chains all four suites plus the invariant mutation run, and the reporter
+          # flags below would land on the chain instead of on vitest. The other two
+          # halves still run here: the mutation script is what proves the two
+          # invariant tests can fail at all, so a job that skipped it would gate
+          # nothing that matters, and `test:table-type` is listed explicitly for the
+          # same reason — a gate chained into a script CI does not call is a gate
+          # that never runs, and an absent check is indistinguishable from a passing
+          # one.
+          - package: core-outbox
+            label: packages/core (the ./outbox entry point)
+            command: bun run --cwd packages/core test:outbox -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/core-outbox-tests.json" && bun run --cwd packages/core test:invariants && bun run --cwd packages/core test:table-type
             # The PostgreSQL-only suite runs 128 tests. This floor is sized to
             # catch a traversal/backend collapse rather than turn one reviewed
             # test deletion into an unrelated CI edit.
@@ -199,7 +212,7 @@ jobs:
             # Started from the SAME compose file a developer uses, deliberately,
             # rather than from a `services:` block. A `services:` block is
             # job-level and cannot be conditional on a matrix value, so it would
-            # start a container for all nine entries including the two frontends —
+            # start a container for every entry including the two frontends —
             # and it would restate the image pin, giving CI and a developer two
             # places to disagree about the version under test.
             postgres: true
@@ -236,6 +249,11 @@ jobs:
       # sibling built, not just contracts. Getting this wrong is invisible in a
       # warm local tree, where a stale dist/ from an earlier build satisfies the
       # import; only a clean checkout shows it.
+      #
+      # `contracts` is the only sibling any suite reaches now. The client, the
+      # Express receiver, the outbox and the sandbox are one package and import
+      # each other by RELATIVE path, so nothing among them resolves through a
+      # `dist/` that a build step has to produce first.
       - name: Build the workspace dependencies this suite resolves
         run: ${{ matrix.build || 'bun run build:contracts' }}
       # `--wait` rather than a sleep: the compose file carries a `pg_isready`
@@ -251,11 +269,18 @@ jobs:
         env:
           CROWDSOURCE_APP_TEST_POSTGRES_URL: ${{ matrix.postgres && 'postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres' || '' }}
           # A second variable naming the same server, rather than one shared
-          # between the packages. Each package resolves its own admin URL and
-          # names it after itself — the same reasoning `@oxy.so/db/testing` gives
-          # for having no environment default of its own — so the two suites can
-          # never end up disagreeing about which of them is configured. Both
-          # create their own throwaway database on this server and drop it again.
+          # between the suites. Each resolves its own admin URL and names it
+          # after itself — the same reasoning `@oxy.so/db/testing` gives for
+          # having no environment default of its own — so the two can never end
+          # up disagreeing about which of them is configured. Both create their
+          # own throwaway database on this server and drop it again.
+          #
+          # `CROWDSOURCE_APP_TEST_POSTGRES_URL` keeps its name through the scope
+          # rename deliberately. It is read by developers, by this workflow and
+          # by `docker-compose.postgres.yml`'s documentation, and renaming a
+          # variable buys nothing that a reader of `vitest.globalSetup.ts` does
+          # not already get — while a stale export somewhere would make the
+          # outbox suite refuse to start, loudly, for no reason.
           CROWDSOURCE_BACKEND_TEST_POSTGRES_URL: ${{ matrix.postgres && 'postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres' || '' }}
         run: ${{ matrix.command }}
       # A suite that runs nothing exits 0. This states the count the runner
@@ -266,7 +291,7 @@ jobs:
         run: >-
           bun .github/scripts/assert-test-floor.mjs
           "$RUNNER_TEMP/${{ matrix.package }}-tests.json"
-          "packages/${{ matrix.package }}"
+          "${{ matrix.label || format('packages/{0}', matrix.package) }}"
           "${{ matrix.minimum_tests }}"
       - name: Upload coverage summary
         if: always() && matrix.coverage

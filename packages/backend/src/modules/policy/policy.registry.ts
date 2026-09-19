@@ -3,7 +3,7 @@ import {
   UNIVERSAL_TAXONOMY_VERSION,
   type CasePolicyRef,
   type PolicySetVersion,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 import { duplicateKeyViolation } from '../../db/transaction';
 import type { TenantContext } from '../../db/tenantScope';

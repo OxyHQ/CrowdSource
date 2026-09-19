@@ -9,27 +9,25 @@ WORKDIR /app
 # `--frozen-lockfile` fails with `lockfile had changes, but lockfile is frozen`.
 # Adding a package to `packages/` and not to this list breaks the deploy while
 # every in-repo lockfile check still passes — both layers run where all the
-# manifests exist. `packages/app` cost four hours of dead deploys that way.
+# manifests exist. `packages/app` cost four hours of dead deploys that way,
+# before it folded into `packages/core` as the `outbox` subpath.
 COPY package.json bun.lock bunfig.toml tsconfig.json ./
-COPY packages/app/package.json packages/app/
 COPY packages/contracts/package.json packages/contracts/
+COPY packages/core/package.json packages/core/
 COPY packages/backend/package.json packages/backend/
 COPY packages/reviewer/package.json packages/reviewer/
 COPY packages/console/package.json packages/console/
-COPY packages/sdk/package.json packages/sdk/
-COPY packages/sdk-express/package.json packages/sdk-express/
-COPY packages/testing/package.json packages/testing/
 RUN bun install --frozen-lockfile --ignore-scripts --lockfile-only
 
 FROM manifests AS prod-deps
 RUN --mount=type=cache,target=/root/.bun/install/cache \
   bun install --frozen-lockfile --omit=dev --omit=peer --omit=optional --ignore-scripts \
-    --filter @oxy.so/crowdsource-contracts --filter @crowdsource/backend
+    --filter @crowdsource.you/contracts --filter @crowdsource/backend
 
 FROM manifests AS builder
 RUN --mount=type=cache,target=/root/.bun/install/cache \
   bun install --frozen-lockfile --ignore-scripts --omit=peer --omit=optional \
-    --filter @oxy.so/crowdsource-contracts --filter @crowdsource/backend
+    --filter @crowdsource.you/contracts --filter @crowdsource/backend
 
 # The repo-root `scripts/` are build inputs, not just developer tooling:
 # `packages/contracts`'s build script runs `../../scripts/write-esm-marker.mjs`
@@ -53,8 +51,8 @@ ENV NODE_ENV=production
 
 # The production dependencies are INSTALLED in `prod-deps` and COPIED here, so
 # the runtime stage needs no lockfile, no install and no workspace manifests
-# beyond the two it actually runs. It used to copy all eight manifests — because
-# a frozen install needs the whole workspace set — and then delete the six it
+# beyond the two it actually runs. It used to copy every manifest — because
+# a frozen install needs the whole workspace set — and then delete the ones it
 # did not want. Copying files in order to delete them meant two enumerations
 # that had to agree with each other and with `EXPECTED_WORKSPACE_PACKAGES` in
 # `audit-runtime-image.mjs`, and each one broke a deploy when a package was

@@ -684,15 +684,12 @@ libraries, not the application, and they keep the license they are published
 under today. Their own package.json license field governs them, and it is
 unchanged by this file.
 
-  -   @oxy.so/crowdsource (packages/sdk)
+  -   @crowdsource.you/contracts (packages/contracts)
 
-  -   @oxy.so/crowdsource-contracts (packages/contracts)
-
-  -   @oxy.so/crowdsource-express (packages/sdk-express)
-
-  -   @oxy.so/crowdsource-testing (packages/testing)
-
-  -   @oxy.so/crowdsource-app (packages/app)
+  -   @crowdsource.you/core (packages/core) — including the code published
+      under its ./express, ./outbox and ./testing entry points, which were the
+      separate packages @oxy.so/crowdsource-express, @oxy.so/crowdsource-app
+      and @oxy.so/crowdsource-testing before the scope rename
 
 They are held back deliberately. Sweeping them into these terms would narrow
 the license under every consumer who already depends on them, which is the

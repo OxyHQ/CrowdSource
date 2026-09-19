@@ -17,7 +17,7 @@ import {
   CONTEXT_SUFFICIENCIES,
   DECISION_OUTCOMES,
   DECISION_STATUSES,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 /**
  * A jury's decision on a case, and the appeal that can supersede it.

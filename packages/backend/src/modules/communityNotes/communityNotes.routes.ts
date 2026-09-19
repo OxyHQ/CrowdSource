@@ -6,7 +6,7 @@ import {
   CommunityNoteSubmissionSchema,
   CommunityNoteWithdrawalSchema,
   ExternalIdSchema,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 import { ApiError } from '../../http/apiError';
 import { parseOrThrow } from '../../http/parseBody';

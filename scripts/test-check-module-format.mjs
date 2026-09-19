@@ -14,7 +14,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const checker = resolve(dirname(fileURLToPath(import.meta.url)), "check-module-format.mjs");
-const PACKAGES = ["contracts", "sdk", "sdk-express", "testing", "app"];
+const PACKAGES = ["contracts", "core"];
 
 const ESM = "import { z } from 'zod';\nexport const schema = z.string();\n";
 const CJS = '"use strict";\nconst zod = require("zod");\nexports.schema = zod.z.string();\n';
@@ -22,8 +22,9 @@ const CJS = '"use strict";\nconst zod = require("zod");\nexports.schema = zod.z.
 /**
  * A tree that must pass: both formats, each condition on the right one.
  *
- * `app` publishes its PostgreSQL SUBPATH as well, because the real one does.
- * Its ESM entry sits a directory deeper than the
+ * `core` publishes four SUBPATHS as well, because the real one does — the
+ * Express receiver, the outbox, the outbox's PostgreSQL half and the test
+ * sandbox. `./outbox/postgres`'s ESM entry sits two directories deeper than the
  * `{"type":"module"}` marker, which is correct and is what Node resolves by
  * walking upward, so a healthy tree with only root entries would leave that path
  * unexercised. The count also has to match the per-package floor: a fixture with
@@ -35,7 +36,7 @@ function healthyTree() {
       name,
       {
         manifest: {
-          name: `@oxy.so/${name}`,
+          name: `@crowdsource.you/${name}`,
           type: "commonjs",
           exports: {
             ".": {
@@ -54,14 +55,16 @@ function healthyTree() {
       },
     ]),
   );
-  tree.app.manifest.exports["./postgres"] = {
-    types: "./dist/postgres/index.d.ts",
-    import: "./dist/esm/postgres/index.js",
-    require: "./dist/postgres/index.js",
-    default: "./dist/postgres/index.js",
-  };
-  tree.app.files["dist/postgres/index.js"] = CJS;
-  tree.app.files["dist/esm/postgres/index.js"] = ESM;
+  for (const subpath of ["express", "outbox", "outbox/postgres", "testing"]) {
+    tree.core.manifest.exports[`./${subpath}`] = {
+      types: `./dist/${subpath}/index.d.ts`,
+      import: `./dist/esm/${subpath}/index.js`,
+      require: `./dist/${subpath}/index.js`,
+      default: `./dist/${subpath}/index.js`,
+    };
+    tree.core.files[`dist/${subpath}/index.js`] = CJS;
+    tree.core.files[`dist/esm/${subpath}/index.js`] = ESM;
+  }
   return tree;
 }
 
@@ -70,10 +73,11 @@ const cases = [
   {
     name: "import and require resolving to the SAME file is caught",
     expectFailure: true,
-    mustMention: "@oxy.so/sdk-express",
-    // The exact 0.3.0 defect that took a backend down.
+    mustMention: "@crowdsource.you/core",
+    // The exact 0.3.0 defect that took a backend down, on the subpath that
+    // inherited that package's code.
     mutate: (tree) => {
-      tree["sdk-express"].manifest.exports["."].import = "./dist/index.js";
+      tree.core.manifest.exports["./express"].import = "./dist/express/index.js";
       return tree;
     },
   },
@@ -83,7 +87,7 @@ const cases = [
     mustMention: "which is CommonJS",
     // The condition looks dual but the file behind it is not.
     mutate: (tree) => {
-      tree.sdk.files["dist/esm/index.js"] = CJS;
+      tree.core.files["dist/esm/index.js"] = CJS;
       return tree;
     },
   },
@@ -93,7 +97,7 @@ const cases = [
     mustMention: "package.json beside its ESM entry",
     // One absent file makes the whole ESM half parse as CommonJS.
     mutate: (tree) => {
-      delete tree.testing.files["dist/esm/package.json"];
+      delete tree.contracts.files["dist/esm/package.json"];
       return tree;
     },
   },
@@ -102,7 +106,7 @@ const cases = [
     expectFailure: true,
     mustMention: '"type": "module"',
     mutate: (tree) => {
-      tree.app.files["dist/esm/package.json"] = '{"type":"commonjs"}\n';
+      tree.core.files["dist/esm/package.json"] = '{"type":"commonjs"}\n';
       return tree;
     },
   },
@@ -138,18 +142,18 @@ const cases = [
      * The marker is written ONCE, at the ESM root, and governs everything
      * beneath it — so a subpath entry needs none of its own. Looking only beside
      * the entry reported a false failure claiming the whole ESM half was inert,
-     * for a package that was perfectly fine. Two levels deep, because a walk
-     * that stopped after one would pass the shallower case by accident.
+     * for a package that was perfectly fine. Three levels deep, because a walk
+     * that stopped short would pass the shallower cases by accident.
      */
     name: "an ESM entry nested below the marker is governed by it",
     expectFailure: false,
     mutate: (tree) => {
-      tree.app.manifest.exports["./postgres/store"] = {
-        import: "./dist/esm/postgres/store/index.js",
-        require: "./dist/postgres/store/index.js",
+      tree.core.manifest.exports["./outbox/postgres/store"] = {
+        import: "./dist/esm/outbox/postgres/store/index.js",
+        require: "./dist/outbox/postgres/store/index.js",
       };
-      tree.app.files["dist/esm/postgres/store/index.js"] = ESM;
-      tree.app.files["dist/postgres/store/index.js"] = CJS;
+      tree.core.files["dist/esm/outbox/postgres/store/index.js"] = ESM;
+      tree.core.files["dist/outbox/postgres/store/index.js"] = CJS;
       return tree;
     },
   },
@@ -163,7 +167,7 @@ const cases = [
     expectFailure: true,
     mustMention: "package.json beside its ESM entry",
     mutate: (tree) => {
-      delete tree.app.files["dist/esm/package.json"];
+      delete tree.core.files["dist/esm/package.json"];
       return tree;
     },
   },
@@ -172,13 +176,15 @@ const cases = [
      * The floor that used to be a scalar. `entriesChecked < PUBLISHED.length`
      * counted in aggregate, so a package that LOST a subpath still cleared it on
      * a sibling's second entry — the manifest silently stops resolving that
-     * import and nothing says so.
+     * import and nothing says so. It matters more now than it did: four of the
+     * five entries a consumer imports live behind subpaths of ONE package, so
+     * there is no sibling package left whose absence would be noticed instead.
      */
     name: "a package that loses a declared subpath is caught by name",
     expectFailure: true,
-    mustMention: "packages/app",
+    mustMention: "packages/core",
     mutate: (tree) => {
-      delete tree.app.manifest.exports["./postgres"];
+      delete tree.core.manifest.exports["./outbox/postgres"];
       return tree;
     },
   },
@@ -187,11 +193,11 @@ const cases = [
     expectFailure: true,
     mustMention: "./server",
     mutate: (tree) => {
-      tree.app.manifest.exports["./server"] = {
+      tree.core.manifest.exports["./server"] = {
         import: "./dist/server.js",
         require: "./dist/server.js",
       };
-      tree.app.files["dist/server.js"] = CJS;
+      tree.core.files["dist/server.js"] = CJS;
       return tree;
     },
   },

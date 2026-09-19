@@ -21,7 +21,7 @@
  *    `content_unavailable` and recusal are for.
  */
 
-import type { ReviewerResource } from '@oxy.so/crowdsource-contracts';
+import type { ReviewerResource } from '@crowdsource.you/contracts';
 import { Image } from 'expo-image';
 import React from 'react';
 import { useTranslation } from 'react-i18next';

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { TaxonomyCode } from '@oxy.so/crowdsource-contracts';
+import type { TaxonomyCode } from '@crowdsource.you/contracts';
 import { constraintNameOf, sqlStateOf } from '@oxy.so/db';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
@@ -49,7 +49,7 @@ const { registerWebhookEndpoint } = await import('../modules/webhooks/endpoint.s
 const { OUTBOX_EVENT_TYPES } = await import('../modules/outbox/outbox.collection');
 const { newPublicId } = await import('../utils/identifiers');
 const { CASE_ENVELOPE_SCHEMA_VERSION, UNIVERSAL_TAXONOMY_VERSION, OXY_CONDUCT_POLICY_VERSION } =
-  await import('@oxy.so/crowdsource-contracts');
+  await import('@crowdsource.you/contracts');
 const { BASELINE_POLICY_VERSION } = await import('../modules/policy/policyBaseline');
 const { deliveryBody, drainUntil, provisionTenant, startDatabase, stopDatabase } = await import(
   './support/tenants'

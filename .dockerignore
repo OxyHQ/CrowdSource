@@ -37,12 +37,8 @@ packages/reviewer/*
 !packages/reviewer/package.json
 packages/console/*
 !packages/console/package.json
-packages/sdk/*
-!packages/sdk/package.json
-packages/sdk-express/*
-!packages/sdk-express/package.json
-packages/testing/*
-!packages/testing/package.json
+packages/core/*
+!packages/core/package.json
 
 # Local-only planning notes. Untracked, so .gitignore does not keep them out of
 # a build context.

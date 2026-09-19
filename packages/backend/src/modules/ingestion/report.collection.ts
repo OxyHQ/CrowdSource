@@ -1,4 +1,4 @@
-import type { ReportStatus } from '@oxy.so/crowdsource-contracts';
+import type { ReportStatus } from '@crowdsource.you/contracts';
 
 import { defineTenantCollection } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';

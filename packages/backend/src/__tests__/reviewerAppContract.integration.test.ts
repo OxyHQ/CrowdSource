@@ -97,7 +97,7 @@ const { buildReviewSubmission, createInitialReviewFormState, reviewFormReducer }
   '../../../reviewer/lib/review-form'
 );
 
-const { ASSIGNMENT_TOKEN_HEADER } = await import('@oxy.so/crowdsource-contracts');
+const { ASSIGNMENT_TOKEN_HEADER } = await import('@crowdsource.you/contracts');
 
 type ProvisionedTenant = Awaited<ReturnType<typeof provisionTenant>>;
 

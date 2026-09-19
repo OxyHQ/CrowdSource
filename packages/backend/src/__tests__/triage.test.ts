@@ -1,4 +1,4 @@
-import type { TaxonomyCode } from '@oxy.so/crowdsource-contracts';
+import type { TaxonomyCode } from '@crowdsource.you/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { triageCase, TRIAGE_WEIGHTS, type TriageInput } from '../modules/triage/triage';

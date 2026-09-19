@@ -1,4 +1,4 @@
-import type { TaxonomyFamily } from '@oxy.so/crowdsource-contracts';
+import type { TaxonomyFamily } from '@crowdsource.you/contracts';
 
 import type { SensitivityClass } from '../triage/triage';
 import { isCalibrationCurrent } from './calibration';

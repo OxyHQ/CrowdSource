@@ -2,7 +2,7 @@ import {
   taxonomyFamilyOf,
   type TaxonomyCode,
   type TaxonomyFamily,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 /**
  * Training and calibration (§8.1, §9.7) — the gate between "has an account" and

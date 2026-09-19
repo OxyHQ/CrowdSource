@@ -1,4 +1,4 @@
-import type { CommunityNoteRatingSubmission } from '@oxy.so/crowdsource-contracts';
+import type { CommunityNoteRatingSubmission } from '@crowdsource.you/contracts';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 /**

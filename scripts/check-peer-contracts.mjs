@@ -1,11 +1,13 @@
 #!/usr/bin/env bun
 
 /**
- * The four published packages agree about `@oxy.so/crowdsource-contracts`.
+ * The published client agrees with `@crowdsource.you/contracts` about its version.
  *
- * `@oxy.so/crowdsource`, `-express` and `-testing` declare contracts as a PEER
- * dependency rather than a normal one, so an integrator installs exactly one copy
- * and owns its version. That is not a style preference — it is the fix for a
+ * `@crowdsource.you/core` declares contracts as a PEER dependency rather than a
+ * normal one, so an integrator installs exactly one copy and owns its version.
+ * Contracts stays a package of its own for the same reason this check exists:
+ * it must be present exactly ONCE in a consumer's tree, and a React Native UI
+ * package needs its types without a server-only client in the phone bundle. That is not a style preference — it is the fix for a
  * failure mode with no diagnostic. When two copies of contracts exist and their
  * schemas differ, `tsc` reports NOTHING (measured: exit 0 with
  * `skipLibCheck:false`) and the symptom is every webhook delivery answering
@@ -32,9 +34,16 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CONTRACTS = "@oxy.so/crowdsource-contracts";
-/** Every published package that consumes the contracts package. */
-const CONSUMERS = ["sdk", "sdk-express", "testing", "app"];
+const CONTRACTS = "@crowdsource.you/contracts";
+/**
+ * Every published package that consumes the contracts package.
+ *
+ * One entry since the scope rename: the client, the Express receiver, the
+ * outbox and the test sandbox are four entry points of ONE package now, so
+ * there is one manifest that can get this wrong instead of four that had to
+ * agree with each other.
+ */
+const CONSUMERS = ["core"];
 
 const repositoryRoot =
   process.argv[2] === undefined
@@ -98,7 +107,7 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `${CONTRACTS}@${contractsVersion} is admitted by the peer range of all ${CONSUMERS.length} consumers, ` +
+  `${CONTRACTS}@${contractsVersion} is admitted by the peer range of all ${CONSUMERS.length} consumer(s), ` +
     "and none of them bundles it as a normal dependency.",
 );
 

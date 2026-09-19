@@ -1,4 +1,4 @@
-import type { PolicyRule, PolicySetStatus } from '@oxy.so/crowdsource-contracts';
+import type { PolicyRule, PolicySetStatus } from '@crowdsource.you/contracts';
 
 import { defineTenantCollection } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';

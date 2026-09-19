@@ -9,7 +9,7 @@ import {
   type ReviewOutcome,
   type Severity,
   type TaxonomyFamily,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 import type { SensitivityClass } from '../triage/triage';
 import { REVIEWER_STATE_RANK } from '../reviewer/reviewerState';

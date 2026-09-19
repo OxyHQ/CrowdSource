@@ -44,9 +44,9 @@ function healthyTree() {
       "export function ResourceView({ text }: { text: string }) {\n" +
       "  return <Text selectable={false}>{text}</Text>;\n" +
       "}\n",
-    "packages/sdk/src/client.ts": "export const client = {};\n",
-    "packages/sdk-express/src/middleware.ts": "export const middleware = () => {};\n",
-    "packages/testing/src/fixtures.ts": "export const fixture = {};\n",
+    "packages/core/src/client.ts": "export const client = {};\n",
+    "packages/core/src/express/middleware.ts": "export const middleware = () => {};\n",
+    "packages/core/src/testing/fixtures.ts": "export const fixture = {};\n",
   };
 }
 
