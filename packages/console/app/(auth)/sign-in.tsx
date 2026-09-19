@@ -38,8 +38,16 @@ export default function SignInScreen() {
 
         {OXY_CLIENT_ID ? (
           <View className="mt-4 w-full">
+            {/* `fullWidth` is not decoration: the SDK's button is Bloom's
+                `SocialButton` now, and that component carries a FIXED 300px
+                width (`SOCIAL_BUTTON_GEOMETRY.medium`) where the Bloom `Button`
+                it replaced had none and stretched to this `w-full` wrapper.
+                Left at the default the button stops being full width and, in a
+                320px viewport, is 28px WIDER than the 272px this column leaves
+                inside its `p-6` — it overflows rather than shrinking. */}
             <OxySignInButton
               variant="contained"
+              fullWidth
               text={t('signIn.action')}
               oauthRedirectUri={OXY_AUTH_REDIRECT_URI}
             />
