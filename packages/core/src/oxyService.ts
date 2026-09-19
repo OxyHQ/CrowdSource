@@ -22,7 +22,12 @@
  */
 
 import { CrowdSource } from './client.js';
-import { canAttestWorkloadIdentity, oxyServiceCredentials, oxyServiceToken } from './oxySdk.js';
+import {
+  canAttestWorkloadIdentity,
+  oxySdkResolutionError,
+  oxyServiceCredentials,
+  oxyServiceToken,
+} from './oxySdk.js';
 
 /**
  * Where this factory reports what it did.
@@ -100,7 +105,20 @@ export function crowdSourceForOxyService(
 
   if (!canAuthenticateAsOxyService()) {
     unavailable = 'this process cannot obtain an Oxy service token';
-    options.logger?.info('[CrowdSource] client not built', { reason: unavailable });
+    /**
+     * Say WHY when the reason is that Oxy's SDK could not be loaded at all.
+     *
+     * "Cannot obtain a token" is the right answer for a local checkout and the
+     * wrong-looking one for a deployment that has `@oxy.so/core` installed and
+     * a task role to attest with: there the cause is a resolution that failed,
+     * and without this line an application reads a switched-off integration as
+     * intended behaviour.
+     */
+    const resolution = oxySdkResolutionError();
+    options.logger?.info('[CrowdSource] client not built', {
+      reason: unavailable,
+      ...(resolution === null ? {} : { oxySdk: resolution }),
+    });
     return undefined;
   }
 

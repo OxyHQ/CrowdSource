@@ -61,14 +61,55 @@ interface OxyCoreModule {
   };
 }
 
-const requireFromApplication = createRequire(join(process.cwd(), 'package.json'));
+/**
+ * Where to resolve the optional peer FROM, in the order worth trying.
+ *
+ * The application's directory first: an optional peer belongs to the
+ * application, which is what declared and installed it. Then this file, when the
+ * running half of the dual build has a `__filename` — the CommonJS one does, the
+ * ESM one does not, and `typeof` is what makes asking safe in both. That second
+ * anchor is not decoration: a process whose working directory is not its package
+ * root resolves nothing from the first, and the answer would be a silent
+ * "cannot attest" — a moderation client that is `undefined` for a reason nobody
+ * can see, which is precisely the failure this module is supposed to prevent.
+ */
+function resolutionAnchors(): string[] {
+  const anchors = [join(process.cwd(), 'package.json')];
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (typeof __filename === 'string') anchors.push(__filename);
+  return anchors;
+}
+
+/** Why the last load failed, for a caller that has somewhere to report it. */
+let lastResolutionError: string | null = null;
+
+/**
+ * The loader itself, for the one test that has to prove a successful resolution
+ * clears the recorded reason. Exported rather than re-implemented in the suite:
+ * a test that reimplemented it would pass while this one rotted.
+ */
+export function loadOptionalModuleForTest(specifier: string): unknown {
+  return loadOxyModule<unknown>(specifier);
+}
+
+/** The reason `@oxy.so/core` could not be loaded, or `null` if it was. */
+export function oxySdkResolutionError(): string | null {
+  return lastResolutionError;
+}
 
 function loadOxyModule<T>(specifier: string): T | null {
-  try {
-    return requireFromApplication(specifier) as T;
-  } catch {
-    return null;
+  let failure: unknown;
+  for (const anchor of resolutionAnchors()) {
+    try {
+      const loaded = createRequire(anchor)(specifier) as T;
+      lastResolutionError = null;
+      return loaded;
+    } catch (error: unknown) {
+      failure = error;
+    }
   }
+  lastResolutionError = `${specifier}: ${failure instanceof Error ? failure.message : String(failure)}`;
+  return null;
 }
 
 /**

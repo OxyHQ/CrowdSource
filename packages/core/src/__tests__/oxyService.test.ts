@@ -249,3 +249,31 @@ describe('the tenant', () => {
     expect(calls).toHaveLength(0);
   });
 });
+
+describe('when an optional peer cannot be resolved', () => {
+  /**
+   * The difference between "this is a laptop" and "this deployment is broken".
+   *
+   * Both answer `undefined` from the factory, and with nothing beside the
+   * refusal an application reads a switched-off integration as intended
+   * behaviour. So the loader records WHY, and the factory reports it when it has
+   * a logger.
+   */
+  it('records the specifier it could not resolve', async () => {
+    const sdk = await vi.importActual<typeof import('../oxySdk.js')>('../oxySdk.js');
+
+    expect(sdk.loadOptionalModuleForTest('@oxy.so/core/not-a-real-entry-point')).toBeNull();
+    expect(sdk.oxySdkResolutionError()).toContain('@oxy.so/core/not-a-real-entry-point');
+  });
+
+  it('clears the reason once something does resolve, so a stale one is never reported', async () => {
+    const sdk = await vi.importActual<typeof import('../oxySdk.js')>('../oxySdk.js');
+    sdk.loadOptionalModuleForTest('@oxy.so/core/not-a-real-entry-point');
+    expect(sdk.oxySdkResolutionError()).not.toBeNull();
+
+    // `node:path` resolves from every anchor, standing in for a peer that IS
+    // installed: the recorded reason has to be cleared, not left behind.
+    expect(sdk.loadOptionalModuleForTest('node:path')).not.toBeNull();
+    expect(sdk.oxySdkResolutionError()).toBeNull();
+  });
+});
