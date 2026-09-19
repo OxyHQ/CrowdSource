@@ -183,6 +183,11 @@ This is not a way around registration: the Oxy application must be bound to a
 CrowdSource one first, and an unbound token authenticates nothing. Third parties
 keep the service key — they run where Oxy cannot vouch for them.
 
+An application that uses `@crowdsource.you/core/outbox` does not call this
+factory — the integration builds its client — so it says the same thing with
+`crowdSource.auth: 'oxy-service'` instead. Same decision, same code, one field.
+See [the outbox integration](#integration) below.
+
 ## The service key
 
 CrowdSource issues three values together — the application, the credential id
@@ -477,6 +482,49 @@ integration.dispatcher.start();
 
 Mount the webhook router before `express.json()`: CrowdSource verifies the exact
 bytes received. The router refuses a request whose body was already parsed.
+
+### Which credential the deployment presents
+
+`crowdSource.auth` names one of two identities. It defaults to `'service-key'`,
+so an integration written before the field existed is unchanged by it.
+
+| | |
+| --- | --- |
+| `'service-key'` (default) | Reads `crowdSource.serviceKey`. **A third party keeps this** — it runs where Oxy cannot vouch for it, so it holds a key CrowdSource issued. |
+| `'oxy-service'` | A first-party Oxy service. Configure **no key at all**: the client presents the Oxy service token the process can already mint ([oxy ADR 0026][adr-0026]) and CrowdSource resolves the tenant from the Oxy application it names. |
+
+```ts
+crowdSource: {
+  enabled: true,
+  auth: 'oxy-service',            // and no serviceKey, here or in the environment
+  webhookSecret: process.env.CROWDSOURCE_WEBHOOK_SECRET,
+  enforcementMode: 'observe',
+}
+```
+
+- **It is written down, not inferred from whether a key is set.** An absent key
+  is also what a deployment that lost one looks like. Inferring would read that
+  as "use the Oxy identity" and give a third party a client whose every request
+  fails at a token it can never mint — a delivery loop that runs forever and
+  delivers nothing.
+- **`'oxy-service'` is `crowdSourceForOxyService()`**, not a second copy of it.
+  Whether this process can attest a workload identity or present an
+  `OXY_SERVICE_API_KEY`/`OXY_SERVICE_API_SECRET` pair is decided in one place,
+  and the client is built once per process on either path.
+- **Which one is in force is in the log.** The mode rides on the startup lines
+  the integration already writes — `[CrowdSource] client ready`, and the
+  refusals — so nothing new has to be read to answer "which credential is this".
+- **Neither configured is still a configuration error**: `undefined` from
+  `client.get()`, reported once at error level with both doors named. Reports are
+  still stored; the outbox row is never gated on having somewhere to send it.
+- **A key left behind by a migration is reported once as unused**, so deleting
+  it is a step somebody is reminded to take rather than one nothing ever mentions
+  again.
+- **`'oxy-service'` with no obtainable token is an error, not silence.** The
+  shared factory answers `undefined` for a laptop, where that is unremarkable; an
+  integration that named this identity and set `enabled: true` meant it.
+
+[adr-0026]: https://github.com/OxyHQ/oxy/blob/main/docs/adr/0026-first-party-services-authenticate-as-workloads.md
 
 ## Required guarantees
 

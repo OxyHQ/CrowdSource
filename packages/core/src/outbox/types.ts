@@ -574,6 +574,25 @@ export interface ModerationMetrics {
   incrementCounter(name: string, value: number, labels: Record<string, string>): void;
 }
 
+/**
+ * Which of the two identities a deployment presents to CrowdSource.
+ *
+ * `'service-key'` is the default and the only answer available to a third
+ * party: it runs where Oxy cannot vouch for it, so it holds a key CrowdSource
+ * issued. `'oxy-service'` is for a first-party Oxy service, which proves what it
+ * IS (oxy ADR 0026) and needs no key at all.
+ *
+ * Written down rather than inferred from whether `serviceKey` happens to be
+ * set, and that is the whole reason this field exists. An absent key is also
+ * what a deployment that lost one looks like; inference would read that as "use
+ * the Oxy identity" and hand a third party a client whose every request fails at
+ * a token it can never mint — a delivery loop that runs forever and delivers
+ * nothing. An operator reading a config has to be able to see which credential
+ * this deployment is using, and a field with two named values is where they see
+ * it.
+ */
+export type CrowdSourceAuth = 'service-key' | 'oxy-service';
+
 /** Everything about talking to CrowdSource, and whether to at all. */
 export interface CrowdSourceConnectionConfig {
   /**
@@ -585,7 +604,21 @@ export interface CrowdSourceConnectionConfig {
    * dead-letter the backlog it was meant to preserve.
    */
   readonly enabled: boolean;
-  /** `applicationId:credentialId:secret`. The only source of `applicationId`. */
+  /**
+   * Which credential this deployment presents. Defaults to `'service-key'`.
+   *
+   * Omitting it is the third-party integration and every deployment written
+   * before this field existed, which is why the default is the one that reads
+   * `serviceKey`. See {@link CrowdSourceAuth}.
+   */
+  readonly auth?: CrowdSourceAuth;
+  /**
+   * `applicationId:credentialId:secret`. The only source of `applicationId`.
+   *
+   * Required under `auth: 'service-key'`. Under `'oxy-service'` it is neither
+   * needed nor read — the client presents an Oxy service token and CrowdSource
+   * resolves the tenant from the Oxy application that token names.
+   */
   readonly serviceKey?: string;
   readonly baseUrl?: string;
   readonly webhookSecret?: string;

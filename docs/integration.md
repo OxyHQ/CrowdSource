@@ -410,6 +410,51 @@ client built this way has nothing to read its own `applicationId` off. It asks
 `GET /v1/applications/me` once, on first use, and remembers the answer; the SDK
 does this for you and `crowdsource.applicationId` is a promise in that case.
 
+### The outbox half takes the same identity
+
+An application that uses `@crowdsource.you/core/outbox` never builds a client
+itself — `createModerationIntegration()` does — so until `core@1.4.0` this page
+described a path that half the adopters could not reach. They kept a
+hand-issued key because the only alternative was switching delivery off.
+
+One field says which credential the deployment presents, and the default is the
+one every integration written before it had:
+
+```ts
+createModerationIntegration({
+  store,
+  crowdSource: {
+    enabled: true,
+    auth: 'oxy-service',          // no serviceKey anywhere
+    webhookSecret: process.env.CROWDSOURCE_WEBHOOK_SECRET,
+    enforcementMode: 'observe',
+  },
+  // …
+});
+```
+
+`auth` is written down rather than inferred from whether a key happens to be
+set: an absent key is also what a deployment that lost one looks like, and
+guessing would hand a third party a client whose every request fails at a token
+it cannot mint — an outbox loop that runs forever and delivers nothing.
+
+- **`'service-key'` is the default, and a third party keeps it.** Omit `auth`
+  entirely and nothing about an existing integration changes.
+- **`'oxy-service'` reuses `crowdSourceForOxyService()`**, so the decision about
+  what this process can prove is made in exactly one place.
+- **Both log which one is in force.** The mode rides on the integration's
+  existing startup lines (`[CrowdSource] client ready`), so "which credential is
+  this deployment using" is answered by the log an operator already reads.
+- **Neither is still a configuration error**, reported once at error level with
+  both doors named. A key left behind by a half-finished migration is reported
+  once too, as a secret that is no longer read and can be deleted.
+- **A deployment that cannot obtain a token is an ERROR here**, not the quiet
+  `undefined` a laptop gets: an integration that named this identity and switched
+  delivery on meant it.
+
+The webhook secret is unrelated and unaffected. It signs what CrowdSource sends
+back and is not a credential this application presents.
+
 ### Binding a service
 
 One row, written by a one-off task inside the VPC — not a console click, because
@@ -430,7 +475,7 @@ service that owns it.
 
 | Variable | Package | |
 | --- | --- | --- |
-| `CROWDSOURCE_SERVICE_KEY` | `@crowdsource.you/core` | Required for a third party. `applicationId:credentialId:secret`. An Oxy service sets `oxyToken` instead and configures nothing. |
+| `CROWDSOURCE_SERVICE_KEY` | `@crowdsource.you/core` | Required for a third party. `applicationId:credentialId:secret`. An Oxy service sets `oxyToken` instead — or, on the outbox half, `crowdSource.auth: 'oxy-service'` — and configures nothing. |
 | `CROWDSOURCE_BASE_URL` | `@crowdsource.you/core` | Optional. Overrides the host. `http://` is accepted for `localhost` and refused otherwise. |
 | `OXY_SERVICE_API_KEY` | `@crowdsource.you/core` | Read only by `crowdSourceForOxyService()`, and only where the workload cannot attest. An Oxy service already sets this for the rest of its Oxy calls; nothing here is configured for CrowdSource. |
 | `OXY_SERVICE_API_SECRET` | `@crowdsource.you/core` | Its secret half. Both or neither — one alone, or either left blank, reads as no credential. |

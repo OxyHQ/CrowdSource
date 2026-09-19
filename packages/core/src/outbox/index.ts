@@ -20,6 +20,8 @@
  *
  * const moderation = createModerationIntegration({
  *   store,
+ *   // A first-party Oxy service writes `auth: 'oxy-service'` and NO key; see
+ *   // {@link CrowdSourceAuth}. A third party keeps the key it was issued.
  *   crowdSource: { enabled: true, serviceKey, webhookSecret, enforcementMode: 'observe' },
  *   subjects: [listingSubjectProvider(), reviewSubjectProvider()],
  *   taxonomy: { version: '2026.07', allegationsFor },
@@ -132,6 +134,7 @@ export type { InboundService, RecordDecisionEventInput } from './inbound.js';
 export type {
   CreateReportInput,
   CreateReportResult,
+  CrowdSourceAuth,
   CrowdSourceConnectionConfig,
   EnforcementEffect,
   EnforcementOutcome,
