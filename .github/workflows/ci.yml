@@ -200,10 +200,12 @@ jobs:
           - package: core-outbox
             label: packages/core (the ./outbox entry point)
             command: bun run --cwd packages/core test:outbox -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/core-outbox-tests.json" && bun run --cwd packages/core test:invariants && bun run --cwd packages/core test:table-type
-            # The PostgreSQL-only suite runs 128 tests. This floor is sized to
+            # The PostgreSQL-only suite runs 140 tests. This floor is sized to
             # catch a traversal/backend collapse rather than turn one reviewed
-            # test deletion into an unrelated CI edit.
-            minimum_tests: 124
+            # test deletion into an unrelated CI edit, and it moves UP with the
+            # suite: a floor left where it was is a floor that stops meaning
+            # anything the moment a file is added.
+            minimum_tests: 136
             # The schema and store tests run against a REAL Postgres: a fake
             # cannot answer a `pg_index` query, and the questions that matter here
             # (is the swept column indexed, does the composite primary key exist,
