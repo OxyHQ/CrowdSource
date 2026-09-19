@@ -6,7 +6,7 @@
  *
  * ## Why this exists
  *
- * On 2026-07-30 `@oxy.so/crowdsource-express@0.3.0` took a consumer's backend
+ * On 2026-07-30 `@crowdsource.you/core/express@0.3.0` took a consumer's backend
  * down. Every package shipped CommonJS only, with `exports["."].import` pointing
  * at the CommonJS file. Plain Node survives that — its ESM loader handles a CJS
  * package — so a `node -e "import(...)"` smoke test goes green. A bundler
@@ -61,11 +61,12 @@ import { fileURLToPath } from "node:url";
  */
 const PUBLISHED = {
   contracts: 1,
-  sdk: 1,
-  "sdk-express": 1,
-  testing: 1,
-  // "." and the PostgreSQL storage subpath.
-  app: 2,
+  // ".", "./express", "./outbox", "./outbox/postgres" and "./testing". Five
+  // entry points in ONE package since the scope rename, which is exactly the
+  // arrangement this per-package floor was written for: losing a subpath from
+  // the manifest is now a silent resolution failure for a consumer rather than
+  // a missing package, and nothing else in the tree would show it.
+  core: 5,
 };
 /** Conditions that select code. `types` selects declarations and is exempt. */
 

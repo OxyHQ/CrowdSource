@@ -80,7 +80,7 @@ function withCredentials(databaseUrl: string, user: string, password: string): s
  * Idempotent and never dropped: roles are CLUSTER objects, not per-database, so
  * two suites running against one server share them. A `DROP ROLE` at teardown
  * would break a concurrent run, and this repository's Postgres container is
- * routinely shared with `packages/app`'s suite.
+ * routinely shared with `packages/core`'s outbox suite.
  *
  * `NOSUPERUSER NOBYPASSRLS` is stated explicitly rather than relied on as the
  * default, because it is the single property that decides whether anything below

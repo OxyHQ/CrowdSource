@@ -26,7 +26,7 @@ import {
   SegmentedControlItem,
   SegmentedControlItemText,
 } from '@oxy.so/bloom/segmented-control';
-import type { ReviewerCalibrationSubmission } from '@oxy.so/crowdsource-contracts';
+import type { ReviewerCalibrationSubmission } from '@crowdsource.you/contracts';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';

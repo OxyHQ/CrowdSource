@@ -27,7 +27,7 @@ import {
   PERSONHOOD_WEIGHTS,
 } from '../modules/reviewer/personhood';
 import type { ReviewerProfileDocument } from '../modules/reviewer/reviewer.collection';
-import { REVIEWER_STATES } from '@oxy.so/crowdsource-contracts';
+import { REVIEWER_STATES } from '@crowdsource.you/contracts';
 
 import { canTransition, DRAWABLE_STATES } from '../modules/reviewer/reviewerState';
 

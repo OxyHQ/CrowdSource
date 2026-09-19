@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { TaxonomyCode } from '@oxy.so/crowdsource-contracts';
+import type { TaxonomyCode } from '@crowdsource.you/contracts';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';

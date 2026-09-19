@@ -13,7 +13,7 @@ staging host. An application's own pre-production is a property of the *report*
 | [`webhooks.md`](./webhooks.md) | Not a caller — what CrowdSource sends *you*. |
 
 The request and response *documents* are published as Zod schemas and generated
-JSON Schema by `@oxy.so/crowdsource-contracts`, which is the same package the
+JSON Schema by `@crowdsource.you/contracts`, which is the same package the
 server validates with. Where a shape below is not in that package — the HTTP
 error body, the report receipt, the case view — it is a shape the backend
 composes in the route file, and each section names the file.
@@ -84,8 +84,8 @@ carries scalars only — never reported material (`http/apiError.ts`,
 | `service_unavailable` | 503 | A dependency this surface needs is not configured or not reachable. |
 
 **Retry `408`, `425`, `429`, `500`, `502`, `503`, `504`. Do not retry anything
-else** — that split is `RETRYABLE_STATUSES` in `packages/sdk/src/errors.ts`, and
-`@oxy.so/crowdsource` exposes it as a `retryable` boolean on every error it
+else** — that split is `RETRYABLE_STATUSES` in `packages/core/src/errors.ts`, and
+`@crowdsource.you/core` exposes it as a `retryable` boolean on every error it
 throws, so a delivery worker never has to re-derive it.
 
 `401` and `403` are not interchangeable. A credential that authenticates but
@@ -101,7 +101,7 @@ off to build it**, so each says which it is.
 **Superseded — do not build:**
 
 - **The upload route.** A presigned-upload design existed and was replaced by the
-  Oxy media chokepoint before it was implemented; `packages/sdk/src/uploads.ts`
+  Oxy media chokepoint before it was implemented; the client's `src/uploads.ts`
   was deleted and `AssetRefSchema` now requires a bare `fileId`. See
   [`application.md`](./application.md#evidence).
 

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { RecommendedAction, Severity, TaxonomyCode } from '@oxy.so/crowdsource-contracts';
+import type { RecommendedAction, Severity, TaxonomyCode } from '@crowdsource.you/contracts';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
@@ -41,7 +41,7 @@ const { outboxEvents, OUTBOX_EVENT_TYPES } = await import('../modules/outbox/out
 const { registerWebhookEndpoint } = await import('../modules/webhooks/endpoint.service');
 const { webhookDeliveries } = await import('../modules/webhooks/webhook.collections');
 const { OXY_CONDUCT_POLICY_VERSION, UNIVERSAL_TAXONOMY_VERSION } = await import(
-  '@oxy.so/crowdsource-contracts'
+  '@crowdsource.you/contracts'
 );
 const { BASELINE_POLICY_VERSION } = await import('../modules/policy/policyBaseline');
 const { createReviewerPool } = await import('./support/reviewers');

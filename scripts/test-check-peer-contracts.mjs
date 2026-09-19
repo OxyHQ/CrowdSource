@@ -19,29 +19,14 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const checker = resolve(dirname(fileURLToPath(import.meta.url)), "check-peer-contracts.mjs");
-const CONTRACTS = "@oxy.so/crowdsource-contracts";
+const CONTRACTS = "@crowdsource.you/contracts";
 
-/** A tree that must pass: peers admit the workspace version, nothing bundles it. */
+/** A tree that must pass: the peer admits the workspace version, nothing bundles it. */
 function healthyTree() {
   return {
     contracts: { name: CONTRACTS, version: "0.2.0" },
-    sdk: {
-      name: "@oxy.so/crowdsource",
-      peerDependencies: { [CONTRACTS]: "^0.2.0" },
-      devDependencies: { [CONTRACTS]: "workspace:*" },
-    },
-    "sdk-express": {
-      name: "@oxy.so/crowdsource-express",
-      peerDependencies: { [CONTRACTS]: "^0.2.0" },
-      devDependencies: { [CONTRACTS]: "workspace:*" },
-    },
-    testing: {
-      name: "@oxy.so/crowdsource-testing",
-      peerDependencies: { [CONTRACTS]: "^0.2.0" },
-      devDependencies: { [CONTRACTS]: "workspace:*" },
-    },
-    app: {
-      name: "@oxy.so/crowdsource-app",
+    core: {
+      name: "@crowdsource.you/core",
       peerDependencies: { [CONTRACTS]: "^0.2.0" },
       devDependencies: { [CONTRACTS]: "workspace:*" },
     },
@@ -57,60 +42,66 @@ const cases = [
   {
     name: "a peer range that excludes the workspace version is caught",
     expectFailure: true,
-    mustMention: "@oxy.so/crowdsource-express",
+    mustMention: "@crowdsource.you/core",
     // The exact shape that is strictly worse than an exact pin: ^0.1.0 refuses
     // 0.2.0, so the duplicate appears when the two copies differ MOST.
     mutate: (tree) => {
-      tree["sdk-express"].peerDependencies[CONTRACTS] = "^0.1.0";
+      tree.core.peerDependencies[CONTRACTS] = "^0.1.0";
       return tree;
     },
   },
   {
     name: "contracts back in dependencies is caught",
     expectFailure: true,
-    mustMention: "@oxy.so/crowdsource",
+    mustMention: "@crowdsource.you/core",
+    // `core` is the package an adopter installs ALONGSIDE contracts, so a
+    // nested second copy here is the shape that reaches production soonest —
+    // and since the outbox, the receiver and the sandbox all ship inside it,
+    // one wrong line now duplicates contracts under every entry point at once.
     mutate: (tree) => {
-      tree.sdk.dependencies = { [CONTRACTS]: "0.2.0" };
+      tree.core.dependencies = { [CONTRACTS]: "0.2.0" };
       return tree;
     },
   },
   {
     name: "a missing peer declaration is caught",
     expectFailure: true,
-    mustMention: "@oxy.so/crowdsource-testing",
+    mustMention: "@crowdsource.you/core",
     mutate: (tree) => {
-      delete tree.testing.peerDependencies;
+      delete tree.core.peerDependencies;
       return tree;
     },
   },
   {
     name: "a missing devDependency is caught",
     expectFailure: true,
-    mustMention: "@oxy.so/crowdsource-testing",
+    mustMention: "@crowdsource.you/core",
     mutate: (tree) => {
-      delete tree.testing.devDependencies;
+      delete tree.core.devDependencies;
       return tree;
     },
   },
   {
-    name: "contracts as a normal dependency of the app package is caught",
+    name: "a contracts bump that outruns the peer range is caught",
     expectFailure: true,
-    mustMention: "@oxy.so/crowdsource-app",
-    // The app package is the one an adopter installs ALONGSIDE contracts, so a
-    // nested second copy here is the shape that reaches production soonest.
-    mutate: (tree) => {
-      tree.app.dependencies = { [CONTRACTS]: "^0.2.0" };
-      return tree;
-    },
-  },
-  {
-    name: "a contracts bump that outruns every peer range is caught",
-    expectFailure: true,
-    mustMention: "@oxy.so/crowdsource",
+    mustMention: "@crowdsource.you/core",
     // The lockstep failure the peer range exists to make loud: contracts moves
-    // to 0.3.0 and nobody widened the ranges.
+    // to 0.3.0 and nobody widened the range.
     mutate: (tree) => {
       tree.contracts.version = "0.3.0";
+      return tree;
+    },
+  },
+  {
+    name: "a consumer directory that does not exist at all is caught",
+    expectFailure: true,
+    mustMention: "packages/core",
+    // The list of consumers is hand-maintained, and the rename moved the one
+    // entry on it. A checker that skipped a missing directory would report
+    // clean while examining nothing — which is exactly what this gate would
+    // have done on the first push of the scope rename.
+    mutate: (tree) => {
+      delete tree.core;
       return tree;
     },
   },

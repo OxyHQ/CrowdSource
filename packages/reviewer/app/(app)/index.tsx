@@ -24,7 +24,7 @@ import { Panel, Screen } from '@/components/Screen';
 import { assignmentBlockers } from '@/lib/eligibility';
 import { useActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { useRequestNextAssignment, useReviewerProfile } from '@/lib/reviewer-api/queries';
-import type { ReviewerProfileView } from '@oxy.so/crowdsource-contracts';
+import type { ReviewerProfileView } from '@crowdsource.you/contracts';
 
 export default function HomeScreen() {
   const { user } = useAuth();

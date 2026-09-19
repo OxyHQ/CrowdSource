@@ -25,14 +25,14 @@ const checker = resolve(dirname(fileURLToPath(import.meta.url)), "check-dist-orp
 /** A built `sdk` whose every output has a source. */
 function healthyTree() {
   return {
-    "packages/sdk/src/index.ts": "export const a = 1;\n",
-    "packages/sdk/src/client.ts": "export const b = 2;\n",
-    "packages/sdk/dist/index.js": "exports.a = 1;\n",
-    "packages/sdk/dist/index.d.ts": "export declare const a: number;\n",
-    "packages/sdk/dist/index.js.map": "{}\n",
-    "packages/sdk/dist/index.d.ts.map": "{}\n",
-    "packages/sdk/dist/client.js": "exports.b = 2;\n",
-    "packages/sdk/dist/client.d.ts": "export declare const b: number;\n",
+    "packages/core/src/index.ts": "export const a = 1;\n",
+    "packages/core/src/client.ts": "export const b = 2;\n",
+    "packages/core/dist/index.js": "exports.a = 1;\n",
+    "packages/core/dist/index.d.ts": "export declare const a: number;\n",
+    "packages/core/dist/index.js.map": "{}\n",
+    "packages/core/dist/index.d.ts.map": "{}\n",
+    "packages/core/dist/client.js": "exports.b = 2;\n",
+    "packages/core/dist/client.d.ts": "export declare const b: number;\n",
   };
 }
 
@@ -41,36 +41,36 @@ const cases = [
   {
     name: "the 0.3.0 near miss is caught: source deleted, output left behind",
     expectFailure: true,
-    mustMention: "packages/sdk/dist/uploads.js",
+    mustMention: "packages/core/dist/uploads.js",
     mutate: (t) => ({
       ...t,
-      "packages/sdk/dist/uploads.js": "exports.upload = () => {};\n",
-      "packages/sdk/dist/uploads.d.ts": "export declare const upload: () => void;\n",
-      "packages/sdk/dist/uploads.js.map": "{}\n",
+      "packages/core/dist/uploads.js": "exports.upload = () => {};\n",
+      "packages/core/dist/uploads.d.ts": "export declare const upload: () => void;\n",
+      "packages/core/dist/uploads.js.map": "{}\n",
     }),
   },
   {
     name: "a stale output in a nested directory is caught",
     expectFailure: true,
     mustMention: "internal/gone.js",
-    mutate: (t) => ({ ...t, "packages/sdk/dist/internal/gone.js": "exports.x = 1;\n" }),
+    mutate: (t) => ({ ...t, "packages/core/dist/internal/gone.js": "exports.x = 1;\n" }),
   },
   {
     name: "a stale declaration map alone is caught",
     expectFailure: true,
     mustMention: "removed.d.ts.map",
-    mutate: (t) => ({ ...t, "packages/sdk/dist/removed.d.ts.map": "{}\n" }),
+    mutate: (t) => ({ ...t, "packages/core/dist/removed.d.ts.map": "{}\n" }),
   },
   {
     name: "an unrecognised file in dist is reported rather than ignored",
     expectFailure: true,
     mustMention: "not a recognised build output",
-    mutate: (t) => ({ ...t, "packages/sdk/dist/notes.txt": "hello\n" }),
+    mutate: (t) => ({ ...t, "packages/core/dist/notes.txt": "hello\n" }),
   },
   {
     name: "buildinfo inside dist is build state, not a stale output",
     expectFailure: false,
-    mutate: (t) => ({ ...t, "packages/sdk/dist/tsconfig.tsbuildinfo": "{}\n" }),
+    mutate: (t) => ({ ...t, "packages/core/dist/tsconfig.tsbuildinfo": "{}\n" }),
   },
   {
     name: "a dist with no recognised outputs at all trips the vacuity floor",
@@ -80,8 +80,8 @@ const cases = [
     // examined nothing. Reporting success here would mean the check passes on a
     // tree it never looked at.
     mutate: () => ({
-      "packages/sdk/src/index.ts": "export const a = 1;\n",
-      "packages/sdk/dist/tsconfig.tsbuildinfo": "{}\n",
+      "packages/core/src/index.ts": "export const a = 1;\n",
+      "packages/core/dist/tsconfig.tsbuildinfo": "{}\n",
     }),
   },
   {
@@ -89,8 +89,8 @@ const cases = [
     expectFailure: false,
     mutate: (t) => ({
       ...t,
-      "packages/sdk/src/widget.tsx": "export const W = null;\n",
-      "packages/sdk/dist/widget.js": "exports.W = null;\n",
+      "packages/core/src/widget.tsx": "export const W = null;\n",
+      "packages/core/dist/widget.js": "exports.W = null;\n",
     }),
   },
 ];

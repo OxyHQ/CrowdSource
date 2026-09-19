@@ -12,7 +12,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { REVIEWER_STATES } from '@oxy.so/crowdsource-contracts';
+import { REVIEWER_STATES } from '@crowdsource.you/contracts';
 
 import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 

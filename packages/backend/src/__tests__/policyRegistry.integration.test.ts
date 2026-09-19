@@ -2,7 +2,7 @@ import {
   PolicySetVersionSchema,
   TAXONOMY_CODES_BY_FAMILY,
   UNIVERSAL_TAXONOMY_CODES,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { isApiError } from '../http/apiError';

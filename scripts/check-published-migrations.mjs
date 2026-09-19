@@ -12,10 +12,12 @@
  * migrations does not conflict with an adopter's — it makes one of them
  * disappear, on a schedule nobody controls, with no error anywhere.
  *
- * So `@oxy.so/crowdsource-app` ships table DEFINITIONS and the adopter's own
+ * So `@crowdsource.you/core/outbox` ships table DEFINITIONS and the adopter's own
  * `drizzle-kit generate` produces the SQL, in the adopter's own journal. The
- * package's own migrations exist only under `src/__tests__/`, which `files`
- * excludes.
+ * package's own migrations exist only under a `__tests__` directory beneath
+ * `src`, which `files` excludes at any depth. (Spelled out rather than given as
+ * a recursive glob: a glob's own separator terminates a doc comment, which is a
+ * mistake this repository has already made once, in `drizzle.config.ts`.)
  *
  * That arrangement is one helpful edit away from being undone: moving the folder
  * somewhere "tidier" breaks nothing locally, passes every test, and ships. The
@@ -39,7 +41,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** The packages whose tarball an adopter installs. */
-const PUBLISHED = ["contracts", "sdk", "sdk-express", "testing", "app"];
+const PUBLISHED = ["contracts", "core"];
 
 /** Any path segment naming a migration. Case-insensitive: `Migrations/` ships too. */
 const MIGRATION = /(^|\/)migrations?(\/|$)|\.sql$/i;
@@ -108,7 +110,7 @@ for (const name of PUBLISHED) {
       `${manifest.name ?? `packages/${name}`} ships ${offenders.length} migration file(s): ` +
         `${offenders.slice(0, 5).join(", ")}${offenders.length > 5 ? ", …" : ""}. ` +
         "A library's migrations interleave with the adopter's in one ledger table, and " +
-        "the loser is skipped silently with exit 0 — keep them under src/__tests__/, " +
+        "the loser is skipped silently with exit 0 — keep them under a __tests__ directory beneath src/, " +
         "which `files` excludes.",
     );
   }

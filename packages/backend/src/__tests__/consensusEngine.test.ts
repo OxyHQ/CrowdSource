@@ -4,7 +4,7 @@ import type {
   RecommendedAction,
   ReviewFinding,
   Severity,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 import {
   CONSENSUS_RISKS,
@@ -24,7 +24,7 @@ import {
 } from '../modules/consensus/consensus';
 import { SENSITIVITY_CLASSES } from '../modules/triage/triage';
 import { MAX_PANEL_ROUND } from '../modules/sortition/panelSpec';
-import { REVIEW_OUTCOMES } from '@oxy.so/crowdsource-contracts';
+import { REVIEW_OUTCOMES } from '@crowdsource.you/contracts';
 
 /**
  * §9.4's consensus engine, at the level §9.4 states it.

@@ -33,7 +33,7 @@ import {
   type ReviewOutcome,
   type ReviewSubmission,
   type Severity,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 /**
  * Step 1 vocabulary. Every entry describes something OBSERVABLE in the material.

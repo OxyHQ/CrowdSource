@@ -7,7 +7,7 @@ import {
   WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS,
   WebhookSignatureHeaderSchema,
   WebhookTimestampHeaderSchema,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 /**
  * The webhook signature (§10.8).
@@ -38,7 +38,7 @@ import {
  *     grind for.
  *
  * The verifier below is the receiver's side of the contract, and the shipped
- * implementation integrators use is `@oxy.so/crowdsource-express`. This one exists
+ * implementation integrators use is `@crowdsource.you/core/express`. This one exists
  * so the signer is proven against an independent implementation instead of
  * against itself — a check that can only agree with the code it checks is not a
  * check.

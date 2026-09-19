@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@oxy.so/crowdsource"><img alt="npm" src="https://img.shields.io/npm/v/@oxy.so/crowdsource?style=flat-square&color=440151&label=%40oxyhq%2Fcrowdsource"></a>
+  <a href="https://www.npmjs.com/package/@crowdsource.you/core"><img alt="npm" src="https://img.shields.io/npm/v/@crowdsource.you/core?style=flat-square&color=440151&label=%40crowdsource.you%2Fcore"></a>
   <a href="./LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/license-MIT-informational?style=flat-square"></a>
   <img alt="Expo SDK 56" src="https://img.shields.io/badge/Expo-SDK%2056-000020?style=flat-square&logo=expo&logoColor=white">
   <img alt="React Native 0.85" src="https://img.shields.io/badge/React%20Native-0.85-61DAFB?style=flat-square&logo=react&logoColor=black">
@@ -62,23 +62,43 @@ These come from the approved product specification. They are not preferences. A 
 
 | Package | Path | What it holds |
 |---|---|---|
-| [`@oxy.so/crowdsource-contracts`](https://www.npmjs.com/package/@oxy.so/crowdsource-contracts) | [`packages/contracts`](./packages/contracts) | The versioned contracts every surface agrees on, as Zod schemas and JSON Schema: case envelope, resources, taxonomy, policies, reviews, decisions, webhooks, reputation events |
+| [`@crowdsource.you/contracts`](https://www.npmjs.com/package/@crowdsource.you/contracts) | [`packages/contracts`](./packages/contracts) | The versioned contracts every surface agrees on, as Zod schemas and JSON Schema: case envelope, resources, taxonomy, policies, reviews, decisions, webhooks, reputation events |
 | `@crowdsource/backend` | [`packages/backend`](./packages/backend) | PostgreSQL/Drizzle Express 5 modular monolith: RLS-scoped tenancy, ingestion, evidence, cases, sortition, review, consensus, decisions and webhook delivery |
 | `@crowdsource/reviewer` | [`packages/reviewer`](./packages/reviewer) | The reviewer app, Expo Router and React Native Web from one codebase |
 | `@crowdsource/console` | [`packages/console`](./packages/console) | Developer and Trust and Safety console, Expo Router on the web only |
-| [`@oxy.so/crowdsource`](https://www.npmjs.com/package/@oxy.so/crowdsource) | [`packages/sdk`](./packages/sdk) | TypeScript client for integrators: reports, uploads, cases, decisions |
-| [`@oxy.so/crowdsource-express`](https://www.npmjs.com/package/@oxy.so/crowdsource-express) | [`packages/sdk-express`](./packages/sdk-express) | Express webhook receiver: raw body capture, HMAC verification, replay protection, typed events |
-| `@oxy.so/crowdsource-app` | [`packages/app`](./packages/app) | PostgreSQL-only application integration: transactional outbox, delivery, receiver, decision application and idempotent enforcement. The 0.7 source is a breaking migration from the former Mongoose subpath; publication is separate. |
-| [`@oxy.so/crowdsource-testing`](https://www.npmjs.com/package/@oxy.so/crowdsource-testing) | [`packages/testing`](./packages/testing) | Fixtures, a webhook simulator and an in process sandbox, so you can integrate before a jury has ever sat |
+| [`@crowdsource.you/core`](https://www.npmjs.com/package/@crowdsource.you/core) | [`packages/core`](./packages/core) | TypeScript client for integrators: reports, cases, decisions. Three further entry points ship inside it — see below |
 
 Each package README says what that package holds.
 
+### `@crowdsource.you/core`'s entry points
+
+| Import | Source | What it holds |
+|---|---|---|
+| `@crowdsource.you/core` | [`src`](./packages/core/src) | The API client: reports, cases, decisions, webhook endpoints |
+| `@crowdsource.you/core/express` | [`src/express`](./packages/core/src/express) | Express webhook receiver: raw body capture, HMAC verification, replay protection, typed events |
+| `@crowdsource.you/core/outbox` | [`src/outbox`](./packages/core/src/outbox) | PostgreSQL-only application integration: transactional outbox, delivery, receiver, decision application and idempotent enforcement |
+| `@crowdsource.you/core/testing` | [`src/testing`](./packages/core/src/testing) | Fixtures, a webhook simulator and an in process sandbox, so you can integrate before a jury has ever sat |
+
+**Two published packages, not five.** `contracts` stays separate because it must
+exist exactly once in a consumer's tree — two copies type check clean and fail
+every delivery at runtime — and because a React Native UI needs its types without
+a server only client in the phone bundle. The rest is one package, so a client and
+a receiver installed together cannot be different versions of the same agreement.
+Importing the root pulls in no `express`, `drizzle-orm`, `postgres` or
+`@oxy.so/db`: they are optional peers reached only through the subpaths.
+
+Coming from the old names: `@oxy.so/crowdsource-contracts` is now
+`@crowdsource.you/contracts`, `@oxy.so/crowdsource` is `@crowdsource.you/core`,
+and `-express`, `-app` and `-testing` are its `/express`, `/outbox` and
+`/testing` entry points. The full table is in
+[`packages/core/README.md`](./packages/core/README.md#what-used-to-be-called-what).
+
 ## Integrating
 
-An adopting application writes four things and nothing else: its subject providers, its category to allegation mapping, its enforcement tables plus one `apply`, and its own PostgreSQL report table. Everything it would otherwise copy, the outbox, delivery, the webhook receiver, cross instance dedupe, decision application, the enforcement claim and the enforcement planning algorithm, lives in `@oxy.so/crowdsource-app`.
+An adopting application writes four things and nothing else: its subject providers, its category to allegation mapping, its enforcement tables plus one `apply`, and its own PostgreSQL report table. Everything it would otherwise copy, the outbox, delivery, the webhook receiver, cross instance dedupe, decision application, the enforcement claim and the enforcement planning algorithm, lives in `@crowdsource.you/core/outbox`.
 
 ```bash
-bun add @oxy.so/crowdsource @oxy.so/crowdsource-express
+bun add @crowdsource.you/core @crowdsource.you/contracts express
 ```
 
 Two rules follow from that design and bind every change to those packages.

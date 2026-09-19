@@ -139,7 +139,7 @@ if (import.meta.main) {
       cwd: contractsDirectory,
     });
     if (pack.exitCode !== 0) {
-      console.error("Packing @oxy.so/crowdsource-contracts failed:");
+      console.error("Packing @crowdsource.you/contracts failed:");
       console.error(new TextDecoder().decode(pack.stderr));
       process.exit(1);
     }
@@ -170,7 +170,7 @@ if (import.meta.main) {
       process.exit(1);
     }
 
-    const entry = resolve(scratch, "node_modules", "@oxy.so", "crowdsource-contracts", "dist", "index.js");
+    const entry = resolve(scratch, "node_modules", "@crowdsource.you", "contracts", "dist", "index.js");
     const contracts = await import(entry);
 
     const failures = assertJsonSchemaSurface(contracts);

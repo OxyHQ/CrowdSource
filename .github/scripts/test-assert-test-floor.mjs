@@ -68,7 +68,7 @@ await expectVerdict(
 // Zero tests is the shape of a wrong working directory or a broken glob.
 await expectVerdict(
   "empty-suite",
-  [await writeReport("empty.json", { ...healthy, numTotalTests: 0, testResults: [] }), "packages/sdk", "60"],
+  [await writeReport("empty.json", { ...healthy, numTotalTests: 0, testResults: [] }), "packages/core", "60"],
   1,
   "only 0 test(s) ran, below the floor of 60",
 );
@@ -78,7 +78,7 @@ await expectVerdict(
   "failed-tests-reported",
   [
     await writeReport("failed.json", { ...healthy, numFailedTests: 3, success: false }),
-    "packages/sdk-express",
+    "packages/core",
     "45",
   ],
   1,
@@ -88,7 +88,7 @@ await expectVerdict(
 // A missing report is a suite that never ran, not "nothing to check".
 await expectVerdict(
   "missing-report",
-  [join(workingDirectory, "does-not-exist.json"), "packages/testing", "12"],
+  [join(workingDirectory, "does-not-exist.json"), "packages/core", "12"],
   1,
   "could not read the test report",
 );
@@ -96,7 +96,7 @@ await expectVerdict(
 // A reporter whose format changed must fail loudly rather than silently stop counting.
 await expectVerdict(
   "unrecognised-report",
-  [await writeReport("shape.json", { total: 175 }), "packages/testing", "12"],
+  [await writeReport("shape.json", { total: 175 }), "packages/core", "12"],
   1,
   "carries no numTotalTests/numFailedTests",
 );

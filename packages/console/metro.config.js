@@ -41,7 +41,7 @@ config.resolver = {
     /README/,
   ],
   extraNodeModules: {
-    '@oxy.so/crowdsource-contracts': path.join(monorepoRoot, 'packages/contracts'),
+    '@crowdsource.you/contracts': path.join(monorepoRoot, 'packages/contracts'),
   },
   nodeModulesPaths: [
     path.join(projectRoot, 'node_modules'),

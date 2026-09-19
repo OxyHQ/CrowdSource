@@ -32,7 +32,7 @@ import type {
   ReviewerPreferencesUpdate,
   ReviewerProfileView,
   TaxonomyFamily,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 import { CONSENTABLE_FAMILIES, OPT_IN_FAMILIES } from '@/lib/taxonomy';
 
 const DAILY_LIMIT_OPTIONS = [5, 10, 20, 40];

@@ -6,11 +6,11 @@ import type {
   CommunityNoteRatingSubmission,
   CommunityNoteStatus,
   CommunityNoteSubmission,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 import {
   CommunityNoteAssignmentRequestSchema,
   CommunityNoteSubmissionSchema,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 import {
   consumeCommunityNoteAssignment,

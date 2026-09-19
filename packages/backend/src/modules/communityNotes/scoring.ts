@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import type { CommunityNoteRatingValue, CommunityNoteStatus } from '@oxy.so/crowdsource-contracts';
+import type { CommunityNoteRatingValue, CommunityNoteStatus } from '@crowdsource.you/contracts';
 
 /**
  * The community-note scorer (the community notes ADR §4): matrix factorisation over one

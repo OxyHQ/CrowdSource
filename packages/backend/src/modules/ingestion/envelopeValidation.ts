@@ -5,7 +5,7 @@ import {
   CreateReportRequestSchema,
   type CaseEnvelope,
   type CreateReportRequest,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 import { z } from 'zod';
 
 import type { TenantContext } from '../../db/tenantScope';

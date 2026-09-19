@@ -64,9 +64,7 @@
   "references": [
     { "path": "./packages/contracts" },
     { "path": "./packages/backend" },
-    { "path": "./packages/sdk" },
-    { "path": "./packages/sdk-express" },
-    { "path": "./packages/testing" }
+    { "path": "./packages/core" }
   ],
   "exclude": [
     "node_modules",

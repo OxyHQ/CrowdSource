@@ -37,7 +37,7 @@ import {
 import type {
   AssignmentPackage,
   ContextSufficiency,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 const CONTEXT_SUFFICIENCY: readonly ContextSufficiency[] = ['sufficient', 'insufficient'];
 

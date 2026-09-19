@@ -96,15 +96,15 @@ for (const appName of ["reviewer", "console"]) {
 
 // Every workspace that consumes the shared contracts must resolve them from
 // this repository, never from a published version that can drift behind it.
-for (const packageName of ["backend", "reviewer", "console", "sdk", "sdk-express", "testing"]) {
+for (const packageName of ["backend", "reviewer", "console", "core"]) {
   const manifest = await readJson(`packages/${packageName}/package.json`);
   const range =
-    manifest.dependencies?.["@oxy.so/crowdsource-contracts"] ??
-    manifest.devDependencies?.["@oxy.so/crowdsource-contracts"];
+    manifest.dependencies?.["@crowdsource.you/contracts"] ??
+    manifest.devDependencies?.["@crowdsource.you/contracts"];
 
   if (range !== "workspace:*") {
     failures.push(
-      `packages/${packageName}/package.json must declare @oxy.so/crowdsource-contracts as workspace:* (found ${String(range)}).`,
+      `packages/${packageName}/package.json must declare @crowdsource.you/contracts as workspace:* (found ${String(range)}).`,
     );
   }
 }
@@ -112,7 +112,7 @@ for (const packageName of ["backend", "reviewer", "console", "sdk", "sdk-express
 // The image audit fails in BOTH directions, so the workspaces it expects must
 // track the Dockerfile's `--filter` arguments. A rename that updates one and not
 // the other passes locally and fails only during a production rollout.
-const runtimeWorkspaces = ["@crowdsource/backend", "@oxy.so/crowdsource-contracts"];
+const runtimeWorkspaces = ["@crowdsource/backend", "@crowdsource.you/contracts"];
 const backendDockerfile = await readFile(
   resolve(repositoryRoot, "packages/backend/Dockerfile"),
   "utf8",

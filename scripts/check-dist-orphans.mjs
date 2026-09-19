@@ -10,7 +10,7 @@
  * consumer then installs a module the source tree does not contain, with a
  * sourcemap pointing at a path that is not in the tarball.
  *
- * This is not hypothetical. `0.3.0` removed `packages/sdk/src/uploads.ts`, and
+ * This is not hypothetical. `0.3.0` removed `src/uploads.ts` from the client package (now `packages/core`), and
  * the first pack of it shipped `dist/uploads.js`, `dist/uploads.d.ts` and both
  * their maps — the whole abandoned presigned-upload client, in a release whose
  * entire point was removing it. It was caught by inspecting the tarball by hand,
@@ -36,7 +36,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** The packages whose `dist` is published. */
-const PUBLISHED = ["contracts", "sdk", "sdk-express", "testing", "app"];
+const PUBLISHED = ["contracts", "core"];
 
 /** Output suffixes, longest first so `.d.ts.map` is stripped before `.map`. */
 const OUTPUT_SUFFIXES = [".d.ts.map", ".d.ts", ".js.map", ".js"];

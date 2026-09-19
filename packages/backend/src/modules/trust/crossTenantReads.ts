@@ -1,5 +1,5 @@
 import { asc, desc, eq, or, sql } from 'drizzle-orm';
-import { DECISION_OUTCOMES, type DecisionOutcome } from '@oxy.so/crowdsource-contracts';
+import { DECISION_OUTCOMES, type DecisionOutcome } from '@crowdsource.you/contracts';
 
 import { getPostgresDatabase } from '../../db/postgres/database';
 import {

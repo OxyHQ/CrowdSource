@@ -5,13 +5,44 @@ environment variable and the object being reported**, so this guide is short. If
 it grows, that is a finding about the packages, not about the writing.
 
 ```bash
-bun add @oxy.so/crowdsource @oxy.so/crowdsource-contracts
+bun add @crowdsource.you/core @crowdsource.you/contracts
 ```
 
-`@oxy.so/crowdsource-contracts` is a **peer dependency** of every published
-package here. Two copies of it in one tree is a failure with no diagnostic —
-`tsc` stays silent and every delivery answers `400`, which reads as a signature
-problem. Declare it once and own its version.
+Two packages, and the second is a **peer dependency** of the first. Two copies of
+contracts in one tree is a failure with no diagnostic — `tsc` stays silent and
+every delivery answers `400`, which reads as a signature problem. Declare it once
+and own its version.
+
+`@crowdsource.you/core` is everything else: the API client is the root import,
+and the webhook receiver, the application-side outbox and the test sandbox are
+entry points of that same package.
+
+| Import | Where it appears below | Extra install |
+| --- | --- | --- |
+| `@crowdsource.you/core` | [2. Send a report](#2-send-a-report) | — |
+| `@crowdsource.you/core/express` | [4. Receive the decision](#4-receive-the-decision) | `express` |
+| `@crowdsource.you/core/testing` | [5. Test the whole path](#5-test-the-whole-path-before-a-jury-has-ever-sat) | — |
+| `@crowdsource.you/core/outbox` | not in this guide — the PostgreSQL application half, in [`packages/core/README.md`](../packages/core/README.md) | `express @oxy.so/db drizzle-orm postgres` |
+
+**The line above is the whole install for an application that only files
+reports.** `express`, `drizzle-orm`, `postgres` and `@oxy.so/db` are optional
+peers of `core`, reached only through `/express` and `/outbox`, so importing the
+root pulls none of them into your graph.
+
+> **Coming from `@oxy.so/crowdsource*`?**
+>
+> | Before | Now |
+> | --- | --- |
+> | `@oxy.so/crowdsource-contracts` | `@crowdsource.you/contracts` |
+> | `@oxy.so/crowdsource` | `@crowdsource.you/core` |
+> | `@oxy.so/crowdsource-express` | `@crowdsource.you/core/express` |
+> | `@oxy.so/crowdsource-app` | `@crowdsource.you/core/outbox` |
+> | `@oxy.so/crowdsource-app/postgres` | `@crowdsource.you/core/outbox/postgres` |
+> | `@oxy.so/crowdsource-testing` | `@crowdsource.you/core/testing` |
+>
+> Same code, same version numbers, no export renamed — change the specifier and
+> the import list is unchanged. The old names are not republished as shims, so a
+> tree that still names one is a tree that never migrated, which is the point.
 
 ---
 
@@ -75,7 +106,7 @@ key"** (`packages/console/app/(console)/applications/[applicationId]/credentials
 `token` is the **HTTP bearer** — `<credentialId>.<secret>` — which is what
 `Authorization: Bearer …` takes. `CROWDSOURCE_SERVICE_KEY` is a different
 string: `applicationId:credentialId:secret`, colon-separated, three parts
-(`packages/sdk/src/credential.ts`). Pasting the console's value into the
+(`packages/core/src/credential.ts`). Pasting the console's value into the
 environment variable throws
 `CrowdSourceConfigurationError: A CrowdSource service key is three
 colon-separated parts (applicationId:credentialId:secret); this one has 1.`
@@ -87,7 +118,7 @@ application page, then
 <applicationId>:<the console's token with its "." replaced by ":">
 ```
 
-**This is a defect, not a workflow.** `packages/sdk/src/credential.ts` carries a
+**This is a defect, not a workflow.** `packages/core/src/credential.ts` carries a
 "NOTE FOR THE CONSOLE" saying the issuing surface must show
 `formatServiceKey(issued)`, and it does not; the issuing response does not even
 carry `applicationId`. Fixing it is a change to that route and that screen.
@@ -100,7 +131,7 @@ is stored, so nothing — including this service — can recover it.
 ## 2. Send a report
 
 ```ts
-import { CrowdSource } from '@oxy.so/crowdsource';
+import { CrowdSource } from '@crowdsource.you/core';
 
 const crowdsource = new CrowdSource();
 
@@ -170,7 +201,7 @@ attachments: [{
 `AssetRefSchema` **requires** `fileId`, a bare Oxy file id
 (`packages/contracts/src/resources.ts`). CrowdSource has no upload route of its
 own, deliberately: the presigned design was superseded by the Oxy media
-chokepoint before it was ever built, and `packages/sdk/src/uploads.ts` was
+chokepoint before it was ever built, and the client's `src/uploads.ts` was
 deleted. So a file id is the only way bytes reach a reviewer, and the only place
 one comes from is the ecosystem's media service.
 
@@ -224,7 +255,7 @@ CROWDSOURCE_WEBHOOK_SECRET=…
 ```
 
 ```ts
-import { crowdsourceWebhooks } from '@oxy.so/crowdsource-express';
+import { crowdsourceWebhooks } from '@crowdsource.you/core/express';
 
 app.post('/webhooks/crowdsource', crowdsourceWebhooks({
   on: {
@@ -272,7 +303,7 @@ reputation figure directly. You emit a report; CrowdSource emits a decision.
 ## 5. Test the whole path before a jury has ever sat
 
 ```ts
-import { createCrowdSourceSandbox } from '@oxy.so/crowdsource-testing';
+import { createCrowdSourceSandbox } from '@crowdsource.you/core/testing';
 
 const sandbox = createCrowdSourceSandbox();
 const crowdsource = new CrowdSource({
@@ -330,7 +361,7 @@ store forever.
 So pass the token instead of the key:
 
 ```ts
-import { CrowdSource } from '@oxy.so/crowdsource';
+import { CrowdSource } from '@crowdsource.you/core';
 import { OxyServices } from '@oxy.so/core';
 
 const oxy = new OxyServices({ baseURL: 'https://api.oxy.so' });
@@ -382,12 +413,12 @@ service that owns it.
 
 | Variable | Package | |
 | --- | --- | --- |
-| `CROWDSOURCE_SERVICE_KEY` | `@oxy.so/crowdsource` | Required for a third party. `applicationId:credentialId:secret`. An Oxy service sets `oxyToken` instead and configures nothing. |
-| `CROWDSOURCE_BASE_URL` | `@oxy.so/crowdsource` | Optional. Overrides the host. `http://` is accepted for `localhost` and refused otherwise. |
-| `CROWDSOURCE_WEBHOOK_SECRET` | `@oxy.so/crowdsource-express` | The active signing secret. |
-| `CROWDSOURCE_WEBHOOK_SECRET_PREVIOUS` | `@oxy.so/crowdsource-express` | The secret being retired. Set during a rotation overlap; clear it after `previousSecret.expiresAt`. |
+| `CROWDSOURCE_SERVICE_KEY` | `@crowdsource.you/core` | Required for a third party. `applicationId:credentialId:secret`. An Oxy service sets `oxyToken` instead and configures nothing. |
+| `CROWDSOURCE_BASE_URL` | `@crowdsource.you/core` | Optional. Overrides the host. `http://` is accepted for `localhost` and refused otherwise. |
+| `CROWDSOURCE_WEBHOOK_SECRET` | `@crowdsource.you/core/express` | The active signing secret. |
+| `CROWDSOURCE_WEBHOOK_SECRET_PREVIOUS` | `@crowdsource.you/core/express` | The secret being retired. Set during a rotation overlap; clear it after `previousSecret.expiresAt`. |
 
-**`@oxy.so/crowdsource` is server-side only.** A service credential is your whole
+**`@crowdsource.you/core` is server-side only.** A service credential is your whole
 moderation stream; shipping one to a browser or a mobile bundle hands every user
 of your application the ability to file reports as you, read your cases and
 exhaust your quota. The package depends on `node:crypto` and does not build for

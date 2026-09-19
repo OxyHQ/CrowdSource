@@ -14,7 +14,7 @@
  */
 
 import { Button } from '@oxy.so/bloom/button';
-import type { ReviewerSensitivityClass, TaxonomyCode } from '@oxy.so/crowdsource-contracts';
+import type { ReviewerSensitivityClass, TaxonomyCode } from '@crowdsource.you/contracts';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';

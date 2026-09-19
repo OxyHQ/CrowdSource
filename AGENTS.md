@@ -55,15 +55,25 @@ one is wrong even if it passes review.
 
 ```
 packages/
-  contracts/    @oxy.so/crowdsource-contracts  Zod + JSON Schema contracts (published)
+  contracts/    @crowdsource.you/contracts    Zod + JSON Schema contracts (published)
+  core/         @crowdsource.you/core         TypeScript client (published), plus
+                  src/express   -> /express   Webhook middleware
+                  src/outbox    -> /outbox    The application half (+ /outbox/postgres)
+                  src/testing   -> /testing   Fixtures + webhook simulator
   backend/      @crowdsource/backend          Express modular monolith
   reviewer/     @crowdsource/reviewer         Expo Router reviewer app (web + native)
   console/      @crowdsource/console          Developer + Trust & Safety console (web only)
-  sdk/          @oxy.so/crowdsource            TypeScript client (published)
-  sdk-express/  @oxy.so/crowdsource-express    Webhook middleware (published)
-  testing/      @oxy.so/crowdsource-testing    Fixtures + webhook simulator (published)
-  app/          @oxy.so/crowdsource-app        The application half (published)
 ```
+
+**TWO published packages, not five.** `contracts` stays its own because it must
+exist EXACTLY ONCE in a consumer's tree — two copies type-check clean and fail
+every delivery at runtime — and because a React Native UI package needs its types
+without a server-only client in the phone bundle. Everything else is one package
+with four entry points, so a consumer cannot install a client and a receiver that
+disagree. **The ROOT of `core` must stay importable by a consumer that only files
+reports**: express, drizzle, postgres and `@oxy.so/db` are optional peers reached
+only through `/express` and `/outbox`, and an import added to `src/index.ts` that
+pulls one in is a regression no test will name.
 
 **Do NOT record per-package build status here** — read the tree. The sentence
 that used to sit in this spot called the reviewer app "the foundation without
@@ -92,7 +102,7 @@ touched. It reads exactly like someone else's broken commit.
   dependency. A domain write and its outbox row commit through the SAME Drizzle
   transaction; workers claim durable rows with bounded leases. Never create work
   without the outbox row that makes it re-derivable.
-- **`@oxy.so/crowdsource-app` is PostgreSQL-only.** Do not restore a Mongoose
+- **`@crowdsource.you/core/outbox` is PostgreSQL-only.** Do not restore a Mongoose
   export, dependency or runtime path. Adopter migrations preserve exact ids and
   reconcile counts plus canonical SHA-256 digests against an empty target.
 - **Isolation is enforced by PostgreSQL RLS and the scoped repository types.** A
@@ -130,7 +140,7 @@ touched. It reads exactly like someone else's broken commit.
   child screen must never navigate across that boundary on the same signal.
 - **Case material must never reach device storage, logs or analytics.**
   `utils/storage.ts` is for preferences only.
-- **Every guard is mutation-proven.** `packages/app/scripts/test-invariants.mjs`
+- **Every guard is mutation-proven.** `packages/core/scripts/test-invariants.mjs`
   deletes each guard in turn and asserts the SPECIFIC named test goes red. **A
   mutation whose failure mode is a timeout carries no information** — bound it so
   it fails fast and NAMED.

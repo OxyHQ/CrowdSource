@@ -1,4 +1,4 @@
-import type { TaxonomyCode } from '@oxy.so/crowdsource-contracts';
+import type { TaxonomyCode } from '@crowdsource.you/contracts';
 
 import { createTenantContext } from '../../db/tenantScope';
 import { withTransaction } from '../../db/transaction';

@@ -22,7 +22,7 @@ import {
   type ReviewFormAction,
   type ReviewFormState,
 } from '@/lib/review-form';
-import type { ReviewerResource } from '@oxy.so/crowdsource-contracts';
+import type { ReviewerResource } from '@crowdsource.you/contracts';
 
 interface DescriptiveStepProps {
   state: ReviewFormState;

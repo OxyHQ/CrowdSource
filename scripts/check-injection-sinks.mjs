@@ -147,7 +147,7 @@ const SOURCE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
  * failed, so this does not break the day a package is added or removed — but a
  * package that EXISTS and yields nothing means the walk is broken.
  */
-const EXPECTED_PACKAGES = ["contracts", "backend", "reviewer", "sdk", "sdk-express", "testing"];
+const EXPECTED_PACKAGES = ["contracts", "backend", "reviewer", "core"];
 
 const DEFAULT_MIN_FILES = 200;
 

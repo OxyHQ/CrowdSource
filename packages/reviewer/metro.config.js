@@ -43,7 +43,7 @@ config.resolver = {
     /README/,
   ],
   extraNodeModules: {
-    '@oxy.so/crowdsource-contracts': path.join(monorepoRoot, 'packages/contracts'),
+    '@crowdsource.you/contracts': path.join(monorepoRoot, 'packages/contracts'),
   },
   // Resolve from reviewer node_modules first, then monorepo root (for hoisted deps)
   nodeModulesPaths: [

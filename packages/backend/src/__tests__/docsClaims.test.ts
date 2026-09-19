@@ -27,7 +27,7 @@ import {
   WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS,
   ASSIGNMENT_TOKEN_HEADER,
   DecisionFindingSchema,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { config } from '../config';
@@ -461,11 +461,11 @@ describe('docs/integration.md', () => {
 
   it('names the environment variables the published packages actually read', () => {
     const sdk = readFileSync(
-      path.resolve(__dirname, '../../../sdk/src/client.ts'),
+      path.resolve(__dirname, '../../../core/src/client.ts'),
       'utf8',
     );
     const express = readFileSync(
-      path.resolve(__dirname, '../../../sdk-express/src/middleware.ts'),
+      path.resolve(__dirname, '../../../core/src/express/middleware.ts'),
       'utf8',
     );
 
@@ -487,7 +487,7 @@ describe('docs/integration.md', () => {
    */
   it('describes the service key the SDK actually parses', () => {
     const credential = readFileSync(
-      path.resolve(__dirname, '../../../sdk/src/credential.ts'),
+      path.resolve(__dirname, '../../../core/src/credential.ts'),
       'utf8',
     );
     const issuing = readFileSync(

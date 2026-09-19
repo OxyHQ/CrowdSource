@@ -10,7 +10,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { CONTEXT_SUFFICIENCIES, REVIEW_OUTCOMES } from '@oxy.so/crowdsource-contracts';
+import { CONTEXT_SUFFICIENCIES, REVIEW_OUTCOMES } from '@crowdsource.you/contracts';
 
 import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 

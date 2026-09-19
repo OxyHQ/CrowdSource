@@ -2,7 +2,7 @@
 
 **Status:** accepted, implemented.
 **Scope:** `packages/backend/src/modules/communityNotes`, `community-notes.ts` in
-  `@oxy.so/crowdsource-contracts`, and `docs/api/application.md#community-notes`.
+  `@crowdsource.you/contracts`, and `docs/api/application.md#community-notes`.
 Every claim in the fenced block at the end is asserted against the code by
 `src/__tests__/communityNotesAdr.test.ts`.
 

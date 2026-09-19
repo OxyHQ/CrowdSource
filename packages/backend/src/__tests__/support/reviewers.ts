@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { RequestHandler } from 'express';
-import type { ReviewerState, TaxonomyFamily } from '@oxy.so/crowdsource-contracts';
+import type { ReviewerState, TaxonomyFamily } from '@crowdsource.you/contracts';
 
 import { TRAINING_MODULES } from '../../modules/reviewer/calibration';
 import { personhoodConfidence } from '../../modules/reviewer/personhood';

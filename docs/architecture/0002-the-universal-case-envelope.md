@@ -155,10 +155,10 @@ about the SDK; it is a schema constraint, and the schema is shaped by it:
 - Principal refs are derived from the identity, not minted per report.
 - `source.submittedAt` has **no default**. A default would be "now", and "now"
   differs between two deliveries of one report.
-- `DEFAULT_POLICY` in `packages/sdk/src/defaults.ts` names an immutable published
+- `DEFAULT_POLICY` in `packages/core/src/defaults.ts` names an immutable published
   version, never "whatever is current", and must equal
   `BASELINE_POLICY_SET_ID`/`BASELINE_POLICY_VERSION` in the backend's
-  `policyBaseline.ts`. `packages/sdk/src/__tests__/defaults.test.ts` reads that
+  `policyBaseline.ts`. `packages/core/src/__tests__/defaults.test.ts` reads that
   file and asserts it. A resolved-at-ingress "latest" would move the policy under
   an application that changed nothing, and would split §7.3's dedup key, giving
   one post two cases.

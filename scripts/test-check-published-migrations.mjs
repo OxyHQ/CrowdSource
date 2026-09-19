@@ -21,7 +21,7 @@ const checker = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "check-published-migrations.mjs",
 );
-const PACKAGES = ["contracts", "sdk", "sdk-express", "testing", "app"];
+const PACKAGES = ["contracts", "core"];
 
 /** A package that ships its build output and its sources, minus its tests. */
 function healthyTree() {
@@ -30,7 +30,7 @@ function healthyTree() {
       name,
       {
         manifest: {
-          name: `@oxy.so/${name}`,
+          name: `@crowdsource.you/${name}`,
           version: "0.0.0",
           files: ["dist/**/*", "src/**/*", "!src/**/__tests__/**"],
         },
@@ -39,9 +39,13 @@ function healthyTree() {
           "src/index.ts": "export const ok = true;\n",
           // Where this package's own migrations legitimately live: excluded by
           // `files`, so present on disk and absent from the tarball.
-          "src/__tests__/support/postgres/migrations/0000_first.sql":
+          // Nested one level deeper than they used to be, because the
+          // application half is an entry point of `core` now rather than a
+          // package of its own — which is exactly the depth the `files`
+          // exclusion has to keep reaching.
+          "src/outbox/__tests__/support/postgres/migrations/0000_first.sql":
             "create table t ();\n",
-          "src/__tests__/support/postgres/migrations/meta/_journal.json": "{}\n",
+          "src/outbox/__tests__/support/postgres/migrations/meta/_journal.json": "{}\n",
         },
       },
     ]),
@@ -53,29 +57,29 @@ const cases = [
   {
     name: "a migrations folder moved into the published source is caught",
     expectFailure: true,
-    mustMention: "@oxy.so/app",
+    mustMention: "@crowdsource.you/core",
     // The exact edit the design document predicts: somebody tidies the folder out
     // of `__tests__/`, everything still works locally, and it ships.
     mutate: (tree) => {
-      tree.app.files["src/postgres/migrations/0000_first.sql"] = "create table t ();\n";
+      tree.core.files["src/outbox/postgres/migrations/0000_first.sql"] = "create table t ();\n";
       return tree;
     },
   },
   {
     name: "a stray .sql anywhere in the published tree is caught",
     expectFailure: true,
-    mustMention: "@oxy.so/sdk",
+    mustMention: "@crowdsource.you/core",
     mutate: (tree) => {
-      tree.sdk.files["src/backfill.sql"] = "update t set x = 1;\n";
+      tree.core.files["src/backfill.sql"] = "update t set x = 1;\n";
       return tree;
     },
   },
   {
     name: "a Migrations folder with a capital M is caught too",
     expectFailure: true,
-    mustMention: "@oxy.so/testing",
+    mustMention: "@crowdsource.you/core",
     mutate: (tree) => {
-      tree.testing.files["dist/Migrations/index.js"] = "module.exports = {};\n";
+      tree.core.files["dist/testing/Migrations/index.js"] = "module.exports = {};\n";
       return tree;
     },
   },

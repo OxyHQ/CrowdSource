@@ -3,7 +3,7 @@
 A decision reaches an application over a webhook, not by polling. Register an
 endpoint with
 [`POST /v1/webhook-endpoints`](./application.md#post-v1webhook-endpoints) and
-receive with `@oxy.so/crowdsource-express`, which implements everything below so
+receive with `@crowdsource.you/core/express`, which implements everything below so
 none of it can be got wrong by mounting things in the wrong order.
 
 ## The envelope
@@ -29,7 +29,7 @@ attack; keep it if you persist `event.data`.
 ## Event catalogue
 
 Nine types are defined (`WEBHOOK_EVENT_TYPES` in
-`@oxy.so/crowdsource-contracts`). **Six are wired and three are not**, and the
+`@crowdsource.you/contracts`). **Six are wired and three are not**, and the
 difference matters when you decide what to subscribe to. Registration rejects a
 type outside those nine (`assertKnownEventTypes` in
 `modules/webhooks/endpoint.service.ts`) but accepts the three unwired ones — so
@@ -93,7 +93,7 @@ Three properties, and each of them is a way receivers get this wrong:
 3. **Comparison is constant time.** Never `!==`.
 
 `buildWebhookSignedPayload(timestamp, rawBody)` is exported by
-`@oxy.so/crowdsource-contracts` and is the only thing sender and receiver share.
+`@crowdsource.you/contracts` and is the only thing sender and receiver share.
 A sender and a receiver that each decide for themselves what gets signed agree
 right up until they do not.
 
@@ -150,7 +150,7 @@ After the last attempt the delivery is `dead_letter`, and replay is manual —
 - **Deduplicate on `event.id`**, and make your enforcement idempotent anyway.
 - **Acknowledge and ignore an event type you do not handle.**
 
-`@oxy.so/crowdsource-express` does all of that, including reading the request
+`@crowdsource.you/core/express` does all of that, including reading the request
 stream itself and **refusing** rather than reconstructing bytes when something
 upstream already consumed the body. The likeliest way to ship a broken receiver
 is to verify a signature over `JSON.stringify(req.body)`: it passes every
@@ -164,7 +164,7 @@ balancer each keep their own. Pass a shared `store` implementing
 
 ## The half of a webhook test that proves something
 
-`@oxy.so/crowdsource-testing`'s `WebhookSimulator` delivers genuinely signed
+`@crowdsource.you/core/testing`'s `WebhookSimulator` delivers genuinely signed
 events, and can deliver stale, forged and tampered ones on purpose:
 
 ```ts

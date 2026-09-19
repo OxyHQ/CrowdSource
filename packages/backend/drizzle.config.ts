@@ -4,7 +4,7 @@ import { DATABASE_CASING } from '@oxy.so/db';
 /**
  * drizzle-kit configuration for this service's own schema.
  *
- * `packages/app` argues at length that a package must NOT ship migrations,
+ * `packages/core`'s own drizzle config argues at length that a package must NOT ship migrations,
  * because two journals against one `drizzle.__drizzle_migrations` ledger
  * interleave and the loser is skipped silently. That reasoning is about a
  * LIBRARY living inside an adopter's database, and it inverts here: this package

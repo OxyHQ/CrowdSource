@@ -3,7 +3,7 @@ import {
   WEBHOOK_EVENT_ID_HEADER,
   WEBHOOK_SIGNATURE_HEADER,
   WEBHOOK_TIMESTAMP_HEADER,
-} from '@oxy.so/crowdsource-contracts';
+} from '@crowdsource.you/contracts';
 
 import { createTenantContext } from '../../db/tenantScope';
 import { logger } from '../../utils/logger';
