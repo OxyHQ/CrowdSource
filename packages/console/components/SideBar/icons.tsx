@@ -6,16 +6,14 @@
  * `SideBarItem` tint a glyph through its wrapper's `text-*` class.
  */
 
-import {
-  RiListUnordered,
-  RiClipboardLine,
-  RiGroupLine,
-  RiSeedlingLine,
-  RiHomeLine,
-  RiKey2Line,
-  RiSendPlaneLine,
-  RiShieldLine,
-} from '@oxy.so/bloom/icons';
+import { RiListUnordered } from '@oxy.so/bloom/icons/RiListUnordered';
+import { RiClipboardLine } from '@oxy.so/bloom/icons/RiClipboardLine';
+import { RiGroupLine } from '@oxy.so/bloom/icons/RiGroupLine';
+import { RiSeedlingLine } from '@oxy.so/bloom/icons/RiSeedlingLine';
+import { RiHomeLine } from '@oxy.so/bloom/icons/RiHomeLine';
+import { RiKey2Line } from '@oxy.so/bloom/icons/RiKey2Line';
+import { RiSendPlaneLine } from '@oxy.so/bloom/icons/RiSendPlaneLine';
+import { RiShieldLine } from '@oxy.so/bloom/icons/RiShieldLine';
 import React from 'react';
 
 import type { NavIconId } from '@/lib/navigation';

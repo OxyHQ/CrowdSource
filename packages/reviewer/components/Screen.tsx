@@ -18,7 +18,7 @@
  * because both read the one signal in `BottomBarVisibilityContext`.
  */
 
-import { RiMenuLine } from '@oxy.so/bloom/icons';
+import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
 import { IconButton } from '@oxy.so/bloom/button';
 import React, { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';

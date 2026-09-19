@@ -20,7 +20,7 @@
  */
 
 import { Button } from '@oxy.so/bloom/button';
-import { RiFlaskLine } from '@oxy.so/bloom/icons';
+import { RiFlaskLine } from '@oxy.so/bloom/icons/RiFlaskLine';
 import {
   SegmentedControl,
   SegmentedControlItem,

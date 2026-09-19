@@ -1,11 +1,9 @@
 import { View } from 'react-native';
-import {
-  RiFlaskLine,
-  RiTimeLine,
-  RiSeedlingLine,
-  RiHeartLine,
-  RiHomeLine,
-} from '@oxy.so/bloom/icons';
+import { RiFlaskLine } from '@oxy.so/bloom/icons/RiFlaskLine';
+import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
+import { RiSeedlingLine } from '@oxy.so/bloom/icons/RiSeedlingLine';
+import { RiHeartLine } from '@oxy.so/bloom/icons/RiHeartLine';
+import { RiHomeLine } from '@oxy.so/bloom/icons/RiHomeLine';
 import { useRouter, usePathname } from 'expo-router';
 import React, { useCallback, useMemo } from 'react';
 
