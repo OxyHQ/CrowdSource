@@ -1,6 +1,6 @@
 {
   "name": "@crowdsource.you/core",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "The CrowdSource integration: the API client at the root, and the Express webhook receiver, the transactional outbox and the test sandbox behind subpaths",
   "type": "commonjs",
   "main": "dist/index.js",
@@ -105,12 +105,16 @@
   ],
   "peerDependencies": {
     "@crowdsource.you/contracts": "^1.1.0",
+    "@oxy.so/core": "^1.6.0",
     "@oxy.so/db": "^1.0.0",
     "drizzle-orm": "^0.45.2",
     "express": ">=4.18.0 <6",
     "postgres": "^3.4.9"
   },
   "peerDependenciesMeta": {
+    "@oxy.so/core": {
+      "optional": true
+    },
     "@oxy.so/db": {
       "optional": true
     },
