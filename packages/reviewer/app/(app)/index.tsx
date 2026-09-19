@@ -9,7 +9,7 @@
  */
 
 import { Button } from '@oxy.so/bloom/button';
-import { RiCheckboxCircleLine } from '@oxy.so/bloom/icons';
+import { RiCheckboxCircleLine } from '@oxy.so/bloom/icons/RiCheckboxCircleLine';
 import { getNormalizedUserHandle } from '@oxy.so/core';
 import { useAuth } from '@oxy.so/services/ui/client';
 import { useRouter } from 'expo-router';

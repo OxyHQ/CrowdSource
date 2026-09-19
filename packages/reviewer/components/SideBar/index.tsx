@@ -10,13 +10,11 @@ import { useIsScreenNotMobile, useIsSideBarExpanded } from "@/hooks/useOptimized
 import { useTranslation } from "react-i18next";
 import { SideBarItem } from "./SideBarItem";
 
-import {
-  RiFlaskLine,
-  RiTimeLine,
-  RiSeedlingLine,
-  RiHeartLine,
-  RiHomeLine,
-} from '@oxy.so/bloom/icons';
+import { RiFlaskLine } from '@oxy.so/bloom/icons/RiFlaskLine';
+import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
+import { RiSeedlingLine } from '@oxy.so/bloom/icons/RiSeedlingLine';
+import { RiHeartLine } from '@oxy.so/bloom/icons/RiHeartLine';
+import { RiHomeLine } from '@oxy.so/bloom/icons/RiHomeLine';
 import { ProfileButton } from '@oxy.so/services';
 import { useAuth } from '@oxy.so/services/ui/client';
 import { asViewStyle, type WebViewStyle } from '@/types/webStyles';

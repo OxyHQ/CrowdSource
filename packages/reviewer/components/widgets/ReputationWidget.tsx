@@ -24,7 +24,7 @@
  * quietly show a stale zero, if it is ever pointed anywhere else.
  */
 
-import { RiSeedlingLine } from '@oxy.so/bloom/icons';
+import { RiSeedlingLine } from '@oxy.so/bloom/icons/RiSeedlingLine';
 import * as Skeleton from '@oxy.so/bloom/skeleton';
 import { useAuth } from '@oxy.so/services/ui/client';
 import { useQuery } from '@tanstack/react-query';
