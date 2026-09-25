@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:1.3.14-alpine AS manifests
+FROM oven/bun:1.4.2-alpine AS manifests
 WORKDIR /app
 
 # Every workspace `packages/*` resolves to MUST be listed here, even ones this
@@ -42,7 +42,7 @@ COPY packages/backend/ packages/backend/
 RUN bun run --cwd packages/contracts build
 RUN bun run --cwd packages/backend build
 
-FROM oven/bun:1.3.14-alpine AS runtime
+FROM oven/bun:1.4.2-alpine AS runtime
 WORKDIR /app
 
 RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup

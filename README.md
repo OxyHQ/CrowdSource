@@ -9,7 +9,7 @@
   <img alt="Expo SDK 56" src="https://img.shields.io/badge/Expo-SDK%2056-000020?style=flat-square&logo=expo&logoColor=white">
   <img alt="React Native 0.85" src="https://img.shields.io/badge/React%20Native-0.85-61DAFB?style=flat-square&logo=react&logoColor=black">
   <img alt="TypeScript 5.9" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white">
-  <img alt="Bun 1.3.14" src="https://img.shields.io/badge/Bun-1.3.14-000000?style=flat-square&logo=bun&logoColor=white">
+  <img alt="Bun 1.4.2" src="https://img.shields.io/badge/Bun-1.4.2-000000?style=flat-square&logo=bun&logoColor=white">
 </p>
 
 ---
@@ -110,7 +110,7 @@ Start with the [integration guide](./docs/integration.md).
 
 ## Quick start
 
-Requires [Bun](https://bun.sh) 1.3.14 and Node.js 22.17.0 for the Expo and Jest toolchains.
+Requires [Bun](https://bun.sh) 1.4.2 and Node.js 22.17.0 for the Expo and Jest toolchains.
 
 ```bash
 bun install
