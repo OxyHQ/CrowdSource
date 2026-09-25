@@ -58,7 +58,7 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
       - name: Set up pinned Node runtime
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install exact dependency graph
@@ -241,7 +241,7 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
       - name: Set up pinned Node test runtime
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install exact dependency graph
@@ -297,7 +297,7 @@ jobs:
           "${{ matrix.minimum_tests }}"
       - name: Upload coverage summary
         if: always() && matrix.coverage
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: crowdsource-${{ matrix.package }}-coverage-${{ github.sha }}
           path: ${{ runner.temp }}/${{ matrix.package }}-coverage/coverage-summary.json
@@ -314,7 +314,7 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
       - name: Set up pinned Node bundle runtime
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install exact dependency graph
@@ -336,7 +336,7 @@ jobs:
           --json "${{ runner.temp }}/crowdsource-bundle-report.json"
       - name: Upload bundle report
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: crowdsource-reviewer-bundle-${{ github.sha }}
           path: ${{ runner.temp }}/crowdsource-bundle-report.json
