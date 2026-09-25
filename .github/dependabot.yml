@@ -1,10 +1,8 @@
 # Dependabot configuration for the CrowdSource monorepo.
 #
-# This repo uses Bun (`bun.lock`) with npm-style workspaces. Dependabot has no
-# native "bun" ecosystem, but the `npm` ecosystem reads `package.json` across
-# the workspace, so it works for surfacing dependency updates here. After a
-# Dependabot PR is merged, the lockfile is reconciled by our normal flow
-# (`bun install` regenerated `bun.lock`, committed alongside the manifest).
+# This repo uses Bun (`bun.lock`) with workspaces, so the ecosystem is `bun`:
+# Dependabot's `npm` ecosystem refuses a repo whose only lockfile is `bun.lock`
+# (it cannot update it), and the `bun` one regenerates `bun.lock` in the PR.
 #
 # ONE pull request per ecosystem per week:
 #   * every update (majors included) lands in the single `all` group, and
@@ -15,9 +13,9 @@ version: 2
 
 updates:
   # ---------------------------------------------------------------------------
-  # npm / Bun workspaces — root + every package.
+  # Bun workspaces — root + every package.
   # ---------------------------------------------------------------------------
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directories:
       - "/"
       - "/packages/*"
