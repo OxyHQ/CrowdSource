@@ -377,10 +377,7 @@ network-isolated, pinned archive recovery above.
    readiness, tenant isolation, report+outbox atomicity, outbox claims, sortition,
    webhook claims and the immutable-decision constraint.
 6. Only after the final manifest, committed receipt and application-role checks
-   are accepted, set the exact GitHub repository variable
-   `CROWDSOURCE_POSTGRES_CUTOVER_COMPLETE=true`. Its absence keeps the backend
-   deploy job skipped even after a merge to `main`; do not use a similarly named
-   variable or a truthy spelling. Restore the ECS service's intended
+   are accepted, restore the ECS service's intended
    `desired_count` through its reviewed infrastructure authority, then rerun the
    successful `main` CI workflow so the PostgreSQL-only image deploys. Verify
    the exact task definition, image digest, desired/running counts and live
@@ -403,11 +400,10 @@ migration/journal digest differs, an ID cannot be represented exactly, an
 unknown field appears, or any manifest count/digest differs. Recreate the target
 and repeat from the preserved archive; do not edit evidence to make it pass.
 
-Do not set `CROWDSOURCE_POSTGRES_CUTOVER_COMPLETE` for an uninitialised target.
-The normal workflow's `pre -> rollout -> post` sequence assumes the journal has
-already crossed the older post migration; the initial target needs the frozen
-`all` procedure above. The deploy job's repository-variable condition is a
-merge-time safety barrier, not evidence that the cutover happened.
+The cutover completed on 2026-09-03. For an uninitialised target, the normal
+workflow's `pre -> rollout -> post` sequence assumes the journal has already
+crossed the older post migration; the initial target needs the frozen `all`
+procedure above.
 
 The migration entrypoint's scoped `MIGRATOR_DATABASE_URL` assignment is the
 only exception because the same entrypoint is used by the isolated ECS
