@@ -25,6 +25,28 @@ describe('CORS', () => {
     expect(response.headers['access-control-allow-origin']).toBe('https://crowdsource.oxy.so');
   });
 
+  it('allows the console, whose hostname is outside the one-label oxy.so family', async () => {
+    const response = await request(app)
+      .options('/v1/console/session')
+      .set('Origin', 'https://console.crowdsource.oxy.so')
+      .set('Access-Control-Request-Method', 'GET');
+
+    expect(response.status).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe(
+      'https://console.crowdsource.oxy.so',
+    );
+    expect(response.headers['access-control-allow-credentials']).toBe('true');
+  });
+
+  it('does not extend that to any other two-label crowdsource.oxy.so host', async () => {
+    const response = await request(app)
+      .options('/v1/console/session')
+      .set('Origin', 'https://evil.crowdsource.oxy.so')
+      .set('Access-Control-Request-Method', 'GET');
+
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
+  });
+
   it('answers a preflight before the route exists, so a 404 cannot mask a CORS failure', async () => {
     const response = await request(app)
       .options('/v1/there-is-no-such-route')

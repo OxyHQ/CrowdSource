@@ -37,6 +37,13 @@ import { healthRouter } from './routes/health.routes';
  * a partial result" true by there being nothing to ask. The reputation bridge is
  * not written.
  */
+/**
+ * The developer + Trust & Safety console (`packages/console/wrangler.toml`).
+ * A fixed hostname, not configuration: there is one environment, and the same
+ * origin is registered as a redirect URI on the Oxy application.
+ */
+const CONSOLE_ORIGIN = 'https://console.crowdsource.oxy.so';
+
 export function createApp(): Express {
   const app = express();
   app.use(ecosystemActivityMiddleware);
@@ -53,10 +60,12 @@ export function createApp(): Express {
    * reflect an arbitrary one, and never pairs a wildcard with credentials.
    *
    * The reviewer app at `crowdsource.oxy.so` needs no entry — the helper
-   * already allows the HTTPS `oxy.so` apex family. A console on its own
-   * hostname outside that family would go in `appOrigins`.
+   * already allows `oxy.so` and its ONE-label subdomains. The console at
+   * `console.crowdsource.oxy.so` is two labels deep, outside that family, so
+   * it is named here; without it every console call is discarded by the
+   * browser after the backend has already answered it.
    */
-  app.use(createOxyCors());
+  app.use(createOxyCors({ appOrigins: [CONSOLE_ORIGIN] }));
   app.use(compression());
   app.use(express.json({ limit: '1mb' }));
 
