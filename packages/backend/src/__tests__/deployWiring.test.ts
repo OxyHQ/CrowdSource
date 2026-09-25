@@ -310,11 +310,11 @@ describe('the migration interlock', () => {
     }
   });
 
-  it('keeps the backend production deploy closed until the data cutover is attested', () => {
+  it('deploys the backend whenever its scope changed, with no repository-variable switch', () => {
     const deployJob = /^  deploy:\n([\s\S]*?)(?=^  [a-z][a-z0-9-]*:\n)/m.exec(deployWorkflow)?.[1] ?? '';
     const directives = directivesOnly(deployJob);
-    expect(directives).toContain("vars.CROWDSOURCE_POSTGRES_CUTOVER_COMPLETE == 'true'");
     expect(directives).toContain("needs.scope.outputs.deploy == 'true'");
+    expect(directives).not.toMatch(/vars\./);
   });
 });
 

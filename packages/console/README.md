@@ -60,10 +60,8 @@ bun run --cwd packages/console typecheck
 
 Cloudflare **Worker** `crowdsource-console` at `console.crowdsource.oxy.so`
 (`wrangler.toml` here), via the `deploy-console` job in
-`.github/workflows/deploy-frontends.yml`. That job is **gated on the repository
-variable `CROWDSOURCE_CONSOLE_WORKER` being `ready`**: it creates a Worker and
-claims a hostname in the `oxy.so` zone, which carries every live Oxy backend, so
-merging the workflow must not do either on its own. The console host also has to
+`.github/workflows/deploy-frontends.yml`, which runs on every push to main that
+changes the console. The console host also has to
 be registered as an additional redirect URI on CrowdSource's Oxy application
 before interactive sign-in works there.
 

@@ -187,20 +187,9 @@ jobs:
   # Worker because it is a separate Expo web export with its own entry bundle, and a
   # separate hostname because the console and the reviewer app are different
   # audiences — one of them staff.
-  #
-  # GATED ON A REPOSITORY VARIABLE, and deliberately. The steps below create a
-  # Worker and claim `console.crowdsource.oxy.so` in the `oxy.so` zone, which carries
-  # every live Oxy backend. Merging this workflow must not do either of those things
-  # on its own: set `CROWDSOURCE_CONSOLE_WORKER` to `ready` when the hostname is
-  # agreed, and the job starts running on the next push to main. Until then the job is
-  # skipped and nothing else about the release changes.
-  #
-  # The variable was `CROWDSOURCE_CONSOLE_PAGES` and is renamed here rather than
-  # aliased. It has never been set, so nothing changes behaviour; whoever turns the
-  # console on sets the name that describes what it turns on.
   deploy-console:
     needs: scope
-    if: needs.scope.outputs.console == 'true' && vars.CROWDSOURCE_CONSOLE_WORKER == 'ready'
+    if: needs.scope.outputs.console == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 70
     environment: production

@@ -51,15 +51,7 @@ jobs:
 
   deploy:
     needs: scope
-    # Main may contain the PostgreSQL-only runtime before production data has
-    # completed its separately authorised freeze/import/reconciliation. An
-    # absent repository variable is false, so a merge cannot run migrations,
-    # repoint the parked service or publish a release by accident. Set the
-    # exact variable to the exact string `true` only after the runbook's signed
-    # final manifest and committed receipt have both been accepted.
-    if: >-
-      needs.scope.outputs.deploy == 'true' &&
-      vars.CROWDSOURCE_POSTGRES_CUTOVER_COMPLETE == 'true'
+    if: needs.scope.outputs.deploy == 'true'
     runs-on: ubuntu-24.04-arm
     # Includes image build, migrations, rollout, smoke checks and a full
     # rollback window if the production smoke check fails.
