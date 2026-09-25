@@ -6,10 +6,11 @@
 # Dependabot PR is merged, the lockfile is reconciled by our normal flow
 # (`bun install` regenerated `bun.lock`, committed alongside the manifest).
 #
-# Deliberately conservative:
-#   * Oxy packages are proposed together as one reviewable update.
-#   * Expo, React and the native toolchain remain manually coordinated.
-#   * Everything else is grouped to keep PR volume low.
+# ONE pull request per ecosystem per week:
+#   * every update (majors included) lands in the single `all` group, and
+#   * `directories:` (plural) makes the root and every package one PR, not one
+#     per directory.
+# Expo, React and the native toolchain remain manually coordinated (`ignore`).
 version: 2
 
 updates:
@@ -32,23 +33,11 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
-    # Group low-risk updates so we get a small number of consolidated PRs
-    # instead of one PR per package.
+    # One group for EVERY update, majors included: one PR per week.
     groups:
-      oxy-platform:
+      all:
         patterns:
-          - "@oxy.so/*"
-      minor-and-patch:
-        applies-to: version-updates
-        update-types:
-          - "minor"
-          - "patch"
-      dev-dependencies:
-        applies-to: version-updates
-        dependency-type: "development"
-        update-types:
-          - "minor"
-          - "patch"
+          - "*"
     # MANUALLY managed — do NOT let Dependabot touch the pinned toolchains.
     ignore:
       # Expo SDK + toolchain — locked to the Expo SDK 56 release train.
@@ -78,7 +67,8 @@ updates:
   # GitHub Actions — keep workflow action versions current.
   # ---------------------------------------------------------------------------
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -91,8 +81,6 @@ updates:
     commit-message:
       prefix: "ci(deps)"
     groups:
-      github-actions:
-        applies-to: version-updates
-        update-types:
-          - "minor"
-          - "patch"
+      all:
+        patterns:
+          - "*"
