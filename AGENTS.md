@@ -140,6 +140,9 @@ touched. It reads exactly like someone else's broken commit.
   child screen must never navigate across that boundary on the same signal.
 - **Case material must never reach device storage, logs or analytics.**
   `utils/storage.ts` is for preferences only.
+- **Every place an Oxy id or principal id lands is erased on `account.deleted`**
+  (`docs/architecture/account-erasure.md`). A new one joins the seed of
+  `accountErasure.integration.test.ts`, whose sweep then fails until it is handled.
 - **Every guard is mutation-proven.** `packages/core/scripts/test-invariants.mjs`
   deletes each guard in turn and asserts the SPECIFIC named test goes red. **A
   mutation whose failure mode is a timeout carries no information** — bound it so

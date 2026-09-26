@@ -43,8 +43,14 @@ export const MIGRATOR_ROLE = 'crowdsource_migrator';
 // exactly those two objects and nothing else — and the value below was computed
 // twice, on a local Docker catalog and on CI's, which agreed. A digest taken
 // from one run is a digest that can encode whatever that host happened to have.
+//
+// Re-pinned 2026-09-26 for `account_erasures` and `account_event_cursors`
+// (migration 0017, OxyHQ/Mention#1178): two unscoped tables, their primary
+// keys, three CHECKs and one index, and nothing else. Neither is a cutover
+// dataset — both start empty and hold only post-cutover work. Computed on a
+// local catalog and on CI's, which agreed.
 export const EXPECTED_POSTGRES_CATALOG_SHA256 =
-  'sha256:52d75c52a2f62931cbcdfaa7f789bf6a361f7701b38aa0956ece9c363b81d7ae';
+  'sha256:271cace1847e18fe304aa0b07c100975939a156ed79d888bb41e87206ad37686';
 
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/;

@@ -167,6 +167,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'both_not_null',
     why: 'Credential resolution reads an application before any tenant context exists; its own id is half of every other table’s tenant key.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#listApplicationTenants',
       'src/modules/console/console.routes.ts#pathOrganizationId',
       'src/modules/console/membership.service.ts#resolveApplicationForMember',
       'src/modules/console/trustSafety.routes.ts#namesFor',
@@ -192,6 +193,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'organization_only',
     why: 'A membership row ESTABLISHES the tenant for a console session (membership.service.ts:83 reads by oxyUserId), so a filter by the tenant it derives would be circular.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#eraseConsoleIdentity',
       'src/modules/console/membership.service.ts#grantMembership',
       'src/modules/console/membership.service.ts#membersOf',
       'src/modules/console/membership.service.ts#membershipsOf',
@@ -207,6 +209,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'neither',
     why: 'Trust & Safety staff act ACROSS every tenant by definition (§4.3); the row grants authority rather than belonging to a customer.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#eraseConsoleIdentity',
       'src/modules/console/consoleAuth.ts#requireStaffRole',
       'src/modules/console/consoleAuth.ts#staffRolesOf',
       'src/modules/console/staff.service.ts#grantStaffRoles',
@@ -218,6 +221,8 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'neither',
     why: 'A reviewer is a person drawn across every application, not data owned by one tenant; profiles carry no tenant keys and are never returned to an application-API caller.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#eraseReviewer',
+      'src/db/postgres/repositories/accountErasure.ts#findReviewerIdByOxyUserId',
       'src/modules/consensus/consensus.service.ts#evaluateCase',
       'src/modules/reviewer/reviewer.service.ts#completeTrainingModule',
       'src/modules/reviewer/reviewer.service.ts#ensureReviewerProfile',
@@ -230,11 +235,35 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
       'src/modules/sortition/sortition.service.ts#seatedIncumbents',
     ],
   },
+  account_erasures: {
+    kind: 'no_tenant_dimension',
+    shape: 'neither',
+    why: 'The ledger of erasing a deleted Oxy account. A person belongs to no application, and one deletion reaches every tenant that names them, so the record of that work cannot sit behind one tenant’s policy.',
+    readers: [
+      'src/db/postgres/repositories/accountErasure.ts#claimAccountErasure',
+      'src/db/postgres/repositories/accountErasure.ts#completeAccountErasure',
+      'src/db/postgres/repositories/accountErasure.ts#failAccountErasure',
+      'src/db/postgres/repositories/accountErasure.ts#findAccountErasure',
+      'src/db/postgres/repositories/accountErasure.ts#findRetryableAccountErasures',
+      'src/db/postgres/repositories/accountErasure.ts#recordAccountErasure',
+    ],
+  },
+  account_event_cursors: {
+    kind: 'no_tenant_dimension',
+    shape: 'neither',
+    why: 'How far Oxy’s account-event feed has been read, and which task holds it. The feed is addressed to this SERVICE, not to any tenant.',
+    readers: [
+      'src/db/postgres/repositories/accountErasure.ts#advanceAccountEventCursor',
+      'src/db/postgres/repositories/accountErasure.ts#claimAccountEventFeed',
+      'src/db/postgres/repositories/accountErasure.ts#releaseAccountEventFeed',
+    ],
+  },
   reviewer_affinities: {
     kind: 'no_tenant_dimension',
     shape: 'neither',
     why: 'Co-service is a property of a PAIR of people across every panel they have sat on, and panels span tenants; the pair has no owning application.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#eraseReviewer',
       'src/modules/sortition/sortition.service.ts#bumpAffinities',
       'src/modules/sortition/sortition.service.ts#gatherAffinity',
     ],
@@ -246,6 +275,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'both_not_null',
     why: 'An assignment joins a tenant’s case to a reviewer who belongs to none, and is read by an Oxy session carrying no tenant to scope by (sortition.service.ts:177); rows are stamped from the case inside the draw transaction.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#eraseReviewer',
       'src/modules/consensus/consensus.service.ts#evaluateCase',
       'src/modules/sortition/assignment.service.ts#authorizeAssignment',
       'src/modules/sortition/assignment.service.ts#consumeAssignmentForReview',
@@ -277,6 +307,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'both_not_null',
     why: 'A review joins a tenant’s case to a tenantless reviewer, and §4.1’s history reads a reviewer’s own reviews across every application (reviewHistory.ts:192, no tenant term); rows are stamped from the assignment.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#eraseReviewer',
       'src/modules/consensus/consensus.service.ts#evaluateCase',
       'src/modules/review/review.service.ts#submitReview',
       'src/modules/review/reviewHistory.ts#reviewHistoryPage',
@@ -298,6 +329,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'both_not_null',
     why: 'The delivery worker claims due rows across every tenant (claimDueDelivery matches on status and a deadline only); rows are tenant-stamped on write, and their attempts ARE scoped.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#anonymiseWebhookBodies',
       'src/modules/webhooks/delivery.service.ts#claimDueDelivery',
       'src/modules/webhooks/delivery.service.ts#deliveryCountsAcrossTenants',
       'src/modules/webhooks/delivery.service.ts#deliveryHealthFor',
@@ -316,6 +348,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'application_nullable',
     why: 'The trail of privileged activity. Its application_id is the application ACTED ON and is nullable; the row is the operator’s act, not a customer’s data, and filing it in tenant-scoped audit_events would force a choice between an incomplete trail and filling every customer’s with operator activity.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#eraseConsoleIdentity',
       'src/modules/console/staffAudit.collection.ts#appendStaffAuditEvent',
     ],
   },
@@ -324,6 +357,8 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'application_only',
     why: 'A reviewer’s declared conflicts follow the PERSON across every application they may be drawn for; application_id names whose principal id space the conflict is written in, not an owner.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#deleteReviewerRowsNamingPrincipal',
+      'src/db/postgres/repositories/accountErasure.ts#eraseReviewer',
       'src/modules/reviewer/reviewer.service.ts#declareReviewerRelation',
       'src/modules/sortition/sortition.service.ts#gatherParties',
     ],
@@ -333,6 +368,8 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'application_only',
     why: 'Which application account a reviewer says is theirs (§8.5 self-exclusion). Extracted from ReviewerProfile.principalLinks because the draw queries into it; the row is a fact about a person and application_id names the id space, not an owner.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#deleteReviewerRowsNamingPrincipal',
+      'src/db/postgres/repositories/accountErasure.ts#eraseReviewer',
       'src/modules/reviewer/reviewer.service.ts#ensureReviewerProfile',
       'src/modules/reviewer/reviewer.service.ts#signalsOf',
       'src/modules/reviewer/reviewer.service.ts#updateReviewerPreferences',
@@ -345,6 +382,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     shape: 'both_not_null',
     why: 'CrowdSource’s own opinion OF an application. Trust & Safety compares standing across every application with no filter (§4.3), and the tenant-serving read re-imposes the pair explicitly in applicationTrustFor rather than relying on a policy.',
     readers: [
+      'src/db/postgres/repositories/accountErasure.ts#eraseConsoleIdentity',
       'src/modules/trust/applicationTrust.service.ts#applicationCountsByStanding',
       'src/modules/trust/applicationTrust.service.ts#applicationTrustFor',
       'src/modules/trust/applicationTrust.service.ts#createApplicationTrust',

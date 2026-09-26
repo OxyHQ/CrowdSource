@@ -18,6 +18,11 @@ import {
   startAssignmentExpirySweep,
   stopAssignmentExpirySweep,
 } from './src/modules/sortition/assignment.service';
+import {
+  startAccountEventReconciliation,
+  stopAccountEventReconciliation,
+} from './src/modules/accountErasure/accountEventReconciliation';
+import { settleBackgroundErasures } from './src/modules/accountErasure/accountErasure.service';
 import { setRuntimeReady } from './src/routes/health.routes';
 import { logger } from './src/utils/logger';
 
@@ -104,6 +109,13 @@ async function start(): Promise<void> {
    */
   startAssignmentExpirySweep();
 
+  /**
+   * The pull half of account erasure (`docs/architecture/account-erasure.md`):
+   * reads Oxy's account-event feed and re-runs unfinished erasures. The push
+   * half is a route and needs nothing started.
+   */
+  startAccountEventReconciliation();
+
   await new Promise<void>((resolve) => {
     server.listen(config.port, resolve);
   });
@@ -130,6 +142,7 @@ function shutdown(signal: NodeJS.Signals): void {
   stopOutboxDispatcher();
   stopWebhookDeliveryWorker();
   stopAssignmentExpirySweep();
+  stopAccountEventReconciliation();
 
   server.close((error) => {
     if (error) {
@@ -137,7 +150,11 @@ function shutdown(signal: NodeJS.Signals): void {
       process.exit(1);
       return;
     }
-    Promise.allSettled([closePostgresDatabase(), stopEcosystemActivity()])
+    // An erasure already running finishes before the pool closes; one cut off
+    // would still be retried from its lapsed lease, but only after ten minutes.
+    settleBackgroundErasures()
+      .catch(() => undefined)
+      .then(() => Promise.allSettled([closePostgresDatabase(), stopEcosystemActivity()]))
       .then(([postgres]) => {
         if (postgres.status === 'rejected') {
           logger.error(

@@ -9,6 +9,7 @@
  * that gate exists at all: a hand-maintained list of modules is exactly what hid
  * `Decision` and `Appeal` from the Mongo registry.
  */
+export * from './accountErasure';
 export * from './cases';
 export * from './communityNotes';
 export * from './console';

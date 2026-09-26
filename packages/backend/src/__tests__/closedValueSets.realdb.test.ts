@@ -639,11 +639,11 @@ describe('every mapped value set is enforced by the database', () => {
     expect(constraints.length).toBeGreaterThanOrEqual(Object.keys(MAPPED).length);
     expect(
       constraints.length,
-      `${constraints.length} constrained-column rows found, from thirteen CHECK ` +
-        'constraints across migrations 0003, 0004, 0005 and 0006. A number in the ' +
+      `${constraints.length} constrained-column rows found; the schema's CHECKs ` +
+        'number in the tens (52 after 0017). A number in the ' +
         'hundreds means the contype filter stopped selecting CHECK constraints ' +
         'specifically and is now counting NOT NULL, which PostgreSQL 17 also ' +
         'records here.',
-    ).toBeLessThan(50);
+    ).toBeLessThan(100);
   });
 });

@@ -124,8 +124,8 @@ describe('every table is an explicit decision', () => {
    * not checked.
    */
   it('has the exemptions it is supposed to have', () => {
-    expect(Object.keys(UNSCOPED_TABLES)).toHaveLength(16);
-    expect(declaredTableNames()).toHaveLength(31);
+    expect(Object.keys(UNSCOPED_TABLES)).toHaveLength(18);
+    expect(declaredTableNames()).toHaveLength(33);
   });
 });
 
