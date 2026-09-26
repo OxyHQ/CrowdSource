@@ -63,7 +63,7 @@ export function ReputationWidget({ divider }: { divider?: boolean }) {
       if (!userId) {
         throw new Error('reputation requested without a signed-in user');
       }
-      return oxyServices.getReputationBalance(userId);
+      return oxyServices.reputation.balance(userId);
     },
   });
 

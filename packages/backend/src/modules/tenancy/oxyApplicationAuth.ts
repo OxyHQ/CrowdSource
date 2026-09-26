@@ -1,4 +1,4 @@
-import { OxyServices } from '@oxy.so/core';
+import { OxyServer } from '@oxy.so/core/server';
 import type { Request } from 'express';
 
 import { config } from '../../config';
@@ -52,11 +52,11 @@ import { APPLICATION_SCOPES } from './scopes';
  * list, and §13.2 says they are never self-grantable.
  */
 
-let oxyServices: OxyServices | null = null;
+let oxyServer: OxyServer | null = null;
 
 /** Oxy's client, built once and only when a token is first presented. */
-function client(): OxyServices {
-  if (oxyServices) return oxyServices;
+function client(): OxyServer {
+  if (oxyServer) return oxyServer;
   const apiUrl = config.oxy.apiUrl;
   if (!apiUrl) {
     throw new ApiError(
@@ -64,8 +64,8 @@ function client(): OxyServices {
       'This deployment cannot verify Oxy service tokens: no Oxy API is configured.',
     );
   }
-  oxyServices = new OxyServices({ baseURL: apiUrl });
-  return oxyServices;
+  oxyServer = new OxyServer({ baseURL: apiUrl });
+  return oxyServer;
 }
 
 /**
@@ -126,11 +126,11 @@ async function verifyWithOxy(
   token: string,
   request: Request,
 ): Promise<{ appId: string } | null> {
-  // `auth({ optional: true })`, not `serviceAuth()`: the latter WRITES a 403
+  // `middleware.auth({ optional: true })`, not `middleware.service()`: the latter WRITES a 403
   // response when the token is not a service token, and this is a resolution
   // step, not a route. Optional auth resolves what it can and calls next, which
   // is exactly the question being asked — "is this a service token, and whose".
-  const middleware = client().auth({ optional: true });
+  const middleware = client().middleware.auth({ optional: true });
   const carrier = Object.create(request) as Request & { serviceApp?: { appId?: unknown } };
   Object.defineProperty(carrier, 'headers', {
     value: { ...request.headers, authorization: `Bearer ${token}` },

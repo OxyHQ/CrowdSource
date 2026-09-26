@@ -38,28 +38,29 @@ export const OXY_SERVICE_API_KEY_ENV_VAR = 'OXY_SERVICE_API_KEY';
 export const OXY_SERVICE_API_SECRET_ENV_VAR = 'OXY_SERVICE_API_SECRET';
 
 /**
- * `@oxy.so/core/server`, narrowed to the one function this package calls.
+ * `@oxy.so/core/server`, narrowed to what this package calls.
  *
  * Declared rather than imported as a type. `import type` from an optional peer
  * compiles only where that peer is installed, so typing this from the package
  * would make `@crowdsource.you/core` fail to build in a tree that deliberately
  * does not have it — including this one.
  *
- * The member is optional because a peer RANGE is advice, not enforcement:
- * `^1.6.0` is what this package asks for, and a tree that resolved an older
- * copy — one with no attestation path at all — has to read as "cannot attest"
- * rather than as a `TypeError` thrown from inside a moderation client.
+ * Both members are optional because a peer RANGE is advice, not enforcement:
+ * `^3.0.0` is what this package asks for, and a tree that resolved an older copy
+ * — no `OxyServer`, no attestation path — has to read as "cannot attest / not
+ * installed" rather than as a `TypeError` thrown from inside a moderation client.
  */
 interface OxyServerModule {
   readonly canAttestWorkloadIdentity?: () => boolean;
+  readonly OxyServer?: new (config: {
+    baseURL: string;
+    serviceAuth?: { apiKey: string; apiSecret: string };
+  }) => { serviceToken(): Promise<string> };
 }
 
-/** `@oxy.so/core`, narrowed to the one object this package calls. */
-interface OxyCoreModule {
-  readonly oxyClient?: {
-    getServiceToken(apiKey?: string, apiSecret?: string): Promise<string>;
-  };
-}
+/** Oxy's API origin: `OXY_API_URL`, else production — the SDK's own default. */
+const OXY_API_URL_ENV_VAR = 'OXY_API_URL';
+const OXY_API_URL_DEFAULT = 'https://api.oxy.so';
 
 /**
  * Where to resolve the optional peer FROM, in the order worth trying.
@@ -140,31 +141,38 @@ export function oxyServiceCredentials(): { apiKey: string; apiSecret: string } |
 }
 
 /**
- * A current Oxy service token, minted the way `@oxy.so/core` mints one.
+ * A current Oxy service token, minted by `@oxy.so/core`'s `OxyServer`.
  *
- * The credential pair is passed rather than installed with
- * `configureServiceAuth()`, so this never mutates the SDK's shared client out
- * from under an application that configured it for itself. With no pair,
- * `getServiceToken()` attests instead — the same order the SDK chose
- * deliberately, so that a deployment still holding a credential keeps using it
- * and dropping the two variables is the whole migration.
- *
- * The token is cached and re-minted on expiry INSIDE the SDK, which is why this
- * can be asked once per request attempt.
+ * One server client per credential pair (or one attesting client when there is
+ * no pair), built on first use and kept: its token cache and re-mint on expiry
+ * live INSIDE it, which is why this can be asked once per request attempt. It
+ * is this package's own client, so it never touches one an application
+ * configured for itself. With no pair the client attests the task's identity
+ * instead — the order the SDK chose deliberately, so a deployment still holding
+ * a credential keeps using it and dropping the two variables is the whole
+ * migration.
  */
+const servers = new Map<string, { serviceToken(): Promise<string> }>();
+
 export function oxyServiceToken(): Promise<string> {
-  const core = loadOxyModule<OxyCoreModule>('@oxy.so/core');
-  const oxyClient = core?.oxyClient;
-  if (oxyClient === undefined) {
+  const OxyServer = loadOxyModule<OxyServerModule>('@oxy.so/core/server')?.OxyServer;
+  if (OxyServer === undefined) {
     return Promise.reject(
       new Error(
-        "@oxy.so/core is not installed, so this process cannot mint an Oxy service token. Install it, or pass an 'oxyToken' provider of your own.",
+        "@oxy.so/core (^3) is not installed, so this process cannot mint an Oxy service token. Install it, or pass an 'oxyToken' provider of your own.",
       ),
     );
   }
 
   const credentials = oxyServiceCredentials();
-  return credentials === null
-    ? oxyClient.getServiceToken()
-    : oxyClient.getServiceToken(credentials.apiKey, credentials.apiSecret);
+  const key = credentials?.apiKey ?? '';
+  let server = servers.get(key);
+  if (!server) {
+    server = new OxyServer({
+      baseURL: process.env[OXY_API_URL_ENV_VAR]?.trim() || OXY_API_URL_DEFAULT,
+      ...(credentials ? { serviceAuth: credentials } : {}),
+    });
+    servers.set(key, server);
+  }
+  return server.serviceToken();
 }

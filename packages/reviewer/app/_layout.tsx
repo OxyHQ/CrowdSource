@@ -28,7 +28,7 @@ registerChunkErrorRecovery();
  * helper.
  */
 function resolveImageSource(fileId: string, variant?: string): string | undefined {
-  const url = oxyServices.getFileDownloadUrl(fileId, variant);
+  const url = oxyServices.assets.publicUrl(fileId, variant);
   return url && url.startsWith('http') ? url : undefined;
 }
 

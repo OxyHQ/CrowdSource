@@ -27,7 +27,7 @@ registerChunkErrorRecovery();
  * are the signed-in operator's avatar and whatever the SDK's dialogs draw.
  */
 function resolveImageSource(fileId: string, variant?: string): string | undefined {
-  const url = oxyServices.getFileDownloadUrl(fileId, variant);
+  const url = oxyServices.assets.publicUrl(fileId, variant);
   return url && url.startsWith('http') ? url : undefined;
 }
 

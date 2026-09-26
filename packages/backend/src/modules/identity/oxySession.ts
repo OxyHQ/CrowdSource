@@ -1,5 +1,4 @@
-import { OxyServices } from '@oxy.so/core';
-import { createOptionalOxyAuth } from '@oxy.so/core/server';
+import { OxyServer, createOptionalOxyAuth } from '@oxy.so/core/server';
 import type { Request, RequestHandler } from 'express';
 
 import { config } from '../../config';
@@ -27,7 +26,7 @@ import { ApiError } from '../../http/apiError';
  * owns it.
  */
 
-let oxyServices: OxyServices | null = null;
+let oxyServer: OxyServer | null = null;
 let sessionMiddleware: RequestHandler | null = null;
 
 /**
@@ -50,7 +49,7 @@ function builtSessionMiddleware(): RequestHandler {
     );
   }
 
-  oxyServices ??= new OxyServices({ baseURL: apiUrl });
+  oxyServer ??= new OxyServer({ baseURL: apiUrl });
   /**
    * The OPTIONAL variant, and then each surface's own guard.
    *
@@ -61,13 +60,13 @@ function builtSessionMiddleware(): RequestHandler {
    * the decision to the caller, which keeps §10.5's error convention true across
    * the whole service while verification stays entirely the shared SDK's.
    */
-  sessionMiddleware = createOptionalOxyAuth(oxyServices);
+  sessionMiddleware = createOptionalOxyAuth(oxyServer);
   return sessionMiddleware;
 }
 
 /** Test seam: forget the built client so a reconfigured environment is picked up. */
 export function resetOxySession(): void {
-  oxyServices = null;
+  oxyServer = null;
   sessionMiddleware = null;
 }
 

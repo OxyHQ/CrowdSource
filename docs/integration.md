@@ -357,7 +357,7 @@ const crowdsource = crowdSourceForOxyService();   // undefined where it cannot a
 
 That is the whole integration. The factory is built once per process and returns
 the same client afterwards, it presents the Oxy service token
-`@oxy.so/core`'s `getServiceToken()` already mints, and `CROWDSOURCE_SERVICE_KEY`
+`@oxy.so/core`'s `OxyServer#serviceToken()` already mints, and `CROWDSOURCE_SERVICE_KEY`
 is neither needed nor read. `@oxy.so/core` is an **optional** peer dependency,
 required lazily and only on this path — a third party never installs it, and
 importing `@crowdsource.you/core` in a tree without it still works.

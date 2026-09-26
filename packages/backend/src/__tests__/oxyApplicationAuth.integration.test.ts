@@ -23,16 +23,18 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 const oxy = vi.hoisted(() => ({ appIdForToken: new Map<string, string>() }));
 
-vi.mock('@oxy.so/core', () => ({
-  OxyServices: class {
-    auth() {
-      return (request: { headers: Record<string, string>; serviceApp?: unknown }, _res: unknown, next: () => void) => {
-        const token = /^Bearer\s+(\S+)$/i.exec(request.headers.authorization ?? '')?.[1] ?? '';
-        const appId = oxy.appIdForToken.get(token);
-        if (appId) request.serviceApp = { appId };
-        next();
-      };
-    }
+vi.mock('@oxy.so/core/server', () => ({
+  OxyServer: class {
+    readonly middleware = {
+      auth() {
+        return (request: { headers: Record<string, string>; serviceApp?: unknown }, _res: unknown, next: () => void) => {
+          const token = /^Bearer\s+(\S+)$/i.exec(request.headers.authorization ?? '')?.[1] ?? '';
+          const appId = oxy.appIdForToken.get(token);
+          if (appId) request.serviceApp = { appId };
+          next();
+        };
+      },
+    };
   },
 }));
 

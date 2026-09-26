@@ -54,7 +54,7 @@ export interface CrowdSourceOptions {
    *
    * Return a current Oxy service token; it is asked for once per request
    * attempt, so returning a cached token and refreshing it when it expires is
-   * the expected shape (`oxyServices.getServiceToken()` does exactly that).
+   * the expected shape (`OxyServer#serviceToken()` does exactly that).
    *
    * With this set, `serviceKey` is neither needed nor read. CrowdSource resolves
    * the tenant from the Oxy application the token names, so nothing here has to

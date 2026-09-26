@@ -46,7 +46,7 @@ export interface OxyServiceClientOptions {
   /**
    * A current Oxy service token, asked for once per request attempt.
    *
-   * Defaults to `@oxy.so/core`'s `getServiceToken()`, which is what an Oxy
+   * Defaults to `@oxy.so/core`'s `OxyServer.serviceToken()`, which is what an Oxy
    * service would pass anyway. Set it when the token comes from somewhere else —
    * an SDK instance configured against a non-default Oxy host, say — and it is
    * used in place of the default, never alongside it.

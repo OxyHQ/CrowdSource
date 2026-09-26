@@ -64,7 +64,7 @@ export async function handleAccountEvent(request: Request, response: Response): 
 
   let event: OxyAccountEvent;
   try {
-    event = await accountEventClient().verifyAccountEvent(token);
+    event = await accountEventClient().verify(token);
   } catch (caught: unknown) {
     if (isAccountEventRefusal(caught)) {
       logger.warn({ classification: 'account_event_refused' }, 'Account event token refused');
