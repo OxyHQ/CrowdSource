@@ -63,7 +63,7 @@
     "yaml": "^2.9.1"
   },
   "overrides": {
-    "@oxy.so/contracts": "^2.0.0",
+    "@oxy.so/contracts": "^2.2.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo-secure-store": "56.0.4",
     "expo-file-system": "56.0.8",
@@ -76,8 +76,8 @@
     "@react-native/metro-babel-transformer": "0.85.3",
     "@react-native/metro-config": "0.85.3",
     "@oxy.so/bloom": "^4.28.0",
-    "@oxy.so/core": "^1.16.0",
-    "@oxy.so/services": "^6.0.0",
+    "@oxy.so/core": "^1.18.0",
+    "@oxy.so/services": "^6.2.0",
     "brace-expansion": "2.1.4",
     "socket.io-parser": "4.2.7",
     "fast-uri": "3.1.4",
