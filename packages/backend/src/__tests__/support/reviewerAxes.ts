@@ -105,6 +105,13 @@ export type ReviewerAxisSlots = Readonly<Record<string, ReviewerAxis>>;
  * pool in the same cell.
  */
 const AXES_BY_TEST_FILE: Readonly<Record<string, ReviewerAxisSlots>> = {
+  /**
+   * The reviewer whose Oxy account is deleted. Erasure makes the profile
+   * undrawable, but it is drawable from creation until the erasure runs.
+   */
+  'accountErasure.integration.test.ts': {
+    erased: { family: 'privacy', language: 'wa' },
+  },
   'appeals.integration.test.ts': {
     appealed: { family: 'harassment', language: 'ast' },
     cleared: { family: 'harassment', language: 'sc' },

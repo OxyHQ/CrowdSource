@@ -165,7 +165,7 @@ const TEST_FILE_FLOOR = 55;
  * shared-fixture suites plus the isolated PostgreSQL suite the two repository
  * markers above were added to see.
  */
-const SEEDING_FILE_FLOOR = 9;
+const SEEDING_FILE_FLOOR = 10;
 
 function cellOf(axis: ReviewerAxis): string {
   return `${axis.family}|${axis.language}`;

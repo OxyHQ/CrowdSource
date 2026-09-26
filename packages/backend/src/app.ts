@@ -5,6 +5,7 @@ import express, { type Express, Router } from 'express';
 import helmet from 'helmet';
 
 import { errorHandler, notFoundHandler } from './http/errorHandler';
+import { createAccountEventsRouter } from './modules/accountErasure/accountEvents.routes';
 import { appealsRouter } from './modules/appeals/appeals.routes';
 import { communityNotesRouter } from './modules/communityNotes/communityNotes.routes';
 import { casesRouter } from './modules/cases/cases.routes';
@@ -67,6 +68,15 @@ export function createApp(): Express {
    */
   app.use(createOxyCors({ appOrigins: [CONSOLE_ORIGIN] }));
   app.use(compression());
+
+  /**
+   * Oxy's signed account events (`docs/architecture/account-erasure.md`). BEFORE
+   * the JSON parser, because the body is a raw token rather than JSON, and
+   * outside `/v1`, because the token itself is the authentication: neither a
+   * service credential nor an Oxy session is a caller class this route has.
+   */
+  app.use('/webhooks', createAccountEventsRouter());
+
   app.use(express.json({ limit: '1mb' }));
 
   app.use('/health', healthRouter);
