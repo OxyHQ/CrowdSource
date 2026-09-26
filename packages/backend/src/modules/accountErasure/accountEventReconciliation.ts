@@ -77,7 +77,7 @@ export async function pullAccountEvents(owner: string = randomUUID(), now: Date 
   let cursor = claimed.cursor;
   try {
     for (let page = 0; page < RECONCILIATION_MAX_PAGES; page += 1) {
-      const response = await client.listAccountEvents({
+      const response = await client.list({
         ...(cursor ? { after: cursor } : {}),
         limit: RECONCILIATION_PAGE_SIZE,
       });
@@ -86,7 +86,7 @@ export async function pullAccountEvents(owner: string = randomUUID(), now: Date 
       for (const item of response.events) {
         let event;
         try {
-          event = await client.verifyAccountEvent(item.token);
+          event = await client.verify(item.token);
         } catch (caught: unknown) {
           if (!isAccountEventRefusal(caught)) throw caught;
           result.refused += 1;

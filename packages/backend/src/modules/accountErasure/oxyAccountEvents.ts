@@ -1,4 +1,4 @@
-import { OxyServices, type OxyAccountEvent, type OxyAccountEventFeedPage } from '@oxy.so/core';
+import { OxyServer, type OxyAccountEvent, type OxyAccountEventFeedPage } from '@oxy.so/core/server';
 
 import { config } from '../../config';
 
@@ -11,7 +11,7 @@ import { config } from '../../config';
  * `POST /webhooks/oxy/account-events` and serves it from a pull feed. Both paths
  * come through here. Verification — the signature against Oxy's published key
  * set, `typ: secevent+jwt`, the issuer, and an audience equal to THIS service's
- * Oxy application — is `@oxy.so/core`'s `verifyAccountEvent`; this file only
+ * Oxy application — is `@oxy.so/core`'s `accountEvents.verify`; this file only
  * builds the client and names the SDK's refusal.
  *
  * The client authenticates as this service. With an
@@ -24,8 +24,8 @@ import { config } from '../../config';
 export type { OxyAccountEvent, OxyAccountEventFeedPage };
 
 export interface AccountEventClient {
-  verifyAccountEvent(token: string): Promise<OxyAccountEvent>;
-  listAccountEvents(options: { after?: string; limit?: number }): Promise<OxyAccountEventFeedPage>;
+  verify(token: string): Promise<OxyAccountEvent>;
+  list(options: { after?: string; limit?: number }): Promise<OxyAccountEventFeedPage>;
 }
 
 let client: AccountEventClient | null = null;
@@ -37,11 +37,13 @@ function buildClient(): AccountEventClient {
     // the deployment is configured.
     throw new Error('No Oxy API is configured; account events cannot be verified.');
   }
-  const oxy = new OxyServices({ baseURL: apiUrl });
   const apiKey = process.env.OXY_SERVICE_API_KEY?.trim();
   const apiSecret = process.env.OXY_SERVICE_API_SECRET?.trim();
-  if (apiKey && apiSecret) oxy.configureServiceAuth(apiKey, apiSecret);
-  return oxy;
+  const oxy = new OxyServer({
+    baseURL: apiUrl,
+    ...(apiKey && apiSecret ? { serviceAuth: { apiKey, apiSecret } } : {}),
+  });
+  return oxy.accountEvents;
 }
 
 export function accountEventClient(): AccountEventClient {

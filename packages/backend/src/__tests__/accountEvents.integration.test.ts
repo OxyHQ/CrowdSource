@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { OxyAccountEvent, OxyAccountEventFeedPage } from '@oxy.so/core';
+import type { OxyAccountEvent, OxyAccountEventFeedPage } from '@oxy.so/core/server';
 
 /**
  * Receiving Oxy's `account.deleted` (`docs/architecture/account-erasure.md`):
@@ -64,14 +64,14 @@ class FakeOxy {
     return token;
   }
 
-  async verifyAccountEvent(token: string): Promise<OxyAccountEvent> {
+  async verify(token: string): Promise<OxyAccountEvent> {
     const value = this.tokens.get(token);
     if (value === 'refuse' || value === undefined) throw refusal();
     if (value === 'outage') throw new Error('JWKS unreachable');
     return value;
   }
 
-  async listAccountEvents(options: { after?: string; limit?: number }): Promise<OxyAccountEventFeedPage> {
+  async list(options: { after?: string; limit?: number }): Promise<OxyAccountEventFeedPage> {
     this.listCalls.push(options);
     if (this.onList) await this.onList();
     const page = this.pages.shift();
@@ -362,8 +362,8 @@ describe('the reconciliation tick', () => {
 
   it('survives a database that refuses the retry scan', async () => {
     setAccountEventClientForTests({
-      verifyAccountEvent: () => Promise.reject(new Error('unused')),
-      listAccountEvents: () => Promise.resolve({ events: [], nextCursor: null }),
+      verify: () => Promise.reject(new Error('unused')),
+      list: () => Promise.resolve({ events: [], nextCursor: null }),
     });
     await expect(reconciliation.reconcileAccountEvents()).resolves.toBeUndefined();
   });

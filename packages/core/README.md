@@ -158,7 +158,7 @@ so it lives here now.
   pair. That is a local checkout, and a report filed there must still be stored —
   the durable row is never gated, and what to do about a missing client is the
   caller's decision.
-- **`oxyToken` defaults to `@oxy.so/core`'s `getServiceToken()`**, which is an
+- **`oxyToken` defaults to `@oxy.so/core` 3's `OxyServer#serviceToken()`**, which is an
   **optional** peer dependency required lazily on this path only. A third party
   never installs it, and the root import works in a tree without it. Pass your
   own provider and it is used in place of the default.
@@ -170,7 +170,7 @@ so it lives here now.
 - **`resetCrowdSourceForOxyService()`** is the test hook.
 
 `oxyToken` is asked once per request attempt, so a cached token refreshed on
-expiry is the expected shape — which is what `getServiceToken()` returns. With it
+expiry is the expected shape — which is what `serviceToken()` returns. With it
 set, `CROWDSOURCE_SERVICE_KEY` is neither needed nor read, and there is nothing
 to rotate, store or leak.
 
