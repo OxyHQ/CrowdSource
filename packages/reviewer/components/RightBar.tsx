@@ -79,7 +79,7 @@ export function RightBar() {
                         the way out for somebody who has had enough of what they
                         are looking at, so it must feel like it responded the
                         instant it is touched. */}
-                    <Button variant="text" onPress={() => router.push('/wellbeing')}>
+                    <Button appearance="plain" tone="accent" onPress={() => router.push('/wellbeing')}>
                         {t('rightBar.support.action')}
                     </Button>
                 </View>

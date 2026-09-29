@@ -174,7 +174,7 @@ export default function ApplicationTrustScreen() {
       align: 'right',
       render: (row) =>
         maySetStanding ? (
-          <Button variant="secondary" size="small" onPress={() => setSelected(row)}>
+          <Button appearance="outline" tone="neutral" size="sm" onPress={() => setSelected(row)}>
             {t('trustSafety.standing.action')}
           </Button>
         ) : null,
@@ -333,14 +333,15 @@ function SetStandingForm({
         {setStanding.error ? <ApiStateNotice error={setStanding.error} /> : null}
 
         <View className="flex-row justify-end gap-2">
-          <Button variant="secondary" size="small" onPress={onDone}>
+          <Button appearance="outline" tone="neutral" size="sm" onPress={onDone}>
             {t('common.cancel')}
           </Button>
           <Button
-            variant="primary"
-            size="small"
+            size="sm"
             disabled={setStanding.isPending}
             loading={setStanding.isPending}
+            appearance="solid"
+            tone="accent"
             onPress={handleSubmit}
           >
             {t('trustSafety.standing.submit')}

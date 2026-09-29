@@ -75,7 +75,7 @@ function OpenCasePanel() {
 
   return (
     <Panel title={t('home.openCase.title')} description={t('home.openCase.body')}>
-      <Button variant="primary" onPress={() => router.push('/review')}>
+      <Button appearance="solid" tone="accent" onPress={() => router.push('/review')}>
         {t('home.openCase.action')}
       </Button>
     </Panel>
@@ -124,12 +124,12 @@ function ReviewerStanding({ profile, hasOpenAssignment }: ReviewerStandingProps)
             at all on a touch device — tapping one read as the app ignoring you.
             Bloom's text variant carries pressed, hover and focus. */}
         {profile.state === 'applicant' || profile.consent.rulesAcceptedAt === null ? (
-          <Button variant="text" onPress={() => router.push('/onboarding')}>
+          <Button appearance="plain" tone="accent" onPress={() => router.push('/onboarding')}>
             {t('home.state.startOnboarding')}
           </Button>
         ) : null}
         {profile.state === 'calibrating' ? (
-          <Button variant="text" onPress={() => router.push('/training')}>
+          <Button appearance="plain" tone="accent" onPress={() => router.push('/training')}>
             {t('home.state.continueTraining')}
           </Button>
         ) : null}
@@ -147,9 +147,10 @@ function ReviewerStanding({ profile, hasOpenAssignment }: ReviewerStandingProps)
         ) : null}
 
         <Button
-          variant="primary"
           onPress={handleRequest}
           disabled={blockers.length > 0 || hasOpenAssignment}
+          appearance="solid"
+          tone="accent"
           loading={requestAssignment.isPending}
         >
           {t('home.request.action')}

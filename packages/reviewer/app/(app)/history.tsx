@@ -99,8 +99,9 @@ export default function HistoryScreen() {
 
           {historyQuery.hasNextPage ? (
             <Button
-              variant="secondary"
               onPress={() => historyQuery.fetchNextPage()}
+              appearance="outline"
+              tone="neutral"
               loading={historyQuery.isFetchingNextPage}
             >
               {t('history.loadMore')}

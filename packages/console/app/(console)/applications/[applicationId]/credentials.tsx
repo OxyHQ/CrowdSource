@@ -72,7 +72,7 @@ export default function CredentialsScreen() {
       }
       actions={
         mayAdminister ? (
-          <Button variant="primary" size="small" onPress={() => setIsIssuing((open) => !open)}>
+          <Button appearance="solid" tone="accent" size="sm" onPress={() => setIsIssuing((open) => !open)}>
             {t('credentials.issue.action')}
           </Button>
         ) : null
@@ -184,8 +184,7 @@ function CredentialsTable({
       render: (row) =>
         mayAdminister && row.status === 'active' ? (
           <Button
-            variant="destructive"
-            size="small"
+            size="sm"
             loading={revoke.isPending}
             onPress={() =>
               revoke.mutate(
@@ -193,6 +192,8 @@ function CredentialsTable({
                 { onSuccess: () => toast.success(t('credentials.revoke.done')) },
               )
             }
+            appearance="solid"
+            tone="danger"
           >
             {t('credentials.revoke.action')}
           </Button>
@@ -265,8 +266,9 @@ function IssueCredentialForm({
             return (
               <Button
                 key={scope}
-                variant={isSelected ? 'primary' : 'secondary'}
-                size="small"
+                appearance={isSelected ? 'solid' : 'outline'}
+                tone={isSelected ? 'accent' : 'neutral'}
+                size="sm"
                 onPress={() => toggleScope(scope)}
                 accessibilityLabel={scope}
               >
@@ -292,16 +294,17 @@ function IssueCredentialForm({
         {issue.error ? <ApiStateNotice error={issue.error} /> : null}
 
         <View className="flex-row justify-end gap-2">
-          <Button variant="secondary" size="small" onPress={onCancel}>
+          <Button appearance="outline" tone="neutral" size="sm" onPress={onCancel}>
             {t('common.cancel')}
           </Button>
           <Button
-            variant="primary"
-            size="small"
+            size="sm"
             // The API requires at least one scope; a request with none is a 400,
             // so the control says so rather than sending it.
             disabled={scopes.length === 0 || issue.isPending}
             loading={issue.isPending}
+            appearance="solid"
+            tone="accent"
             onPress={handleSubmit}
           >
             {t('credentials.issue.submit')}

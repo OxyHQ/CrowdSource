@@ -74,9 +74,10 @@ export function CopyValue({ value, label, layout = 'inline' }: CopyValueProps) {
         {value}
       </Text>
       <Button
-        variant="secondary"
-        size="small"
+        size="sm"
         onPress={handleCopy}
+        appearance="outline"
+        tone="neutral"
         accessibilityLabel={t('copy.action', { label })}
       >
         {t('copy.short')}

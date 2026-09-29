@@ -158,11 +158,12 @@ export default function CaseDetailScreen() {
       }
       actions={
         <Button
-          variant="secondary"
-          size="small"
+          size="sm"
           onPress={() =>
             router.navigate(`/applications/${encodeURIComponent(applicationId ?? '')}/cases`)
           }
+          appearance="outline"
+          tone="neutral"
         >
           {t('caseDetail.backToCases')}
         </Button>

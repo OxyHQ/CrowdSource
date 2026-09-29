@@ -162,9 +162,10 @@ export default function OnboardingScreen() {
       {updatePreferences.error ? <ApiStateNotice error={updatePreferences.error} /> : null}
 
       <Button
-        variant="primary"
         onPress={handleSubmit}
         disabled={!complete}
+        appearance="solid"
+        tone="accent"
         loading={updatePreferences.isPending}
       >
         {t('onboarding.action')}

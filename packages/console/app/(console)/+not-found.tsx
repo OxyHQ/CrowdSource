@@ -43,7 +43,7 @@ export default function NotFoundScreen() {
         description={t('notFound.body')}
         action={
           // `replace`, not `push`: the route that got here is not one to go back to.
-          <Button variant="secondary" onPress={() => router.replace('/')}>
+          <Button appearance="outline" tone="neutral" onPress={() => router.replace('/')}>
             {t('notFound.action')}
           </Button>
         }

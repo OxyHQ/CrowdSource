@@ -91,11 +91,12 @@ export default function TrainingScreen() {
                   </Text>
                 ) : (
                   <Button
-                    variant="secondary"
                     onPress={() => completeModule.mutate(module.moduleId)}
                     loading={
                       completeModule.isPending && completeModule.variables === module.moduleId
                     }
+                    appearance="outline"
+                    tone="neutral"
                   >
                     {t('training.modules.complete')}
                   </Button>
@@ -130,7 +131,7 @@ export default function TrainingScreen() {
             <Text className="text-sm leading-5 text-muted-foreground">
               {t('training.calibration.goldNote')}
             </Text>
-            <Button variant="text" onPress={() => router.push('/')}>
+            <Button appearance="plain" tone="accent" onPress={() => router.push('/')}>
               {t('training.calibration.action')}
             </Button>
           </Panel>
@@ -183,7 +184,7 @@ function CalibrationForm({ items }: CalibrationFormProps) {
           <SegmentedControl
             label={t('training.calibration.form.question')}
             type="radio"
-            size="small"
+            size="sm"
             // An empty value matches no item, so an unanswered question shows
             // nothing selected rather than defaulting to one of the two answers.
             value={item.itemId in answers ? String(answers[item.itemId]) : ''}
@@ -221,9 +222,10 @@ function CalibrationForm({ items }: CalibrationFormProps) {
       {submitCalibration.error ? <ApiStateNotice error={submitCalibration.error} /> : null}
 
       <Button
-        variant="primary"
         onPress={handleSubmit}
         disabled={!complete}
+        appearance="solid"
+        tone="accent"
         loading={submitCalibration.isPending}
       >
         {t('training.calibration.form.submit')}
