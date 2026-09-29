@@ -50,7 +50,7 @@ export default function RecuseScreen() {
     return (
       <Screen title={t('recuse.title')}>
         <Panel title={t('recuse.done.title')} description={t('recuse.done.body')}>
-          <Button variant="primary" onPress={() => router.replace('/')}>
+          <Button appearance="solid" tone="accent" onPress={() => router.replace('/')}>
             {t('recuse.done.action')}
           </Button>
         </Panel>
@@ -62,7 +62,7 @@ export default function RecuseScreen() {
     return (
       <Screen title={t('recuse.title')}>
         <Panel title={t('review.noCase.title')} description={t('review.noCase.body')}>
-          <Button variant="secondary" onPress={() => router.replace('/')}>
+          <Button appearance="outline" tone="neutral" onPress={() => router.replace('/')}>
             {t('review.noCase.action')}
           </Button>
         </Panel>
@@ -113,14 +113,15 @@ export default function RecuseScreen() {
       {recuse.error ? <ApiStateNotice error={recuse.error} /> : null}
 
       <Button
-        variant="primary"
         onPress={handleRecuse}
         disabled={reason === null}
+        appearance="solid"
+        tone="accent"
         loading={recuse.isPending}
       >
         {t('recuse.action')}
       </Button>
-      <Button variant="ghost" onPress={() => router.back()}>
+      <Button appearance="subtle" tone="accent" onPress={() => router.back()}>
         {t('recuse.cancel')}
       </Button>
     </Screen>

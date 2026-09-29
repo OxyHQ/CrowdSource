@@ -64,7 +64,7 @@ export default function MembersScreen() {
       }
       actions={
         mayAdminister ? (
-          <Button variant="primary" size="small" onPress={() => setIsGranting((open) => !open)}>
+          <Button appearance="solid" tone="accent" size="sm" onPress={() => setIsGranting((open) => !open)}>
             {t('members.grant.action')}
           </Button>
         ) : null
@@ -159,8 +159,7 @@ function MembersTable({
       render: (row) =>
         mayAdminister && row.status === 'active' ? (
           <Button
-            variant="destructive"
-            size="small"
+            size="sm"
             loading={revoke.isPending}
             onPress={() =>
               revoke.mutate(
@@ -174,6 +173,8 @@ function MembersTable({
                 },
               )
             }
+            appearance="solid"
+            tone="danger"
           >
             {t('members.revoke.action')}
           </Button>
@@ -267,14 +268,15 @@ function GrantMemberForm({
         {grant.error ? <ApiStateNotice error={grant.error} /> : null}
 
         <View className="flex-row justify-end gap-2">
-          <Button variant="secondary" size="small" onPress={onDone}>
+          <Button appearance="outline" tone="neutral" size="sm" onPress={onDone}>
             {t('common.cancel')}
           </Button>
           <Button
-            variant="primary"
-            size="small"
+            size="sm"
             disabled={oxyUserId.trim() === '' || grant.isPending}
             loading={grant.isPending}
+            appearance="solid"
+            tone="accent"
             onPress={handleSubmit}
           >
             {t('members.grant.submit')}

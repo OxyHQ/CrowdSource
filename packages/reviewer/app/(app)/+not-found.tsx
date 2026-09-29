@@ -44,7 +44,7 @@ export default function NotFoundScreen() {
           // `replace`, not `push`: the route that got here is not one to go back
           // to, and Bloom's button carries the pressed and hover states a bare
           // `Link` never had.
-          <Button variant="secondary" onPress={() => router.replace('/')}>
+          <Button appearance="outline" tone="neutral" onPress={() => router.replace('/')}>
             {t('notFound.action')}
           </Button>
         }

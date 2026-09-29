@@ -141,7 +141,7 @@ export function PolicyStep({ state, dispatch, policy, allegations }: PolicyStepP
                   <SegmentedControl
                     label={t('review.step2.findings.severity')}
                     type="radio"
-                    size="small"
+                    size="sm"
                     value={finding.severity}
                     onChange={(severity) =>
                       dispatch({ type: 'setFindingSeverity', ruleId: rule.id, severity })
@@ -158,7 +158,7 @@ export function PolicyStep({ state, dispatch, policy, allegations }: PolicyStepP
                   <SegmentedControl
                     label={t('review.step2.findings.confidence')}
                     type="radio"
-                    size="small"
+                    size="sm"
                     value={finding.confidence}
                     onChange={(confidence) =>
                       dispatch({ type: 'setFindingConfidence', ruleId: rule.id, confidence })

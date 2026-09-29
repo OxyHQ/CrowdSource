@@ -145,13 +145,14 @@ export default function CasesScreen() {
       align: 'right',
       render: (row) => (
         <Button
-          variant="secondary"
-          size="small"
+          size="sm"
           onPress={() =>
             router.navigate(
               `/applications/${encodeURIComponent(applicationId ?? '')}/cases/${encodeURIComponent(row.caseId)}`,
             )
           }
+          appearance="outline"
+          tone="neutral"
         >
           {t('common.open')}
         </Button>
@@ -203,16 +204,16 @@ export default function CasesScreen() {
             </Text>
             <View className="flex-row gap-2">
               <Button
-                variant="secondary"
-                size="small"
+                size="sm"
                 disabled={cursorStack.length === 0}
+                appearance="outline"
+                tone="neutral"
                 onPress={() => setCursorStack((stack) => stack.slice(0, -1))}
               >
                 {t('cases.paging.previous')}
               </Button>
               <Button
-                variant="secondary"
-                size="small"
+                size="sm"
                 // `nextCursor` is null when the collection is exhausted, which the
                 // API answers as a fact rather than leaving to be inferred from a
                 // full page.
@@ -222,6 +223,8 @@ export default function CasesScreen() {
                     page.data.nextCursor === null ? stack : [...stack, page.data.nextCursor],
                   )
                 }
+                appearance="outline"
+                tone="neutral"
               >
                 {t('cases.paging.next')}
               </Button>

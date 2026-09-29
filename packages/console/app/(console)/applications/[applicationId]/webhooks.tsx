@@ -222,8 +222,7 @@ function EndpointPanel({
           ) : null}
           {mayAdminister ? (
             <Button
-              variant="secondary"
-              size="small"
+              size="sm"
               loading={rotate.isPending}
               onPress={() =>
                 rotate.mutate(
@@ -237,6 +236,8 @@ function EndpointPanel({
                   },
                 )
               }
+              appearance="outline"
+              tone="neutral"
             >
               {t('webhooks.rotate.action')}
             </Button>
@@ -370,8 +371,7 @@ function DeliveriesTable({
       render: (row) =>
         mayAdminister && row.status === 'dead_letter' ? (
           <Button
-            variant="secondary"
-            size="small"
+            size="sm"
             loading={replay.isPending}
             onPress={() =>
               replay.mutate(
@@ -387,6 +387,8 @@ function DeliveriesTable({
                 },
               )
             }
+            appearance="outline"
+            tone="neutral"
           >
             {t('webhooks.deliveries.replayAction')}
           </Button>

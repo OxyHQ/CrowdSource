@@ -60,7 +60,7 @@ export function OneTimeSecret({
       <Text className="text-xs leading-4 text-muted-foreground">{t('secret.storeIt')}</Text>
 
       <View className="flex-row justify-end">
-        <Button variant="secondary" size="small" onPress={onDismiss}>
+        <Button appearance="outline" tone="neutral" size="sm" onPress={onDismiss}>
           {t('secret.dismiss')}
         </Button>
       </View>

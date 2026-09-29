@@ -52,7 +52,7 @@ export default function OrganizationsScreen() {
         <Text className="text-xs text-muted-foreground">{t('organizations.subtitle')}</Text>
       }
       actions={
-        <Button variant="primary" size="small" onPress={() => setIsCreating((open) => !open)}>
+        <Button appearance="solid" tone="accent" size="sm" onPress={() => setIsCreating((open) => !open)}>
           {t('organizations.create.action')}
         </Button>
       }
@@ -138,14 +138,15 @@ function CreateOrganizationForm({ onDone }: { onDone: () => void }) {
         {create.error ? <ApiStateNotice error={create.error} /> : null}
 
         <View className="flex-row justify-end gap-2">
-          <Button variant="secondary" size="small" onPress={onDone}>
+          <Button appearance="outline" tone="neutral" size="sm" onPress={onDone}>
             {t('common.cancel')}
           </Button>
           <Button
-            variant="primary"
-            size="small"
+            size="sm"
             disabled={!canSubmit}
             loading={create.isPending}
+            appearance="solid"
+            tone="accent"
             onPress={handleSubmit}
           >
             {t('organizations.create.submit')}
@@ -201,8 +202,9 @@ function OrganizationPanel({ organization }: { organization: OrganizationSummary
       align: 'right',
       render: (row) => (
         <Button
-          variant="secondary"
-          size="small"
+          size="sm"
+          appearance="outline"
+          tone="neutral"
           onPress={() => router.navigate(`/applications/${encodeURIComponent(row.applicationId)}`)}
         >
           {t('common.open')}
@@ -228,13 +230,14 @@ function OrganizationPanel({ organization }: { organization: OrganizationSummary
             <StatusPill label={t('organizations.suspended')} tone="danger" />
           ) : null}
           <Button
-            variant="secondary"
-            size="small"
+            size="sm"
             onPress={() =>
               router.navigate(
                 `/organizations/${encodeURIComponent(organization.organizationId)}/members`,
               )
             }
+            appearance="outline"
+            tone="neutral"
           >
             {t('organizations.members')}
           </Button>
@@ -242,7 +245,7 @@ function OrganizationPanel({ organization }: { organization: OrganizationSummary
               answers 403, and a control that only ever fails is worse than one that
               is not offered. */}
           {mayAdminister ? (
-            <Button variant="primary" size="small" onPress={() => setIsCreating((open) => !open)}>
+            <Button appearance="solid" tone="accent" size="sm" onPress={() => setIsCreating((open) => !open)}>
               {t('applications.create.action')}
             </Button>
           ) : null}
@@ -320,14 +323,15 @@ function CreateApplicationForm({
       {create.error ? <ApiStateNotice error={create.error} /> : null}
 
       <View className="flex-row justify-end gap-2">
-        <Button variant="secondary" size="small" onPress={onDone}>
+        <Button appearance="outline" tone="neutral" size="sm" onPress={onDone}>
           {t('common.cancel')}
         </Button>
         <Button
-          variant="primary"
-          size="small"
+          size="sm"
           disabled={name.trim() === '' || create.isPending}
           loading={create.isPending}
+          appearance="solid"
+          tone="accent"
           onPress={handleSubmit}
         >
           {t('applications.create.submit')}

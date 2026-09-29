@@ -63,7 +63,7 @@ export function SensitiveGate({
             <Text className="text-sm leading-5 text-muted-foreground">
               {t('review.sensitive.body')}
             </Text>
-            <Button variant="secondary" onPress={() => setRevealed(true)}>
+            <Button appearance="outline" tone="neutral" onPress={() => setRevealed(true)}>
               {t('review.sensitive.reveal')}
             </Button>
           </>
@@ -79,7 +79,7 @@ export function SensitiveGate({
   return (
     <View className="gap-3">
       {children}
-      <Button variant="ghost" size="small" onPress={() => setRevealed(false)}>
+      <Button appearance="subtle" tone="accent" size="sm" onPress={() => setRevealed(false)}>
         {t('review.sensitive.hide')}
       </Button>
     </View>

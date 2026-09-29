@@ -68,7 +68,7 @@ export default function ReviewScreen() {
     return (
       <Screen title={t('review.title')}>
         <Panel title={t('review.submitted.title')} description={t('review.submitted.body')}>
-          <Button variant="primary" onPress={() => router.replace('/')}>
+          <Button appearance="solid" tone="accent" onPress={() => router.replace('/')}>
             {t('review.submitted.action')}
           </Button>
         </Panel>
@@ -79,7 +79,7 @@ export default function ReviewScreen() {
   return (
     <Screen title={t('review.title')}>
       <Panel title={t('review.noCase.title')} description={t('review.noCase.body')}>
-        <Button variant="secondary" onPress={() => router.replace('/')}>
+        <Button appearance="outline" tone="neutral" onPress={() => router.replace('/')}>
           {t('review.noCase.action')}
         </Button>
       </Panel>
@@ -243,21 +243,23 @@ function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlo
       <View className="gap-3 pb-6">
         {formState.step === 'descriptive' ? (
           <Button
-            variant="primary"
             onPress={() => dispatch({ type: 'advance' })}
+            appearance="solid"
+            tone="accent"
             disabled={!isDescriptiveComplete(formState)}
           >
             {t('review.action.continue')}
           </Button>
         ) : (
           <>
-            <Button variant="secondary" onPress={() => dispatch({ type: 'back' })}>
+            <Button appearance="outline" tone="neutral" onPress={() => dispatch({ type: 'back' })}>
               {t('review.action.back')}
             </Button>
             <Button
-              variant="primary"
               onPress={handleSubmit}
               disabled={submission === null}
+              appearance="solid"
+              tone="accent"
               loading={submitting}
             >
               {t('review.action.submit')}
@@ -271,7 +273,7 @@ function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlo
          * is a penalty made of friction. The wording says stepping back, not
          * failing.
          */}
-        <Button variant="outline" onPress={() => router.push('/recuse')}>
+        <Button appearance="outline" tone="neutral" onPress={() => router.push('/recuse')}>
           {t('review.action.recuse')}
         </Button>
         <Text className="text-xs leading-4 text-muted-foreground">

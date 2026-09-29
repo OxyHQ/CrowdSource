@@ -55,11 +55,12 @@ export default function WellbeingScreen() {
       {activeAssignment ? (
         <Panel title={t('wellbeing.exit.title')} description={t('wellbeing.exit.body')}>
           <Button
-            variant="secondary"
             onPress={() => {
               stopShowingCase();
               router.replace('/');
             }}
+            appearance="outline"
+            tone="neutral"
           >
             {t('wellbeing.exit.action')}
           </Button>
@@ -149,8 +150,8 @@ function WellbeingForm({ profile }: { profile: ReviewerProfileView }) {
               : t('wellbeing.availability.off')}
           </Text>
           <Switch
-            value={draft.availableForAssignment}
-            onValueChange={(availableForAssignment) =>
+            checked={draft.availableForAssignment}
+            onCheckedChange={(availableForAssignment) =>
               setDraft((current) => ({ ...current, availableForAssignment }))
             }
           />
@@ -232,7 +233,7 @@ function WellbeingForm({ profile }: { profile: ReviewerProfileView }) {
 
       {updatePreferences.error ? <ApiStateNotice error={updatePreferences.error} /> : null}
 
-      <Button variant="primary" onPress={handleSave} loading={updatePreferences.isPending}>
+      <Button appearance="solid" tone="accent" onPress={handleSave} loading={updatePreferences.isPending}>
         {t('wellbeing.save')}
       </Button>
       {updatePreferences.isSuccess ? (
