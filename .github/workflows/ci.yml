@@ -48,6 +48,79 @@ env:
   NODE_VERSION: '22.17.0'
 
 jobs:
+  # Pull requests run only the suites whose inputs they touch. Push to main
+  # never takes this path: `changes` is skipped there and every job below runs,
+  # so the deploy workflows (which gate on this run's `success`) always follow a
+  # complete run.
+  #
+  # `shared` is everything more than one package reads — the lockfile, root
+  # manifests and configs, the scripts `bun run check` and the cutover suite
+  # run, CI itself, and `contracts`, which every other package builds against.
+  # Touching any of it runs everything. A path in no filter (docs, say) runs
+  # only the jobs that are never filtered.
+  changes:
+    name: Detect affected packages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      lockfile: ${{ steps.filter.outputs.shared == 'true' || steps.filter.outputs.manifests == 'true' }}
+      reviewer: ${{ steps.filter.outputs.shared == 'true' || steps.filter.outputs.reviewer == 'true' }}
+      tests-any: ${{ steps.plan.outputs.any }}
+      tests-exclude: ${{ steps.plan.outputs.exclude }}
+    steps:
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          filters: |
+            shared:
+              - 'bun.lock'
+              - 'bunfig.toml'
+              - 'package.json'
+              - 'tsconfig.json'
+              - 'docker-compose.postgres.yml'
+              - '.github/**'
+              - 'scripts/**'
+              - 'packages/contracts/**'
+            manifests:
+              - '**/package.json'
+            backend:
+              - 'packages/backend/**'
+            core:
+              - 'packages/core/**'
+            reviewer:
+              - 'packages/reviewer/**'
+            console:
+              - 'packages/console/**'
+      # The matrix below lists every suite; this names the ones to drop. An
+      # unaffected suite is EXCLUDED rather than started and short-circuited,
+      # so it costs no runner at all.
+      - name: Plan the test matrix
+        id: plan
+        env:
+          SHARED: ${{ steps.filter.outputs.shared }}
+          BACKEND: ${{ steps.filter.outputs.backend }}
+          CORE: ${{ steps.filter.outputs.core }}
+          REVIEWER: ${{ steps.filter.outputs.reviewer }}
+          CONSOLE: ${{ steps.filter.outputs.console }}
+        run: |
+          exclude=()
+          if [ "$SHARED" != 'true' ]; then
+            exclude+=(contracts)
+            [ "$BACKEND" = 'true' ] || exclude+=(backend backend-cutover)
+            [ "$CORE" = 'true' ] || exclude+=(core core-express core-testing core-outbox)
+            [ "$REVIEWER" = 'true' ] || exclude+=(reviewer)
+            [ "$CONSOLE" = 'true' ] || exclude+=(console)
+          fi
+          json=$(printf '%s\n' "${exclude[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0) | {package: .})')
+          any=$([ "${#exclude[@]}" -lt 9 ] && echo true || echo false)
+          echo "exclude=$json" >> "$GITHUB_OUTPUT"
+          echo "any=$any" >> "$GITHUB_OUTPUT"
+          echo "Excluded suites: $json (any left: $any)"
+
   quality:
     name: Build, lint and typecheck
     runs-on: ubuntu-latest
@@ -57,6 +130,15 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
+      # Bun's global package cache, keyed on the lockfile. Restoring it turns the
+      # install into a link step; a lockfile change falls back to the newest
+      # cache for this runner and re-downloads only what moved.
+      - name: Restore Bun package cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
       - name: Set up pinned Node runtime
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -87,6 +169,10 @@ jobs:
 
   lockfile:
     name: Lockfile sync
+    needs: changes
+    if: >-
+      !cancelled() && needs.changes.result != 'failure' &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.lockfile == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -94,6 +180,15 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
+      # Bun's global package cache, keyed on the lockfile. Restoring it turns the
+      # install into a link step; a lockfile change falls back to the newest
+      # cache for this runner and re-downloads only what moved.
+      - name: Restore Bun package cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
       # Its own job because it needs a plain install: `--frozen-lockfile` exits 0
       # on a lockfile that a plain install rewrites, so it cannot be this gate.
       # The script runs the install itself and hands the lockfile back unchanged.
@@ -102,11 +197,20 @@ jobs:
 
   tests:
     name: Test ${{ matrix.package }}
+    needs: changes
+    if: >-
+      !cancelled() && needs.changes.result != 'failure' &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.tests-any == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
+        # Every suite, once. `include` below only ADDS each suite's settings to
+        # its entry here, which is what lets `exclude` drop an unaffected one;
+        # validate-workflows.mjs holds the two lists equal.
+        package: [backend, backend-cutover, reviewer, contracts, core, core-express, core-testing, core-outbox, console]
+        exclude: ${{ fromJSON(needs.changes.outputs.tests-exclude || '[]') }}
         include:
           - package: backend
             command: bun run --cwd packages/backend test:coverage -- --coverage.reportsDirectory="$RUNNER_TEMP/backend-coverage"
@@ -240,6 +344,15 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
+      # Bun's global package cache, keyed on the lockfile. Restoring it turns the
+      # install into a link step; a lockfile change falls back to the newest
+      # cache for this runner and re-downloads only what moved.
+      - name: Restore Bun package cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
       - name: Set up pinned Node test runtime
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -306,6 +419,10 @@ jobs:
 
   reviewer-bundle:
     name: Reviewer bundle budget
+    needs: changes
+    if: >-
+      !cancelled() && needs.changes.result != 'failure' &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.reviewer == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -313,6 +430,15 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
+      # Bun's global package cache, keyed on the lockfile. Restoring it turns the
+      # install into a link step; a lockfile change falls back to the newest
+      # cache for this runner and re-downloads only what moved.
+      - name: Restore Bun package cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
       - name: Set up pinned Node bundle runtime
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:

@@ -97,6 +97,20 @@ for (const workflowName of workflowNames) {
         matrixEntries.map((entry) => entry?.package).filter((name) => typeof name === "string"),
       );
 
+      // Pull requests drop unaffected suites through `matrix.exclude`, which only
+      // matches entries of the BASE `package` list. A suite in `include` but not
+      // in that list could never be skipped; one in the list with no `include`
+      // settings would run with no command. Both lists must name the same suites.
+      const basePackages = workflow?.jobs?.tests?.strategy?.matrix?.package;
+      const baseSet = new Set(Array.isArray(basePackages) ? basePackages : []);
+      const onlyInBase = [...baseSet].filter((name) => !matrixPackages.has(name));
+      const onlyInInclude = [...matrixPackages].filter((name) => !baseSet.has(name));
+      if (onlyInBase.length > 0 || onlyInInclude.length > 0) {
+        failures.push(
+          `${workflowName}: tests matrix.package and matrix.include must name the same suites (only in package: ${onlyInBase.join(", ") || "none"}; only in include: ${onlyInInclude.join(", ") || "none"})`,
+        );
+      }
+
       // A floor nothing consumes is worse than no floor: the entry reads as though
       // the count were checked while the job still passes on an empty run.
       const declaresFloor = matrixEntries.filter((entry) => entry?.minimum_tests !== undefined);
