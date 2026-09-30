@@ -130,15 +130,6 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      # Bun's global package cache, keyed on the lockfile. Restoring it turns the
-      # install into a link step; a lockfile change falls back to the newest
-      # cache for this runner and re-downloads only what moved.
-      - name: Restore Bun package cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
       - name: Set up pinned Node runtime
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -180,15 +171,6 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      # Bun's global package cache, keyed on the lockfile. Restoring it turns the
-      # install into a link step; a lockfile change falls back to the newest
-      # cache for this runner and re-downloads only what moved.
-      - name: Restore Bun package cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
       # Its own job because it needs a plain install: `--frozen-lockfile` exits 0
       # on a lockfile that a plain install rewrites, so it cannot be this gate.
       # The script runs the install itself and hands the lockfile back unchanged.
@@ -344,15 +326,6 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      # Bun's global package cache, keyed on the lockfile. Restoring it turns the
-      # install into a link step; a lockfile change falls back to the newest
-      # cache for this runner and re-downloads only what moved.
-      - name: Restore Bun package cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
       - name: Set up pinned Node test runtime
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -430,15 +403,10 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      # Bun's global package cache, keyed on the lockfile. Restoring it turns the
-      # install into a link step; a lockfile change falls back to the newest
-      # cache for this runner and re-downloads only what moved.
-      - name: Restore Bun package cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
+      # No Bun package cache, measured rather than assumed: on PR run
+      # 36715028474 a cache HIT spent 6-13s restoring 263 MB and then 2s
+      # installing, against 5-7s for a cold `bun install` in the runs before it.
+      # Bun downloads faster than actions/cache restores.
       - name: Set up pinned Node bundle runtime
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
