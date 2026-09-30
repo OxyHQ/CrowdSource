@@ -92,22 +92,52 @@ for (const workflowName of workflowNames) {
       // whose breakage lands on adopters rather than on us. A missing matrix entry
       // is invisible by construction: nothing fails, there is simply no job. So
       // the matrix is checked against the packages that exist.
-      const matrixEntries = workflow?.jobs?.tests?.strategy?.matrix?.include || [];
+      //
+      // The suites live in .github/test-suites.yml and reach the matrix through
+      // the `changes` job, because a literal `matrix.include` cannot shrink for a
+      // pull request (see that file's header). So the census reads the file, and
+      // the wiring from file to matrix is asserted below: a tests job that stopped
+      // reading `changes`' list would run whatever it names instead, and a
+      // `changes` job that stopped reading the file would hand it nothing.
+      const suitesSource = readFileSync(
+        resolve(repositoryRoot, ".github/test-suites.yml"),
+        "utf8",
+      );
+      const suitesDocument = parseDocument(suitesSource, {
+        prettyErrors: true,
+        strict: true,
+        uniqueKeys: true,
+      });
+      for (const error of suitesDocument.errors) {
+        failures.push(`.github/test-suites.yml: ${error.message}`);
+      }
+      const suites = suitesDocument.toJS()?.suites;
+      const matrixEntries = Array.isArray(suites) ? suites : [];
       const matrixPackages = new Set(
         matrixEntries.map((entry) => entry?.package).filter((name) => typeof name === "string"),
       );
-
-      // Pull requests drop unaffected suites through `matrix.exclude`, which only
-      // matches entries of the BASE `package` list. A suite in `include` but not
-      // in that list could never be skipped; one in the list with no `include`
-      // settings would run with no command. Both lists must name the same suites.
-      const basePackages = workflow?.jobs?.tests?.strategy?.matrix?.package;
-      const baseSet = new Set(Array.isArray(basePackages) ? basePackages : []);
-      const onlyInBase = [...baseSet].filter((name) => !matrixPackages.has(name));
-      const onlyInInclude = [...matrixPackages].filter((name) => !baseSet.has(name));
-      if (onlyInBase.length > 0 || onlyInInclude.length > 0) {
+      if (matrixPackages.size !== matrixEntries.length) {
         failures.push(
-          `${workflowName}: tests matrix.package and matrix.include must name the same suites (only in package: ${onlyInBase.join(", ") || "none"}; only in include: ${onlyInInclude.join(", ") || "none"})`,
+          `.github/test-suites.yml: every suite needs a unique string package name`,
+        );
+      }
+      const testsInclude = workflow?.jobs?.tests?.strategy?.matrix?.include;
+      if (
+        typeof testsInclude !== "string" ||
+        !/^\$\{\{\s*fromJSON\(needs\.changes\.outputs\.test-suites\)\s*\}\}$/.test(testsInclude)
+      ) {
+        failures.push(
+          `${workflowName}: tests.strategy.matrix.include must be \${{ fromJSON(needs.changes.outputs.test-suites) }}, the list planned from .github/test-suites.yml`,
+        );
+      }
+      const readsSuites = (workflow?.jobs?.changes?.steps || []).some(
+        (step) =>
+          typeof step?.run === "string" &&
+          /yq\b[^\n]*'\.suites'[^\n]*\.github\/test-suites\.yml/.test(step.run),
+      );
+      if (!readsSuites) {
+        failures.push(
+          `${workflowName}: the changes job must plan the tests matrix from .github/test-suites.yml`,
         );
       }
 
