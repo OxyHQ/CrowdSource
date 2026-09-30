@@ -5,7 +5,7 @@
     "": {
       "name": "crowdsource",
       "devDependencies": {
-        "@oxy.so/doctor": "1.0.0",
+        "@oxy.so/doctor": "1.1.0",
         "@types/node": "^26.1.1",
         "typescript": "~5.9.3",
         "yaml": "^2.9.1",
@@ -713,7 +713,7 @@
 
     "@oxy.so/db": ["@oxy.so/db@1.0.0", "", { "peerDependencies": { "drizzle-orm": "^0.45.2", "postgres": "^3.4.9" } }, "sha512-5tnH+84QR7cnTRYF7FWIN1rGF7YoE0M+sfUBC2Bdclzp1Hfb7+Msr7cEvFklluZxXMP2Mv8HzPB6/gz3Kndk4Q=="],
 
-    "@oxy.so/doctor": ["@oxy.so/doctor@1.0.0", "", { "bin": { "oxy-doctor": "src/cli.mjs" } }, "sha512-Cv+CbLGkx+CTJmRkPBAfLXkHnv+afw2r9H2j6IxvORq2M8gJsnI8X9k4NpjEpK6lthjf2UYAOJPFWKOxL8SWcw=="],
+    "@oxy.so/doctor": ["@oxy.so/doctor@1.1.0", "", { "bin": { "oxy-doctor": "src/cli.mjs" } }, "sha512-o5uDvU2c6f7Z+8jpiRyFILimouEwm7GY0pqMEfMNgCJ3/Q10ot2ccm9OpGnRlx9T2MLaWdDh/4hU4TLPq+OC8g=="],
 
     "@oxy.so/protocol": ["@oxy.so/protocol@1.2.1", "", { "dependencies": { "@noble/curves": "^1.9.7", "@oxy.so/contracts": "^4.4.0", "zod": "^3.25.64" }, "peerDependencies": { "@react-native-async-storage/async-storage": "*", "expo-crypto": "*", "expo-modules-core": "*", "expo-secure-store": "*", "express": "^4.18.0 || ^5.0.0" }, "optionalPeers": ["@react-native-async-storage/async-storage", "expo-crypto", "expo-secure-store", "express"] }, "sha512-lOiVUUb3XZsV+IbLFUeRLsKvu/hJbnF5RWzQRBXnAQYVM1EY21qpN5e/miokMulC6Q66mMEw4J7IJibyCXzVXA=="],
 
