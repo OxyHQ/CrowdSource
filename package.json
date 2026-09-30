@@ -78,7 +78,7 @@
     "@oxy.so/bloom": "^6.2.0",
     "@oxy.so/core": "^3.0.0",
     "@oxy.so/services": "^10.0.0",
-    "brace-expansion": "2.1.4",
+    "brace-expansion": "2.1.7",
     "socket.io-parser": "4.2.7",
     "fast-uri": "3.1.4",
     "fast-xml-parser": "5.10.1",
