@@ -7,13 +7,6 @@ module.exports = function(_config) {
    */
   const VERSION = pkg.version
 
-  /**
-   * Uses built-in Expo env vars
-   *
-   * @see https://docs.expo.dev/build-reference/variables/#built-in-environment-variables
-   */
-  const PLATFORM = process.env.EAS_BUILD_PLATFORM
-
   const APP_ENV = process.env.EXPO_PUBLIC_ENV ?? 'development'
   const VALID_APP_ENVS = ['development', 'testflight', 'production']
   if (!VALID_APP_ENVS.includes(APP_ENV)) {
@@ -131,79 +124,65 @@ module.exports = function(_config) {
         },
         // Metro configuration is handled in metro.config.js
       },
-      // Build the plugins array dynamically so we can exclude certain
-      // native-only plugins from web builds.
-      plugins: (() => {
-        const base = [
-          [
-            // Async routes split each route into its own lazy chunk under
-            // `_expo/static/js/web/` so heavy screens are fetched on demand
-            // instead of shipping in the entry bundle. Web-only: `production`
-            // is the documented web-only value and is disabled on native (the
-            // setting lands in `extra.router.asyncRoutes`, which
-            // @expo/metro-config reads).
-            'expo-router',
-            {
-              asyncRoutes: { web: 'production' },
-            },
-          ],
-          [
-            // Background only. The colour matches the pre-hydration canvas in
-            // global.css so a cold start never flashes white.
-            'expo-splash-screen',
-            {
-              backgroundColor: '#0B0B0F',
-              dark: { backgroundColor: '#0B0B0F' },
-            },
-          ],
-          [
-            'expo-secure-store',
-            {
-              configureAndroidBackup: true,
-              faceIDPermission: 'Allow $(PRODUCT_NAME) to access your Face ID biometric data.',
-            },
-          ],
-          'expo-image',
-          [
-            'expo-build-properties',
-            {
-              ios: {
-                deploymentTarget: '16.4',
-                entitlements: {
-                  'keychain-access-groups': [
-                    '$(AppIdentifierPrefix)group.so.oxy.shared',
-                  ],
-                },
-              },
-              android: {
-                compileSdkVersion: 36,
-                targetSdkVersion: 35,
-                buildToolsVersion: '36.0.0',
-                enableProguardInReleaseBuilds: true,
-                enableShrinkResourcesInReleaseBuilds: true,
-                useLegacyPackaging: false,
+      plugins: [
+        [
+          // Async routes split each route into its own lazy chunk under
+          // `_expo/static/js/web/` so heavy screens are fetched on demand
+          // instead of shipping in the entry bundle. Web-only: `production`
+          // is the documented web-only value and is disabled on native (the
+          // setting lands in `extra.router.asyncRoutes`, which
+          // @expo/metro-config reads).
+          'expo-router',
+          {
+            asyncRoutes: { web: 'production' },
+          },
+        ],
+        [
+          // Background only. The colour matches the pre-hydration canvas in
+          // global.css so a cold start never flashes white.
+          'expo-splash-screen',
+          {
+            backgroundColor: '#0B0B0F',
+            dark: { backgroundColor: '#0B0B0F' },
+          },
+        ],
+        [
+          'expo-secure-store',
+          {
+            configureAndroidBackup: true,
+            faceIDPermission: 'Allow $(PRODUCT_NAME) to access your Face ID biometric data.',
+          },
+        ],
+        'expo-image',
+        [
+          'expo-build-properties',
+          {
+            ios: {
+              deploymentTarget: '16.4',
+              entitlements: {
+                'keychain-access-groups': [
+                  '$(AppIdentifierPrefix)group.so.oxy.shared',
+                ],
               },
             },
-          ],
-          'expo-web-browser',
-          // Android sharedUserId for cross-app authentication
-          './plugins/withSharedUserId',
-          // Reader side of the shared-identity native module (ships in
-          // @oxy.so/services): request the signature permission + <queries>
-          // so cold boot can silently read the Commons-hosted shared
-          // identity (silent "Sign in with Oxy").
-          '@oxy.so/services/plugins/withSharedIdentityReader',
-        ]
-
-        if (PLATFORM === 'web') {
-          return base.filter((plugin) => {
-            const name = Array.isArray(plugin) ? plugin[0] : plugin
-            return name !== './plugins/withSharedUserId'
-          })
-        }
-
-        return base
-      })(),
+            android: {
+              compileSdkVersion: 36,
+              targetSdkVersion: 35,
+              buildToolsVersion: '36.0.0',
+              enableProguardInReleaseBuilds: true,
+              enableShrinkResourcesInReleaseBuilds: true,
+              useLegacyPackaging: false,
+            },
+          },
+        ],
+        'expo-web-browser',
+        // CrowdSource runs on its own Android UID. It shares the Oxy identity
+        // and the device session with Commons and Accounts over
+        // signature-protected IPC: this declares and requests
+        // so.oxy.permission.IDENTITY and DEVICE_SESSION and adds the
+        // <queries> for their providers.
+        '@oxy.so/services/plugins/withOxySharedPermissions',
+      ],
       extra: {
         // No `eas.projectId`: no EAS project has been created for CrowdSource.
         // `eas init` writes it here.

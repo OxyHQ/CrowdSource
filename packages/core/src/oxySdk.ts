@@ -46,7 +46,7 @@ export const OXY_SERVICE_API_SECRET_ENV_VAR = 'OXY_SERVICE_API_SECRET';
  * does not have it — including this one.
  *
  * Both members are optional because a peer RANGE is advice, not enforcement:
- * `^3.0.0` is what this package asks for, and a tree that resolved an older copy
+ * `^4.0.0` is what this package asks for, and a tree that resolved an older copy
  * — no `OxyServer`, no attestation path — has to read as "cannot attest / not
  * installed" rather than as a `TypeError` thrown from inside a moderation client.
  */
@@ -159,7 +159,7 @@ export function oxyServiceToken(): Promise<string> {
   if (OxyServer === undefined) {
     return Promise.reject(
       new Error(
-        "@oxy.so/core (^3) is not installed, so this process cannot mint an Oxy service token. Install it, or pass an 'oxyToken' provider of your own.",
+        "@oxy.so/core (^4) is not installed, so this process cannot mint an Oxy service token. Install it, or pass an 'oxyToken' provider of your own.",
       ),
     );
   }
