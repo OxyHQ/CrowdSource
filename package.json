@@ -90,6 +90,20 @@
     "lightningcss-linux-x64-gnu": "1.30.1",
     "lightningcss-linux-x64-musl": "1.30.1",
     "browserslist": "4.28.8",
-    "@oxy.so/telemetry": "^1.2.0"
+    "@oxy.so/telemetry": "^1.2.0",
+    "metro": "0.84.6",
+    "metro-babel-transformer": "0.84.6",
+    "metro-cache": "0.84.6",
+    "metro-cache-key": "0.84.6",
+    "metro-config": "0.84.6",
+    "metro-core": "0.84.6",
+    "metro-file-map": "0.84.6",
+    "metro-minify-terser": "0.84.6",
+    "metro-resolver": "0.84.6",
+    "metro-runtime": "0.84.6",
+    "metro-source-map": "0.84.6",
+    "metro-symbolicate": "0.84.6",
+    "metro-transform-plugins": "0.84.6",
+    "metro-transform-worker": "0.84.6"
   }
 }
