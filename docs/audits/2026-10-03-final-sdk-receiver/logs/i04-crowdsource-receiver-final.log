@@ -1,0 +1,4 @@
+$ tsc
+$ tsc --noEmit && tsc -p tsconfig.test.json
+src/__tests__/fixtures/receiver-sdk-probe.ts(33,3): error TS2322: Type 'Promise<Response>' is not assignable to type 'Promise<Response<any, Record<string, any>>>'.
+  Type 'Response' is missing the following properties from type 'Response<any, Record<string, any>>': sendStatus, links, send, jsonp, and 86 more.

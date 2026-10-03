@@ -1,0 +1,14 @@
+2026-10-03 20:31:27.346 EEST [4087678] LOG:  starting PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-03 20:31:27.349 EEST [4087678] LOG:  listening on IPv4 address "127.0.0.1", port 5593
+2026-10-03 20:31:27.359 EEST [4087678] LOG:  listening on Unix socket "/home/nate/Oxy/.agent-evidence/i04-crowdsource-pg5593/.s.PGSQL.5593"
+2026-10-03 20:31:27.366 EEST [4087681] LOG:  database system was shut down at 2026-10-03 20:31:26 EEST
+2026-10-03 20:31:27.371 EEST [4087678] LOG:  database system is ready to accept connections
+2026-10-03 20:33:03.306 EEST [4087679] LOG:  checkpoint starting: immediate force wait
+2026-10-03 20:33:03.356 EEST [4087679] LOG:  checkpoint complete: wrote 56 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.009 s, sync=0.017 s, total=0.051 s; sync files=21, longest=0.004 s, average=0.001 s; distance=5715 kB, estimate=5715 kB; lsn=0/1A83A28, redo lsn=0/1A839D0
+2026-10-03 20:33:49.915 EEST [4087678] LOG:  received fast shutdown request
+2026-10-03 20:33:49.922 EEST [4087678] LOG:  aborting any active transactions
+2026-10-03 20:33:49.923 EEST [4087678] LOG:  background worker "logical replication launcher" (PID 4087684) exited with exit code 1
+2026-10-03 20:33:49.923 EEST [4087679] LOG:  shutting down
+2026-10-03 20:33:49.926 EEST [4087679] LOG:  checkpoint starting: shutdown immediate
+2026-10-03 20:33:49.968 EEST [4087679] LOG:  checkpoint complete: wrote 8 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.014 s, sync=0.011 s, total=0.045 s; sync files=8, longest=0.004 s, average=0.002 s; distance=25 kB, estimate=5146 kB; lsn=0/1A8A058, redo lsn=0/1A8A058
+2026-10-03 20:33:49.972 EEST [4087678] LOG:  database system is shut down
