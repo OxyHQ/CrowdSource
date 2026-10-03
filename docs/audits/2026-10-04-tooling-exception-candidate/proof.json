@@ -1,0 +1,39 @@
+{
+  "base": "64d8e145014f1faee659b0173fb4c0746c155f50",
+  "scope": "Inactive review candidate; no audit exception activated and no registry/install/build/deploy effects",
+  "sources": [
+    {
+      "path": "scripts/security-tooling-exceptions.mjs",
+      "sha256": "d5f24bf37fe5123a67bb5567779d610d47c9780df89938e63ede9d3acd845b9a"
+    },
+    {
+      "path": "scripts/test-security-tooling-exceptions.mjs",
+      "sha256": "6f0805169ecdcee2bf05c7e4e90d03b43b52a52c75f5a1794de7806cae9d55ee"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-candidate/policy.json",
+      "sha256": "2d9fd6bab4a87bddac41b8dc448d57ba4fb00c4625f009dd160b7f061f3ec71b"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-candidate/census.json",
+      "sha256": "e2c5f0c2e4a108f76b4f0d8d9def703663b2e19bc933496cb74fa9cc16ccddf7"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-candidate/README.md",
+      "sha256": "8d83d64f349a1ae07b4f4d847e8bed8de2fba9a6b2e8db4ec65a33a5c39bb4be"
+    }
+  ],
+  "records": [
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-candidate/controls.log",
+      "sha256": "daf3cb125b8e783b9ea04fc0757ba7137b29ff732586001b6a6575f308dbb749"
+    }
+  ],
+  "controls": 21,
+  "pending": [
+    "Root source review and explicit activation",
+    "Final registry graph verification",
+    "Both final export source-map receipts",
+    "Final backend image dependency census"
+  ]
+}

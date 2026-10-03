@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "status": "inactive review candidate, not read by audit:security",
+  "expires": "2026-10-09T22:00:00Z",
+  "advisories": [
+    {
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces"
+    },
+    {
+      "id": "GHSA-ch52-4w7c-c8xp",
+      "package": "http-cache-semantics"
+    },
+    {
+      "id": "GHSA-86w9-cpqp-85rv",
+      "package": "node-forge"
+    }
+  ],
+  "graphSha256": "f368b90914c8531a5c8b55a87819f0dd101cb1a51e9e8f967bc02508c601d7f9",
+  "allowedRoots": [
+    "workspace:packages/console",
+    "workspace:packages/reviewer"
+  ],
+  "runtimeInputs": [
+    {
+      "path": "packages/backend/Dockerfile",
+      "sha256": "03ee825714d7245a4a0eddf5b346fcb2d9c571c96b9f0490375c3267f033cfa4"
+    }
+  ]
+}
