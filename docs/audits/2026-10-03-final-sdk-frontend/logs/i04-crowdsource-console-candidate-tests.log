@@ -1,0 +1,21 @@
+$ node ../../node_modules/jest/bin/jest.js --watchAll=false --runInBand
+PASS lib/console-api/__tests__/projections.test.ts
+PASS lib/__tests__/routing-invariants.test.ts
+PASS lib/__tests__/auth-invariants.test.ts
+PASS lib/console-api/__tests__/vocabularies.test.ts
+PASS lib/__tests__/privacy-invariants.test.ts
+PASS lib/__tests__/navigation.test.ts
+PASS components/__tests__/PanelChrome.test.ts
+PASS lib/logger/__tests__/sanitize.test.ts
+PASS lib/console-api/__tests__/presentation.test.ts
+PASS lib/__tests__/locales.test.ts
+PASS lib/console-api/__tests__/roles.test.ts
+PASS lib/console-api/__tests__/viewer.test.ts
+PASS lib/__tests__/auth-gate.test.ts
+PASS lib/logger/__tests__/logDump.test.ts
+
+Test Suites: 14 passed, 14 total
+Tests:       118 passed, 118 total
+Snapshots:   0 total
+Time:        2.094 s
+Ran all test suites.
