@@ -1,0 +1,39 @@
+PASS exact reviewed graph permits only each matching advisory and package
+PASS unknown advisory refuses
+PASS known advisory for another package refuses
+PASS absolute UTC expiry refuses at boundary
+PASS invalid clock refuses
+PASS extending exception expiry refuses
+PASS target version drift
+PASS target archive integrity drift
+PASS parent archive integrity drift
+PASS parent dependency range drift
+PASS nested target added
+PASS backend gains target
+PASS new workspace
+PASS unreviewed package patch
+PASS runtime Docker boundary drift refuses
+30 |   ['unreviewed package patch', value => { value.patchedDependencies = { 'braces@3.0.3': 'patches/changed.patch' }; }],
+31 | ]) check(name, () => { const changed = structuredClone(lock); mutate(changed); assert.equal(permitsToolingException({ ...invocation, lock: changed }), false); });
+32 | check('runtime Docker boundary drift refuses', () => assert.equal(permitsToolingException({ ...invocation, inputBytes: { ...inputBytes, 'packages/backend/Dockerfile': Buffer.from('include all workspaces') } }), false));
+33 | check('unrelated Oxy version metadata cannot widen tooling graph', () => {
+34 |   const changed = structuredClone(lock); changed.packages['@oxy.so/core'][0] = '@oxy.so/core@4.2.0';
+35 |   assert.equal(toolingCensus(changed, policy.advisories.map(entry => entry.package)).sha256, policy.graphSha256);
+              ^
+AssertionError: Expected values to be strictly equal:
++ actual - expected
+
++ 'f0b02b1e289dbcc529a8f2f657da050c946af858aa4dec055ca0280bdaa68170'
+- 'abba99ce7de0e93f86abcbdb57b0b9992701f22eb097c5e7a591660b2f1212f5'
+
+ generatedMessage: true,
+     actual: "f0b02b1e289dbcc529a8f2f657da050c946af858aa4dec055ca0280bdaa68170",
+   expected: "abba99ce7de0e93f86abcbdb57b0b9992701f22eb097c5e7a591660b2f1212f5",
+   operator: "strictEqual",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/scripts/test-security-tooling-exceptions.mjs:35:10
+      at check (/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/scripts/test-security-tooling-exceptions.mjs:13:28)
+
+Bun v1.4.2 (Linux x64)

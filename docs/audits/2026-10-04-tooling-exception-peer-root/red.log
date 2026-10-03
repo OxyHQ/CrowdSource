@@ -1,0 +1,11 @@
+FAIL adding a workspace peer changes the census: Expected "actual" to be strictly unequal to:
+
+'f368b90914c8531a5c8b55a87819f0dd101cb1a51e9e8f967bc02508c601d7f9'
+FAIL adding a package peer changes the census: Expected "actual" to be strictly unequal to:
+
+'f368b90914c8531a5c8b55a87819f0dd101cb1a51e9e8f967bc02508c601d7f9'
+FAIL sourceRoot "../../node_modules/braces/" refuses: Missing expected exception.
+FAIL sourceRoot "..\\..\\node_modules\\node-forge\\" refuses: Missing expected exception.
+FAIL sourceRoot 42 refuses: Missing expected exception.
+PASS explicit empty sourceRoot remains valid
+1 PASS / 5 FAIL; owned fixture removed
