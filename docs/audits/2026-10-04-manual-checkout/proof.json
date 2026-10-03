@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "path": ".github/workflows/deploy-frontends.yml",
+      "sha256": "14981ed38461d2dbb53cc7f4e9c7c7272ecfeab2e089e7764bcb829d6404b64f"
+    },
+    {
+      "path": "scripts/test-manual-frontend-checkout.mjs",
+      "sha256": "d8f7ac9ecb58196752b2be8fb149eb2186c4290512347d27aa8badca1208b73e"
+    }
+  ],
+  "records": [
+    {
+      "path": "docs/audits/2026-10-04-manual-checkout/checkout.log",
+      "sha256": "6a58a8223685dcb1a9a043d0bc5f15d0351ca6706b6ea5ec41b3afdc0c518328"
+    },
+    {
+      "path": "docs/audits/2026-10-04-manual-checkout/workflows.log",
+      "sha256": "6e649df97f1dfeed38d862a8f0ec996bfafbd9223db3b2a283749e3173ce5252"
+    }
+  ],
+  "codeqlRemotelyVerified": false,
+  "runtimeChanged": false
+}

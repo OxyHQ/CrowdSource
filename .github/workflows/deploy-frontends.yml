@@ -47,8 +47,18 @@ jobs:
       console: ${{ steps.console.outputs.deploy }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.event_name != 'workflow_dispatch'
         with:
           ref: ${{ env.DEPLOY_SHA }}
+          # Each scope diff runs from its own `deployed/<target>` marker to the
+          # candidate, so this job needs the marker tags and the history that
+          # connects them to the candidate.
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          ref: ${{ github.sha }}
           # Each scope diff runs from its own `deployed/<target>` marker to the
           # candidate, so this job needs the marker tags and the history that
           # connects them to the candidate.
@@ -80,8 +90,15 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.event_name != 'workflow_dispatch'
         with:
           ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 2
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          ref: ${{ github.sha }}
           fetch-depth: 2
 
       - name: Verify current main before building
@@ -220,8 +237,15 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.event_name != 'workflow_dispatch'
         with:
           ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 2
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          ref: ${{ github.sha }}
           fetch-depth: 2
 
       - name: Verify current main before building
@@ -327,8 +351,15 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.event_name != 'workflow_dispatch'
         with:
           ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          ref: ${{ github.sha }}
           fetch-depth: 1
 
       - name: Record the deployed frontend revision
@@ -343,8 +374,15 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.event_name != 'workflow_dispatch'
         with:
           ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          ref: ${{ github.sha }}
           fetch-depth: 1
 
       - name: Record the deployed console revision
