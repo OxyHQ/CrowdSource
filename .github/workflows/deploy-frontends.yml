@@ -25,6 +25,7 @@ concurrency:
 
 env:
   BUN_VERSION: '1.4.2'
+  # workflow_run admission below binds this release to github.sha before checkout.
   DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
@@ -35,7 +36,9 @@ jobs:
     if: >-
       vars.OXY_1519_ROLLOUT_HOLD != 'true' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-       (github.event.workflow_run.conclusion == 'success' &&
+       (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.head_sha == github.sha &&
+       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       github.event.workflow_run.head_branch == 'main'))
@@ -47,16 +50,6 @@ jobs:
       console: ${{ steps.console.outputs.deploy }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name != 'workflow_dispatch'
-        with:
-          ref: ${{ env.DEPLOY_SHA }}
-          # Each scope diff runs from its own `deployed/<target>` marker to the
-          # candidate, so this job needs the marker tags and the history that
-          # connects them to the candidate.
-          fetch-depth: 0
-          fetch-tags: true
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name == 'workflow_dispatch'
         with:
           ref: ${{ github.sha }}
           # Each scope diff runs from its own `deployed/<target>` marker to the
@@ -90,13 +83,6 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name != 'workflow_dispatch'
-        with:
-          ref: ${{ env.DEPLOY_SHA }}
-          fetch-depth: 2
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name == 'workflow_dispatch'
         with:
           ref: ${{ github.sha }}
           fetch-depth: 2
@@ -237,13 +223,6 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name != 'workflow_dispatch'
-        with:
-          ref: ${{ env.DEPLOY_SHA }}
-          fetch-depth: 2
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name == 'workflow_dispatch'
         with:
           ref: ${{ github.sha }}
           fetch-depth: 2
@@ -351,13 +330,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name != 'workflow_dispatch'
-        with:
-          ref: ${{ env.DEPLOY_SHA }}
-          fetch-depth: 1
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name == 'workflow_dispatch'
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
@@ -374,13 +346,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name != 'workflow_dispatch'
-        with:
-          ref: ${{ env.DEPLOY_SHA }}
-          fetch-depth: 1
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name == 'workflow_dispatch'
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
