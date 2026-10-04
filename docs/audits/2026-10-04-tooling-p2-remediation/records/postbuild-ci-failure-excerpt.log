@@ -1,0 +1,84 @@
+2026-10-04T13:34:38.0613711Z   ok   a small root AGENTS.md passes
+2026-10-04T13:34:38.2425444Z   ok   an over-budget root AGENTS.md fails, naming the budget
+2026-10-04T13:34:38.2723132Z   ok   a nested AGENTS.md is held to the SMALLER budget
+2026-10-04T13:34:38.3153789Z   ok   control: the same 10 KB passes at the ROOT path
+2026-10-04T13:34:38.3253510Z   ok   a per-issue HEADING fails and says where it goes
+2026-10-04T13:34:38.3319102Z   ok   an issue number in BODY prose passes
+2026-10-04T13:34:38.3319999Z   ok   a one-digit '#1' in a heading does not fire; '#57' does
+2026-10-04T13:34:38.3339917Z   ok   the real repository is within budget
+2026-10-04T13:34:38.3340482Z 
+2026-10-04T13:34:38.3340834Z All self-test cases passed.
+2026-10-04T13:34:38.3371263Z $ bun ./scripts/audit-security.mjs
+2026-10-04T13:34:38.5909007Z Security audit passed; 1 reviewed exception(s) remain within their expiry window.
+2026-10-04T13:34:38.5951141Z $ bun ./scripts/check-injection-sinks.mjs --min-files=200
+2026-10-04T13:34:38.7505976Z No injection or evaluation sink in 573 source files across 4 packages (floor 200); 8 sink patterns checked; 0 allowlisted.
+2026-10-04T13:34:38.7548714Z $ bun ./scripts/check-peer-contracts.mjs && bun ./scripts/test-check-peer-contracts.mjs
+2026-10-04T13:34:38.7654227Z @crowdsource.you/contracts@1.1.0 is admitted by the peer range of all 1 consumer(s), and none of them bundles it as a normal dependency.
+2026-10-04T13:34:38.7849296Z PASS  the healthy tree passes
+2026-10-04T13:34:38.7952111Z PASS  a peer range that excludes the workspace version is caught
+2026-10-04T13:34:38.8044652Z PASS  contracts back in dependencies is caught
+2026-10-04T13:34:38.8149389Z PASS  a missing peer declaration is caught
+2026-10-04T13:34:38.8245283Z PASS  a missing devDependency is caught
+2026-10-04T13:34:38.8340068Z PASS  a contracts bump that outruns the peer range is caught
+2026-10-04T13:34:38.8424018Z PASS  a consumer directory that does not exist at all is caught
+2026-10-04T13:34:38.8424387Z 
+2026-10-04T13:34:38.8424685Z All 7 mutation cases behaved correctly.
+2026-10-04T13:34:38.8449604Z $ bun ./scripts/assert-outbox-postgres-only.mjs && bun ./scripts/test-assert-outbox-postgres-only.mjs && bun ./scripts/test-verify-cutover-manifest.mjs
+2026-10-04T13:34:38.8648378Z The application half has no MongoDB runtime, dependency or export.
+2026-10-04T13:34:38.8979192Z The PostgreSQL-only outbox gate catches runtime, harness and dependency mutations.
+2026-10-04T13:34:38.9150365Z The cutover manifest gate catches timestamp, empty-target and reconciliation mutations.
+2026-10-04T13:34:38.9177686Z $ bun ./scripts/test-verify-backend-cutover-manifest.mjs && bun ./scripts/test-crowdsource-backend-recover-archive.mjs
+2026-10-04T13:35:39.0056110Z ok    a sink AFTER a URL on the same line is still caught
+2026-10-04T13:35:39.0164143Z ok    the file-count floor fires rather than reporting a clean scan
+2026-10-04T13:35:39.0266173Z ok    a package that exists but yields no files fails on its own
+2026-10-04T13:35:39.0378229Z ok    the allowlist is empty, so the first entry is a visible edit
+2026-10-04T13:35:39.0380666Z 
+2026-10-04T13:35:39.0381070Z All 17 mutation cases behaved as specified.
+2026-10-04T13:35:39.0696100Z 91 |   const dependencyDirectories = new Set(['node_modules/', ...unique
+2026-10-04T13:35:39.0696909Z 92 |     .filter(path => /^packages\/[^/]+\/package.json$/.test(path))
+2026-10-04T13:35:39.0698307Z 93 |     .map(path => path.slice(0, -'package.json'.length) + 'node_modules/')]);
+2026-10-04T13:35:39.0700173Z 94 |   const ignored = execFileSync('git', ['ls-files', '-z', '--others', '--ignored', '--exclude-standard', '--directory', '--no-empty-directory'], { cwd: root }).toString().split('\0').filter(Boolean);
+2026-10-04T13:35:39.0701174Z 95 |   for (const path of ignored) {
+2026-10-04T13:35:39.0702287Z 96 |     if (!dependencyDirectories.has(path) || !lstatSync(join(root, path.replace(/\/$/, ''))).isDirectory()) throw new Error('Unsealed ignored build input; a clean source checkout is required');
+2026-10-04T13:35:39.0703387Z                                                                                                                           ^
+2026-10-04T13:35:39.0704012Z error: Unsealed ignored build input; a clean source checkout is required
+2026-10-04T13:35:39.0704861Z       at collectToolingBuildInputs (/home/runner/work/CrowdSource/CrowdSource/scripts/security-tooling-exceptions.mjs:96:118)
+2026-10-04T13:35:39.0705826Z       at /home/runner/work/CrowdSource/CrowdSource/scripts/test-security-tooling-exceptions.mjs:10:61
+2026-10-04T13:35:39.0706232Z 
+2026-10-04T13:35:39.0732876Z ##[error]
+2026-10-04T13:35:39.0740209Z 
+2026-10-04T13:35:39.0740502Z Bun v1.4.2 (Linux x64)
+2026-10-04T13:35:39.0742496Z ##[error]Process completed with exit code 1.
+2026-10-04T13:35:39.0861913Z Post job cleanup.
+2026-10-04T13:35:39.1614739Z [command]/usr/bin/git version
+2026-10-04T13:35:39.1660805Z git version 2.55.0
+2026-10-04T13:35:39.1690497Z Temporarily overriding HOME='/home/runner/work/_temp/c1cff2de-d481-4f03-b580-7d208b81706d' before making global git config changes
+2026-10-04T13:35:39.1692279Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-04T13:35:39.1694657Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/CrowdSource/CrowdSource
+2026-10-04T13:35:39.1719821Z Removing SSH command configuration
+2026-10-04T13:35:39.1725860Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-04T13:35:39.1753724Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-04T13:35:39.1956371Z Removing HTTP extra header
+2026-10-04T13:35:39.1962266Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-04T13:35:39.1994721Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-04T13:35:39.2195545Z Removing includeIf entries pointing to credentials config files
+2026-10-04T13:35:39.2201132Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-04T13:35:39.2223789Z includeif.gitdir:/home/runner/work/CrowdSource/CrowdSource/.git.path
+2026-10-04T13:35:39.2225652Z includeif.gitdir:/home/runner/work/CrowdSource/CrowdSource/.git/worktrees/*.path
+2026-10-04T13:35:39.2227247Z includeif.gitdir:/github/workspace/.git.path
+2026-10-04T13:35:39.2228709Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-04T13:35:39.2232256Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/CrowdSource/CrowdSource/.git.path
+2026-10-04T13:35:39.2250034Z /home/runner/work/_temp/git-credentials-2e930eec-6386-43e2-8568-4ac56435781f.config
+2026-10-04T13:35:39.2259738Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/CrowdSource/CrowdSource/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-2e930eec\-6386\-43e2\-8568\-4ac56435781f\.config
+2026-10-04T13:35:39.2293360Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/CrowdSource/CrowdSource/.git/worktrees/*.path
+2026-10-04T13:35:39.2320689Z /home/runner/work/_temp/git-credentials-2e930eec-6386-43e2-8568-4ac56435781f.config
+2026-10-04T13:35:39.2328952Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/CrowdSource/CrowdSource/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-2e930eec\-6386\-43e2\-8568\-4ac56435781f\.config
+2026-10-04T13:35:39.2357640Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-04T13:35:39.2376761Z /github/runner_temp/git-credentials-2e930eec-6386-43e2-8568-4ac56435781f.config
+2026-10-04T13:35:39.2383465Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-2e930eec\-6386\-43e2\-8568\-4ac56435781f\.config
+2026-10-04T13:35:39.2413226Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-04T13:35:39.2431729Z /github/runner_temp/git-credentials-2e930eec-6386-43e2-8568-4ac56435781f.config
+2026-10-04T13:35:39.2438045Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-2e930eec\-6386\-43e2\-8568\-4ac56435781f\.config
+2026-10-04T13:35:39.2472372Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-04T13:35:39.2654426Z Removing credentials config '/home/runner/work/_temp/git-credentials-2e930eec-6386-43e2-8568-4ac56435781f.config'
+2026-10-04T13:35:39.2786633Z Cleaning up orphan processes

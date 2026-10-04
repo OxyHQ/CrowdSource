@@ -1,0 +1,155 @@
+{
+  "kind": "crowdsource-tooling-p2-remediation-proof-v1",
+  "sourceSha": "522189ad406e793325058d51093490fd109f9cf4",
+  "baseSha": "97a1d9dc2aef8ca24ee1d085e559946d641b86a8",
+  "expiry": "2026-10-09T22:00:00Z",
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "bfed45f1b891147e4fc5b1d916ceee4a9efb7e4ab5e94d3b154f5a52b47a751a"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/arm-consumer-image-verification.json",
+      "sha256": "d683b4a7d0c66fe8a56b46ad3bf1dbe9388b135c7e4e07a3839f7aa3acb55ece"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/arm-image-verification.json",
+      "sha256": "bf430cfe7c388d65d00a370fc5f2e7b5bf89a481a90620409061025f4f7d7570"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/export-absence.json",
+      "sha256": "185066e82a6cd4bee1fe1a9d5dccc7852658197e7c33cc1908296fa606633a57"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/reviewed-build-inputs.json",
+      "sha256": "31fc0cce706138e20d3236231a5fe6eb6287c5b031c7cdd9db21e52b12a6f691"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/runtime-input-equality.json",
+      "sha256": "cde530bb2de4b6f2ab2cc0173a6ab7a56382725d944d0904827708bb9bc4389e"
+    },
+    {
+      "path": "scripts/audit-security.mjs",
+      "sha256": "843ffcef6decf7898393d2c94b0d01b45d8adaeb3610d737cc8a066395896450"
+    },
+    {
+      "path": "scripts/security-tooling-exceptions.mjs",
+      "sha256": "7451a9c114ad1aac2dc7762d7f237abda99329c19807038430415e843e122952"
+    },
+    {
+      "path": "scripts/test-security-tooling-exceptions.mjs",
+      "sha256": "100f644278a80a2fa41a316405327b07c02c5511a1789898e61a47a2df12e25e"
+    },
+    {
+      "path": "scripts/test-tooling-audit-wiring.mjs",
+      "sha256": "da3be5b612e3c7faa3900c3c1bf59beafdf1aa0d396f6c9259389d4afe03da1f"
+    },
+    {
+      "path": "scripts/test-tooling-policy-lifecycle.mjs",
+      "sha256": "546a3f535624ba5c84a71e18071a1bd99d49fae4862f3acc1fecc5be90e24c7a"
+    },
+    {
+      "path": "security-tooling-policy.json",
+      "sha256": "9e3b64349b015f2dc93bd1cd6db7d4c70486c300193ea4425a24b9e2d160bb53"
+    }
+  ],
+  "records": [
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/adversarial-green.log",
+      "sha256": "302e99019d420401d951925f31130770ae9a2372997c757f32dc66a8fcd52c9e",
+      "bytes": 319
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/arm-consumer-image-verification.json",
+      "sha256": "d683b4a7d0c66fe8a56b46ad3bf1dbe9388b135c7e4e07a3839f7aa3acb55ece",
+      "bytes": 1133
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/arm-image-verification.json",
+      "sha256": "bf430cfe7c388d65d00a370fc5f2e7b5bf89a481a90620409061025f4f7d7570",
+      "bytes": 9120
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/export-absence.json",
+      "sha256": "185066e82a6cd4bee1fe1a9d5dccc7852658197e7c33cc1908296fa606633a57",
+      "bytes": 76251
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/frozen-audit-security.mjs",
+      "sha256": "9a7104431681622a06d81c143310e7cc3f4f42110d916b731b83c9c39f48986f",
+      "bytes": 4612
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/frozen-security-tooling-exceptions.mjs",
+      "sha256": "a0c0a7dd5d2cf5a6ac18bd899e684ea3ae47536e242c5250a4420db49b29ffee",
+      "bytes": 6647
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/lifecycle-green.log",
+      "sha256": "f17a3fd03443abcff7bc3a9813800927290fc95819b6e41f400d41d2181b2596",
+      "bytes": 654
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/lifecycle-red.log",
+      "sha256": "62110faa5e9842efbfc3282a12ebb70a30794623e98dee153a5103db67bc878f",
+      "bytes": 1240
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/live-audit.log",
+      "sha256": "98f94fb1ce089738d4bb6f58571b397e16b2e3e0c3c76d88bdf4ae32d87bd567",
+      "bytes": 117
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/policy-green.log",
+      "sha256": "64f8f39190e3f63a13f3a3c211e017e033db9e00cc345fb663200b9c41387a9c",
+      "bytes": 875
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/reviewed-build-inputs.json",
+      "sha256": "31fc0cce706138e20d3236231a5fe6eb6287c5b031c7cdd9db21e52b12a6f691",
+      "bytes": 123550
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/runtime-input-equality.json",
+      "sha256": "cde530bb2de4b6f2ab2cc0173a6ab7a56382725d944d0904827708bb9bc4389e",
+      "bytes": 861
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/wiring-green.log",
+      "sha256": "09e2d32ec53f41a3fd0d1805908d279dba9398e62b0d72a72ccc502f8e12ee61",
+      "bytes": 320
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/workflows-green.log",
+      "sha256": "e313689cb9b7f0807d0d5944df89b70fcc66e472cdd9eaad2e59835e4b82544c",
+      "bytes": 133
+    }
+  ],
+  "results": {
+    "frozenLifecycle": {
+      "passed": 3,
+      "failed": 9,
+      "expectedExitCode": 1
+    },
+    "correctedLifecycle": {
+      "passed": 12,
+      "failed": 0,
+      "exitCode": 0
+    },
+    "originalPolicy": 21,
+    "adversarialPolicy": 6,
+    "auditWiring": 6,
+    "workflowValidation": {
+      "files": 7,
+      "publisherControls": 13
+    },
+    "realAuditExitCode": 0,
+    "sealedInputsComparedToGit": 760,
+    "exportMapsRead": 177
+  },
+  "limits": [
+    "No new artifact compiled; actual accepted source97 ARM and retained tree-equal exports reused with explicit verification-only input delta.",
+    "Fresh CI/independent review/merge are pending; no AWS/provider/production writes.",
+    "Fixed temporary deadline unchanged; no upstream patched Forge release or permanent-exception removal claim."
+  ]
+}

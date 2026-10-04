@@ -1,0 +1,23 @@
+{
+  "kind": "root-consumer-image-verification-v1",
+  "service": "crowdsource",
+  "repository": "OxyHQ/CrowdSource",
+  "sourceSha": "97a1d9dc2aef8ca24ee1d085e559946d641b86a8",
+  "sourceTreeSha": "c82e7eaecf4647085dd35809ada5023b0d6e8052",
+  "dockerfileSha256": "03ee825714d7245a4a0eddf5b346fcb2d9c571c96b9f0490375c3267f033cfa4",
+  "imageUri": "237343248947.dkr.ecr.us-west-2.amazonaws.com/oxy/crowdsource@sha256:b733d766ebf36533c26cdebfe66e822a870cd12f3c964a2e837e9d10ea3a6106",
+  "manifestSha256": "b733d766ebf36533c26cdebfe66e822a870cd12f3c964a2e837e9d10ea3a6106",
+  "configSha256": "e3ed8b7cffcb0c1b260c374059a8fa520ae2aef7f9c0a3ed26af0280ee48da5c",
+  "platform": "linux/arm64",
+  "target": null,
+  "evidence": [
+    {
+      "path": "/home/nate/Oxy/.agent-evidence/integration-crowd-image-20261004/crowdsource/proof.json",
+      "sha256": "6b9657fac76f5f182f75e724cf99717cb58ef2fa3c48e0671a14e0b0aa69a9a6"
+    },
+    {
+      "path": "/home/nate/Oxy/.agent-evidence/integration-crowd-image-20261004/crowdsource/image-verification.json",
+      "sha256": "bf430cfe7c388d65d00a370fc5f2e7b5bf89a481a90620409061025f4f7d7570"
+    }
+  ]
+}

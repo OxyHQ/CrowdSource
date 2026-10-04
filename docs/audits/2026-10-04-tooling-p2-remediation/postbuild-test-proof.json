@@ -1,0 +1,37 @@
+{
+  "kind": "predicate-unit-clean-source-fixture-proof-v1",
+  "sourceSha": "8fd2f8d1eb053f9eb7b459ef80fcfed6daf3d0e6",
+  "ciFailure": {
+    "runId": 37206090345,
+    "jobId": 111447457515,
+    "head": "0a1853a14f9dff12d6917eeebcd73099af9518d3",
+    "cause": "Predicate unit test invoked admission census on repository after canonical builds. Pre-build live audit succeeded; post-build refusal was correct."
+  },
+  "fix": "Predicate-only tests use immutable reviewed-input record fixture; lifecycle19 controls retain live file census/process execution on owned clean Git checkouts and ignored-input refusal tests.",
+  "validation": {
+    "predicateWithIgnoredGeneratedOutput": 21,
+    "lifecycleActualCleanAndIgnoredControls": 19,
+    "ownedOutputRemoved": true
+  },
+  "records": [
+    {
+      "path": "scripts/test-security-tooling-exceptions.mjs",
+      "sha256": "c680659bf47ab5bd3f0638e4fbff7956b707b113d67513714e663b671f7cae7e"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/postbuild-unit-green.log",
+      "sha256": "64f8f39190e3f63a13f3a3c211e017e033db9e00cc345fb663200b9c41387a9c"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/postbuild-lifecycle-green.log",
+      "sha256": "075dc77a76b723f3a6428b9d2e89b357cbc16bad1975d99c26c081c16dbfa073"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/postbuild-ci-failure-excerpt.log",
+      "sha256": "e5ac71aa70b09b9e770bc6c7ac714e66e3e21d31b4edb29157af2b511ec69717"
+    }
+  ],
+  "guardRelaxed": false,
+  "ciOrderingChanged": false,
+  "runtimeAnd760InputSealChanged": false
+}
