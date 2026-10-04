@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { toolingCensus, permitsToolingException, inspectExportMaps } from './security-tooling-exceptions.mjs';
 
-const lock = Bun.JSONC.parse(execFileSync('git', ['show', 'HEAD:bun.lock'], { encoding: 'utf8' }));
-const policy = JSON.parse(readFileSync('docs/audits/2026-10-04-tooling-exception-peer-root/policy.json', 'utf8'));
+const lock = Bun.JSONC.parse(readFileSync('bun.lock', 'utf8'));
+const policy = JSON.parse(readFileSync('security-tooling-policy.json', 'utf8'));
 const inputBytes = Object.fromEntries(policy.runtimeInputs.map(input => [input.path, readFileSync(input.path)]));
 const invocation = { policy, lock, inputBytes, now: new Date('2026-10-04T00:00:00Z'), advisory: policy.advisories[0].id, packageName: policy.advisories[0].package };
 let checks = 0;
@@ -31,7 +30,7 @@ for (const [name, mutate] of [
 ]) check(name, () => { const changed = structuredClone(lock); mutate(changed); assert.equal(permitsToolingException({ ...invocation, lock: changed }), false); });
 check('runtime Docker boundary drift refuses', () => assert.equal(permitsToolingException({ ...invocation, inputBytes: { ...inputBytes, 'packages/backend/Dockerfile': Buffer.from('include all workspaces') } }), false));
 check('resolved peer version metadata drift refuses', () => {
-  const changed = structuredClone(lock); changed.packages['@oxy.so/core'][0] = '@oxy.so/core@4.2.0';
+  const changed = structuredClone(lock); changed.packages['@oxy.so/core'][0] = '@oxy.so/core@4.2.1';
   assert.notEqual(toolingCensus(changed, policy.advisories.map(entry => entry.package)).sha256, policy.graphSha256);
   assert.equal(permitsToolingException({ ...invocation, lock: changed }), false);
 });
