@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "reviewed predicate awaiting final policy activation",
+  "status": "active bounded tooling exception; root review a4a21043094f172d40f1694043e0d21e77b9d73123ae9f694f84952188837696",
   "expires": "2026-10-09T22:00:00Z",
   "advisories": [
     {
@@ -27,5 +27,5 @@
       "sha256": "03ee825714d7245a4a0eddf5b346fcb2d9c571c96b9f0490375c3267f033cfa4"
     }
   ],
-  "enabled": false
+  "enabled": true
 }
