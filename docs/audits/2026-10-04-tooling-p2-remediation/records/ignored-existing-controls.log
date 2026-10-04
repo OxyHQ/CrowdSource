@@ -1,0 +1,36 @@
+PASS exact reviewed graph permits only each matching advisory and package
+PASS unknown advisory refuses
+PASS known advisory for another package refuses
+PASS absolute UTC expiry refuses at boundary
+PASS invalid clock refuses
+PASS extending exception expiry refuses
+PASS target version drift
+PASS target archive integrity drift
+PASS parent archive integrity drift
+PASS parent dependency range drift
+PASS nested target added
+PASS backend gains target
+PASS new workspace
+PASS unreviewed package patch
+PASS runtime Docker boundary drift refuses
+PASS resolved peer version metadata drift refuses
+PASS missing export map refuses
+PASS owned export reports exact bundle and map hashes
+PASS export includes braces refuses
+PASS export includes http-cache-semantics refuses
+PASS export includes node-forge refuses
+21 scoped exception controls PASS; fixed policy expiry remains unchanged
+PASS adding a workspace peer changes the census
+PASS adding a package peer changes the census
+PASS sourceRoot "../../node_modules/braces/" refuses
+PASS sourceRoot "..\\..\\node_modules\\node-forge\\" refuses
+PASS sourceRoot 42 refuses
+PASS explicit empty sourceRoot remains valid
+6 PASS / 0 FAIL; owned fixture removed
+PASS disabled policy retains ordinary denial
+PASS exact enabled policy admits only reviewed tooling
+PASS unknown high advisory remains denied
+PASS wrong package for reviewed advisory remains denied
+PASS graph drift refuses
+PASS runtime image boundary drift refuses
+6 audit wiring controls PASS; product policy unchanged
