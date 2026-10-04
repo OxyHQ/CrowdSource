@@ -1,0 +1,10 @@
+bun install v1.3.14 (0d9b296a)
+Resolving dependencies
+Resolved, downloaded and extracted [56]
+Saved lockfile
+
+$ bun run build:contracts
+$ bun run --cwd packages/contracts build
+$ tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs
+
+Checked 1643 installs across 1405 packages (no changes) [3.13s]

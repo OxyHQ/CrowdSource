@@ -1,0 +1,27 @@
+{
+  "worktree": "/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003",
+  "output": "/home/nate/Oxy/.agent-evidence/i04-consumer-final-prs/registry-CrowdSource-20261004",
+  "receipt": "export-maps-checks.json",
+  "jobs": [
+    {
+      "name": "reviewer-analyze",
+      "cwd": "packages/reviewer",
+      "argv": [
+        "bun",
+        "run",
+        "build:analyze"
+      ]
+    },
+    {
+      "name": "console-analyze",
+      "cwd": "packages/console",
+      "argv": [
+        "bun",
+        "run",
+        "build",
+        "--source-maps",
+        "external"
+      ]
+    }
+  ]
+}

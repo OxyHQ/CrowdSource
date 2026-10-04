@@ -1,0 +1,35 @@
+$ node ../../node_modules/vitest/vitest.mjs run -t "validates receiver identity and revocation in an isolated loopback process"
+
+[1m[30m[46m RUN [49m[39m[22m [36mv5.0.2 [39m[90m/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/packages/backend[39m
+
+[31mNo test files found, exiting with code 1
+[39m
+[2minclude: [22m[33m/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/packages/backend/src/__tests__/**/*.test.ts[39m
+[2mexclude:  [22m[33m**/node_modules/**[2m, [22m**/.git/**[39m
+
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Unhandled Error [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+[31m[1mError[22m: CROWDSOURCE_BACKEND_TEST_POSTGRES_URL is unset. Start the database with:
+  docker compose -f docker-compose.postgres.yml up -d --wait postgres
+then export:
+  CROWDSOURCE_BACKEND_TEST_POSTGRES_URL=postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres[39m
+[36m [2m❯[22m Object.setup vitest.globalSetup.ts:[2m25:11[22m[39m
+    [90m 23|[39m    */
+    [90m 24|[39m   if (!process.env.CROWDSOURCE_BACKEND_TEST_POSTGRES_URL) {
+    [90m 25|[39m     throw new Error(
+    [90m   |[39m           [31m^[39m
+    [90m 26|[39m       'CROWDSOURCE_BACKEND_TEST_POSTGRES_URL is unset. Start the datab…
+    [90m 27|[39m         '  docker compose -f docker-compose.postgres.yml up -d --wait …
+[90m [2m❯[22m TestProject._initializeGlobalSetup ../../node_modules/vitest/dist/chunks/index.C-uw7tH9.js:[2m12113:50[22m[39m
+[90m [2m❯[22m Vitest.initializeGlobalSetup ../../node_modules/vitest/dist/chunks/index.C-uw7tH9.js:[2m21214:35[22m[39m
+[90m [2m❯[22m ../../node_modules/vitest/dist/chunks/index.C-uw7tH9.js:[2m21054:6[22m[39m
+[90m [2m❯[22m ../../node_modules/vitest/dist/chunks/index.C-uw7tH9.js:[2m21083:11[22m[39m
+[90m [2m❯[22m ../../node_modules/vitest/dist/chunks/index.C-uw7tH9.js:[2m20945:19[22m[39m
+[90m [2m❯[22m startVitest ../../node_modules/vitest/dist/chunks/cli-api.DL4Bd7Vh.js:[2m369:8[22m[39m
+[90m [2m❯[22m start ../../node_modules/vitest/dist/chunks/cac.BLbEtnDd.js:[2m2370:15[22m[39m
+[90m [2m❯[22m CAC.run ../../node_modules/vitest/dist/chunks/cac.BLbEtnDd.js:[2m2346:2[22m[39m
+
+
+
+
+error: script "test" exited with code 1

@@ -1,0 +1,2 @@
+$ bun ./scripts/audit-security.mjs
+Security audit passed; 1 reviewed exception(s) remain within their expiry window.

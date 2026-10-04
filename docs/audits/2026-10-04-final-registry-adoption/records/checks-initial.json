@@ -1,0 +1,45 @@
+{
+  "worktree": "/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003",
+  "output": "/home/nate/Oxy/.agent-evidence/i04-consumer-final-prs/registry-CrowdSource-20261004",
+  "receipt": "local-initial-checks.json",
+  "jobs": [
+    {
+      "name": "check-0",
+      "cwd": "packages/backend",
+      "argv": [
+        "bun",
+        "run",
+        "test",
+        "-t",
+        "validates receiver identity and revocation in an isolated loopback process"
+      ]
+    },
+    {
+      "name": "check-1",
+      "cwd": ".",
+      "argv": [
+        "bun",
+        "run",
+        "build:backend"
+      ]
+    },
+    {
+      "name": "check-4",
+      "cwd": "packages/console",
+      "argv": [
+        "bun",
+        "run",
+        "typecheck"
+      ]
+    },
+    {
+      "name": "check-5",
+      "cwd": "packages/reviewer",
+      "argv": [
+        "bun",
+        "run",
+        "typecheck"
+      ]
+    }
+  ]
+}

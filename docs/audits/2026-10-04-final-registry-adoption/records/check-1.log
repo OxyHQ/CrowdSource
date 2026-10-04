@@ -1,0 +1,4 @@
+$ bun run build:contracts && bun run --cwd packages/backend build
+$ bun run --cwd packages/contracts build
+$ tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs
+$ tsc

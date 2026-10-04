@@ -1,0 +1,24 @@
+[
+  {
+    "name": "check-2",
+    "cwd": ".",
+    "argv": [
+      "bun",
+      "run",
+      "build:reviewer"
+    ],
+    "exitCode": 0,
+    "seconds": 14.778
+  },
+  {
+    "name": "check-3",
+    "cwd": ".",
+    "argv": [
+      "bun",
+      "run",
+      "build:console"
+    ],
+    "exitCode": 0,
+    "seconds": 14.822
+  }
+]

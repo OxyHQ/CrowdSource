@@ -1,0 +1,7 @@
+PASS disabled policy retains ordinary denial
+PASS exact enabled policy admits only reviewed tooling
+PASS unknown high advisory remains denied
+PASS wrong package for reviewed advisory remains denied
+PASS graph drift refuses
+PASS runtime image boundary drift refuses
+6 audit wiring controls PASS; product policy unchanged
