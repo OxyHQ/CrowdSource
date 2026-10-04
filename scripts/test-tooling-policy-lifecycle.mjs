@@ -13,7 +13,7 @@ let passed = 0, failed = 0;
 function run(name, { start = '2026-10-09T21:59:59.000Z', after = start, late = after, mutate = () => {}, expected = 1 } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'crowd-tooling-lifecycle-'));
   try {
-    const paths = ['scripts/audit-security.mjs', 'scripts/security-tooling-exceptions.mjs', 'bun.lock', 'security-audit-exceptions.json', ...original.runtimeInputs.map(v => v.path)];
+    const paths = ['scripts/audit-security.mjs', 'scripts/security-tooling-exceptions.mjs', 'bun.lock', 'security-audit-exceptions.json', '.github/workflows/ci.yml', ...original.runtimeInputs.map(v => v.path)];
     for (const path of new Set(paths)) { mkdirSync(dirname(join(root, path)), { recursive: true }); copyFileSync(path, join(root, path)); }
     if (frozen) for (const name of ['audit-security', 'security-tooling-exceptions']) copyFileSync(new URL(`../docs/audits/2026-10-04-tooling-p2-remediation/records/frozen-${name}.mjs`, import.meta.url), join(root, 'scripts', name + '.mjs'));
     mkdirSync(join(root, 'packages/reviewer/app'), { recursive: true });
@@ -25,9 +25,13 @@ function run(name, { start = '2026-10-09T21:59:59.000Z', after = start, late = a
     const policy = { ...original, buildInputsSha256: collectToolingBuildInputs(root).sha256 };
     const bindingPath='docs/audits/2026-10-04-tooling-p2-remediation/records/reviewed-build-inputs.json';
     const binding=collectToolingBuildInputs(root);
-    writeFileSync(join(root,bindingPath),JSON.stringify({sourceSha:policy.reviewedRuntimeSource,...binding}));
+    writeFileSync(join(root,bindingPath),JSON.stringify({sourceSha:policy.reviewedInputSource,runtimeSourceSha:policy.reviewedRuntimeSource,...binding}));
     policy.runtimeInputs=structuredClone(policy.runtimeInputs);
     policy.runtimeInputs.find(v=>v.path===bindingPath).sha256=createHash('sha256').update(readFileSync(join(root,bindingPath))).digest('hex');
+    const equalityPath='docs/audits/2026-10-04-tooling-p2-remediation/records/runtime-input-equality.json';
+    const equality=JSON.parse(readFileSync(join(root,equalityPath))); equality.buildInputsSha256=binding.sha256; equality.changedInputs[0]={path:'.github/workflows/ci.yml',currentSha256:binding.records.find(v=>v.path==='.github/workflows/ci.yml').sha256};
+    writeFileSync(join(root,equalityPath),JSON.stringify(equality));
+    policy.runtimeInputs.find(v=>v.path===equalityPath).sha256=createHash('sha256').update(readFileSync(join(root,equalityPath))).digest('hex');
     mutate(root, policy);
     writeFileSync(join(root, 'security-tooling-policy.json'), JSON.stringify(policy));
     const js = `const RealDate=Date; let current=${JSON.stringify(start)}, calls=0; globalThis.Date=class extends RealDate { constructor(...args){super(...(args.length?args:[current])); if(!args.length&&++calls>=3) current=${JSON.stringify(late)};} static now(){return new RealDate(current).getTime();} }; Bun.spawn=(args)=>{if(args.length!==3||args[1]!=='audit'||args[2]!=='--json')throw Error('Unexpected child');return {stdout:new Response(${JSON.stringify(JSON.stringify(payload))}).body,stderr:new Response('').body,exited:new Promise(resolve=>setTimeout(()=>{current=${JSON.stringify(after)};resolve(1);},10))};};await import(${JSON.stringify(join(root,'scripts/audit-security.mjs'))});`;

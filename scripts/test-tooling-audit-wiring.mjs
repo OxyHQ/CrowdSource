@@ -8,14 +8,18 @@ const temp = mkdtempSync(join(tmpdir(), 'crowd-audit-policy-'));
 try {
   mkdirSync(join(temp, 'scripts')); mkdirSync(join(temp, 'packages/backend'), { recursive: true });
   const originalPolicy = JSON.parse(readFileSync('security-tooling-policy.json', 'utf8'));
-  for (const path of ['scripts/audit-security.mjs', 'scripts/security-tooling-exceptions.mjs', 'bun.lock', 'security-audit-exceptions.json', ...originalPolicy.runtimeInputs.map(v => v.path)]) { mkdirSync(join(temp, path.substring(0, path.lastIndexOf('/')) || '.'), {recursive:true}); copyFileSync(path, join(temp, path)); }
+  for (const path of ['scripts/audit-security.mjs', 'scripts/security-tooling-exceptions.mjs', 'bun.lock', 'security-audit-exceptions.json', '.github/workflows/ci.yml', ...originalPolicy.runtimeInputs.map(v => v.path)]) { mkdirSync(join(temp, path.substring(0, path.lastIndexOf('/')) || '.'), {recursive:true}); copyFileSync(path, join(temp, path)); }
   mkdirSync(join(temp, 'packages/reviewer')); writeFileSync(join(temp, 'packages/reviewer/package.json'), '{}');
   execFileSync('git', ['init', '-q'], {cwd:temp}); execFileSync('git', ['add', '--', '.'], {cwd:temp});
   const original = originalPolicy;
   const bindingPath='docs/audits/2026-10-04-tooling-p2-remediation/records/reviewed-build-inputs.json';
   const binding=collectToolingBuildInputs(temp);
-  writeFileSync(join(temp,bindingPath), JSON.stringify({sourceSha:original.reviewedRuntimeSource,...binding}));
+  writeFileSync(join(temp,bindingPath), JSON.stringify({sourceSha:original.reviewedInputSource,runtimeSourceSha:original.reviewedRuntimeSource,...binding}));
   original.buildInputsSha256=binding.sha256;
+  const equalityPath='docs/audits/2026-10-04-tooling-p2-remediation/records/runtime-input-equality.json';
+  const equality=JSON.parse(readFileSync(join(temp,equalityPath))); equality.buildInputsSha256=binding.sha256; equality.changedInputs[0].currentSha256=binding.records.find(v=>v.path==='.github/workflows/ci.yml').sha256;
+  writeFileSync(join(temp,equalityPath),JSON.stringify(equality));
+  original.runtimeInputs.find(v=>v.path===equalityPath).sha256=(await import('node:crypto')).createHash('sha256').update(readFileSync(join(temp,equalityPath))).digest('hex');
   original.runtimeInputs.find(v=>v.path===bindingPath).sha256=(await import('node:crypto')).createHash('sha256').update(readFileSync(join(temp,bindingPath))).digest('hex');
   const payload = Object.fromEntries(original.advisories.map(entry => [entry.package, [{ severity: 'high', url: 'https://github.com/advisories/' + entry.id }]]));
   let count = 0;

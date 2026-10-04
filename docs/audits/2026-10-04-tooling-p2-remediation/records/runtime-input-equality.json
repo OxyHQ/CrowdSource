@@ -1,0 +1,18 @@
+{
+  "kind": "reviewed-runtime-input-equality-v1",
+  "source": "97a1d9dc2aef8ca24ee1d085e559946d641b86a8",
+  "sealedInputs": 760,
+  "changedInputs": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "originalSha256": "2ab6843693b3e322525df582e2f20f2ed49400a3b7b9ef5c5e6e64ea8462135f",
+      "currentSha256": "bfed45f1b891147e4fc5b1d916ceee4a9efb7e4ab5e94d3b154f5a52b47a751a"
+    }
+  ],
+  "packageTreeEqual": true,
+  "lockAndRootManifestEqual": true,
+  "runtimeBuilderEqual": true,
+  "limit": "CI change only adds four guard regression commands; no new compilation/export/image produced by this review. Actual accepted ARM97 and retained177 maps are source-equal for application and builder inputs.",
+  "inputSourceSha": "c8efe295fa5d52e57bd90ace89c4296882ecf74f",
+  "buildInputsSha256": "da757f26e23be7a1460fc68b723e1ff79763eebe717a3e393bb097d3d8cda618"
+}

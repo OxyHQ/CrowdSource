@@ -96,7 +96,9 @@ function verifiesRuntimeBinding(policy, inputBytes, buildInputs) {
     return JSON.parse(inputBytes[path].toString());
   };
   const inputs = parsed('reviewed-build-inputs.json');
-  if (inputs.sourceSha !== policy.reviewedRuntimeSource || inputs.sha256 !== policy.buildInputsSha256 || digest(inputs.records) !== inputs.sha256 || inputs.sha256 !== buildInputs.sha256) return false;
+  if (inputs.sourceSha !== policy.reviewedInputSource || inputs.runtimeSourceSha !== policy.reviewedRuntimeSource || inputs.sha256 !== policy.buildInputsSha256 || digest(inputs.records) !== inputs.sha256 || inputs.sha256 !== buildInputs.sha256) return false;
+  const equality = parsed('runtime-input-equality.json');
+  if (equality.source !== policy.reviewedRuntimeSource || equality.inputSourceSha !== policy.reviewedInputSource || equality.buildInputsSha256 !== inputs.sha256 || equality.packageTreeEqual !== true || equality.lockAndRootManifestEqual !== true || equality.runtimeBuilderEqual !== true || equality.changedInputs?.length !== 1 || equality.changedInputs[0].path !== '.github/workflows/ci.yml' || !inputs.records.some(record => record.path === equality.changedInputs[0].path && record.sha256 === equality.changedInputs[0].currentSha256)) return false;
   const image = parsed('arm-image-verification.json');
   const protocol = parsed('arm-consumer-image-verification.json');
   if (image.complete !== true || image.platform !== 'linux/arm64' || image.sourceSha !== policy.reviewedRuntimeSource || protocol.sourceSha !== image.sourceSha || protocol.manifestSha256 !== image.manifestSha256 || protocol.configSha256 !== image.configSha256 || protocol.dockerfileSha256 !== image.dockerfileSha256 || protocol.kind !== 'root-consumer-image-verification-v1') return false;
