@@ -2,12 +2,17 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { toolingCensus, permitsToolingException, inspectExportMaps, collectToolingBuildInputs } from './security-tooling-exceptions.mjs';
+import { toolingCensus, permitsToolingException, inspectExportMaps } from './security-tooling-exceptions.mjs';
 
 const lock = Bun.JSONC.parse(readFileSync('bun.lock', 'utf8'));
 const policy = JSON.parse(readFileSync('security-tooling-policy.json', 'utf8'));
 const inputBytes = Object.fromEntries(policy.runtimeInputs.map(input => [input.path, readFileSync(input.path)]));
-const invocation = { policy, lock, inputBytes, buildInputs: collectToolingBuildInputs(process.cwd()), now: new Date('2026-10-04T00:00:00Z'), advisory: policy.advisories[0].id, packageName: policy.advisories[0].package };
+// Predicate unit fixtures use the pinned input census, not this checkout:
+// canonical CI runs these after its build, when a source-admission audit must
+// refuse generated ignored outputs. Lifecycle controls exercise the real file
+// census/audit in disposable clean checkouts and test those refusals directly.
+const buildInputs = JSON.parse(inputBytes['docs/audits/2026-10-04-tooling-p2-remediation/records/reviewed-build-inputs.json'].toString());
+const invocation = { policy, lock, inputBytes, buildInputs, now: new Date('2026-10-04T00:00:00Z'), advisory: policy.advisories[0].id, packageName: policy.advisories[0].package };
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS ${name}`); }
 check('exact reviewed graph permits only each matching advisory and package', () => {
