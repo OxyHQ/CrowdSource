@@ -1,0 +1,264 @@
+{
+  "kind": "readonly-consumer-ecr-image-verification-v1",
+  "complete": true,
+  "archivePath": "/home/nate/Oxy/.agent-evidence/integration-crowd-image-20261004/crowdsource/ecr-oci-layout.tar",
+  "archiveSha256": "18e51e1711c2db3f201bf4f87d986aca4dab3ed1517689081458a92ddd1039aa",
+  "archiveSize": 54804480,
+  "manifestSha256": "b733d766ebf36533c26cdebfe66e822a870cd12f3c964a2e837e9d10ea3a6106",
+  "configSha256": "e3ed8b7cffcb0c1b260c374059a8fa520ae2aef7f9c0a3ed26af0280ee48da5c",
+  "sourceSha": "97a1d9dc2aef8ca24ee1d085e559946d641b86a8",
+  "sourceTreeSha": "c82e7eaecf4647085dd35809ada5023b0d6e8052",
+  "dockerfileSha256": "03ee825714d7245a4a0eddf5b346fcb2d9c571c96b9f0490375c3267f033cfa4",
+  "platform": "linux/arm64",
+  "expectedInputsSha256": "ac9ecb06137db211a52a7e498f456fc8a3c656ceaed520900fe245a33f779d86",
+  "layerChecks": [
+    {
+      "index": 0,
+      "digest": "sha256:738128faa30f570583b0e57efd831e0e6a2a9aacf1be88c8f4c1ef8a5b7033cc",
+      "size": 4120486,
+      "diffID": "sha256:03ba6f53ebfcc662cb046823a1858bd5029e4040d22dd34096868ddf7b5dd776",
+      "uncompressedSize": 8822272,
+      "verified": true
+    },
+    {
+      "index": 1,
+      "digest": "sha256:7d978ccf94a3e2be75b3c62be60ffa86de6f4e0fe1a092812a69e8ff46446955",
+      "size": 35298460,
+      "diffID": "sha256:45356c177260892522bf14709b3c63995968f47f7deef783d904b52bec377c56",
+      "uncompressedSize": 72559616,
+      "verified": true
+    },
+    {
+      "index": 2,
+      "digest": "sha256:bb74cd0bf924a1c027feba78ae0bf074594d227014cb3f855282bb834af29cc8",
+      "size": 297,
+      "diffID": "sha256:ca411acb90ca5f0631d920c365296088914fe6f22c624477f04116b06613e910",
+      "uncompressedSize": 3584,
+      "verified": true
+    },
+    {
+      "index": 3,
+      "digest": "sha256:b6cdeedd0611482e4d44c812b4f63a8b3a0c7b18f597f410162d1725c0ad2c84",
+      "size": 185,
+      "diffID": "sha256:ed4f64742b4db36648774e3da4f13f758fdfbbd8c8b64660031eea3ff0a8f288",
+      "uncompressedSize": 3072,
+      "verified": true
+    },
+    {
+      "index": 4,
+      "digest": "sha256:b2337d4db50678944f87de8418b252f8410f3b36540f091c65b5f1845ccc9c91",
+      "size": 3597588,
+      "diffID": "sha256:6bc802d9b3ebde66154dadf00ca6a91b1f9d789a63c8bec4b8656de04ef25cae",
+      "uncompressedSize": 5511680,
+      "verified": true
+    },
+    {
+      "index": 5,
+      "digest": "sha256:9a10ea355f032da1d24835d300316d7aca2f57ed6687da64b5f2f2256aea64c0",
+      "size": 145,
+      "diffID": "sha256:a8898b13dec27489a1d278f8946878f26565857dd64b35e8c9af6f34aa472b43",
+      "uncompressedSize": 2560,
+      "verified": true
+    },
+    {
+      "index": 6,
+      "digest": "sha256:849198ebc855c7cfee6a707d9577025203b6953e1b820b01214bc8cd4d61437d",
+      "size": 93,
+      "diffID": "sha256:51bc1a13c21a4574cfa7fcd63089fd470fc18ace2d67ff608c5d22234fd7f5cd",
+      "uncompressedSize": 1536,
+      "verified": true
+    },
+    {
+      "index": 7,
+      "digest": "sha256:8fbe309a01eaf7fe944998758397945f2f9c0bdfcf067b40074dc4337b3f1af6",
+      "size": 973,
+      "diffID": "sha256:c7126a8af3a26c6533de1d93ea33330da950415eb60f437eb5432fd6a05e25a6",
+      "uncompressedSize": 10752,
+      "verified": true
+    },
+    {
+      "index": 8,
+      "digest": "sha256:76313c63264860758d7d465b96bc1a8181dcadf99e5c1149724289ce573dd8dc",
+      "size": 10773548,
+      "diffID": "sha256:8d52407343376c99e192c940128aa53f3442f38c7b16811cbc45d48037331dea",
+      "uncompressedSize": 61881344,
+      "verified": true
+    },
+    {
+      "index": 9,
+      "digest": "sha256:010c318989d34dd9f654fecb280ce05b08f2401d7bc0b1f3e90d603dc3a8441d",
+      "size": 1644,
+      "diffID": "sha256:dfaa8389d94fbc270c611798bb55b86ca31deabdba956e03c6a92a110c116d72",
+      "uncompressedSize": 8192,
+      "verified": true
+    },
+    {
+      "index": 10,
+      "digest": "sha256:9b56093228ff5349bab38107544977d5ccd4aed7a468ea41546662c62eaef528",
+      "size": 850,
+      "diffID": "sha256:520ab35ebd349288b0af2839a2526ada29d5582aa940d8271621b11170aa37db",
+      "uncompressedSize": 5120,
+      "verified": true
+    },
+    {
+      "index": 11,
+      "digest": "sha256:a36e344864806ca19787082d9f19ec2afd005b2ce8c9d122dbc8f72fd36d8f44",
+      "size": 700,
+      "diffID": "sha256:cc08143ff99649d7f74aaacff1657a4d00e929c9c9250f043cb408f4eadf93c4",
+      "uncompressedSize": 4608,
+      "verified": true
+    },
+    {
+      "index": 12,
+      "digest": "sha256:271aa17029f6d6a8eb78686c9d73f9ea374e009c0c377ca0147eeda29131e831",
+      "size": 165831,
+      "diffID": "sha256:f2605f0d487a2a600043a6ef51231277605abed1e986a2bbe8a217db7b15f522",
+      "uncompressedSize": 849408,
+      "verified": true
+    },
+    {
+      "index": 13,
+      "digest": "sha256:d848cb8a2f07208174a1a62b901b67116d6ed40ab071e9a7a5192e2ea52819d4",
+      "size": 636535,
+      "diffID": "sha256:03206d2fda4cea8b4db009f0390f294d093769c653242e41c294a5445a5498ff",
+      "uncompressedSize": 3312640,
+      "verified": true
+    },
+    {
+      "index": 14,
+      "digest": "sha256:a6a9011eb48b4f99536465364707e18edfa9d50708b5e032c57f5535b5cf7c44",
+      "size": 123357,
+      "diffID": "sha256:c2bf18efce156d34e2bac8b4b4f8ee70de025f805a95584c390e007e63adaec7",
+      "uncompressedSize": 2003456,
+      "verified": true
+    },
+    {
+      "index": 15,
+      "digest": "sha256:6ff9cc32956de83b63ee15a0c5afffa22c1e9be2ca45dfcf256be4b1204c1ec1",
+      "size": 1919,
+      "diffID": "sha256:343aac403620218b17bd11217a15e02c40945af85be3f2027bd59aa2279c5c25",
+      "uncompressedSize": 8192,
+      "verified": true
+    },
+    {
+      "index": 16,
+      "digest": "sha256:5ca75d3e5405f6ae38428fe9333c0106434b5a72aa633837938dd8ac717d90c2",
+      "size": 19897,
+      "diffID": "sha256:2b0810f0581bdc46e81a2005eff9ead0ef378c47b84308dad03151cf7c299960",
+      "uncompressedSize": 93696,
+      "verified": true
+    },
+    {
+      "index": 17,
+      "digest": "sha256:6fa6bc757c14b9609badb57c5d27f0d838966535322566685e03ec5729db96d9",
+      "size": 9982,
+      "diffID": "sha256:7804c2c06fd4e7b76d3315bbe06bfb91e3d10c1bdf235e8a0f38c262b19cba66",
+      "uncompressedSize": 49152,
+      "verified": true
+    }
+  ],
+  "shippingTrees": [
+    {
+      "name": "backend-clean-compiled-dist",
+      "files": 666,
+      "allEqual": true,
+      "nonRuntimeCompilerMetadataSha256": {
+        "tsconfig.tsbuildinfo": "f3ac79aa7ff24962d8882adb542f9dfd9a9059c78e3c279b233c4325a1129349"
+      },
+      "metadataByteEqualityClaimed": false
+    },
+    {
+      "name": "crowdsource-contracts-clean-compiled-dist",
+      "files": 91,
+      "allEqual": true,
+      "nonRuntimeCompilerMetadataSha256": {},
+      "metadataByteEqualityClaimed": null
+    },
+    {
+      "name": "source-file:package.json",
+      "files": 1,
+      "allEqual": true,
+      "nonRuntimeCompilerMetadataSha256": {},
+      "metadataByteEqualityClaimed": null
+    },
+    {
+      "name": "source-file:packages/contracts/package.json",
+      "files": 1,
+      "allEqual": true,
+      "nonRuntimeCompilerMetadataSha256": {},
+      "metadataByteEqualityClaimed": null
+    },
+    {
+      "name": "source-file:packages/backend/package.json",
+      "files": 1,
+      "allEqual": true,
+      "nonRuntimeCompilerMetadataSha256": {},
+      "metadataByteEqualityClaimed": null
+    },
+    {
+      "name": "source-file:scripts/crowdsource-backend-cutover.mjs",
+      "files": 1,
+      "allEqual": true,
+      "nonRuntimeCompilerMetadataSha256": {},
+      "metadataByteEqualityClaimed": null
+    },
+    {
+      "name": "source-file:scripts/crowdsource-backend-cutover-lib.mjs",
+      "files": 1,
+      "allEqual": true,
+      "nonRuntimeCompilerMetadataSha256": {},
+      "metadataByteEqualityClaimed": null
+    },
+    {
+      "name": "source-file:scripts/crowdsource-backend-cutover-postgres.mjs",
+      "files": 1,
+      "allEqual": true,
+      "nonRuntimeCompilerMetadataSha256": {},
+      "metadataByteEqualityClaimed": null
+    }
+  ],
+  "publishedSDK": [
+    {
+      "package": "core",
+      "archiveSha256": "20fbd2e6fadd5d1e0a6ea9b6ad0ed9f65e77d5289600f6085ebfc16c224d5795",
+      "files": 581,
+      "allEqual": true,
+      "runtimeResolvedPackageRoot": "app/node_modules/@oxy.so/core"
+    },
+    {
+      "package": "contracts",
+      "archiveSha256": "d495f3b1aabbfea8da57107e4f4bbee7c8d2e9e34f9e2345923e12a5c080fdaa",
+      "files": 198,
+      "allEqual": true,
+      "runtimeResolvedPackageRoot": "app/node_modules/@oxy.so/contracts"
+    },
+    {
+      "package": "protocol",
+      "archiveSha256": "88498ab28c1aa373f6f725f1625662b47d61e50d8ae25a54c80bfb2ecb65b5db",
+      "files": 145,
+      "allEqual": true,
+      "runtimeResolvedPackageRoot": "app/node_modules/@oxy.so/protocol"
+    }
+  ],
+  "runtimeToolingAbsence": {
+    "braces": {
+      "present": false,
+      "matchedPaths": [],
+      "matchingPackageManifests": []
+    },
+    "http-cache-semantics": {
+      "present": false,
+      "matchedPaths": [],
+      "matchingPackageManifests": []
+    },
+    "node-forge": {
+      "present": false,
+      "matchedPaths": [],
+      "matchingPackageManifests": []
+    }
+  },
+  "runtimePackageManifestCensus": 175,
+  "allImageLayersVerified": true,
+  "noImageExecuted": true,
+  "noImagePublishedByReviewer": true
+}

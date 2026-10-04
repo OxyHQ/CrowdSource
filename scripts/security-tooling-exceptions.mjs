@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
@@ -68,13 +69,53 @@ export function toolingCensus(lock, packageNames) {
   return { graph, sha256: digest(graph) };
 }
 
+// These verification-only files do not generate an application/export/image.
+// Everything else tracked (and non-ignored untracked) is sealed, including
+// package code/config, lock, Dockerfiles, scripts and deployment workflows.
+const VERIFICATION_ONLY = new Set([
+  'security-tooling-policy.json', 'scripts/audit-security.mjs',
+  'scripts/security-tooling-exceptions.mjs', 'scripts/test-tooling-audit-wiring.mjs',
+  'scripts/test-security-tooling-exceptions.mjs',
+  'scripts/test-security-tooling-exceptions-adversarial.mjs',
+  'scripts/test-tooling-policy-lifecycle.mjs',
+]);
+export function collectToolingBuildInputs(root) {
+  const paths = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: root }).toString().split('\0').filter(Boolean);
+  const unique = sorted(new Set(paths.filter(path => !path.startsWith('docs/') && !VERIFICATION_ONLY.has(path))));
+  if (!unique.some(path => path.startsWith('packages/reviewer/')) || !unique.some(path => path.startsWith('packages/backend/'))) throw new Error('Incomplete application/build input census');
+  const records = unique.map(path => ({ path, sha256: digest(readFileSync(join(root, path))) }));
+  return { records, sha256: digest(records) };
+}
+
+const RUNTIME_EVIDENCE = 'docs/audits/2026-10-04-tooling-p2-remediation/records/';
+function verifiesRuntimeBinding(policy, inputBytes, buildInputs) {
+  const parsed = name => {
+    const path = RUNTIME_EVIDENCE + name;
+    const pinned = policy.runtimeInputs.find(input => input.path === path);
+    if (!pinned || digest(inputBytes[path]) !== pinned.sha256) throw new Error('Missing or changed runtime binding');
+    return JSON.parse(inputBytes[path].toString());
+  };
+  const inputs = parsed('reviewed-build-inputs.json');
+  if (inputs.sourceSha !== policy.reviewedRuntimeSource || inputs.sha256 !== policy.buildInputsSha256 || digest(inputs.records) !== inputs.sha256 || inputs.sha256 !== buildInputs.sha256) return false;
+  const image = parsed('arm-image-verification.json');
+  const protocol = parsed('arm-consumer-image-verification.json');
+  if (image.complete !== true || image.platform !== 'linux/arm64' || image.sourceSha !== policy.reviewedRuntimeSource || protocol.sourceSha !== image.sourceSha || protocol.manifestSha256 !== image.manifestSha256 || protocol.configSha256 !== image.configSha256 || protocol.dockerfileSha256 !== image.dockerfileSha256 || protocol.kind !== 'root-consumer-image-verification-v1') return false;
+  if (!image.allImageLayersVerified || !image.shippingTrees?.length || image.shippingTrees.some(tree => tree.allEqual !== true)) return false;
+  if (policy.advisories.some(entry => image.runtimeToolingAbsence?.[entry.package]?.present !== false)) return false;
+  const exports = parsed('export-absence.json');
+  if (exports.kind !== 'reviewed-export-tooling-absence-v1' || exports.inputsEqualMain !== policy.reviewedRuntimeSource || exports.exports?.length !== 2 || sorted(exports.exports.map(item => item.name)).join(',') !== 'console,reviewer') return false;
+  return exports.exports.every(item => item.records.length > 0 && item.records.every(record => /^[a-f0-9]{64}$/.test(record.bundleSha256) && /^[a-f0-9]{64}$/.test(record.sourceMapSha256) && record.sourceCount > 0));
+}
+
 /** The caller must retain its normal refusal when this returns false. */
-export function permitsToolingException({ policy, advisory, packageName: name, lock, inputBytes, now = new Date() }) {
+export function permitsToolingException({ policy, advisory, packageName: name, lock, inputBytes, buildInputs, now = new Date() }) {
   if (policy.version !== 1 || policy.expires !== '2026-10-09T22:00:00Z' || now.getTime() >= Date.parse(policy.expires)) return false;
   if (!Number.isFinite(now.getTime())) return false;
   if (!policy.advisories.some(entry => entry.id === advisory && entry.package === name)) return false;
   try {
+    if (typeof policy.buildInputsSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(policy.buildInputsSha256) || buildInputs?.sha256 !== policy.buildInputsSha256 || digest(buildInputs.records) !== buildInputs.sha256) return false;
     for (const input of policy.runtimeInputs) if (!inputBytes[input.path] || digest(inputBytes[input.path]) !== input.sha256) return false;
+    if (!verifiesRuntimeBinding(policy, inputBytes, buildInputs)) return false;
     const census = toolingCensus(lock, policy.advisories.map(entry => entry.package));
     if (census.sha256 !== policy.graphSha256) return false;
     if (census.graph.roots.some(root => !policy.allowedRoots.includes(root))) return false;

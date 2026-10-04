@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { toolingCensus, permitsToolingException, inspectExportMaps } from './security-tooling-exceptions.mjs';
+import { toolingCensus, permitsToolingException, inspectExportMaps, collectToolingBuildInputs } from './security-tooling-exceptions.mjs';
 
 const lock = Bun.JSONC.parse(readFileSync('bun.lock', 'utf8'));
 const policy = JSON.parse(readFileSync('security-tooling-policy.json', 'utf8'));
 const inputBytes = Object.fromEntries(policy.runtimeInputs.map(input => [input.path, readFileSync(input.path)]));
-const invocation = { policy, lock, inputBytes, now: new Date('2026-10-04T00:00:00Z'), advisory: policy.advisories[0].id, packageName: policy.advisories[0].package };
+const invocation = { policy, lock, inputBytes, buildInputs: collectToolingBuildInputs(process.cwd()), now: new Date('2026-10-04T00:00:00Z'), advisory: policy.advisories[0].id, packageName: policy.advisories[0].package };
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS ${name}`); }
 check('exact reviewed graph permits only each matching advisory and package', () => {
@@ -46,4 +46,4 @@ try {
     assert.throws(() => inspectExportMaps(directory, [name]));
   });
 } finally { rmSync(directory, { recursive: true, force: true }); }
-console.log(`${checks} scoped exception controls PASS; policy remains inactive`);
+console.log(`${checks} scoped exception controls PASS; fixed policy expiry remains unchanged`);

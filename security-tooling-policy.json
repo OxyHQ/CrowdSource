@@ -25,7 +25,25 @@
     {
       "path": "packages/backend/Dockerfile",
       "sha256": "03ee825714d7245a4a0eddf5b346fcb2d9c571c96b9f0490375c3267f033cfa4"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/arm-consumer-image-verification.json",
+      "sha256": "d683b4a7d0c66fe8a56b46ad3bf1dbe9388b135c7e4e07a3839f7aa3acb55ece"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/arm-image-verification.json",
+      "sha256": "bf430cfe7c388d65d00a370fc5f2e7b5bf89a481a90620409061025f4f7d7570"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/export-absence.json",
+      "sha256": "185066e82a6cd4bee1fe1a9d5dccc7852658197e7c33cc1908296fa606633a57"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/reviewed-build-inputs.json",
+      "sha256": "9a2a5e8cbaa23dd185f7963761a4bc34863d3c50e6cb5bac583fdbd7a2e4deef"
     }
   ],
-  "enabled": true
+  "enabled": true,
+  "reviewedRuntimeSource": "97a1d9dc2aef8ca24ee1d085e559946d641b86a8",
+  "buildInputsSha256": "da757f26e23be7a1460fc68b723e1ff79763eebe717a3e393bb097d3d8cda618"
 }
