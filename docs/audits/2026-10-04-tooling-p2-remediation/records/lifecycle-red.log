@@ -1,0 +1,49 @@
+PASS unchanged inputs just before fixed deadline admit
+FAIL deferred Bun audit crossing exact deadline refuses: deferred Bun audit crossing exact deadline refuses
+
+
+true !== false
+
+FAIL deadline crossed after predicate before acceptance refuses: deadline crossed after predicate before acceptance refuses
+
+
+true !== false
+
+FAIL invalid clock after audit refuses: invalid clock after audit refuses
+
+
+true !== false
+
+FAIL source-only import of installed target without lock change refuses: source-only import of installed target without lock change refuses
+
+
+true !== false
+
+FAIL new source file importing target refuses: new source file importing target refuses
+
+
+true !== false
+
+FAIL missing source/build binding refuses: missing source/build binding refuses
+
+
+true !== false
+
+FAIL build config change refuses: build config change refuses
+
+
+true !== false
+
+FAIL foreign image source refuses even with updated record hash: foreign image source refuses even with updated record hash
+
+
+true !== false
+
+FAIL ARM proof with included tooling refuses: ARM proof with included tooling refuses
+
+
+true !== false
+
+PASS missing export record refuses
+PASS missing reviewed runtime evidence refuses
+3 PASS / 9 FAIL; all owned fixture directories removed

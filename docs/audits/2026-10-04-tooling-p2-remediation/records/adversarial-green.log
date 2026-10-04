@@ -1,0 +1,7 @@
+PASS adding a workspace peer changes the census
+PASS adding a package peer changes the census
+PASS sourceRoot "../../node_modules/braces/" refuses
+PASS sourceRoot "..\\..\\node_modules\\node-forge\\" refuses
+PASS sourceRoot 42 refuses
+PASS explicit empty sourceRoot remains valid
+6 PASS / 0 FAIL; owned fixture removed
