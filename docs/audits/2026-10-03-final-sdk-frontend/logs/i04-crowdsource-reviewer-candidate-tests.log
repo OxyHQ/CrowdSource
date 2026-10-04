@@ -1,0 +1,34 @@
+$ node ../../node_modules/jest/bin/jest.js --watchAll=false --runInBand
+PASS lib/reviewer-api/__tests__/redaction.test.ts
+PASS lib/__tests__/review-form.test.ts
+PASS lib/__tests__/auth-invariants.test.ts
+PASS lib/__tests__/locales.test.ts
+PASS components/widgets/__tests__/ReputationWidget.test.tsx
+  ● Console
+
+    console.log
+      [33m20:47:48[39m [33m(ReputationWidget)[39m Could not read the reviewer reputation balance {
+        "__metadata__": {},
+        "error": {
+          "name": "Error",
+          "message": "network",
+          "stack": "Error: network\n    at Object.<anonymous> (/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/packages/reviewer/components/widgets/__tests__/ReputationWidget.test.tsx:142:14)\n    at Promise.then.completed (/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/node_modules/jest-circus/build/utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/node_modules/jest-circus/build/utils.js:231:10)\n    at _callCircusTest (/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/node_modules/jest-circus/build/run.js:316:40)\n    at _runTest (/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/node_modules/jest-circus/build/run.js:252:3)\n    at _runTestsForDescribeBlock (/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/node_modules/jest-circus/build/run.js:126:9)\n    at _runTestsForDescribeBlock (/home/nate/Oxy/Crowd…[Truncated]"
+        }
+      }
+
+      at log (lib/logger/transports/console.ts:86:13)
+
+PASS lib/reviewer-api/__tests__/viewer.test.ts
+PASS lib/__tests__/eligibility.test.ts
+PASS components/__tests__/PageScroll.native.test.tsx
+PASS lib/logger/__tests__/sanitize.test.ts
+PASS lib/reviewer-api/__tests__/active-assignment.test.ts
+PASS lib/__tests__/routing-invariants.test.ts
+PASS lib/__tests__/auth-gate.test.ts
+PASS lib/logger/__tests__/logDump.test.ts
+
+Test Suites: 13 passed, 13 total
+Tests:       139 passed, 139 total
+Snapshots:   0 total
+Time:        3.861 s
+Ran all test suites.

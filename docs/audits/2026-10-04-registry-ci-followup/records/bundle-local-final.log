@@ -1,0 +1,81 @@
+$ bun ./scripts/analyze-bundle.js --ci --json "/home/nate/Oxy/.agent-evidence/i04-consumer-final-prs/registry-CrowdSource-20261004/bundle-local-final.json"
+CrowdSource reviewer bundle report
+
+totalBytes: 8.54 MiB / budget 8.54 MiB
+javascriptBytes: 7.40 MiB / budget 7.50 MiB
+javascriptGzipBytes: 1.89 MiB
+javascriptBrotliBytes: 1.52 MiB
+initialJavascriptBytes: 5.02 MiB / budget 6.00 MiB
+initialJavascriptGzipBytes: 1.23 MiB / budget 1.50 MiB
+initialJavascriptBrotliBytes: 982.74 KiB
+fontBytes: 688.96 KiB / budget 2.25 MiB
+largestFileBytes: 3.95 MiB / budget 4.75 MiB
+
+Long-term targets:
+- initialJavascriptGzipBytes: 1.23 MiB / target 1.00 MiB (237.92 KiB remaining)
+- largestFileBytes: 3.95 MiB / target 4.50 MiB (met)
+
+Initial JavaScript chunks:
+- _expo/static/js/web/__common-30dc5f159900a0d7a493d7e0e81af126.js: 3.95 MiB raw, 974.90 KiB gzip
+- _expo/static/js/web/entry-877bf934d7dc3e6a2cc05f46618d34bb.js: 1.06 MiB raw, 285.34 KiB gzip
+- _expo/static/js/web/__expo-metro-runtime-beff96064147bde5b1983fe629d44cbe.js: 3.87 KiB raw, 1.68 KiB gzip
+
+Largest files:
+- _expo/static/js/web/__common-30dc5f159900a0d7a493d7e0e81af126.js: 3.95 MiB (javascript)
+- _expo/static/js/web/entry-877bf934d7dc3e6a2cc05f46618d34bb.js: 1.06 MiB (javascript)
+- assets/__node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf: 380.59 KiB (font)
+- _expo/static/js/web/_layout-569b5350edbdab3a3f4d9b01c73135dd.js: 198.68 KiB (javascript)
+- _expo/static/js/web/ru-6701d44df7aa23e41a1acfd851dd5aaa.js: 194.55 KiB (javascript)
+- _expo/static/js/web/ar-69d22cdc3794c6db4ada2d58367ba43b.js: 173.86 KiB (javascript)
+- _expo/static/js/web/bn-7986b13573ee813e9276614378bc7051.js: 169.41 KiB (javascript)
+- _expo/static/js/web/hi-0ef5c59aaad354ae749187cb1f7a4ab1.js: 164.22 KiB (javascript)
+- _expo/static/js/web/ja-2601ff4d0fc91851141082127a585f56.js: 101.43 KiB (javascript)
+- assets/__node_modules/@oxy.so/services/lib/module/assets/signIn/slide-1.b29a38b76e9e9e426cc152c3a1a56a73.jpg: 99.78 KiB (image)
+
+Largest route/async chunks:
+- async:_layout: 74.54 KiB gzip
+- async:ru: 32.71 KiB gzip
+- async:ar: 30.84 KiB gzip
+- async:hi: 29.80 KiB gzip
+- async:bn: 29.30 KiB gzip
+- async:ja: 27.09 KiB gzip
+- async:index: 25.66 KiB gzip
+- async:zh: 24.84 KiB gzip
+- async:fr: 24.30 KiB gzip
+- async:tr: 23.91 KiB gzip
+
+Largest initial source groups (isolated gzip attribution):
+- @oxy.so/bloom: 698.95 KiB
+- expo-router: 368.65 KiB
+- @oxy.so/core: 302.60 KiB
+- @oxy.so/services: 248.11 KiB
+- react-native-web: 228.77 KiB
+- @oxy.so/contracts: 219.93 KiB
+- zod: 207.46 KiB
+- react-native-reanimated: 196.44 KiB
+- react-native-gesture-handler: 113.40 KiB
+- react-dom: 95.59 KiB
+
+Largest source groups (isolated gzip attribution):
+- @oxy.so/bloom: 1.12 MiB
+- @oxy.so/services: 449.61 KiB
+- @oxy.so/core: 372.29 KiB
+- expo-router: 368.65 KiB
+- react-native-web: 228.77 KiB
+- @oxy.so/contracts: 219.93 KiB
+- zod: 207.46 KiB
+- react-native-reanimated: 196.44 KiB
+- @crowdsource/reviewer: 138.14 KiB
+- react-native-gesture-handler: 113.40 KiB
+
+Icon/font families:
+- Ionicons: 380.59 KiB
+- BlomusModernus-Regular: 75.82 KiB
+- BlomusModernus-Bold: 75.79 KiB
+- InterVariable: 47.13 KiB
+- OxyServicesIonicons: 42.00 KiB
+- JetBrainsMono-Variable: 39.46 KiB
+- OxyServicesMaterialCommunityIcons: 28.18 KiB
+
+All configured bundle budgets pass.
+Bundle report written to /home/nate/Oxy/.agent-evidence/i04-consumer-final-prs/registry-CrowdSource-20261004/bundle-local-final.json

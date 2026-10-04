@@ -1,0 +1,22 @@
+PASS exact reviewed graph permits only each matching advisory and package
+PASS unknown advisory refuses
+PASS known advisory for another package refuses
+PASS absolute UTC expiry refuses at boundary
+PASS invalid clock refuses
+PASS extending exception expiry refuses
+PASS target version drift
+PASS target archive integrity drift
+PASS parent archive integrity drift
+PASS parent dependency range drift
+PASS nested target added
+PASS backend gains target
+PASS new workspace
+PASS unreviewed package patch
+PASS runtime Docker boundary drift refuses
+PASS unrelated Oxy version metadata cannot widen tooling graph
+PASS missing export map refuses
+PASS owned export reports exact bundle and map hashes
+PASS export includes braces refuses
+PASS export includes http-cache-semantics refuses
+PASS export includes node-forge refuses
+21 scoped exception controls PASS; policy remains inactive

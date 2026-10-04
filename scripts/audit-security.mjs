@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { createGunzip } from 'node:zlib';
+import { permitsToolingException } from './security-tooling-exceptions.mjs';
 
 const exceptionFile = new URL('../security-audit-exceptions.json', import.meta.url);
 const parsed = JSON.parse(await readFile(exceptionFile, 'utf8'));
@@ -82,6 +83,14 @@ const severityRank = new Map([
   ['critical', 4],
 ]);
 const ignoredAdvisories = new Set(exceptions.map((entry) => entry.advisory));
+// Separate, graph-bound tooling policy; ordinary advisory handling stays intact.
+const toolingPolicy = JSON.parse(await readFile(new URL('../security-tooling-policy.json', import.meta.url), 'utf8'));
+const toolingLock = Bun.JSONC.parse(await readFile(new URL('../bun.lock', import.meta.url), 'utf8'));
+const toolingInputs = Object.fromEntries(await Promise.all(toolingPolicy.runtimeInputs.map(async input =>
+  [input.path, await readFile(new URL('../' + input.path, import.meta.url))])));
+const allowedTooling = (advisory, packageName) => toolingPolicy.enabled === true && permitsToolingException({
+  policy: toolingPolicy, advisory, packageName, lock: toolingLock, inputBytes: toolingInputs, now: today,
+});
 const blocking = [];
 
 for (const [packageName, advisories] of Object.entries(payload)) {
@@ -91,7 +100,7 @@ for (const [packageName, advisories] of Object.entries(payload)) {
     const id = String(advisory?.url ?? '').split('/').pop() || String(advisory?.id ?? '');
     if (
       (severityRank.get(severity) ?? 0) >= severityRank.get('high') &&
-      !ignoredAdvisories.has(id)
+      !ignoredAdvisories.has(id) && !allowedTooling(id, packageName)
     ) {
       blocking.push({
         package: packageName,

@@ -1,6 +1,16 @@
 name: Deploy Frontends
 
 on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed current main SHA
+        required: true
+        type: string
+      ci_run_id:
+        description: Successful push CI run for this exact main SHA
+        required: true
+        type: string
   workflow_run:
     workflows: [CI]
     types: [completed]
@@ -15,15 +25,23 @@ concurrency:
 
 env:
   BUN_VERSION: '1.4.2'
-  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+  # workflow_run admission below binds this release to github.sha before checkout.
+  DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
   scope:
+    permissions:
+      contents: read
+      actions: read
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
+      vars.OXY_1519_ROLLOUT_HOLD != 'true' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.head_sha == github.sha &&
+       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
-      github.event.workflow_run.head_branch == 'main'
+      github.event.workflow_run.head_branch == 'main'))
     runs-on: ubuntu-latest
     outputs:
       # One output per Worker. They are separate targets with separate markers,
@@ -33,12 +51,22 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ env.DEPLOY_SHA }}
+          ref: ${{ github.sha }}
           # Each scope diff runs from its own `deployed/<target>` marker to the
           # candidate, so this job needs the marker tags and the history that
           # connects them to the candidate.
           fetch-depth: 0
           fetch-tags: true
+      - name: Verify manual release source and CI
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_CI_RUN_ID: ${{ inputs.ci_run_id }}
+          EXPECTED_CI_WORKFLOW: .github/workflows/ci.yml
+          OXY_1519_ROLLOUT_HOLD: ${{ vars.OXY_1519_ROLLOUT_HOLD }}
+        run: python3 .github/scripts/verify-manual-frontend.py
+
       - name: Detect reviewer deployment scope
         id: reviewer
         run: bash .github/scripts/deployment-scope.sh frontend
@@ -49,14 +77,14 @@ jobs:
 
   deploy-frontend:
     needs: scope
-    if: needs.scope.outputs.reviewer == 'true'
+    if: vars.OXY_1519_ROLLOUT_HOLD != 'true' && needs.scope.outputs.reviewer == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 70
     environment: production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ env.DEPLOY_SHA }}
+          ref: ${{ github.sha }}
           fetch-depth: 2
 
       - name: Verify current main before building
@@ -189,14 +217,14 @@ jobs:
   # audiences — one of them staff.
   deploy-console:
     needs: scope
-    if: needs.scope.outputs.console == 'true'
+    if: vars.OXY_1519_ROLLOUT_HOLD != 'true' && needs.scope.outputs.console == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 70
     environment: production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ env.DEPLOY_SHA }}
+          ref: ${{ github.sha }}
           fetch-depth: 2
 
       - name: Verify current main before building
@@ -303,7 +331,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ env.DEPLOY_SHA }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
 
       - name: Record the deployed frontend revision
@@ -319,7 +347,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ env.DEPLOY_SHA }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
 
       - name: Record the deployed console revision

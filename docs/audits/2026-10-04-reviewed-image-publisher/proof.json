@@ -1,0 +1,39 @@
+{
+  "sources": [
+    {
+      "path": "scripts/validate-workflows.mjs",
+      "sha256": "d6b62fc4c51c2efa914f217e359630881cde063be2074473f0d4bd77ab2516bb"
+    },
+    {
+      "path": "scripts/reviewed-image-publisher.mjs",
+      "sha256": "1c8eeca9a841e571a01e866a18f73193ecb2738eed8bbaeef8fe57f49ab55e6c"
+    },
+    {
+      "path": "scripts/test-reviewed-image-publisher.mjs",
+      "sha256": "2bd68e84ebcf39725e6b33322dc2f27dc48013c8f04e92be154876eff01224cd"
+    }
+  ],
+  "records": [
+    {
+      "path": "docs/audits/2026-10-04-reviewed-image-publisher/green.log",
+      "sha256": "6e649df97f1dfeed38d862a8f0ec996bfafbd9223db3b2a283749e3173ce5252"
+    }
+  ],
+  "reviewedPublisherInputs": [
+    {
+      "path": ".github/workflows/publish-reviewed-images.yml",
+      "sha256": "aa25f35b348aa2476c0b1f2ad3a8dbb4f1fed13ee05ecd95c8b2952b780263c3"
+    },
+    {
+      "path": ".github/scripts/publish-reviewed-image.py",
+      "sha256": "4c20fa31ef8bcd5f18e8e894d6fd35157e7bcce1ef9392f70c21cdd6aa86f17e"
+    },
+    {
+      "path": ".github/scripts/reviewed-images.json",
+      "sha256": "6d47a74e2beae224819a01478ba2489cce481aca9d12e6370eb382ad62fba4a1"
+    }
+  ],
+  "testControls": 13,
+  "runtimeChanged": false,
+  "published": false
+}

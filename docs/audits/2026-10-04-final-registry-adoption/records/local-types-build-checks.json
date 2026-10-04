@@ -1,0 +1,35 @@
+[
+  {
+    "name": "check-1",
+    "cwd": ".",
+    "argv": [
+      "bun",
+      "run",
+      "build:backend"
+    ],
+    "exitCode": 0,
+    "seconds": 2.97
+  },
+  {
+    "name": "check-4",
+    "cwd": "packages/console",
+    "argv": [
+      "bun",
+      "run",
+      "typecheck"
+    ],
+    "exitCode": 0,
+    "seconds": 1.718
+  },
+  {
+    "name": "check-5",
+    "cwd": "packages/reviewer",
+    "argv": [
+      "bun",
+      "run",
+      "typecheck"
+    ],
+    "exitCode": 0,
+    "seconds": 1.618
+  }
+]

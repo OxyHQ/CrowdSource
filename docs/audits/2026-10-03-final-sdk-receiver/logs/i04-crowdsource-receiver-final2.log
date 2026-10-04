@@ -1,0 +1,12 @@
+$ tsc
+$ tsc --noEmit && tsc -p tsconfig.test.json
+$ node ../../node_modules/vitest/vitest.mjs run src/__tests__/receiverSdk.test.ts
+
+ RUN  v5.0.2 /home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/packages/backend
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  20:33:02
+   Duration  1.10s (tests 92%, transform 2%, import 2%, worker 2%, setup 2%)
+

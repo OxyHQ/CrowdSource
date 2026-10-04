@@ -1,0 +1,133 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 5.13kB done
+#1 DONE 0.0s
+
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1.7
+#2 DONE 0.2s
+
+#3 docker-image://docker.io/docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
+#3 CACHED
+
+#4 [internal] load metadata for docker.io/oven/bun:1.4.2-alpine
+#4 DONE 0.2s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 1.07kB done
+#5 DONE 0.0s
+
+#6 [runtime  1/13] FROM docker.io/oven/bun:1.4.2-alpine@sha256:d888c0ae6c86d7866ff10c5aafdd9077b36aee6455b33dd270fb93c0dd5cef6f
+#6 DONE 0.0s
+
+#7 [runtime  2/13] WORKDIR /app
+#7 CACHED
+
+#8 [internal] load build context
+#8 transferring context: 104.57kB 0.1s done
+#8 DONE 0.1s
+
+#9 [manifests 6/9] COPY packages/backend/package.json packages/backend/
+#9 CACHED
+
+#10 [manifests 7/9] COPY packages/reviewer/package.json packages/reviewer/
+#10 CACHED
+
+#11 [manifests 3/9] COPY package.json bun.lock bunfig.toml tsconfig.json ./
+#11 CACHED
+
+#12 [manifests 4/9] COPY packages/contracts/package.json packages/contracts/
+#12 CACHED
+
+#13 [manifests 5/9] COPY packages/core/package.json packages/core/
+#13 CACHED
+
+#14 [manifests 8/9] COPY packages/console/package.json packages/console/
+#14 CACHED
+
+#15 [runtime  3/13] RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
+#15 DONE 0.1s
+
+#16 [manifests 9/9] RUN bun install --frozen-lockfile --ignore-scripts --lockfile-only
+#16 0.097 bun install v1.4.2 (744846f84)
+#16 DONE 0.1s
+
+#17 [builder 1/6] RUN --mount=type=cache,target=/root/.bun/install/cache   bun install --frozen-lockfile --ignore-scripts --omit=peer --omit=optional     --filter @crowdsource.you/contracts --filter @crowdsource/backend
+#17 0.142 bun install v1.4.2 (744846f84)
+#17 ...
+
+#18 [prod-deps 1/1] RUN --mount=type=cache,target=/root/.bun/install/cache   bun install --frozen-lockfile --omit=dev --omit=peer --omit=optional --ignore-scripts     --filter @crowdsource.you/contracts --filter @crowdsource/backend
+#18 0.142 bun install v1.4.2 (744846f84)
+#18 1.515 
+#18 1.515 122 packages installed [1373.00ms]
+#18 DONE 1.7s
+
+#17 [builder 1/6] RUN --mount=type=cache,target=/root/.bun/install/cache   bun install --frozen-lockfile --ignore-scripts --omit=peer --omit=optional     --filter @crowdsource.you/contracts --filter @crowdsource/backend
+#17 1.823 
+#17 1.823 + typescript@5.9.3
+#17 1.823 
+#17 1.823 221 packages installed [1.68s]
+#17 DONE 1.9s
+
+#19 [builder 2/6] COPY scripts/ scripts/
+#19 DONE 0.1s
+
+#20 [builder 3/6] COPY packages/contracts/ packages/contracts/
+#20 DONE 0.1s
+
+#21 [runtime  4/13] COPY --from=prod-deps /app/node_modules/ node_modules/
+#21 ...
+
+#22 [builder 4/6] COPY packages/backend/ packages/backend/
+#22 DONE 0.2s
+
+#23 [builder 5/6] RUN bun run --cwd packages/contracts build
+#23 0.086 $ tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs
+#23 ...
+
+#21 [runtime  4/13] COPY --from=prod-deps /app/node_modules/ node_modules/
+#21 DONE 0.7s
+
+#24 [runtime  5/13] COPY --from=prod-deps /app/package.json ./
+#24 DONE 0.1s
+
+#25 [runtime  6/13] COPY --from=prod-deps /app/packages/contracts/package.json packages/contracts/
+#25 DONE 0.1s
+
+#23 [builder 5/6] RUN bun run --cwd packages/contracts build
+#23 ...
+
+#26 [runtime  7/13] COPY --from=prod-deps /app/packages/backend/package.json packages/backend/
+#26 DONE 0.1s
+
+#23 [builder 5/6] RUN bun run --cwd packages/contracts build
+#23 DONE 2.7s
+
+#27 [builder 6/6] RUN bun run --cwd packages/backend build
+#27 0.088 $ tsc
+#27 DONE 3.5s
+
+#28 [runtime  8/13] COPY --from=builder /app/packages/contracts/dist/ packages/contracts/dist/
+#28 DONE 0.2s
+
+#29 [runtime  9/13] COPY --from=builder /app/packages/backend/dist/ packages/backend/dist/
+#29 DONE 0.1s
+
+#30 [runtime 10/13] COPY --from=builder /app/packages/backend/src/db/postgres/migrations/   packages/backend/dist/src/db/postgres/migrations/
+#30 DONE 0.1s
+
+#31 [runtime 11/13] COPY --from=builder /app/scripts/crowdsource-backend-cutover.mjs scripts/
+#31 DONE 0.1s
+
+#32 [runtime 12/13] COPY --from=builder /app/scripts/crowdsource-backend-cutover-lib.mjs scripts/
+#32 DONE 0.1s
+
+#33 [runtime 13/13] COPY --from=builder /app/scripts/crowdsource-backend-cutover-postgres.mjs scripts/
+#33 DONE 0.1s
+
+#34 exporting to image
+#34 exporting layers
+#34 exporting layers 0.6s done
+#34 writing image sha256:4d2b180aabeb0ac235de18f38135647d33daf1160dfa3683b3686f0263f559d1 done
+#34 naming to docker.io/library/oxy1519-crowd-registry-audit:20261004 done
+#34 DONE 0.6s

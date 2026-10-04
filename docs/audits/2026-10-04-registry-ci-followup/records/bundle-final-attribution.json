@@ -1,0 +1,109 @@
+{
+  "baselineSource": "63b9f49eeab8b96ce1ac4cfec1f5b6768f3f4ae7",
+  "metrics": {
+    "totalBytes": {
+      "before": 8894172,
+      "after": 8955862,
+      "delta": 61690
+    },
+    "javascriptBytes": {
+      "before": 7702055,
+      "after": 7763745,
+      "delta": 61690
+    },
+    "javascriptGzipBytes": {
+      "before": 1968039,
+      "after": 1982782,
+      "delta": 14743
+    },
+    "javascriptBrotliBytes": {
+      "before": 1581679,
+      "after": 1592437,
+      "delta": 10758
+    },
+    "initialJavascriptBytes": {
+      "before": 5198516,
+      "after": 5260206,
+      "delta": 61690
+    },
+    "initialJavascriptGzipBytes": {
+      "before": 1277459,
+      "after": 1292202,
+      "delta": 14743
+    },
+    "initialJavascriptBrotliBytes": {
+      "before": 995567,
+      "after": 1006325,
+      "delta": 10758
+    },
+    "fontBytes": {
+      "before": 705496,
+      "after": 705496,
+      "delta": 0
+    },
+    "largestFileBytes": {
+      "before": 4082227,
+      "after": 4143917,
+      "delta": 61690
+    }
+  },
+  "sdkIsolatedGzip": [
+    {
+      "source": "@oxy.so/bloom",
+      "files": 523,
+      "sourceBytes": 3303302,
+      "isolatedGzipBytes": 1175430,
+      "isolatedBrotliBytes": 986038,
+      "beforeIsolatedGzip": 1175186,
+      "deltaIsolatedGzip": 244
+    },
+    {
+      "source": "@oxy.so/services",
+      "files": 219,
+      "sourceBytes": 1440990,
+      "isolatedGzipBytes": 460399,
+      "isolatedBrotliBytes": 387926,
+      "beforeIsolatedGzip": 455171,
+      "deltaIsolatedGzip": 5228
+    },
+    {
+      "source": "@oxy.so/core",
+      "files": 113,
+      "sourceBytes": 1295641,
+      "isolatedGzipBytes": 381221,
+      "isolatedBrotliBytes": 317126,
+      "beforeIsolatedGzip": 375004,
+      "deltaIsolatedGzip": 6217
+    },
+    {
+      "source": "@oxy.so/contracts",
+      "files": 73,
+      "sourceBytes": 754351,
+      "isolatedGzipBytes": 225210,
+      "isolatedBrotliBytes": 187240,
+      "beforeIsolatedGzip": 204228,
+      "deltaIsolatedGzip": 20982
+    },
+    {
+      "source": "@oxy.so/protocol",
+      "files": 18,
+      "sourceBytes": 63296,
+      "isolatedGzipBytes": 25623,
+      "isolatedBrotliBytes": 20899,
+      "beforeIsolatedGzip": 25623,
+      "deltaIsolatedGzip": 0
+    },
+    {
+      "source": "@oxy.so/telemetry",
+      "files": 2,
+      "sourceBytes": 5118,
+      "isolatedGzipBytes": 1725,
+      "isolatedBrotliBytes": 1496,
+      "beforeIsolatedGzip": 1725,
+      "deltaIsolatedGzip": 0
+    }
+  ],
+  "limits": [
+    "Isolated gzip attribution is not additive to bundle gzip. No package safety inference."
+  ]
+}

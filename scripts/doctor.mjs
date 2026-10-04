@@ -11,7 +11,7 @@ const expectedNodeVersion = "22.17.0";
 // The Bloom release the whole workspace is pinned to — manifest range, root
 // override and installed copy must all agree on it. Bump this ONE constant when
 // taking a new Bloom.
-const expectedBloomVersion = "6.2.0";
+const expectedBloomVersion = "6.2.1";
 const failures = [];
 
 if (!expectedBunVersion) {
@@ -55,11 +55,11 @@ if (!String(installedExpo.version || "").startsWith("56.")) {
   failures.push(`Installed Expo must be version 56.x (found ${String(installedExpo.version)}).`);
 }
 if (
-  rootManifest.overrides?.["@oxy.so/bloom"] !== `^${expectedBloomVersion}` ||
+  rootManifest.overrides?.["@oxy.so/bloom"] !== expectedBloomVersion ||
   installedBloom.version !== expectedBloomVersion
 ) {
   failures.push(
-    `Bloom must stay aligned at override ^${expectedBloomVersion} and installed ${expectedBloomVersion} ` +
+    `Bloom must stay aligned at override ${expectedBloomVersion} and installed ${expectedBloomVersion} ` +
       `(found ${String(rootManifest.overrides?.["@oxy.so/bloom"])}, ${String(installedBloom.version)}).`,
   );
 }
@@ -86,9 +86,9 @@ for (const appName of ["reviewer", "console"]) {
       `The ${appName} app must target React Native 0.85.3 (found ${String(manifest.dependencies?.["react-native"])}).`,
     );
   }
-  if (manifest.dependencies?.["@oxy.so/bloom"] !== `^${expectedBloomVersion}`) {
+  if (manifest.dependencies?.["@oxy.so/bloom"] !== expectedBloomVersion) {
     failures.push(
-      `The ${appName} app must declare Bloom ^${expectedBloomVersion} ` +
+      `The ${appName} app must declare Bloom ${expectedBloomVersion} ` +
         `(found ${String(manifest.dependencies?.["@oxy.so/bloom"])}).`,
     );
   }

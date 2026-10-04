@@ -1,0 +1,21 @@
+31 |   for (const change of [
+32 |     { head_sha: 'b'.repeat(40) }, { conclusion: 'failure' }, { event: 'pull_request' },
+33 |     { head_repository: { full_name: 'other/repo' } }, { head_branch: 'feature' },
+34 |   ]) assert.equal(admits({ ...github, event: { workflow_run: { ...github.event.workflow_run, ...change } } }), false);
+35 |   assert.equal(admits({ ...github, event_name: 'workflow_dispatch' }), true);
+36 |   assert.equal(admits({ ...github, event_name: 'workflow_dispatch', ref: 'refs/heads/feature' }), false);
+              ^
+AssertionError: Expected values to be strictly equal:
+
+true !== false
+
+ generatedMessage: true,
+     actual: true,
+   expected: false,
+   operator: "strictEqual",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at validate (/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/scripts/test-manual-frontend-checkout.mjs:36:10)
+
+Bun v1.4.2 (Linux x64)

@@ -1,0 +1,66 @@
+{
+  "base": "0a3fdd55cefacdef6fbe6dc063eb779ad8e483ea",
+  "scope": "Inactive correction; no audit-policy activation, SDK edits, installs or deployment",
+  "sources": [
+    {
+      "path": "scripts/security-tooling-exceptions.mjs",
+      "sha256": "a0c0a7dd5d2cf5a6ac18bd899e684ea3ae47536e242c5250a4420db49b29ffee"
+    },
+    {
+      "path": "scripts/test-security-tooling-exceptions.mjs",
+      "sha256": "1695615f1ee5ccb4893df203a5b6d0347e9d154e57c628384919970999db59b8"
+    },
+    {
+      "path": "scripts/test-security-tooling-exceptions-adversarial.mjs",
+      "sha256": "755b757b35c4fd12498ab0e06301b9f5b989287b52dad1ab0198d5d581f840f9"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-peer-root/policy.json",
+      "sha256": "28934bd225dcf1a985faff675c4c8bf0555f54c36b5373394e59f4e1d879e509"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-peer-root/census.json",
+      "sha256": "5d487c8c47ff7b3be69a05d749423de656a191c1c5bbb41d9e03582f4c8ddc9f"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-peer-root/README.md",
+      "sha256": "727d4e8970a37144d192944fa7dff1608f5b5b2f1d6f571e32b0a6e53b0c1981"
+    }
+  ],
+  "records": [
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-peer-root/green.log",
+      "sha256": "302e99019d420401d951925f31130770ae9a2372997c757f32dc66a8fcd52c9e"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-peer-root/red.log",
+      "sha256": "c1cb992b0bfa7233c1b1a549ce62f6135d7a0bcdf812a6007b7755e99e63ae56"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-peer-root/regression-before-expectation-update.log",
+      "sha256": "bf53cc0cbc24ef4444e401c61b27c90d4bcc1fa79568911291bc3a9141170164"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-exception-peer-root/regression.log",
+      "sha256": "421c662508f24a86a78602a52bf55bdfdaec639525ebf378c98e35a6b91357ca"
+    }
+  ],
+  "preservedInputs": [
+    {
+      "commit": "0a3fdd55cefacdef6fbe6dc063eb779ad8e483ea",
+      "path": "docs/audits/2026-10-04-tooling-exception-candidate/proof.json",
+      "sha256": "c768429450682c67999e818c648f44ded9a652d01d61b5093c092287938b81be"
+    }
+  ],
+  "results": {
+    "sameAdversarialFixture": "1 pass/5 failures against old helper, then6 pass/0 failures",
+    "regressions": "21 pass after making resolved peer version drift refuse; intermediate old expectation failure retained",
+    "peerDeclarations": 531,
+    "unresolvedPeersExplicitlyNull": 80
+  },
+  "pending": [
+    "Root review",
+    "Registry-final graph review and explicit activation",
+    "Actual final export and backend image receipts"
+  ]
+}

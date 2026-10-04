@@ -1,0 +1,15 @@
+[
+  {
+    "name": "check-0",
+    "cwd": "packages/backend",
+    "argv": [
+      "bun",
+      "run",
+      "test",
+      "-t",
+      "validates receiver identity and revocation in an isolated loopback process"
+    ],
+    "exitCode": 1,
+    "seconds": 0.916
+  }
+]

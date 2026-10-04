@@ -1,0 +1,141 @@
+{
+  "repository": "CrowdSource",
+  "sourceCommit": "8432afc19d496f5216d893bc1d709b4900ccf376",
+  "mainFrontendTree": "91f99c7268b2c4c1abd68321441339c280892ef6",
+  "runtimeSourceChanged": false,
+  "records": [
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/logs/i04-crowdsource-console-candidate-export.log",
+      "bytes": 10087,
+      "sha256": "892597f9444842fb3e090c11355e5f2796beee4a405e1952d1f3041e14ce534f"
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/logs/i04-crowdsource-console-candidate-tests.log",
+      "bytes": 826,
+      "sha256": "df782e2b36284f5147b2e5f2ede0df5ee5d568ece9e861ca72399b47805d7081"
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/logs/i04-crowdsource-console-candidate-types.log",
+      "bytes": 15,
+      "sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/logs/i04-crowdsource-frontend-candidate-install.log",
+      "bytes": 139,
+      "sha256": "9ac0f2c6173742c325a25085ed50824549634c3ecb588df0c133a7907578664a"
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/logs/i04-crowdsource-reviewer-candidate-export.log",
+      "bytes": 10019,
+      "sha256": "d4bf63f545317d8c4c69f79f48c97bc115a34f20307ed6490103fb939df08249"
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/logs/i04-crowdsource-reviewer-candidate-tests.log",
+      "bytes": 2154,
+      "sha256": "32efdae3fe3fe89b48a9fe938c0aab91cb3c4b589c4a82c2319ff4ebbc0c2757"
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/logs/i04-crowdsource-reviewer-candidate-types.log",
+      "bytes": 15,
+      "sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/inputs/package.json",
+      "bytes": 6262,
+      "sha256": "ce3a1032ca3b720f5576815ca9429c70579cf335d16534e668c3a55d3420750a"
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/inputs/bun.lock",
+      "bytes": 462848,
+      "sha256": "9b404d3a216dd2f9b0c01a067a489344a564fdfdfa334bb22f19c3ea64a33d06"
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/inputs/packages/reviewer/package.json",
+      "bytes": 4355,
+      "sha256": "a6ded1262f620128cd1763b8f1b9fca50548927faee721ac52d9ba14679d09cc"
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-frontend/inputs/packages/console/package.json",
+      "bytes": 3505,
+      "sha256": "cd34ac694344ee2ac27a76746397ee68a4b849a3ee7a9956d8e7bebe2d27a8cb"
+    }
+  ],
+  "installed": [
+    {
+      "name": "@oxy.so/contracts",
+      "version": "4.9.0",
+      "path": "/home/nate/Oxy/.agent-evidence/i04-consumer-frozen-1b-packs/oxy.so-contracts-4.9.0.tgz",
+      "source": "1b50557ccfe28b382f5b219405a616b332036d42",
+      "sourceTree": "6ff8352ea7920065590dceda3fff3ca420b94b69",
+      "sha256": "6b1e6a8da92341871d2832834ad063df1a1e84a46dc367786599fdd26be6e635",
+      "published": false,
+      "resolved": "/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/node_modules/@oxy.so/contracts",
+      "filesByteEqual": 198,
+      "importers": [
+        "packages/reviewer",
+        "packages/console"
+      ]
+    },
+    {
+      "name": "@oxy.so/protocol",
+      "version": "1.2.2",
+      "path": "/home/nate/Oxy/.agent-evidence/i04-consumer-frozen-1b-packs/oxy.so-protocol-1.2.2.tgz",
+      "source": "1b50557ccfe28b382f5b219405a616b332036d42",
+      "sourceTree": "77ed4e428f59cff076fd44daf42e18a1b39f7fdb",
+      "sha256": "325b20125f1cf5159c36ca7a75f32c83a4560cf41c55526828b1718595acc843",
+      "published": false,
+      "resolved": "/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/node_modules/@oxy.so/protocol",
+      "filesByteEqual": 145,
+      "importers": [
+        "packages/reviewer",
+        "packages/console"
+      ]
+    },
+    {
+      "name": "@oxy.so/core",
+      "version": "4.2.0",
+      "path": "/home/nate/Oxy/.agent-evidence/i04-consumer-frozen-1b-packs/oxy.so-core-4.2.0.tgz",
+      "source": "1b50557ccfe28b382f5b219405a616b332036d42",
+      "sourceTree": "3937031b8c95a6b8feff65720905de1ad651689d",
+      "sha256": "83059583068cf96d8dc7e4335fe226126cb795f7c6cfba469f8cec4ef9c6a385",
+      "published": false,
+      "resolved": "/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/node_modules/@oxy.so/core",
+      "filesByteEqual": 581,
+      "importers": [
+        "packages/reviewer",
+        "packages/console"
+      ]
+    },
+    {
+      "name": "@oxy.so/services",
+      "version": "11.1.0",
+      "path": "/home/nate/Oxy/.agent-evidence/i04-consumer-frozen-1b-packs/oxy.so-services-11.1.0.tgz",
+      "source": "1b50557ccfe28b382f5b219405a616b332036d42",
+      "sourceTree": "9f0c5e719c8bcea54faefb37580713eb14bacf9f",
+      "sha256": "b8d232cb04d934ac38c8be303dbbcf9819d444bec8458628c8478cbbf2155c9c",
+      "published": false,
+      "resolved": "/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/node_modules/@oxy.so/services",
+      "filesByteEqual": 2418,
+      "importers": [
+        "packages/reviewer",
+        "packages/console"
+      ]
+    },
+    {
+      "name": "@oxy.so/bloom",
+      "version": "6.2.1",
+      "path": "/home/nate/Oxy/.agent-evidence/root-1519-20261003/bloom621-publication/oxy-so-bloom-6.2.1.tgz",
+      "sha256": "edf4cfe3d8597e4bf86f997bceacf332f7fce4a8f92c541b3cd375decbce3a0a",
+      "published": true,
+      "resolved": "/home/nate/Oxy/CrowdSource/.worktrees/1519-final-sdk-adoption-20261003/node_modules/@oxy.so/bloom",
+      "filesByteEqual": 20940,
+      "importers": [
+        "packages/reviewer",
+        "packages/console"
+      ]
+    }
+  ],
+  "oxyRegistryAdopted": false
+}

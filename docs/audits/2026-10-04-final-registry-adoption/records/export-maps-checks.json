@@ -1,0 +1,26 @@
+[
+  {
+    "name": "reviewer-analyze",
+    "cwd": "packages/reviewer",
+    "argv": [
+      "bun",
+      "run",
+      "build:analyze"
+    ],
+    "exitCode": 0,
+    "seconds": 3.423
+  },
+  {
+    "name": "console-analyze",
+    "cwd": "packages/console",
+    "argv": [
+      "bun",
+      "run",
+      "build",
+      "--source-maps",
+      "external"
+    ],
+    "exitCode": 0,
+    "seconds": 3.322
+  }
+]

@@ -1,0 +1,7 @@
+bun install v1.4.2 (744846f84)
+
+$ bun run build:contracts
+$ bun run --cwd packages/contracts build
+$ tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs
+
+Checked 1643 installs across 1405 packages (no changes) [1.80s]
