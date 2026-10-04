@@ -1,0 +1,104 @@
+[
+    {
+        "Id": "sha256:4d2b180aabeb0ac235de18f38135647d33daf1160dfa3683b3686f0263f559d1",
+        "RepoTags": [
+            "oxy1519-crowd-registry-audit:20261004"
+        ],
+        "RepoDigests": [],
+        "Parent": "",
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-10-04T05:07:05.290552539+03:00",
+        "DockerVersion": "",
+        "Author": "",
+        "Config": {
+            "Hostname": "",
+            "Domainname": "",
+            "User": "appuser",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "3000/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bun-node-fallback-bin",
+                "BUN_RUNTIME_TRANSPILER_CACHE_PATH=0",
+                "BUN_INSTALL_BIN=/usr/local/bin",
+                "NODE_ENV=production"
+            ],
+            "Cmd": [
+                "bun",
+                "packages/backend/dist/server.js"
+            ],
+            "Healthcheck": {
+                "Test": [
+                    "CMD-SHELL",
+                    "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/health/ready || exit 1"
+                ],
+                "Interval": 30000000000,
+                "Timeout": 5000000000,
+                "StartPeriod": 30000000000,
+                "Retries": 3
+            },
+            "ArgsEscaped": true,
+            "Image": "",
+            "Volumes": null,
+            "WorkingDir": "/app",
+            "Entrypoint": [
+                "/usr/local/bin/docker-entrypoint.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "org.opencontainers.image.created": "2026-09-05T05:58:34.280Z",
+                "org.opencontainers.image.description": "Incredibly fast JavaScript runtime, bundler, test runner, and package manager – all in one",
+                "org.opencontainers.image.licenses": "NOASSERTION",
+                "org.opencontainers.image.revision": "744846f844374847c902b5e7fd59b4342a51ef99",
+                "org.opencontainers.image.source": "https://github.com/oven-sh/bun",
+                "org.opencontainers.image.title": "bun",
+                "org.opencontainers.image.url": "https://github.com/oven-sh/bun",
+                "org.opencontainers.image.version": "1.4.2-alpine"
+            }
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 147695974,
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/rn3v9sdzis9ifau0sbr1l4sly/diff:/var/lib/docker/overlay2/r956iouolhvulpuz4ukpy6q8n/diff:/var/lib/docker/overlay2/8ozas3lbypvb7evdc21cpy154/diff:/var/lib/docker/overlay2/5cbykgdw6pjl5juhcvfs06e69/diff:/var/lib/docker/overlay2/f4mtjffzpnpm232f2tee9zyen/diff:/var/lib/docker/overlay2/i0ohnp7cqckc5es6md2zo71cc/diff:/var/lib/docker/overlay2/decyp45pkpuy00sulsrqa16ia/diff:/var/lib/docker/overlay2/i8awbddkz19d477r5xnid7aus/diff:/var/lib/docker/overlay2/b9cvbq9j4wkf3swrdz9sgezs2/diff:/var/lib/docker/overlay2/ds0l3dfcgteb715mlct1pp6ad/diff:/var/lib/docker/overlay2/lc3mg7n3kkel66pmj3jmw1hbf/diff:/var/lib/docker/overlay2/b8a2f8ba8c804b56e9124d94033a39b8d813708e0ea9fa59762b2a25841d8c00/diff:/var/lib/docker/overlay2/8b9258ee7dd0fb206cd209e00837fb1cd17f837a1dd1e4f1eb38e8df9df9e086/diff:/var/lib/docker/overlay2/d9cc13f1c91717bf67dc2532bdb1f976130296090066333146608357888956f7/diff:/var/lib/docker/overlay2/915bab6b3cc102f856db634bf4b384b0dca560d50d330671b5ee70e5b79e2570/diff:/var/lib/docker/overlay2/5a24e020a8434c843ebf7ba2c5f4b8e1bb773878d6e16d2faca6989c6e363ebf/diff:/var/lib/docker/overlay2/8eedc664b7ffa8407afaadfb87e1fab9748632ee47a28c4e4369f7d34081a995/diff",
+                "MergedDir": "/var/lib/docker/overlay2/3yyuo50s5ssaqm7muuc2jkios/merged",
+                "UpperDir": "/var/lib/docker/overlay2/3yyuo50s5ssaqm7muuc2jkios/diff",
+                "WorkDir": "/var/lib/docker/overlay2/3yyuo50s5ssaqm7muuc2jkios/work"
+            },
+            "Name": "overlay2"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:6f09edfb3f6d7173733adc8eec8ea00626550dc6fc2dcf07d40e13f5c1e907c4",
+                "sha256:ccd576cb7fc138dafc3dd1cff9be6d40b0c0ac3bf8aac03a54f816bd2fa9d3b3",
+                "sha256:8fc9e1544a17155221cac52d255be50d8c21a90e1d19f627d635cc476bb10d61",
+                "sha256:425d22c2a778f3c28724bc709546893f08299bb0f4d91ec7503d1549a3c5183b",
+                "sha256:14999a382c4613a7c3f324f4f5d6ee94604068cf789ad0e85d5e8a05875c4095",
+                "sha256:4dee3536a13685ea440918645b3f038431df1f3414fd5aec65e182d77df204e1",
+                "sha256:2c2c628f42c5e9c77177c56dca1cca6d7144f2aa2a8f84be205b87c944f065c7",
+                "sha256:be048e94141a81c8f1f4fa4d92934bf856307d6442f92a8d6eb2412783aa863d",
+                "sha256:dec07ccef86f4750eee63a10cb7f346cd5f57ddc4adcd8b8cc308c4ee0d76d57",
+                "sha256:722a09649072a51f6d5174c37d22b0403254c70fadd0b3acfd039d68aef3d7dd",
+                "sha256:30c478dcd2bb4dce728a4438ed568f55efcc7cafee1ad0ac38ccdc3e2d916235",
+                "sha256:336f83a303626ffe4dfb7ae3039a1e2b0f3d9f95e78c64271bf0912729ea56e7",
+                "sha256:77a736f099ec1a55bb85b6c080bac24c3a767041f73b28c551645eba80623544",
+                "sha256:1ff27fae1af8bebba2ed7c77e19943a233261231bd491584178e1ec190df4b1d",
+                "sha256:174bea40c2e407e5118e8503b379c7477f7243ae5c8bc3123d194271025081e7",
+                "sha256:1ed44358662ecfe5e906307783f042ae950b6b8ec93464c9ed4c89a0a7aac4ff",
+                "sha256:c19696aa88899512b83c466c9a111c92d6f8e2ad3fe40fbb95dc134b36432763",
+                "sha256:472fb201615855326af4c5a7c337ae4c968acd355e1abe111ca231f6d361e12a"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-10-04T05:07:05.882121007+03:00"
+        }
+    }
+]

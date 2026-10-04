@@ -1,0 +1,744 @@
+{
+  "uid": 1001,
+  "packages": [
+    {
+      "path": "/app/node_modules/on-headers/package.json",
+      "name": "on-headers",
+      "version": "1.1.0"
+    },
+    {
+      "path": "/app/node_modules/@pinojs/redact/package.json",
+      "name": "@pinojs/redact",
+      "version": "0.4.0"
+    },
+    {
+      "path": "/app/node_modules/invariant/package.json",
+      "name": "invariant",
+      "version": "2.2.4"
+    },
+    {
+      "path": "/app/node_modules/dunder-proto/package.json",
+      "name": "dunder-proto",
+      "version": "1.0.1"
+    },
+    {
+      "path": "/app/node_modules/content-disposition/package.json",
+      "name": "content-disposition",
+      "version": "1.1.0"
+    },
+    {
+      "path": "/app/node_modules/@socket.io/component-emitter/package.json",
+      "name": "@socket.io/component-emitter",
+      "version": "3.1.2"
+    },
+    {
+      "path": "/app/node_modules/@socket.io/component-emitter/lib/esm/package.json",
+      "name": "@socket.io/component-emitter"
+    },
+    {
+      "path": "/app/node_modules/@socket.io/component-emitter/lib/cjs/package.json",
+      "name": "@socket.io/component-emitter"
+    },
+    {
+      "path": "/app/node_modules/mime-types/package.json",
+      "name": "mime-types",
+      "version": "3.0.2"
+    },
+    {
+      "path": "/app/node_modules/debug/package.json",
+      "name": "debug",
+      "version": "2.6.9"
+    },
+    {
+      "path": "/app/node_modules/mime-db/package.json",
+      "name": "mime-db",
+      "version": "1.54.0"
+    },
+    {
+      "path": "/app/node_modules/escape-html/package.json",
+      "name": "escape-html",
+      "version": "1.0.3"
+    },
+    {
+      "path": "/app/node_modules/tldts/package.json",
+      "name": "tldts",
+      "version": "7.4.11"
+    },
+    {
+      "path": "/app/node_modules/ip-address/package.json",
+      "name": "ip-address",
+      "version": "10.5.0"
+    },
+    {
+      "path": "/app/node_modules/toidentifier/package.json",
+      "name": "toidentifier",
+      "version": "1.0.1"
+    },
+    {
+      "path": "/app/node_modules/setprototypeof/package.json",
+      "name": "setprototypeof",
+      "version": "1.2.0"
+    },
+    {
+      "path": "/app/node_modules/negotiator/package.json",
+      "name": "negotiator",
+      "version": "0.6.4"
+    },
+    {
+      "path": "/app/node_modules/engine.io-client/package.json",
+      "name": "engine.io-client",
+      "version": "6.6.6"
+    },
+    {
+      "path": "/app/node_modules/engine.io-client/build/esm/package.json",
+      "name": "engine.io-client"
+    },
+    {
+      "path": "/app/node_modules/engine.io-client/build/cjs/package.json",
+      "name": "engine.io-client"
+    },
+    {
+      "path": "/app/node_modules/engine.io-client/build/esm-debug/package.json",
+      "name": "engine.io-client"
+    },
+    {
+      "path": "/app/node_modules/engine.io-client/node_modules/debug/package.json",
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    {
+      "path": "/app/node_modules/engine.io-client/node_modules/debug/node_modules/ms/package.json",
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    {
+      "path": "/app/node_modules/pino-abstract-transport/package.json",
+      "name": "pino-abstract-transport",
+      "version": "3.0.0"
+    },
+    {
+      "path": "/app/node_modules/finalhandler/package.json",
+      "name": "finalhandler",
+      "version": "2.1.1"
+    },
+    {
+      "path": "/app/node_modules/finalhandler/node_modules/debug/package.json",
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    {
+      "path": "/app/node_modules/finalhandler/node_modules/debug/node_modules/ms/package.json",
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    {
+      "path": "/app/node_modules/safe-buffer/package.json",
+      "name": "safe-buffer",
+      "version": "5.2.1"
+    },
+    {
+      "path": "/app/node_modules/pino-std-serializers/package.json",
+      "name": "pino-std-serializers",
+      "version": "7.1.0"
+    },
+    {
+      "path": "/app/node_modules/es-define-property/package.json",
+      "name": "es-define-property",
+      "version": "1.0.1"
+    },
+    {
+      "path": "/app/node_modules/on-exit-leak-free/package.json",
+      "name": "on-exit-leak-free",
+      "version": "2.1.2"
+    },
+    {
+      "path": "/app/node_modules/serve-static/package.json",
+      "name": "serve-static",
+      "version": "2.2.1"
+    },
+    {
+      "path": "/app/node_modules/buffer/package.json",
+      "name": "buffer",
+      "version": "6.0.3"
+    },
+    {
+      "path": "/app/node_modules/jwt-decode/package.json",
+      "name": "jwt-decode",
+      "version": "4.0.0"
+    },
+    {
+      "path": "/app/node_modules/engine.io-parser/package.json",
+      "name": "engine.io-parser",
+      "version": "5.2.3"
+    },
+    {
+      "path": "/app/node_modules/engine.io-parser/build/esm/package.json",
+      "name": "engine.io-parser"
+    },
+    {
+      "path": "/app/node_modules/engine.io-parser/build/cjs/package.json",
+      "name": "engine.io-parser"
+    },
+    {
+      "path": "/app/node_modules/zod/package.json",
+      "name": "zod",
+      "version": "4.6.5"
+    },
+    {
+      "path": "/app/node_modules/type-is/package.json",
+      "name": "type-is",
+      "version": "2.1.0"
+    },
+    {
+      "path": "/app/node_modules/type-is/node_modules/content-type/package.json",
+      "name": "content-type",
+      "version": "2.0.0"
+    },
+    {
+      "path": "/app/node_modules/encodeurl/package.json",
+      "name": "encodeurl",
+      "version": "2.0.0"
+    },
+    {
+      "path": "/app/node_modules/base64-js/package.json",
+      "name": "base64-js",
+      "version": "1.5.1"
+    },
+    {
+      "path": "/app/node_modules/has-symbols/package.json",
+      "name": "has-symbols",
+      "version": "1.1.0"
+    },
+    {
+      "path": "/app/node_modules/hasown/package.json",
+      "name": "hasown",
+      "version": "2.0.4"
+    },
+    {
+      "path": "/app/node_modules/quick-format-unescaped/package.json",
+      "name": "quick-format-unescaped",
+      "version": "4.0.4"
+    },
+    {
+      "path": "/app/node_modules/fresh/package.json",
+      "name": "fresh",
+      "version": "2.0.0"
+    },
+    {
+      "path": "/app/node_modules/raw-body/package.json",
+      "name": "raw-body",
+      "version": "3.0.2"
+    },
+    {
+      "path": "/app/node_modules/safer-buffer/package.json",
+      "name": "safer-buffer",
+      "version": "2.1.2"
+    },
+    {
+      "path": "/app/node_modules/postgres/package.json",
+      "name": "postgres",
+      "version": "3.4.9"
+    },
+    {
+      "path": "/app/node_modules/forwarded/package.json",
+      "name": "forwarded",
+      "version": "0.2.0"
+    },
+    {
+      "path": "/app/node_modules/router/package.json",
+      "name": "router",
+      "version": "2.2.0"
+    },
+    {
+      "path": "/app/node_modules/router/node_modules/debug/package.json",
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    {
+      "path": "/app/node_modules/router/node_modules/debug/node_modules/ms/package.json",
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    {
+      "path": "/app/node_modules/pino/package.json",
+      "name": "pino",
+      "version": "10.3.1"
+    },
+    {
+      "path": "/app/node_modules/pino/test/fixtures/transport/package.json",
+      "name": "transport",
+      "version": "0.0.1"
+    },
+    {
+      "path": "/app/node_modules/real-require/package.json",
+      "name": "real-require",
+      "version": "0.2.0"
+    },
+    {
+      "path": "/app/node_modules/compressible/package.json",
+      "name": "compressible",
+      "version": "2.0.18"
+    },
+    {
+      "path": "/app/node_modules/atomic-sleep/package.json",
+      "name": "atomic-sleep",
+      "version": "1.0.0"
+    },
+    {
+      "path": "/app/node_modules/express/package.json",
+      "name": "express",
+      "version": "5.2.1"
+    },
+    {
+      "path": "/app/node_modules/express/node_modules/debug/package.json",
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    {
+      "path": "/app/node_modules/express/node_modules/debug/node_modules/ms/package.json",
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    {
+      "path": "/app/node_modules/on-finished/package.json",
+      "name": "on-finished",
+      "version": "2.4.1"
+    },
+    {
+      "path": "/app/node_modules/xmlhttprequest-ssl/package.json",
+      "name": "xmlhttprequest-ssl",
+      "version": "2.1.2"
+    },
+    {
+      "path": "/app/node_modules/inherits/package.json",
+      "name": "inherits",
+      "version": "2.0.4"
+    },
+    {
+      "path": "/app/node_modules/js-tokens/package.json",
+      "name": "js-tokens",
+      "version": "4.0.0"
+    },
+    {
+      "path": "/app/node_modules/split2/package.json",
+      "name": "split2",
+      "version": "4.2.0"
+    },
+    {
+      "path": "/app/node_modules/es-errors/package.json",
+      "name": "es-errors",
+      "version": "1.3.0"
+    },
+    {
+      "path": "/app/node_modules/ieee754/package.json",
+      "name": "ieee754",
+      "version": "1.2.1"
+    },
+    {
+      "path": "/app/node_modules/side-channel-weakmap/package.json",
+      "name": "side-channel-weakmap",
+      "version": "1.0.2"
+    },
+    {
+      "path": "/app/node_modules/wrappy/package.json",
+      "name": "wrappy",
+      "version": "1.0.2"
+    },
+    {
+      "path": "/app/node_modules/merge-descriptors/package.json",
+      "name": "merge-descriptors",
+      "version": "2.0.0"
+    },
+    {
+      "path": "/app/node_modules/statuses/package.json",
+      "name": "statuses",
+      "version": "2.0.2"
+    },
+    {
+      "path": "/app/node_modules/ws/package.json",
+      "name": "ws",
+      "version": "8.21.0"
+    },
+    {
+      "path": "/app/node_modules/function-bind/package.json",
+      "name": "function-bind",
+      "version": "1.1.2"
+    },
+    {
+      "path": "/app/node_modules/is-promise/package.json",
+      "name": "is-promise",
+      "version": "4.0.0"
+    },
+    {
+      "path": "/app/node_modules/ee-first/package.json",
+      "name": "ee-first",
+      "version": "1.1.1"
+    },
+    {
+      "path": "/app/node_modules/etag/package.json",
+      "name": "etag",
+      "version": "1.8.1"
+    },
+    {
+      "path": "/app/node_modules/loose-envify/package.json",
+      "name": "loose-envify",
+      "version": "1.4.0"
+    },
+    {
+      "path": "/app/node_modules/media-typer/package.json",
+      "name": "media-typer",
+      "version": "1.1.0"
+    },
+    {
+      "path": "/app/node_modules/@oxy.so/telemetry/package.json",
+      "name": "@oxy.so/telemetry",
+      "version": "1.2.0"
+    },
+    {
+      "path": "/app/node_modules/@oxy.so/protocol/package.json",
+      "name": "@oxy.so/protocol",
+      "version": "1.2.2"
+    },
+    {
+      "path": "/app/node_modules/@oxy.so/protocol/node_modules/zod/package.json",
+      "name": "zod",
+      "version": "3.25.76"
+    },
+    {
+      "path": "/app/node_modules/@oxy.so/db/package.json",
+      "name": "@oxy.so/db",
+      "version": "1.0.0"
+    },
+    {
+      "path": "/app/node_modules/@oxy.so/contracts/package.json",
+      "name": "@oxy.so/contracts",
+      "version": "4.9.0"
+    },
+    {
+      "path": "/app/node_modules/@oxy.so/contracts/node_modules/zod/package.json",
+      "name": "zod",
+      "version": "3.25.76"
+    },
+    {
+      "path": "/app/node_modules/@oxy.so/core/package.json",
+      "name": "@oxy.so/core",
+      "version": "4.2.0"
+    },
+    {
+      "path": "/app/node_modules/@oxy.so/core/node_modules/zod/package.json",
+      "name": "zod",
+      "version": "3.25.76"
+    },
+    {
+      "path": "/app/node_modules/socket.io-client/package.json",
+      "name": "socket.io-client",
+      "version": "4.8.3"
+    },
+    {
+      "path": "/app/node_modules/socket.io-client/build/esm/package.json",
+      "name": "socket.io-client",
+      "version": "4.8.3"
+    },
+    {
+      "path": "/app/node_modules/socket.io-client/build/esm-debug/package.json",
+      "name": "socket.io-client",
+      "version": "4.8.3"
+    },
+    {
+      "path": "/app/node_modules/socket.io-client/node_modules/debug/package.json",
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    {
+      "path": "/app/node_modules/socket.io-client/node_modules/debug/node_modules/ms/package.json",
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    {
+      "path": "/app/node_modules/es-object-atoms/package.json",
+      "name": "es-object-atoms",
+      "version": "1.1.2"
+    },
+    {
+      "path": "/app/node_modules/thread-stream/package.json",
+      "name": "thread-stream",
+      "version": "4.2.0"
+    },
+    {
+      "path": "/app/node_modules/thread-stream/node_modules/real-require/package.json",
+      "name": "real-require",
+      "version": "1.0.0"
+    },
+    {
+      "path": "/app/node_modules/qs/package.json",
+      "name": "qs",
+      "version": "6.15.3"
+    },
+    {
+      "path": "/app/node_modules/safe-stable-stringify/package.json",
+      "name": "safe-stable-stringify",
+      "version": "2.5.0"
+    },
+    {
+      "path": "/app/node_modules/ipaddr.js/package.json",
+      "name": "ipaddr.js",
+      "version": "1.9.1"
+    },
+    {
+      "path": "/app/node_modules/gopd/package.json",
+      "name": "gopd",
+      "version": "1.2.0"
+    },
+    {
+      "path": "/app/node_modules/process-warning/package.json",
+      "name": "process-warning",
+      "version": "5.0.0"
+    },
+    {
+      "path": "/app/node_modules/vary/package.json",
+      "name": "vary",
+      "version": "1.1.2"
+    },
+    {
+      "path": "/app/node_modules/iconv-lite/package.json",
+      "name": "iconv-lite",
+      "version": "0.7.2"
+    },
+    {
+      "path": "/app/node_modules/depd/package.json",
+      "name": "depd",
+      "version": "2.0.0"
+    },
+    {
+      "path": "/app/node_modules/@scure/base/package.json",
+      "name": "@scure/base",
+      "version": "1.2.6"
+    },
+    {
+      "path": "/app/node_modules/@scure/bip39/package.json",
+      "name": "@scure/bip39",
+      "version": "1.6.0"
+    },
+    {
+      "path": "/app/node_modules/get-intrinsic/package.json",
+      "name": "get-intrinsic",
+      "version": "1.3.0"
+    },
+    {
+      "path": "/app/node_modules/@noble/ciphers/package.json",
+      "name": "@noble/ciphers",
+      "version": "1.3.0"
+    },
+    {
+      "path": "/app/node_modules/@noble/hashes/package.json",
+      "name": "@noble/hashes",
+      "version": "1.8.0"
+    },
+    {
+      "path": "/app/node_modules/@noble/curves/package.json",
+      "name": "@noble/curves",
+      "version": "1.9.7"
+    },
+    {
+      "path": "/app/node_modules/side-channel/package.json",
+      "name": "side-channel",
+      "version": "1.1.1"
+    },
+    {
+      "path": "/app/node_modules/object-inspect/package.json",
+      "name": "object-inspect",
+      "version": "1.13.4"
+    },
+    {
+      "path": "/app/node_modules/http-errors/package.json",
+      "name": "http-errors",
+      "version": "2.0.1"
+    },
+    {
+      "path": "/app/node_modules/content-type/package.json",
+      "name": "content-type",
+      "version": "1.0.5"
+    },
+    {
+      "path": "/app/node_modules/side-channel-list/package.json",
+      "name": "side-channel-list",
+      "version": "1.0.1"
+    },
+    {
+      "path": "/app/node_modules/unpipe/package.json",
+      "name": "unpipe",
+      "version": "1.0.0"
+    },
+    {
+      "path": "/app/node_modules/accepts/package.json",
+      "name": "accepts",
+      "version": "2.0.0"
+    },
+    {
+      "path": "/app/node_modules/accepts/node_modules/negotiator/package.json",
+      "name": "negotiator",
+      "version": "1.0.0"
+    },
+    {
+      "path": "/app/node_modules/bytes/package.json",
+      "name": "bytes",
+      "version": "3.1.2"
+    },
+    {
+      "path": "/app/node_modules/drizzle-orm/package.json",
+      "name": "drizzle-orm",
+      "version": "0.45.2"
+    },
+    {
+      "path": "/app/node_modules/cookie-signature/package.json",
+      "name": "cookie-signature",
+      "version": "1.2.2"
+    },
+    {
+      "path": "/app/node_modules/range-parser/package.json",
+      "name": "range-parser",
+      "version": "1.3.0"
+    },
+    {
+      "path": "/app/node_modules/cookie/package.json",
+      "name": "cookie",
+      "version": "0.7.2"
+    },
+    {
+      "path": "/app/node_modules/express-rate-limit/package.json",
+      "name": "express-rate-limit",
+      "version": "8.7.0"
+    },
+    {
+      "path": "/app/node_modules/express-rate-limit/node_modules/debug/package.json",
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    {
+      "path": "/app/node_modules/express-rate-limit/node_modules/debug/node_modules/ms/package.json",
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    {
+      "path": "/app/node_modules/socket.io-parser/package.json",
+      "name": "socket.io-parser",
+      "version": "4.2.7"
+    },
+    {
+      "path": "/app/node_modules/socket.io-parser/node_modules/debug/package.json",
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    {
+      "path": "/app/node_modules/socket.io-parser/node_modules/debug/node_modules/ms/package.json",
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    {
+      "path": "/app/node_modules/ms/package.json",
+      "name": "ms",
+      "version": "2.0.0"
+    },
+    {
+      "path": "/app/node_modules/compression/package.json",
+      "name": "compression",
+      "version": "1.8.1"
+    },
+    {
+      "path": "/app/node_modules/send/package.json",
+      "name": "send",
+      "version": "1.2.1"
+    },
+    {
+      "path": "/app/node_modules/send/node_modules/debug/package.json",
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    {
+      "path": "/app/node_modules/send/node_modules/ms/package.json",
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    {
+      "path": "/app/node_modules/side-channel-map/package.json",
+      "name": "side-channel-map",
+      "version": "1.0.1"
+    },
+    {
+      "path": "/app/node_modules/body-parser/package.json",
+      "name": "body-parser",
+      "version": "2.3.0"
+    },
+    {
+      "path": "/app/node_modules/body-parser/node_modules/debug/package.json",
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    {
+      "path": "/app/node_modules/body-parser/node_modules/debug/node_modules/ms/package.json",
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    {
+      "path": "/app/node_modules/body-parser/node_modules/content-type/package.json",
+      "name": "content-type",
+      "version": "2.0.0"
+    },
+    {
+      "path": "/app/node_modules/proxy-addr/package.json",
+      "name": "proxy-addr",
+      "version": "2.0.7"
+    },
+    {
+      "path": "/app/node_modules/parseurl/package.json",
+      "name": "parseurl",
+      "version": "1.3.3"
+    },
+    {
+      "path": "/app/node_modules/path-to-regexp/package.json",
+      "name": "path-to-regexp",
+      "version": "8.4.2"
+    },
+    {
+      "path": "/app/node_modules/math-intrinsics/package.json",
+      "name": "math-intrinsics",
+      "version": "1.1.0"
+    },
+    {
+      "path": "/app/node_modules/once/package.json",
+      "name": "once",
+      "version": "1.4.0"
+    },
+    {
+      "path": "/app/node_modules/call-bind-apply-helpers/package.json",
+      "name": "call-bind-apply-helpers",
+      "version": "1.0.2"
+    },
+    {
+      "path": "/app/node_modules/get-proto/package.json",
+      "name": "get-proto",
+      "version": "1.0.1"
+    },
+    {
+      "path": "/app/node_modules/sonic-boom/package.json",
+      "name": "sonic-boom",
+      "version": "4.2.1"
+    },
+    {
+      "path": "/app/node_modules/call-bound/package.json",
+      "name": "call-bound",
+      "version": "1.0.4"
+    },
+    {
+      "path": "/app/node_modules/tldts-core/package.json",
+      "name": "tldts-core",
+      "version": "7.4.11"
+    },
+    {
+      "path": "/app/node_modules/helmet/package.json",
+      "name": "helmet",
+      "version": "8.3.0"
+    }
+  ],
+  "forbidden": []
+}

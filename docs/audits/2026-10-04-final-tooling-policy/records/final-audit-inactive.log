@@ -1,0 +1,6 @@
+$ bun ./scripts/audit-security.mjs
+Reachable high/critical dependency advisories block this build:
+- braces GHSA-vfj7-8cjw-p6xm (high): braces vulnerable to stack-exhaustion denial of service through deeply nested patterns
+- http-cache-semantics GHSA-ch52-4w7c-c8xp (high): http-cache-semantics max-stale handling can disclose cross-user cached responses
+- node-forge GHSA-86w9-cpqp-85rv (high): node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements
+error: script "audit:security" exited with code 1

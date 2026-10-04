@@ -1,0 +1,106 @@
+{
+  "source": "ad0c0d742dc8fea5ca85ad4553351ca1d2cb20e5",
+  "registrySource": "3711dafad0a4eaf62155f35baf3083883386c9e1",
+  "sources": [
+    {
+      "path": "security-tooling-policy.json",
+      "sha256": "d4c2299bc0c04af029874e373333c298a08c56b160db57c7135eac2bbcad8522"
+    },
+    {
+      "path": "scripts/audit-security.mjs",
+      "sha256": "9a7104431681622a06d81c143310e7cc3f4f42110d916b731b83c9c39f48986f"
+    },
+    {
+      "path": "scripts/test-security-tooling-exceptions.mjs",
+      "sha256": "b2e4a8c6307d5bbd97a7fb3ab1a4e2b7610033056abf0fcf750382bdff77a402"
+    },
+    {
+      "path": "scripts/test-tooling-audit-wiring.mjs",
+      "sha256": "82d7671d0c74bc7470c041e9b6c89c3f59f26954f1d61f154678867b0eec5a73"
+    },
+    {
+      "path": "scripts/security-tooling-exceptions.mjs",
+      "sha256": "a0c0a7dd5d2cf5a6ac18bd899e684ea3ae47536e242c5250a4420db49b29ffee"
+    },
+    {
+      "path": "bun.lock",
+      "sha256": "0d59a98cedbcb7146c814be4f3db53e442bfaf6fddcbc6cde899dcd9b14d7024"
+    },
+    {
+      "path": "packages/backend/Dockerfile",
+      "sha256": "03ee825714d7245a4a0eddf5b346fcb2d9c571c96b9f0490375c3267f033cfa4"
+    }
+  ],
+  "records": [
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/tooling-final-census.json",
+      "sha256": "9de78bfe244a7b747229d95b423b701053cb06dcec718419b1c61cb70179a316"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/runtime-image-build.log",
+      "sha256": "91ae5fffd038b1d6f80edbb0b55c260c712abbfcb406862022fd0dd488ac24a9"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/runtime-image-host-build.log",
+      "sha256": "a362c1fa1803d71c1e440366031e6f4058ae3cfc1a08fa2273822365c55e0097"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/runtime-image-audit.log",
+      "sha256": "0d6c405531053a2de69a4e2ff06fc5763f8a263db0707f07163ff6e68f0229d2"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/runtime-image-inspect.json",
+      "sha256": "ae74999babf897ab7b80c294777c09cf11f76722f67c0963115b4547e780f3ae"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/runtime-image-tooling-census.json",
+      "sha256": "452e08a9b225a5af8cf0e82510b617ad4f854b406de0153f089505514d2b2629"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/final-audit-inactive.log",
+      "sha256": "739a036eb38882f98ed787e65aa8e5cb200b8dc80b374bd65075545f9a9a695d"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/policy-final-controls.log",
+      "sha256": "421c662508f24a86a78602a52bf55bdfdaec639525ebf378c98e35a6b91357ca"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/policy-final-adversarial.log",
+      "sha256": "302e99019d420401d951925f31130770ae9a2372997c757f32dc66a8fcd52c9e"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/audit-wiring-controls.log",
+      "sha256": "09e2d32ec53f41a3fd0d1805908d279dba9398e62b0d72a72ccc502f8e12ee61"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/export-maps-checks.json",
+      "sha256": "7fed76d520d82a36e30f4a9d5e49364c6bdac52f04f132c8cf376cad5aa74c0d"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/reviewer-analyze.log",
+      "sha256": "cc09b79bfe188a6bc115a715f769e1f88ee4f728d9189f8d9b3eb7699b0f1b58"
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-tooling-policy/records/console-analyze.log",
+      "sha256": "e3236ade0090a535271a9855fc540088bd44a7b1757dc643f1a72329d646abe2"
+    }
+  ],
+  "policyEnabled": false,
+  "runtimeImage": "sha256:4d2b180aabeb0ac235de18f38135647d33daf1160dfa3683b3686f0263f559d1",
+  "validation": {
+    "scopedControls": 21,
+    "adversarialControls": 6,
+    "auditWiringControls": 6,
+    "finalExportMaps": 177,
+    "runtimeUid": 1001,
+    "runtimeWorkspaces": 2,
+    "runtimeInstalledNames": 140,
+    "forbiddenToolingPackages": 0
+  },
+  "limits": [
+    "Policy disabled pending root review; ordinary audit remains RED for the three known advisories.",
+    "Local amd64 Docker image only; ARM ECR publication and deployed image audit remain separate. Docker default bridge failed before install; host-network build succeeded without changing Docker or host networking.",
+    "Peer graph, archive/range metadata, workspace roots, expiry and Dockerfile are pinned. Export maps and runtime image are measured evidence for this source, not future arbitrary sources.",
+    "No source maps are published; deployment rebuilds normal exports. No AWS writes or authority changes."
+  ]
+}

@@ -1,0 +1,79 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 5.13kB done
+#1 DONE 0.1s
+
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1.7
+#2 DONE 2.4s
+
+#3 docker-image://docker.io/docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
+#3 resolve docker.io/docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e 0.0s done
+#3 sha256:68ebc061390d9a7d6e194f9d58309c754a53cb8b4e3b0d89593920f42f4a9da4 1.26kB / 1.26kB done
+#3 sha256:96918c57e42509b97f10c074d80672ecdbd3bb7dcd38c1bd95960cf291207416 0B / 11.98MB 0.1s
+#3 sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e 8.40kB / 8.40kB done
+#3 sha256:b5f3b260a9678e1d83d2fce86eeddf79420b79147eaba2a25986f47133d73720 482B / 482B done
+#3 sha256:96918c57e42509b97f10c074d80672ecdbd3bb7dcd38c1bd95960cf291207416 1.05MB / 11.98MB 1.1s
+#3 sha256:96918c57e42509b97f10c074d80672ecdbd3bb7dcd38c1bd95960cf291207416 4.19MB / 11.98MB 1.4s
+#3 sha256:96918c57e42509b97f10c074d80672ecdbd3bb7dcd38c1bd95960cf291207416 5.24MB / 11.98MB 1.5s
+#3 sha256:96918c57e42509b97f10c074d80672ecdbd3bb7dcd38c1bd95960cf291207416 9.44MB / 11.98MB 1.6s
+#3 extracting sha256:96918c57e42509b97f10c074d80672ecdbd3bb7dcd38c1bd95960cf291207416
+#3 sha256:96918c57e42509b97f10c074d80672ecdbd3bb7dcd38c1bd95960cf291207416 11.98MB / 11.98MB 1.7s done
+#3 extracting sha256:96918c57e42509b97f10c074d80672ecdbd3bb7dcd38c1bd95960cf291207416 0.1s done
+#3 DONE 1.9s
+
+#4 [internal] load metadata for docker.io/oven/bun:1.4.2-alpine
+#4 DONE 1.0s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 1.07kB done
+#5 DONE 0.0s
+
+#6 [manifests 1/9] FROM docker.io/oven/bun:1.4.2-alpine@sha256:d888c0ae6c86d7866ff10c5aafdd9077b36aee6455b33dd270fb93c0dd5cef6f
+#6 DONE 0.0s
+
+#7 [manifests 2/9] WORKDIR /app
+#7 CACHED
+
+#8 [runtime  3/13] RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
+#8 CACHED
+
+#9 [internal] load build context
+#9 transferring context: 11.77MB 0.2s done
+#9 DONE 0.2s
+
+#7 [manifests 2/9] WORKDIR /app
+#7 CACHED
+
+#10 [manifests 3/9] COPY package.json bun.lock bunfig.toml tsconfig.json ./
+#10 DONE 0.1s
+
+#11 [manifests 4/9] COPY packages/contracts/package.json packages/contracts/
+#11 DONE 0.1s
+
+#12 [manifests 5/9] COPY packages/core/package.json packages/core/
+#12 DONE 0.1s
+
+#13 [manifests 6/9] COPY packages/backend/package.json packages/backend/
+#13 DONE 0.1s
+
+#14 [manifests 7/9] COPY packages/reviewer/package.json packages/reviewer/
+#14 DONE 0.1s
+
+#15 [manifests 8/9] COPY packages/console/package.json packages/console/
+#15 DONE 0.1s
+
+#16 [manifests 9/9] RUN bun install --frozen-lockfile --ignore-scripts --lockfile-only
+#16 ERROR: process "/bin/sh -c bun install --frozen-lockfile --ignore-scripts --lockfile-only" did not complete successfully: failed to create endpoint vu782ld9t0b3nj3tdrrnbwa0a on network bridge: adding interface veth6e808b7 to bridge docker0 failed: Device does not exist
+------
+ > [manifests 9/9] RUN bun install --frozen-lockfile --ignore-scripts --lockfile-only:
+------
+Dockerfile:20
+--------------------
+  18 |     COPY packages/reviewer/package.json packages/reviewer/
+  19 |     COPY packages/console/package.json packages/console/
+  20 | >>> RUN bun install --frozen-lockfile --ignore-scripts --lockfile-only
+  21 |     
+  22 |     FROM manifests AS prod-deps
+--------------------
+ERROR: failed to solve: process "/bin/sh -c bun install --frozen-lockfile --ignore-scripts --lockfile-only" did not complete successfully: failed to create endpoint vu782ld9t0b3nj3tdrrnbwa0a on network bridge: adding interface veth6e808b7 to bridge docker0 failed: Device does not exist
