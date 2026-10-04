@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const digest = value => createHash('sha256').update(typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value)).digest('hex');
@@ -83,6 +83,22 @@ export function collectToolingBuildInputs(root) {
   const paths = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: root }).toString().split('\0').filter(Boolean);
   const unique = sorted(new Set(paths.filter(path => !path.startsWith('docs/') && !VERIFICATION_ONLY.has(path))));
   if (!unique.some(path => path.startsWith('packages/reviewer/')) || !unique.some(path => path.startsWith('packages/backend/'))) throw new Error('Incomplete application/build input census');
+  // The exception admits a clean source checkout, before application builds.
+  // Ignored files are NOT automatically harmless: Expo loads .env and Metro
+  // can import ignored source/generator/output directories. Refuse their names
+  // without reading (or printing) content. Only the exact installed dependency
+  // directories of tracked workspaces belong to the separate frozen-lock graph.
+  const dependencyDirectories = new Set(['node_modules/', ...unique
+    .filter(path => /^packages\/[^/]+\/package.json$/.test(path))
+    .map(path => path.slice(0, -'package.json'.length) + 'node_modules/')]);
+  const ignored = execFileSync('git', ['ls-files', '-z', '--others', '--ignored', '--exclude-standard', '--directory', '--no-empty-directory'], { cwd: root }).toString().split('\0').filter(Boolean);
+  for (const path of ignored) {
+    if (!dependencyDirectories.has(path) || !lstatSync(join(root, path.replace(/\/$/, ''))).isDirectory()) throw new Error('Unsealed ignored build input; a clean source checkout is required');
+  }
+  // A tracked symlink can otherwise read an unsealed payload outside the repo,
+  // even when its target is absent from both Git file censuses.
+  if (unique.some(path => !lstatSync(join(root, path)).isFile())) throw new Error('Unsupported non-regular application/build input');
+
   const records = unique.map(path => ({ path, sha256: digest(readFileSync(join(root, path))) }));
   return { records, sha256: digest(records) };
 }
