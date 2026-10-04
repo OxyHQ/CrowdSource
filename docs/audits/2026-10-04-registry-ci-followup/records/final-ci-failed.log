@@ -1,0 +1,108 @@
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	﻿2026-10-04T02:21:43.7548574Z ##[group]Run bun run check
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7548904Z [36;1mbun run check[0m
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7613095Z shell: /usr/bin/bash -e {0}
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7613381Z env:
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7613599Z   BUN_VERSION: 1.4.2
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7613840Z   NODE_VERSION: 22.17.0
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7614083Z ##[endgroup]
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7753449Z $ bun run doctor && bun run validate:workflows && bun run validate:agents-md && bun run audit:security && bun run check:injection-sinks && bun run check:peers && bun run check:outbox-postgres-only && bun run check:backend-postgres-only && bun run build && bun run check:dist && bun run check:migrations && bun run check:schemas && bun run check:module-format && bun run --cwd packages/reviewer typecheck && bun run --cwd packages/console typecheck && bun run lint
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7786042Z $ bun ./scripts/doctor.mjs
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7953995Z CrowdSource workspace doctor found configuration drift:
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7954515Z 
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7955221Z - Bloom must stay aligned at override ^6.2.0 and installed 6.2.0 (found 6.2.1, 6.2.1).
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7956359Z - The reviewer app must declare Bloom ^6.2.0 (found 6.2.1).
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7956883Z - The console app must declare Bloom ^6.2.0 (found 6.2.1).
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7972513Z error: script "doctor" exited with code 1
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7976343Z error: script "check" exited with code 1
+Build, lint and typecheck	Verify workspace, build, lint and typecheck	2026-10-04T02:21:43.7993701Z ##[error]Process completed with exit code 1.
+Reviewer bundle budget	Enforce bundle budgets	﻿2026-10-04T02:23:02.8983778Z ##[group]Run bun run --cwd packages/reviewer analyze-bundle -- --ci --json "/home/runner/work/_temp/crowdsource-bundle-report.json"
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:02.8984743Z [36;1mbun run --cwd packages/reviewer analyze-bundle -- --ci --json "/home/runner/work/_temp/crowdsource-bundle-report.json"[0m
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:02.9048268Z shell: /usr/bin/bash -e {0}
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:02.9048536Z env:
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:02.9048731Z   BUN_VERSION: 1.4.2
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:02.9048959Z   NODE_VERSION: 22.17.0
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:02.9049190Z ##[endgroup]
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:02.9169423Z $ bun ./scripts/analyze-bundle.js --ci --json /home/runner/work/_temp/crowdsource-bundle-report.json
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6583774Z CrowdSource reviewer bundle report
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6585442Z 
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6586000Z totalBytes: 8.54 MiB / budget 8.50 MiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6586830Z javascriptBytes: 7.40 MiB / budget 7.50 MiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6587517Z javascriptGzipBytes: 1.89 MiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6587992Z javascriptBrotliBytes: 1.52 MiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6588642Z initialJavascriptBytes: 5.02 MiB / budget 6.00 MiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6589302Z initialJavascriptGzipBytes: 1.23 MiB / budget 1.50 MiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6589805Z initialJavascriptBrotliBytes: 982.74 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6590426Z fontBytes: 688.96 KiB / budget 2.25 MiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6591084Z largestFileBytes: 3.95 MiB / budget 4.75 MiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6591473Z 
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6591888Z Long-term targets:
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6592844Z - initialJavascriptGzipBytes: 1.23 MiB / target 1.00 MiB (237.92 KiB remaining)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6593673Z 
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6593923Z Bundle budget violations:
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6594648Z - totalBytes: 8.54 MiB exceeds 8.50 MiB by 41.96 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6595526Z - largestFileBytes: 3.95 MiB / target 4.50 MiB (met)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6596013Z 
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6596258Z Initial JavaScript chunks:
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6597421Z - _expo/static/js/web/__common-30dc5f159900a0d7a493d7e0e81af126.js: 3.95 MiB raw, 974.90 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6599347Z - _expo/static/js/web/entry-877bf934d7dc3e6a2cc05f46618d34bb.js: 1.06 MiB raw, 285.34 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6600946Z - _expo/static/js/web/__expo-metro-runtime-beff96064147bde5b1983fe629d44cbe.js: 3.87 KiB raw, 1.68 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6601903Z 
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6602063Z Largest files:
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6602894Z - _expo/static/js/web/__common-30dc5f159900a0d7a493d7e0e81af126.js: 3.95 MiB (javascript)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6604125Z - _expo/static/js/web/entry-877bf934d7dc3e6a2cc05f46618d34bb.js: 1.06 MiB (javascript)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6605755Z - assets/__node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf: 380.59 KiB (font)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6607327Z - _expo/static/js/web/_layout-569b5350edbdab3a3f4d9b01c73135dd.js: 198.68 KiB (javascript)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6608603Z - _expo/static/js/web/ru-6701d44df7aa23e41a1acfd851dd5aaa.js: 194.55 KiB (javascript)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6609782Z - _expo/static/js/web/ar-69d22cdc3794c6db4ada2d58367ba43b.js: 173.86 KiB (javascript)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6610950Z - _expo/static/js/web/bn-7986b13573ee813e9276614378bc7051.js: 169.41 KiB (javascript)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6612242Z - _expo/static/js/web/hi-0ef5c59aaad354ae749187cb1f7a4ab1.js: 164.22 KiB (javascript)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6613302Z - _expo/static/js/web/ja-2601ff4d0fc91851141082127a585f56.js: 101.43 KiB (javascript)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6614711Z - assets/__node_modules/@oxy.so/services/lib/module/assets/signIn/slide-1.b29a38b76e9e9e426cc152c3a1a56a73.jpg: 99.78 KiB (image)
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6615524Z 
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6615706Z Largest route/async chunks:
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6616155Z - async:_layout: 74.54 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6616595Z - async:ru: 32.71 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6616989Z - async:ar: 30.84 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6617363Z - async:hi: 29.80 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6617751Z - async:bn: 29.30 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6618144Z - async:ja: 27.09 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6618841Z - async:index: 25.66 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6619248Z - async:zh: 24.84 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6619632Z - async:fr: 24.30 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6620017Z - async:tr: 23.91 KiB gzip
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6620245Z 
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6620590Z Largest initial source groups (isolated gzip attribution):
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6621154Z - @oxy.so/bloom: 698.95 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6621738Z - expo-router: 368.65 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6622132Z - @oxy.so/core: 302.60 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6622552Z - @oxy.so/services: 248.11 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6623004Z - react-native-web: 228.77 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6623458Z - @oxy.so/contracts: 219.93 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6623848Z - zod: 207.46 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6624282Z - react-native-reanimated: 196.44 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6624827Z - react-native-gesture-handler: 113.40 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6625299Z - react-dom: 95.59 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6625524Z 
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6625826Z Largest source groups (isolated gzip attribution):
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6626362Z - @oxy.so/bloom: 1.12 MiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6626794Z - @oxy.so/services: 449.61 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6627201Z - @oxy.so/core: 372.29 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6627583Z - expo-router: 368.65 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6628036Z - react-native-web: 228.77 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6628587Z - @oxy.so/contracts: 219.93 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6629147Z - zod: 207.46 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6629849Z - react-native-reanimated: 196.44 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6630482Z - @crowdsource/reviewer: 138.10 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6631237Z - react-native-gesture-handler: 113.40 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6631939Z 
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6632205Z Icon/font families:
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6632692Z - Ionicons: 380.59 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6633388Z - BlomusModernus-Regular: 75.82 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6634129Z - BlomusModernus-Bold: 75.79 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6634835Z - InterVariable: 47.13 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6635456Z - OxyServicesIonicons: 42.00 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6636095Z - JetBrainsMono-Variable: 39.46 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6637197Z - OxyServicesMaterialCommunityIcons: 28.18 KiB
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6638340Z Bundle report written to /home/runner/work/_temp/crowdsource-bundle-report.json
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6685351Z error: script "analyze-bundle" exited with code 1
+Reviewer bundle budget	Enforce bundle budgets	2026-10-04T02:23:48.6710773Z ##[error]Process completed with exit code 1.

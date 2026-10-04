@@ -1,0 +1,112 @@
+$ bun run doctor && bun run validate:workflows && bun run validate:agents-md && bun run audit:security && bun run check:injection-sinks && bun run check:peers && bun run check:outbox-postgres-only && bun run check:backend-postgres-only && bun run build && bun run check:dist && bun run check:migrations && bun run check:schemas && bun run check:module-format && bun run --cwd packages/reviewer typecheck && bun run --cwd packages/console typecheck && bun run lint
+$ bun ./scripts/doctor.mjs
+CrowdSource workspace is reproducible: Bun 1.4.2, Node 22.17.0, Expo 56.0.16, Bloom 6.2.1, workspace dependencies and the runtime image scope are aligned.
+$ bun ./scripts/validate-workflows.mjs
+Validated 7 GitHub Actions workflow file(s).
+13 publisher classification controls PASS; original deployment classification preserved
+$ bun ./scripts/check-agents-md-size.mjs && bun ./scripts/test-check-agents-md-size.mjs
+AGENTS.md budget check passed (1 file(s): AGENTS.md).
+check-agents-md-size self-test
+
+  ok   floor: a tree with no AGENTS.md is a FAILURE, not a clean scan
+  ok   floor: a tree whose ROOT AGENTS.md is missing is a FAILURE
+  ok   a small root AGENTS.md passes
+  ok   an over-budget root AGENTS.md fails, naming the budget
+  ok   a nested AGENTS.md is held to the SMALLER budget
+  ok   control: the same 10 KB passes at the ROOT path
+  ok   a per-issue HEADING fails and says where it goes
+  ok   an issue number in BODY prose passes
+  ok   a one-digit '#1' in a heading does not fire; '#57' does
+  ok   the real repository is within budget
+
+All self-test cases passed.
+$ bun ./scripts/audit-security.mjs
+Security audit passed; 1 reviewed exception(s) remain within their expiry window.
+$ bun ./scripts/check-injection-sinks.mjs --min-files=200
+No injection or evaluation sink in 573 source files across 4 packages (floor 200); 8 sink patterns checked; 0 allowlisted.
+$ bun ./scripts/check-peer-contracts.mjs && bun ./scripts/test-check-peer-contracts.mjs
+@crowdsource.you/contracts@1.1.0 is admitted by the peer range of all 1 consumer(s), and none of them bundles it as a normal dependency.
+PASS  the healthy tree passes
+PASS  a peer range that excludes the workspace version is caught
+PASS  contracts back in dependencies is caught
+PASS  a missing peer declaration is caught
+PASS  a missing devDependency is caught
+PASS  a contracts bump that outruns the peer range is caught
+PASS  a consumer directory that does not exist at all is caught
+
+All 7 mutation cases behaved correctly.
+$ bun ./scripts/assert-outbox-postgres-only.mjs && bun ./scripts/test-assert-outbox-postgres-only.mjs && bun ./scripts/test-verify-cutover-manifest.mjs
+The application half has no MongoDB runtime, dependency or export.
+The PostgreSQL-only outbox gate catches runtime, harness and dependency mutations.
+The cutover manifest gate catches timestamp, empty-target and reconciliation mutations.
+$ bun ./scripts/test-verify-backend-cutover-manifest.mjs && bun ./scripts/test-crowdsource-backend-recover-archive.mjs
+Backend cutover contract catches count, digest, ID, freeze, target, phase, empty-control, privilege, runtime-driver and retired-live-export mutations.
+Archive recovery gate catches checksum, database, collection, count, image, network and runtime-copy mutations.
+$ bun run build:contracts && bun run --cwd packages/backend build && bun run --cwd packages/core build
+$ bun run --cwd packages/contracts build
+$ tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs
+$ tsc
+$ tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs
+$ bun ./scripts/check-dist-orphans.mjs && bun ./scripts/test-check-dist-orphans.mjs
+390 build output(s) across 2 published package(s) all have a source file.
+PASS  a fully-sourced dist passes
+PASS  the 0.3.0 near miss is caught: source deleted, output left behind
+PASS  a stale output in a nested directory is caught
+PASS  a stale declaration map alone is caught
+PASS  an unrecognised file in dist is reported rather than ignored
+PASS  buildinfo inside dist is build state, not a stale output
+PASS  a dist with no recognised outputs at all trips the vacuity floor
+PASS  a .tsx source satisfies its output
+
+All 8 mutation cases behaved correctly.
+$ bun ./scripts/check-published-migrations.mjs && bun ./scripts/test-check-published-migrations.mjs
+None of the 2 published package(s) ship a migration file.
+PASS  a tree whose migrations are all under __tests__ passes
+PASS  a migrations folder moved into the published source is caught
+PASS  a stray .sql anywhere in the published tree is caught
+PASS  a Migrations folder with a capital M is caught too
+PASS  a package that packs nothing but its manifest trips the vacuity floor
+
+All 5 mutation cases behaved correctly.
+$ bun ./scripts/test-check-published-json-schemas.mjs && bun ./scripts/check-published-json-schemas.mjs
+PASS  a sound surface passes
+PASS  a name with no registered schema is caught
+PASS  a registered schema that is never published is caught
+PASS  a lazily-throwing conversion is caught and named
+PASS  a conversion returning an empty document is caught
+PASS  a duplicate published name is caught
+PASS  an empty name list trips the floor instead of passing vacuously
+PASS  a missing export is reported rather than crashing the check
+PASS  adding a name to BOTH structures passes with no count to update
+
+All 9 mutation cases behaved correctly.
+All 19 published JSON Schema name(s) convert from the packed tarball, and the name list and schema registry agree.
+$ bun ./scripts/check-module-format.mjs && bun ./scripts/test-check-module-format.mjs
+All 2 published package(s) ship both formats correctly across 6 export entr(ies).
+PASS  a correctly dual-published tree passes
+PASS  import and require resolving to the SAME file is caught
+PASS  an import condition pointing at CommonJS content is caught
+PASS  a missing {"type":"module"} marker is caught
+PASS  a marker that does not say type module is caught
+PASS  declaring only one of import/require is caught
+PASS  a require condition pointing at ESM content is caught
+PASS  removing every export entry trips the vacuity floor
+PASS  an ESM entry nested below the marker is governed by it
+PASS  an ESM entry with no marker anywhere is still caught
+PASS  a package that loses a declared subpath is caught by name
+PASS  a subpath export is checked too, not only the root
+
+All 12 mutation cases behaved correctly.
+$ tsc --noEmit
+$ tsc --noEmit
+$ bun run lint:contracts && bun run lint:backend && bun run lint:core && bun run lint:reviewer && bun run lint:console
+$ bun run --cwd packages/contracts lint
+$ tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json
+$ bun run --cwd packages/backend lint
+$ tsc --noEmit && tsc -p tsconfig.test.json
+$ bun run --cwd packages/core lint
+$ tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json
+$ bun run --cwd packages/reviewer lint
+$ expo lint
+$ bun run --cwd packages/console lint
+$ expo lint

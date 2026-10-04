@@ -1,0 +1,2434 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-30T17:25:45.683Z",
+  "metrics": {
+    "totalBytes": 8894172,
+    "javascriptBytes": 7702055,
+    "javascriptGzipBytes": 1968039,
+    "javascriptBrotliBytes": 1581679,
+    "initialJavascriptBytes": 5198516,
+    "initialJavascriptGzipBytes": 1277459,
+    "initialJavascriptBrotliBytes": 995567,
+    "fontBytes": 705496,
+    "largestFileBytes": 4082227
+  },
+  "budgets": {
+    "totalBytes": 8912896,
+    "javascriptBytes": 7864320,
+    "initialJavascriptBytes": 6291456,
+    "initialJavascriptGzipBytes": 1572864,
+    "fontBytes": 2359296,
+    "largestFileBytes": 4980736
+  },
+  "targets": {
+    "initialJavascriptGzipBytes": 1048576,
+    "largestFileBytes": 4718592
+  },
+  "targetStatus": [
+    {
+      "metric": "initialJavascriptGzipBytes",
+      "actual": 1277459,
+      "target": 1048576,
+      "gap": 228883,
+      "met": false
+    },
+    {
+      "metric": "largestFileBytes",
+      "actual": 4082227,
+      "target": 4718592,
+      "gap": -636365,
+      "met": true
+    }
+  ],
+  "violations": [],
+  "counts": {
+    "files": 127,
+    "javascript": 87,
+    "initialJavascript": 3,
+    "fonts": 7
+  },
+  "initialJavascript": [
+    {
+      "path": "_expo/static/js/web/__common-0a6a2ef796f7afe76ac6ead5c2780303.js",
+      "bytes": 4082227,
+      "gzipBytes": 983550,
+      "brotliBytes": 764847
+    },
+    {
+      "path": "_expo/static/js/web/entry-877bf934d7dc3e6a2cc05f46618d34bb.js",
+      "bytes": 1112330,
+      "gzipBytes": 292190,
+      "brotliBytes": 229204
+    },
+    {
+      "path": "_expo/static/js/web/__expo-metro-runtime-beff96064147bde5b1983fe629d44cbe.js",
+      "bytes": 3959,
+      "gzipBytes": 1719,
+      "brotliBytes": 1516
+    }
+  ],
+  "routes": [
+    {
+      "route": "async:_layout",
+      "bytes": 291585,
+      "gzipBytes": 76327,
+      "brotliBytes": 65186,
+      "chunks": [
+        "_expo/static/js/web/_layout-569b5350edbdab3a3f4d9b01c73135dd.js",
+        "_expo/static/js/web/_layout-cda4f30147fa0f96f232c710c301fa40.js",
+        "_expo/static/js/web/_layout-6df0ca36d0ea7e0b1392903ed904d04c.js"
+      ]
+    },
+    {
+      "route": "async:ru",
+      "bytes": 199220,
+      "gzipBytes": 33499,
+      "brotliBytes": 26164,
+      "chunks": [
+        "_expo/static/js/web/ru-6701d44df7aa23e41a1acfd851dd5aaa.js"
+      ]
+    },
+    {
+      "route": "async:ar",
+      "bytes": 178032,
+      "gzipBytes": 31578,
+      "brotliBytes": 24998,
+      "chunks": [
+        "_expo/static/js/web/ar-69d22cdc3794c6db4ada2d58367ba43b.js"
+      ]
+    },
+    {
+      "route": "async:hi",
+      "bytes": 168160,
+      "gzipBytes": 30514,
+      "brotliBytes": 24198,
+      "chunks": [
+        "_expo/static/js/web/hi-0ef5c59aaad354ae749187cb1f7a4ab1.js"
+      ]
+    },
+    {
+      "route": "async:bn",
+      "bytes": 173479,
+      "gzipBytes": 30005,
+      "brotliBytes": 23813,
+      "chunks": [
+        "_expo/static/js/web/bn-7986b13573ee813e9276614378bc7051.js"
+      ]
+    },
+    {
+      "route": "async:ja",
+      "bytes": 103861,
+      "gzipBytes": 27743,
+      "brotliBytes": 22879,
+      "chunks": [
+        "_expo/static/js/web/ja-2601ff4d0fc91851141082127a585f56.js"
+      ]
+    },
+    {
+      "route": "async:index",
+      "bytes": 88172,
+      "gzipBytes": 26278,
+      "brotliBytes": 23284,
+      "chunks": [
+        "_expo/static/js/web/index-6187fd08dcd1b4d6dfc168f22e89bc1a.js",
+        "_expo/static/js/web/index-4c776e29406b815d58818e54a556ef3d.js",
+        "_expo/static/js/web/index-934f37579893ebb5386c75bfb84aba40.js",
+        "_expo/static/js/web/index-3db00e4ca6c4fb24db84172a6dcbeeed.js",
+        "_expo/static/js/web/index-e892e0b5d48b7a87f554a6acc8d6600b.js"
+      ]
+    },
+    {
+      "route": "async:zh",
+      "bytes": 81079,
+      "gzipBytes": 25441,
+      "brotliBytes": 21432,
+      "chunks": [
+        "_expo/static/js/web/zh-7aead95fddb2f9aadca776803e44c459.js"
+      ]
+    },
+    {
+      "route": "async:fr",
+      "bytes": 69963,
+      "gzipBytes": 24883,
+      "brotliBytes": 21574,
+      "chunks": [
+        "_expo/static/js/web/fr-d96d3ce709dfc8982034d79dcb32348c.js"
+      ]
+    },
+    {
+      "route": "async:tr",
+      "bytes": 71551,
+      "gzipBytes": 24483,
+      "brotliBytes": 21246,
+      "chunks": [
+        "_expo/static/js/web/tr-18f58769e347ed2be7fc59ac8504be65.js"
+      ]
+    },
+    {
+      "route": "async:ca",
+      "bytes": 66814,
+      "gzipBytes": 24348,
+      "brotliBytes": 21158,
+      "chunks": [
+        "_expo/static/js/web/ca-a2e30a7a59df1605abe9df3b22804210.js"
+      ]
+    },
+    {
+      "route": "async:de",
+      "bytes": 66330,
+      "gzipBytes": 24171,
+      "brotliBytes": 21234,
+      "chunks": [
+        "_expo/static/js/web/de-76c4c2409f41e5004c69bb572507edca.js"
+      ]
+    },
+    {
+      "route": "async:es",
+      "bytes": 67084,
+      "gzipBytes": 24117,
+      "brotliBytes": 20686,
+      "chunks": [
+        "_expo/static/js/web/es-d710ba2749bc1cd88db54a17e509135c.js"
+      ]
+    },
+    {
+      "route": "async:pt",
+      "bytes": 67217,
+      "gzipBytes": 24030,
+      "brotliBytes": 20796,
+      "chunks": [
+        "_expo/static/js/web/pt-40067e0edf4bcec5d05c67856ab4c35c.js"
+      ]
+    },
+    {
+      "route": "async:it",
+      "bytes": 65387,
+      "gzipBytes": 23772,
+      "brotliBytes": 20699,
+      "chunks": [
+        "_expo/static/js/web/it-e3270cb9c7b8a1302022f814e04e234c.js"
+      ]
+    },
+    {
+      "route": "async:id",
+      "bytes": 60846,
+      "gzipBytes": 22443,
+      "brotliBytes": 19589,
+      "chunks": [
+        "_expo/static/js/web/id-23809ca29df8bee6d2090bbcfb1cf9ee.js"
+      ]
+    },
+    {
+      "route": "async:es-ES",
+      "bytes": 67609,
+      "gzipBytes": 21007,
+      "brotliBytes": 17716,
+      "chunks": [
+        "_expo/static/js/web/es-ES-18db5e034070be0c72e8ba06ab4ceb01.js"
+      ]
+    },
+    {
+      "route": "async:FileManagementScreen",
+      "bytes": 64902,
+      "gzipBytes": 18100,
+      "brotliBytes": 15681,
+      "chunks": [
+        "_expo/static/js/web/FileManagementScreen-18cfd18e780b8601318b14769dc3c948.js"
+      ]
+    },
+    {
+      "route": "async:OxyAccountDialogScreen",
+      "bytes": 43347,
+      "gzipBytes": 13099,
+      "brotliBytes": 11456,
+      "chunks": [
+        "_expo/static/js/web/OxyAccountDialogScreen-006b1cda705bf4d3f0b28140ee9288c4.js"
+      ]
+    },
+    {
+      "route": "async:review",
+      "bytes": 34634,
+      "gzipBytes": 11083,
+      "brotliBytes": 9102,
+      "chunks": [
+        "_expo/static/js/web/review-03521c1e17a86a51240ad06cb9f3f206.js"
+      ]
+    },
+    {
+      "route": "async:EditProfileFieldScreen",
+      "bytes": 31554,
+      "gzipBytes": 9673,
+      "brotliBytes": 8544,
+      "chunks": [
+        "_expo/static/js/web/EditProfileFieldScreen-cce5f5c6f5ea93e007eced581ce11a2f.js"
+      ]
+    },
+    {
+      "route": "async:PaymentGatewayScreen",
+      "bytes": 29420,
+      "gzipBytes": 6967,
+      "brotliBytes": 5941,
+      "chunks": [
+        "_expo/static/js/web/PaymentGatewayScreen-7f037802fce42799944e6bc2919664a0.js"
+      ]
+    },
+    {
+      "route": "async:AvatarCropScreen",
+      "bytes": 21116,
+      "gzipBytes": 6670,
+      "brotliBytes": 5818,
+      "chunks": [
+        "_expo/static/js/web/AvatarCropScreen-a61192f453a7edcc2137b45f46a10292.js"
+      ]
+    },
+    {
+      "route": "async:ManageAccountScreen",
+      "bytes": 21598,
+      "gzipBytes": 6053,
+      "brotliBytes": 5275,
+      "chunks": [
+        "_expo/static/js/web/ManageAccountScreen-7f0adfd847a7875962268dd556043c6a.js"
+      ]
+    },
+    {
+      "route": "async:ar-SA",
+      "bytes": 35493,
+      "gzipBytes": 5808,
+      "brotliBytes": 5082,
+      "chunks": [
+        "_expo/static/js/web/ar-SA-644a3b47a59375beb5028a7f95baec1d.js"
+      ]
+    },
+    {
+      "route": "async:ja-JP",
+      "bytes": 26494,
+      "gzipBytes": 5540,
+      "brotliBytes": 4846,
+      "chunks": [
+        "_expo/static/js/web/ja-JP-4e4090fd1fa682c70a99c08223ff3a43.js"
+      ]
+    },
+    {
+      "route": "async:zh-CN",
+      "bytes": 18348,
+      "gzipBytes": 5344,
+      "brotliBytes": 4623,
+      "chunks": [
+        "_expo/static/js/web/zh-CN-7b5dbc6be4ff90c7b152d3e7bca1f30b.js"
+      ]
+    },
+    {
+      "route": "async:ko-KR",
+      "bytes": 21589,
+      "gzipBytes": 5325,
+      "brotliBytes": 4685,
+      "chunks": [
+        "_expo/static/js/web/ko-KR-b24d5cd2c08b16869bbf3b7e9c9dc336.js"
+      ]
+    },
+    {
+      "route": "async:de-DE",
+      "bytes": 13904,
+      "gzipBytes": 5125,
+      "brotliBytes": 4615,
+      "chunks": [
+        "_expo/static/js/web/de-DE-b95bd130a6174abba341bbff1a1a492a.js"
+      ]
+    },
+    {
+      "route": "async:fr-FR",
+      "bytes": 14428,
+      "gzipBytes": 5106,
+      "brotliBytes": 4567,
+      "chunks": [
+        "_expo/static/js/web/fr-FR-18557d6801809cf600ee1644ace6812e.js"
+      ]
+    },
+    {
+      "route": "async:ca-ES",
+      "bytes": 13508,
+      "gzipBytes": 4926,
+      "brotliBytes": 4421,
+      "chunks": [
+        "_expo/static/js/web/ca-ES-6a46cecd16645a9ffda5eeeadc955fa1.js"
+      ]
+    },
+    {
+      "route": "async:pt-PT",
+      "bytes": 13870,
+      "gzipBytes": 4920,
+      "brotliBytes": 4384,
+      "chunks": [
+        "_expo/static/js/web/pt-PT-e4834add42efd305592542e8db96af85.js"
+      ]
+    },
+    {
+      "route": "async:it-IT",
+      "bytes": 13031,
+      "gzipBytes": 4880,
+      "brotliBytes": 4370,
+      "chunks": [
+        "_expo/static/js/web/it-IT-50352ca468d761d6d6f69276edc3169d.js"
+      ]
+    },
+    {
+      "route": "async:AppInfoScreen",
+      "bytes": 11693,
+      "gzipBytes": 3801,
+      "brotliBytes": 3107,
+      "chunks": [
+        "_expo/static/js/web/AppInfoScreen-d233e7a502b1fd26010da31a348f2bdd.js"
+      ]
+    },
+    {
+      "route": "async:wellbeing",
+      "bytes": 8803,
+      "gzipBytes": 3356,
+      "brotliBytes": 2758,
+      "chunks": [
+        "_expo/static/js/web/wellbeing-fb4addce7656a74592b48cb0c5f4ea25.js"
+      ]
+    },
+    {
+      "route": "async:WelcomeNewUserScreen",
+      "bytes": 8787,
+      "gzipBytes": 3169,
+      "brotliBytes": 2715,
+      "chunks": [
+        "_expo/static/js/web/WelcomeNewUserScreen-4f99bd5763004502a6c2a42bae828187.js"
+      ]
+    },
+    {
+      "route": "async:AccountMembersScreen",
+      "bytes": 10142,
+      "gzipBytes": 3131,
+      "brotliBytes": 2755,
+      "chunks": [
+        "_expo/static/js/web/AccountMembersScreen-30eb9a639e28b8f21d220cc6da74ce05.js"
+      ]
+    },
+    {
+      "route": "async:PrivacySettingsScreen",
+      "bytes": 11933,
+      "gzipBytes": 3094,
+      "brotliBytes": 2639,
+      "chunks": [
+        "_expo/static/js/web/PrivacySettingsScreen-ae42c80d83c3378c604224e5a67faf55.js"
+      ]
+    },
+    {
+      "route": "async:ImagePicker",
+      "bytes": 8741,
+      "gzipBytes": 3047,
+      "brotliBytes": 2607,
+      "chunks": [
+        "_expo/static/js/web/ImagePicker-b65b1b01423da78d895841bbfa8bcf3b.js"
+      ]
+    },
+    {
+      "route": "async:AccountVerificationScreen",
+      "bytes": 7429,
+      "gzipBytes": 3027,
+      "brotliBytes": 2530,
+      "chunks": [
+        "_expo/static/js/web/AccountVerificationScreen-edce49dda13bae04f65f1dfcd1e26bee.js"
+      ]
+    },
+    {
+      "route": "async:ProfileScreen",
+      "bytes": 8406,
+      "gzipBytes": 2960,
+      "brotliBytes": 2551,
+      "chunks": [
+        "_expo/static/js/web/ProfileScreen-b3f6c1cef576ceeef3ef119bccd87733.js"
+      ]
+    },
+    {
+      "route": "async:TrustRewardsScreen",
+      "bytes": 9494,
+      "gzipBytes": 2949,
+      "brotliBytes": 2601,
+      "chunks": [
+        "_expo/static/js/web/TrustRewardsScreen-f9db731c491efa997a005e1efdbc5845.js"
+      ]
+    },
+    {
+      "route": "async:CreateAccountScreen",
+      "bytes": 7635,
+      "gzipBytes": 2888,
+      "brotliBytes": 2506,
+      "chunks": [
+        "_expo/static/js/web/CreateAccountScreen-010c066772fe04ce04899abd9373a73a.js"
+      ]
+    },
+    {
+      "route": "async:onboarding",
+      "bytes": 6285,
+      "gzipBytes": 2734,
+      "brotliBytes": 2153,
+      "chunks": [
+        "_expo/static/js/web/onboarding-6e40cf51edf662a613f9676edd7c0457.js"
+      ]
+    },
+    {
+      "route": "async:training",
+      "bytes": 6611,
+      "gzipBytes": 2514,
+      "brotliBytes": 2181,
+      "chunks": [
+        "_expo/static/js/web/training-71a114d71a6c8706aa8522f0f9540d5f.js"
+      ]
+    },
+    {
+      "route": "async:AccountSettingsScreen",
+      "bytes": 6112,
+      "gzipBytes": 2488,
+      "brotliBytes": 2171,
+      "chunks": [
+        "_expo/static/js/web/AccountSettingsScreen-1b0d95e1b542dd73786e9516c7d53d91.js"
+      ]
+    },
+    {
+      "route": "async:recuse",
+      "bytes": 4854,
+      "gzipBytes": 2179,
+      "brotliBytes": 1741,
+      "chunks": [
+        "_expo/static/js/web/recuse-3417c0be9a201a48ee88cdd0afbcb084.js"
+      ]
+    },
+    {
+      "route": "async:ChangeAvatarScreen",
+      "bytes": 4488,
+      "gzipBytes": 1975,
+      "brotliBytes": 1703,
+      "chunks": [
+        "_expo/static/js/web/ChangeAvatarScreen-aa31dcf3c6532d2a515a02dbbb1cda31.js"
+      ]
+    },
+    {
+      "route": "async:TrustAboutScreen",
+      "bytes": 5098,
+      "gzipBytes": 1946,
+      "brotliBytes": 1642,
+      "chunks": [
+        "_expo/static/js/web/TrustAboutScreen-f6c0ce6cead6c860b8f781e11f1700c9.js"
+      ]
+    },
+    {
+      "route": "async:LearnMoreUsernamesScreen",
+      "bytes": 4893,
+      "gzipBytes": 1944,
+      "brotliBytes": 1692,
+      "chunks": [
+        "_expo/static/js/web/LearnMoreUsernamesScreen-472c25070482043fab72eaf31d061499.js"
+      ]
+    },
+    {
+      "route": "async:TrustLeaderboardScreen",
+      "bytes": 4489,
+      "gzipBytes": 1923,
+      "brotliBytes": 1702,
+      "chunks": [
+        "_expo/static/js/web/TrustLeaderboardScreen-9c9ea2a243ac876dc6be0f4a9f2ad9e5.js"
+      ]
+    },
+    {
+      "route": "async:TrustCenterScreen",
+      "bytes": 4552,
+      "gzipBytes": 1850,
+      "brotliBytes": 1616,
+      "chunks": [
+        "_expo/static/js/web/TrustCenterScreen-2872f5855e0d24faa1692e48bac0a3b9.js"
+      ]
+    },
+    {
+      "route": "async:LanguageSelectorScreen",
+      "bytes": 3762,
+      "gzipBytes": 1746,
+      "brotliBytes": 1534,
+      "chunks": [
+        "_expo/static/js/web/LanguageSelectorScreen-ae3472692ba88385942155634bbfca02.js"
+      ]
+    },
+    {
+      "route": "async:DomainsScreen",
+      "bytes": 4524,
+      "gzipBytes": 1738,
+      "brotliBytes": 1520,
+      "chunks": [
+        "_expo/static/js/web/DomainsScreen-2229d6311862ca00acd987f3975c4d7d.js"
+      ]
+    },
+    {
+      "route": "async:HistoryViewScreen",
+      "bytes": 4099,
+      "gzipBytes": 1642,
+      "brotliBytes": 1417,
+      "chunks": [
+        "_expo/static/js/web/HistoryViewScreen-baba2dc4b29415a19b925d3ed3bad4ec.js"
+      ]
+    },
+    {
+      "route": "async:ConnectedAppsScreen",
+      "bytes": 3254,
+      "gzipBytes": 1619,
+      "brotliBytes": 1403,
+      "chunks": [
+        "_expo/static/js/web/ConnectedAppsScreen-1223c0f548e86233607fdff9a414ec95.js"
+      ]
+    },
+    {
+      "route": "async:LegalDocumentsScreen",
+      "bytes": 4547,
+      "gzipBytes": 1575,
+      "brotliBytes": 1318,
+      "chunks": [
+        "_expo/static/js/web/LegalDocumentsScreen-a309088d3d13b8864ade39bb446311b6.js"
+      ]
+    },
+    {
+      "route": "async:PreferencesScreen",
+      "bytes": 3508,
+      "gzipBytes": 1546,
+      "brotliBytes": 1346,
+      "chunks": [
+        "_expo/static/js/web/PreferencesScreen-3af335f5ba05122da81e160c4c03a4c3.js"
+      ]
+    },
+    {
+      "route": "async:reliability",
+      "bytes": 3639,
+      "gzipBytes": 1355,
+      "brotliBytes": 1174,
+      "chunks": [
+        "_expo/static/js/web/reliability-39ee607301d920f6bd6c2dd2f9228cab.js"
+      ]
+    },
+    {
+      "route": "async:EditProfileScreen",
+      "bytes": 3667,
+      "gzipBytes": 1342,
+      "brotliBytes": 1160,
+      "chunks": [
+        "_expo/static/js/web/EditProfileScreen-2a98c0f5507ab20ca8738ef146c1a779.js"
+      ]
+    },
+    {
+      "route": "async:NotificationsScreen",
+      "bytes": 3362,
+      "gzipBytes": 1314,
+      "brotliBytes": 1133,
+      "chunks": [
+        "_expo/static/js/web/NotificationsScreen-054dbb96d2f796370b542d6c53783920.js"
+      ]
+    },
+    {
+      "route": "async:history",
+      "bytes": 2724,
+      "gzipBytes": 1264,
+      "brotliBytes": 1101,
+      "chunks": [
+        "_expo/static/js/web/history-ee5c4b3cfbbf24097baf6e066c8983ae.js"
+      ]
+    },
+    {
+      "route": "async:TrustRulesScreen",
+      "bytes": 2317,
+      "gzipBytes": 1229,
+      "brotliBytes": 1068,
+      "chunks": [
+        "_expo/static/js/web/TrustRulesScreen-24b7db7514ae7da92c6d360efa28bb47.js"
+      ]
+    },
+    {
+      "route": "async:SearchSettingsScreen",
+      "bytes": 2613,
+      "gzipBytes": 1210,
+      "brotliBytes": 1043,
+      "chunks": [
+        "_expo/static/js/web/SearchSettingsScreen-01bc2fa01bd2be32ac5022ca3f9b446d.js"
+      ]
+    },
+    {
+      "route": "async:HelpSupportScreen",
+      "bytes": 3006,
+      "gzipBytes": 1119,
+      "brotliBytes": 944,
+      "chunks": [
+        "_expo/static/js/web/HelpSupportScreen-91ce872815c6d1f70197dcd27a44e4ea.js"
+      ]
+    },
+    {
+      "route": "async:TrustFAQScreen",
+      "bytes": 1963,
+      "gzipBytes": 1051,
+      "brotliBytes": 912,
+      "chunks": [
+        "_expo/static/js/web/TrustFAQScreen-fa46ac66d71e9b5a333f8b6b5f69d0da.js"
+      ]
+    },
+    {
+      "route": "async:sign-in",
+      "bytes": 1718,
+      "gzipBytes": 958,
+      "brotliBytes": 830,
+      "chunks": [
+        "_expo/static/js/web/sign-in-5aacc5d255f636f93cb746ce2aecae86.js"
+      ]
+    },
+    {
+      "route": "async:SecureStore",
+      "bytes": 2584,
+      "gzipBytes": 856,
+      "brotliBytes": 723,
+      "chunks": [
+        "_expo/static/js/web/SecureStore-0bbab791c9503f7484fea6a15f5312b1.js"
+      ]
+    },
+    {
+      "route": "async:+not-found",
+      "bytes": 1372,
+      "gzipBytes": 855,
+      "brotliBytes": 712,
+      "chunks": [
+        "_expo/static/js/web/+not-found-fb499d13013d19863ef84bb407060ed9.js"
+      ]
+    },
+    {
+      "route": "async:internal",
+      "bytes": 2543,
+      "gzipBytes": 842,
+      "brotliBytes": 729,
+      "chunks": [
+        "_expo/static/js/web/internal-079987c992889a774b30f99b68fc36e8.js"
+      ]
+    },
+    {
+      "route": "async:UserLinksScreen",
+      "bytes": 1192,
+      "gzipBytes": 713,
+      "brotliBytes": 615,
+      "chunks": [
+        "_expo/static/js/web/UserLinksScreen-cd57215839f92f28d622fb510d88370b.js"
+      ]
+    },
+    {
+      "route": "async:SignInPasswordScreen",
+      "bytes": 506,
+      "gzipBytes": 387,
+      "brotliBytes": 333,
+      "chunks": [
+        "_expo/static/js/web/SignInPasswordScreen-8acbac030a44deb88e46ad148e90eff6.js"
+      ]
+    },
+    {
+      "route": "async:DeleteAccountScreen",
+      "bytes": 498,
+      "gzipBytes": 378,
+      "brotliBytes": 315,
+      "chunks": [
+        "_expo/static/js/web/DeleteAccountScreen-c64e8291e1a798093ea8161da5d49561.js"
+      ]
+    },
+    {
+      "route": "async:SignInAuthenticatorScreen",
+      "bytes": 471,
+      "gzipBytes": 362,
+      "brotliBytes": 301,
+      "chunks": [
+        "_expo/static/js/web/SignInAuthenticatorScreen-c97fd74f57e761154f8eaf6810dcf621.js"
+      ]
+    },
+    {
+      "route": "async:FollowersListScreen",
+      "bytes": 478,
+      "gzipBytes": 356,
+      "brotliBytes": 310,
+      "chunks": [
+        "_expo/static/js/web/FollowersListScreen-2f03de50d6a595450f77e174812d8471.js"
+      ]
+    },
+    {
+      "route": "async:LinkCommonsScreen",
+      "bytes": 461,
+      "gzipBytes": 356,
+      "brotliBytes": 290,
+      "chunks": [
+        "_expo/static/js/web/LinkCommonsScreen-922b9722baf9f26883537b51164a4bb8.js"
+      ]
+    },
+    {
+      "route": "async:FollowingListScreen",
+      "bytes": 478,
+      "gzipBytes": 352,
+      "brotliBytes": 299,
+      "chunks": [
+        "_expo/static/js/web/FollowingListScreen-a4e3d98bd052970a0381c92b64f6fb38.js"
+      ]
+    },
+    {
+      "route": "async:empty-module",
+      "bytes": 183,
+      "gzipBytes": 182,
+      "brotliBytes": 150,
+      "chunks": [
+        "_expo/static/js/web/empty-module-fe4f97ca79037a5879650ba7d3c9a641.js"
+      ]
+    }
+  ],
+  "initialSources": [
+    {
+      "source": "@oxy.so/bloom",
+      "files": 463,
+      "sourceBytes": 1840937,
+      "isolatedGzipBytes": 715483,
+      "isolatedBrotliBytes": 603478
+    },
+    {
+      "source": "expo-router",
+      "files": 356,
+      "sourceBytes": 1194209,
+      "isolatedGzipBytes": 377493,
+      "isolatedBrotliBytes": 320335
+    },
+    {
+      "source": "@oxy.so/core",
+      "files": 101,
+      "sourceBytes": 998782,
+      "isolatedGzipBytes": 303650,
+      "isolatedBrotliBytes": 250938
+    },
+    {
+      "source": "@oxy.so/services",
+      "files": 131,
+      "sourceBytes": 708929,
+      "isolatedGzipBytes": 248833,
+      "isolatedBrotliBytes": 208202
+    },
+    {
+      "source": "react-native-web",
+      "files": 196,
+      "sourceBytes": 752909,
+      "isolatedGzipBytes": 234265,
+      "isolatedBrotliBytes": 193206
+    },
+    {
+      "source": "zod",
+      "files": 95,
+      "sourceBytes": 852275,
+      "isolatedGzipBytes": 212441,
+      "isolatedBrotliBytes": 183949
+    },
+    {
+      "source": "@oxy.so/contracts",
+      "files": 64,
+      "sourceBytes": 688912,
+      "isolatedGzipBytes": 204228,
+      "isolatedBrotliBytes": 169695
+    },
+    {
+      "source": "react-native-reanimated",
+      "files": 273,
+      "sourceBytes": 709225,
+      "isolatedGzipBytes": 201154,
+      "isolatedBrotliBytes": 170413
+    },
+    {
+      "source": "react-native-gesture-handler",
+      "files": 127,
+      "sourceBytes": 376221,
+      "isolatedGzipBytes": 116118,
+      "isolatedBrotliBytes": 98583
+    },
+    {
+      "source": "react-dom",
+      "files": 4,
+      "sourceBytes": 545403,
+      "isolatedGzipBytes": 97884,
+      "isolatedBrotliBytes": 80007
+    },
+    {
+      "source": "@crowdsource.you/contracts",
+      "files": 15,
+      "sourceBytes": 151900,
+      "isolatedGzipBytes": 55350,
+      "isolatedBrotliBytes": 44958
+    },
+    {
+      "source": "@crowdsource/reviewer",
+      "files": 34,
+      "sourceBytes": 121869,
+      "isolatedGzipBytes": 47403,
+      "isolatedBrotliBytes": 39044
+    },
+    {
+      "source": "@noble/curves",
+      "files": 7,
+      "sourceBytes": 132347,
+      "isolatedGzipBytes": 42875,
+      "isolatedBrotliBytes": 37635
+    },
+    {
+      "source": "expo-image",
+      "files": 27,
+      "sourceBytes": 113275,
+      "isolatedGzipBytes": 36734,
+      "isolatedBrotliBytes": 31150
+    },
+    {
+      "source": "@tanstack/query-core",
+      "files": 24,
+      "sourceBytes": 102562,
+      "isolatedGzipBytes": 28089,
+      "isolatedBrotliBytes": 24482
+    },
+    {
+      "source": "@oxy.so/protocol",
+      "files": 18,
+      "sourceBytes": 63296,
+      "isolatedGzipBytes": 25623,
+      "isolatedBrotliBytes": 20899
+    },
+    {
+      "source": "react-native-svg",
+      "files": 21,
+      "sourceBytes": 116829,
+      "isolatedGzipBytes": 25234,
+      "isolatedBrotliBytes": 21630
+    },
+    {
+      "source": "qrcode",
+      "files": 27,
+      "sourceBytes": 72625,
+      "isolatedGzipBytes": 25138,
+      "isolatedBrotliBytes": 21258
+    },
+    {
+      "source": "expo-modules-core",
+      "files": 35,
+      "sourceBytes": 45738,
+      "isolatedGzipBytes": 18954,
+      "isolatedBrotliBytes": 15394
+    },
+    {
+      "source": "@egjs/hammerjs",
+      "files": 1,
+      "sourceBytes": 75885,
+      "isolatedGzipBytes": 18629,
+      "isolatedBrotliBytes": 15754
+    },
+    {
+      "source": "i18next",
+      "files": 1,
+      "sourceBytes": 81859,
+      "isolatedGzipBytes": 18545,
+      "isolatedBrotliBytes": 16405
+    },
+    {
+      "source": "tailwind-merge",
+      "files": 1,
+      "sourceBytes": 105606,
+      "isolatedGzipBytes": 17759,
+      "isolatedBrotliBytes": 14903
+    },
+    {
+      "source": "@noble/hashes",
+      "files": 9,
+      "sourceBytes": 48089,
+      "isolatedGzipBytes": 16164,
+      "isolatedBrotliBytes": 13530
+    },
+    {
+      "source": "react-i18next",
+      "files": 22,
+      "sourceBytes": 46519,
+      "isolatedGzipBytes": 15304,
+      "isolatedBrotliBytes": 13196
+    },
+    {
+      "source": "expo",
+      "files": 32,
+      "sourceBytes": 31247,
+      "isolatedGzipBytes": 14887,
+      "isolatedBrotliBytes": 12011
+    },
+    {
+      "source": "semver",
+      "files": 21,
+      "sourceBytes": 44989,
+      "isolatedGzipBytes": 14466,
+      "isolatedBrotliBytes": 12202
+    },
+    {
+      "source": "react-native-css",
+      "files": 42,
+      "sourceBytes": 31413,
+      "isolatedGzipBytes": 13346,
+      "isolatedBrotliBytes": 11236
+    },
+    {
+      "source": "buffer",
+      "files": 1,
+      "sourceBytes": 58353,
+      "isolatedGzipBytes": 13237,
+      "isolatedBrotliBytes": 11350
+    },
+    {
+      "source": "@noble/ciphers",
+      "files": 4,
+      "sourceBytes": 40812,
+      "isolatedGzipBytes": 12397,
+      "isolatedBrotliBytes": 10369
+    },
+    {
+      "source": "@expo/vector-icons",
+      "files": 10,
+      "sourceBytes": 49127,
+      "isolatedGzipBytes": 12341,
+      "isolatedBrotliBytes": 9859
+    },
+    {
+      "source": "react-native-screens",
+      "files": 26,
+      "sourceBytes": 29986,
+      "isolatedGzipBytes": 11225,
+      "isolatedBrotliBytes": 9227
+    },
+    {
+      "source": "@tanstack/react-query",
+      "files": 23,
+      "sourceBytes": 23100,
+      "isolatedGzipBytes": 9431,
+      "isolatedBrotliBytes": 8277
+    },
+    {
+      "source": "expo-asset",
+      "files": 12,
+      "sourceBytes": 24109,
+      "isolatedGzipBytes": 9422,
+      "isolatedBrotliBytes": 7804
+    },
+    {
+      "source": "expo-font",
+      "files": 10,
+      "sourceBytes": 25894,
+      "isolatedGzipBytes": 9404,
+      "isolatedBrotliBytes": 7694
+    },
+    {
+      "source": "expo-web-browser",
+      "files": 3,
+      "sourceBytes": 31166,
+      "isolatedGzipBytes": 9249,
+      "isolatedBrotliBytes": 7610
+    },
+    {
+      "source": "react-native-worklets",
+      "files": 20,
+      "sourceBytes": 20869,
+      "isolatedGzipBytes": 8381,
+      "isolatedBrotliBytes": 7101
+    },
+    {
+      "source": "@scure/bip39",
+      "files": 2,
+      "sourceBytes": 19750,
+      "isolatedGzipBytes": 8323,
+      "isolatedBrotliBytes": 6974
+    },
+    {
+      "source": "@scure/base",
+      "files": 1,
+      "sourceBytes": 24662,
+      "isolatedGzipBytes": 6561,
+      "isolatedBrotliBytes": 5787
+    },
+    {
+      "source": "color-convert",
+      "files": 3,
+      "sourceBytes": 21005,
+      "isolatedGzipBytes": 6335,
+      "isolatedBrotliBytes": 5466
+    },
+    {
+      "source": "react",
+      "files": 6,
+      "sourceBytes": 19464,
+      "isolatedGzipBytes": 5835,
+      "isolatedBrotliBytes": 5017
+    },
+    {
+      "source": "@expo/cli",
+      "files": 1,
+      "sourceBytes": 23553,
+      "isolatedGzipBytes": 4961,
+      "isolatedBrotliBytes": 4330
+    },
+    {
+      "source": "inline-style-prefixer",
+      "files": 12,
+      "sourceBytes": 10863,
+      "isolatedGzipBytes": 4556,
+      "isolatedBrotliBytes": 3809
+    },
+    {
+      "source": "html-parse-stringify",
+      "files": 1,
+      "sourceBytes": 12494,
+      "isolatedGzipBytes": 4296,
+      "isolatedBrotliBytes": 3714
+    },
+    {
+      "source": "expo-linking",
+      "files": 7,
+      "sourceBytes": 10856,
+      "isolatedGzipBytes": 4066,
+      "isolatedBrotliBytes": 3289
+    },
+    {
+      "source": "react-native-safe-area-context",
+      "files": 6,
+      "sourceBytes": 11228,
+      "isolatedGzipBytes": 3995,
+      "isolatedBrotliBytes": 3350
+    },
+    {
+      "source": "@babel/runtime",
+      "files": 17,
+      "sourceBytes": 6580,
+      "isolatedGzipBytes": 3921,
+      "isolatedBrotliBytes": 3205
+    },
+    {
+      "source": "css-in-js-utils",
+      "files": 15,
+      "sourceBytes": 7858,
+      "isolatedGzipBytes": 3825,
+      "isolatedBrotliBytes": 3106
+    },
+    {
+      "source": "expo-haptics",
+      "files": 3,
+      "sourceBytes": 9845,
+      "isolatedGzipBytes": 3464,
+      "isolatedBrotliBytes": 2712
+    },
+    {
+      "source": "expo-constants",
+      "files": 3,
+      "sourceBytes": 11447,
+      "isolatedGzipBytes": 3343,
+      "isolatedBrotliBytes": 2731
+    },
+    {
+      "source": "color",
+      "files": 1,
+      "sourceBytes": 11169,
+      "isolatedGzipBytes": 3335,
+      "isolatedBrotliBytes": 2917
+    },
+    {
+      "source": "postcss-value-parser",
+      "files": 5,
+      "sourceBytes": 12844,
+      "isolatedGzipBytes": 3248,
+      "isolatedBrotliBytes": 2823
+    },
+    {
+      "source": "styleq",
+      "files": 3,
+      "sourceBytes": 7434,
+      "isolatedGzipBytes": 2735,
+      "isolatedBrotliBytes": 2236
+    },
+    {
+      "source": "scheduler",
+      "files": 2,
+      "sourceBytes": 10375,
+      "isolatedGzipBytes": 2662,
+      "isolatedBrotliBytes": 2292
+    },
+    {
+      "source": "query-string",
+      "files": 1,
+      "sourceBytes": 11554,
+      "isolatedGzipBytes": 2624,
+      "isolatedBrotliBytes": 2341
+    },
+    {
+      "source": "react-native-qrcode-svg",
+      "files": 6,
+      "sourceBytes": 6364,
+      "isolatedGzipBytes": 2415,
+      "isolatedBrotliBytes": 2100
+    },
+    {
+      "source": "@radix-ui/react-slot",
+      "files": 1,
+      "sourceBytes": 7240,
+      "isolatedGzipBytes": 2346,
+      "isolatedBrotliBytes": 2037
+    },
+    {
+      "source": "fbjs",
+      "files": 3,
+      "sourceBytes": 4182,
+      "isolatedGzipBytes": 2105,
+      "isolatedBrotliBytes": 1661
+    },
+    {
+      "source": "react-remove-scroll-bar",
+      "files": 4,
+      "sourceBytes": 5100,
+      "isolatedGzipBytes": 1959,
+      "isolatedBrotliBytes": 1595
+    },
+    {
+      "source": "dijkstrajs",
+      "files": 1,
+      "sourceBytes": 5206,
+      "isolatedGzipBytes": 1959,
+      "isolatedBrotliBytes": 1608
+    },
+    {
+      "source": "hoist-non-react-statics",
+      "files": 3,
+      "sourceBytes": 5493,
+      "isolatedGzipBytes": 1951,
+      "isolatedBrotliBytes": 1599
+    },
+    {
+      "source": "fontfaceobserver",
+      "files": 1,
+      "sourceBytes": 4455,
+      "isolatedGzipBytes": 1726,
+      "isolatedBrotliBytes": 1429
+    },
+    {
+      "source": "@oxy.so/telemetry",
+      "files": 2,
+      "sourceBytes": 5118,
+      "isolatedGzipBytes": 1725,
+      "isolatedBrotliBytes": 1496
+    },
+    {
+      "source": "color-string",
+      "files": 1,
+      "sourceBytes": 5716,
+      "isolatedGzipBytes": 1671,
+      "isolatedBrotliBytes": 1479
+    },
+    {
+      "source": "react-fast-compare",
+      "files": 1,
+      "sourceBytes": 4823,
+      "isolatedGzipBytes": 1664,
+      "isolatedBrotliBytes": 1398
+    },
+    {
+      "source": "@react-native-async-storage/async-storage",
+      "files": 3,
+      "sourceBytes": 4805,
+      "isolatedGzipBytes": 1661,
+      "isolatedBrotliBytes": 1393
+    },
+    {
+      "source": "expo-blur",
+      "files": 4,
+      "sourceBytes": 4569,
+      "isolatedGzipBytes": 1582,
+      "isolatedBrotliBytes": 1377
+    },
+    {
+      "source": "zustand",
+      "files": 5,
+      "sourceBytes": 3768,
+      "isolatedGzipBytes": 1568,
+      "isolatedBrotliBytes": 1371
+    },
+    {
+      "source": "@react-native/js-polyfills",
+      "files": 1,
+      "sourceBytes": 4174,
+      "isolatedGzipBytes": 1523,
+      "isolatedBrotliBytes": 1237
+    },
+    {
+      "source": "color-name",
+      "files": 1,
+      "sourceBytes": 4617,
+      "isolatedGzipBytes": 1510,
+      "isolatedBrotliBytes": 1333
+    },
+    {
+      "source": "merge-options",
+      "files": 2,
+      "sourceBytes": 4235,
+      "isolatedGzipBytes": 1497,
+      "isolatedBrotliBytes": 1296
+    },
+    {
+      "source": "base64-js",
+      "files": 1,
+      "sourceBytes": 3932,
+      "isolatedGzipBytes": 1378,
+      "isolatedBrotliBytes": 1194
+    },
+    {
+      "source": "expo-glass-effect",
+      "files": 5,
+      "sourceBytes": 1976,
+      "isolatedGzipBytes": 1307,
+      "isolatedBrotliBytes": 1014
+    },
+    {
+      "source": "react-style-singleton",
+      "files": 4,
+      "sourceBytes": 2660,
+      "isolatedGzipBytes": 1224,
+      "isolatedBrotliBytes": 1001
+    },
+    {
+      "source": "react-is",
+      "files": 2,
+      "sourceBytes": 4634,
+      "isolatedGzipBytes": 1216,
+      "isolatedBrotliBytes": 1004
+    },
+    {
+      "source": "@expo/metro-runtime",
+      "files": 2,
+      "sourceBytes": 2107,
+      "isolatedGzipBytes": 1194,
+      "isolatedBrotliBytes": 927
+    },
+    {
+      "source": "@radix-ui/react-compose-refs",
+      "files": 1,
+      "sourceBytes": 2532,
+      "isolatedGzipBytes": 1008,
+      "isolatedBrotliBytes": 868
+    },
+    {
+      "source": "decode-uri-component",
+      "files": 1,
+      "sourceBytes": 2261,
+      "isolatedGzipBytes": 953,
+      "isolatedBrotliBytes": 801
+    },
+    {
+      "source": "use-sync-external-store",
+      "files": 2,
+      "sourceBytes": 2201,
+      "isolatedGzipBytes": 898,
+      "isolatedBrotliBytes": 744
+    },
+    {
+      "source": "other",
+      "files": 6,
+      "sourceBytes": 1069,
+      "isolatedGzipBytes": 836,
+      "isolatedBrotliBytes": 610
+    },
+    {
+      "source": "ieee754",
+      "files": 1,
+      "sourceBytes": 2154,
+      "isolatedGzipBytes": 777,
+      "isolatedBrotliBytes": 706
+    },
+    {
+      "source": "nativewind",
+      "files": 2,
+      "sourceBytes": 2056,
+      "isolatedGzipBytes": 764,
+      "isolatedBrotliBytes": 636
+    },
+    {
+      "source": "invariant",
+      "files": 1,
+      "sourceBytes": 1397,
+      "isolatedGzipBytes": 720,
+      "isolatedBrotliBytes": 541
+    },
+    {
+      "source": "jwt-decode",
+      "files": 1,
+      "sourceBytes": 1697,
+      "isolatedGzipBytes": 633,
+      "isolatedBrotliBytes": 521
+    },
+    {
+      "source": "fast-deep-equal",
+      "files": 1,
+      "sourceBytes": 1177,
+      "isolatedGzipBytes": 481,
+      "isolatedBrotliBytes": 393
+    },
+    {
+      "source": "shallowequal",
+      "files": 1,
+      "sourceBytes": 979,
+      "isolatedGzipBytes": 415,
+      "isolatedBrotliBytes": 338
+    },
+    {
+      "source": "escape-string-regexp",
+      "files": 1,
+      "sourceBytes": 461,
+      "isolatedGzipBytes": 326,
+      "isolatedBrotliBytes": 268
+    },
+    {
+      "source": "simple-swizzle",
+      "files": 1,
+      "sourceBytes": 571,
+      "isolatedGzipBytes": 319,
+      "isolatedBrotliBytes": 266
+    },
+    {
+      "source": "nanoid",
+      "files": 1,
+      "sourceBytes": 508,
+      "isolatedGzipBytes": 293,
+      "isolatedBrotliBytes": 253
+    },
+    {
+      "source": "hyphenate-style-name",
+      "files": 1,
+      "sourceBytes": 452,
+      "isolatedGzipBytes": 273,
+      "isolatedBrotliBytes": 225
+    },
+    {
+      "source": "nullthrows",
+      "files": 1,
+      "sourceBytes": 384,
+      "isolatedGzipBytes": 257,
+      "isolatedBrotliBytes": 201
+    },
+    {
+      "source": "split-on-first",
+      "files": 1,
+      "sourceBytes": 459,
+      "isolatedGzipBytes": 250,
+      "isolatedBrotliBytes": 205
+    },
+    {
+      "source": "clsx",
+      "files": 1,
+      "sourceBytes": 388,
+      "isolatedGzipBytes": 239,
+      "isolatedBrotliBytes": 192
+    },
+    {
+      "source": "filter-obj",
+      "files": 1,
+      "sourceBytes": 346,
+      "isolatedGzipBytes": 237,
+      "isolatedBrotliBytes": 194
+    },
+    {
+      "source": "is-arrayish",
+      "files": 1,
+      "sourceBytes": 318,
+      "isolatedGzipBytes": 229,
+      "isolatedBrotliBytes": 176
+    },
+    {
+      "source": "warn-once",
+      "files": 1,
+      "sourceBytes": 314,
+      "isolatedGzipBytes": 210,
+      "isolatedBrotliBytes": 181
+    },
+    {
+      "source": "is-plain-obj",
+      "files": 1,
+      "sourceBytes": 245,
+      "isolatedGzipBytes": 173,
+      "isolatedBrotliBytes": 141
+    },
+    {
+      "source": "react-native-is-edge-to-edge",
+      "files": 1,
+      "sourceBytes": 350,
+      "isolatedGzipBytes": 170,
+      "isolatedBrotliBytes": 142
+    },
+    {
+      "source": "get-nonce",
+      "files": 1,
+      "sourceBytes": 300,
+      "isolatedGzipBytes": 156,
+      "isolatedBrotliBytes": 127
+    },
+    {
+      "source": "strict-uri-encode",
+      "files": 1,
+      "sourceBytes": 138,
+      "isolatedGzipBytes": 146,
+      "isolatedBrotliBytes": 109
+    },
+    {
+      "source": "standard-navigation",
+      "files": 1,
+      "sourceBytes": 186,
+      "isolatedGzipBytes": 140,
+      "isolatedBrotliBytes": 104
+    }
+  ],
+  "sources": [
+    {
+      "source": "@oxy.so/bloom",
+      "files": 523,
+      "sourceBytes": 3303049,
+      "isolatedGzipBytes": 1175186,
+      "isolatedBrotliBytes": 985828
+    },
+    {
+      "source": "@oxy.so/services",
+      "files": 216,
+      "sourceBytes": 1420560,
+      "isolatedGzipBytes": 455171,
+      "isolatedBrotliBytes": 383535
+    },
+    {
+      "source": "expo-router",
+      "files": 356,
+      "sourceBytes": 1194209,
+      "isolatedGzipBytes": 377493,
+      "isolatedBrotliBytes": 320335
+    },
+    {
+      "source": "@oxy.so/core",
+      "files": 113,
+      "sourceBytes": 1268550,
+      "isolatedGzipBytes": 375004,
+      "isolatedBrotliBytes": 311752
+    },
+    {
+      "source": "react-native-web",
+      "files": 196,
+      "sourceBytes": 752909,
+      "isolatedGzipBytes": 234265,
+      "isolatedBrotliBytes": 193206
+    },
+    {
+      "source": "zod",
+      "files": 95,
+      "sourceBytes": 852275,
+      "isolatedGzipBytes": 212441,
+      "isolatedBrotliBytes": 183949
+    },
+    {
+      "source": "@oxy.so/contracts",
+      "files": 64,
+      "sourceBytes": 688912,
+      "isolatedGzipBytes": 204228,
+      "isolatedBrotliBytes": 169695
+    },
+    {
+      "source": "react-native-reanimated",
+      "files": 273,
+      "sourceBytes": 709225,
+      "isolatedGzipBytes": 201154,
+      "isolatedBrotliBytes": 170413
+    },
+    {
+      "source": "@crowdsource/reviewer",
+      "files": 77,
+      "sourceBytes": 386894,
+      "isolatedGzipBytes": 141413,
+      "isolatedBrotliBytes": 117337
+    },
+    {
+      "source": "react-native-gesture-handler",
+      "files": 127,
+      "sourceBytes": 376221,
+      "isolatedGzipBytes": 116118,
+      "isolatedBrotliBytes": 98583
+    },
+    {
+      "source": "react-dom",
+      "files": 4,
+      "sourceBytes": 545403,
+      "isolatedGzipBytes": 97884,
+      "isolatedBrotliBytes": 80007
+    },
+    {
+      "source": "@crowdsource.you/contracts",
+      "files": 15,
+      "sourceBytes": 151900,
+      "isolatedGzipBytes": 55350,
+      "isolatedBrotliBytes": 44958
+    },
+    {
+      "source": "react-native-keyboard-controller",
+      "files": 53,
+      "sourceBytes": 130017,
+      "isolatedGzipBytes": 43838,
+      "isolatedBrotliBytes": 36776
+    },
+    {
+      "source": "@noble/curves",
+      "files": 7,
+      "sourceBytes": 132347,
+      "isolatedGzipBytes": 42875,
+      "isolatedBrotliBytes": 37635
+    },
+    {
+      "source": "expo-image",
+      "files": 27,
+      "sourceBytes": 113275,
+      "isolatedGzipBytes": 36734,
+      "isolatedBrotliBytes": 31150
+    },
+    {
+      "source": "@tanstack/query-core",
+      "files": 24,
+      "sourceBytes": 102562,
+      "isolatedGzipBytes": 28089,
+      "isolatedBrotliBytes": 24482
+    },
+    {
+      "source": "@oxy.so/protocol",
+      "files": 18,
+      "sourceBytes": 63296,
+      "isolatedGzipBytes": 25623,
+      "isolatedBrotliBytes": 20899
+    },
+    {
+      "source": "react-native-svg",
+      "files": 21,
+      "sourceBytes": 116829,
+      "isolatedGzipBytes": 25234,
+      "isolatedBrotliBytes": 21630
+    },
+    {
+      "source": "qrcode",
+      "files": 27,
+      "sourceBytes": 72625,
+      "isolatedGzipBytes": 25138,
+      "isolatedBrotliBytes": 21258
+    },
+    {
+      "source": "expo-modules-core",
+      "files": 35,
+      "sourceBytes": 45738,
+      "isolatedGzipBytes": 18954,
+      "isolatedBrotliBytes": 15394
+    },
+    {
+      "source": "@egjs/hammerjs",
+      "files": 1,
+      "sourceBytes": 75885,
+      "isolatedGzipBytes": 18629,
+      "isolatedBrotliBytes": 15754
+    },
+    {
+      "source": "i18next",
+      "files": 1,
+      "sourceBytes": 81859,
+      "isolatedGzipBytes": 18545,
+      "isolatedBrotliBytes": 16405
+    },
+    {
+      "source": "tailwind-merge",
+      "files": 1,
+      "sourceBytes": 105606,
+      "isolatedGzipBytes": 17759,
+      "isolatedBrotliBytes": 14903
+    },
+    {
+      "source": "engine.io-client",
+      "files": 14,
+      "sourceBytes": 57319,
+      "isolatedGzipBytes": 17330,
+      "isolatedBrotliBytes": 14677
+    },
+    {
+      "source": "@noble/hashes",
+      "files": 9,
+      "sourceBytes": 48089,
+      "isolatedGzipBytes": 16164,
+      "isolatedBrotliBytes": 13530
+    },
+    {
+      "source": "react-i18next",
+      "files": 22,
+      "sourceBytes": 46519,
+      "isolatedGzipBytes": 15304,
+      "isolatedBrotliBytes": 13196
+    },
+    {
+      "source": "expo",
+      "files": 32,
+      "sourceBytes": 31247,
+      "isolatedGzipBytes": 14887,
+      "isolatedBrotliBytes": 12011
+    },
+    {
+      "source": "semver",
+      "files": 21,
+      "sourceBytes": 44989,
+      "isolatedGzipBytes": 14466,
+      "isolatedBrotliBytes": 12202
+    },
+    {
+      "source": "react-native-css",
+      "files": 42,
+      "sourceBytes": 31413,
+      "isolatedGzipBytes": 13346,
+      "isolatedBrotliBytes": 11236
+    },
+    {
+      "source": "buffer",
+      "files": 1,
+      "sourceBytes": 58353,
+      "isolatedGzipBytes": 13237,
+      "isolatedBrotliBytes": 11350
+    },
+    {
+      "source": "@noble/ciphers",
+      "files": 4,
+      "sourceBytes": 40812,
+      "isolatedGzipBytes": 12397,
+      "isolatedBrotliBytes": 10369
+    },
+    {
+      "source": "@expo/vector-icons",
+      "files": 10,
+      "sourceBytes": 49127,
+      "isolatedGzipBytes": 12341,
+      "isolatedBrotliBytes": 9859
+    },
+    {
+      "source": "react-native-screens",
+      "files": 26,
+      "sourceBytes": 29986,
+      "isolatedGzipBytes": 11225,
+      "isolatedBrotliBytes": 9227
+    },
+    {
+      "source": "expo-image-picker",
+      "files": 4,
+      "sourceBytes": 36606,
+      "isolatedGzipBytes": 10595,
+      "isolatedBrotliBytes": 8810
+    },
+    {
+      "source": "socket.io-client",
+      "files": 6,
+      "sourceBytes": 40912,
+      "isolatedGzipBytes": 10262,
+      "isolatedBrotliBytes": 8852
+    },
+    {
+      "source": "expo-image-manipulator",
+      "files": 14,
+      "sourceBytes": 27005,
+      "isolatedGzipBytes": 10189,
+      "isolatedBrotliBytes": 8635
+    },
+    {
+      "source": "@tanstack/react-query",
+      "files": 23,
+      "sourceBytes": 23100,
+      "isolatedGzipBytes": 9431,
+      "isolatedBrotliBytes": 8277
+    },
+    {
+      "source": "expo-asset",
+      "files": 12,
+      "sourceBytes": 24109,
+      "isolatedGzipBytes": 9422,
+      "isolatedBrotliBytes": 7804
+    },
+    {
+      "source": "expo-font",
+      "files": 10,
+      "sourceBytes": 25894,
+      "isolatedGzipBytes": 9404,
+      "isolatedBrotliBytes": 7694
+    },
+    {
+      "source": "expo-web-browser",
+      "files": 3,
+      "sourceBytes": 31166,
+      "isolatedGzipBytes": 9249,
+      "isolatedBrotliBytes": 7610
+    },
+    {
+      "source": "react-native-worklets",
+      "files": 20,
+      "sourceBytes": 20869,
+      "isolatedGzipBytes": 8381,
+      "isolatedBrotliBytes": 7101
+    },
+    {
+      "source": "@scure/bip39",
+      "files": 2,
+      "sourceBytes": 19750,
+      "isolatedGzipBytes": 8323,
+      "isolatedBrotliBytes": 6974
+    },
+    {
+      "source": "@react-native-community/netinfo",
+      "files": 8,
+      "sourceBytes": 24797,
+      "isolatedGzipBytes": 7814,
+      "isolatedBrotliBytes": 6308
+    },
+    {
+      "source": "@scure/base",
+      "files": 1,
+      "sourceBytes": 24662,
+      "isolatedGzipBytes": 6561,
+      "isolatedBrotliBytes": 5787
+    },
+    {
+      "source": "color-convert",
+      "files": 3,
+      "sourceBytes": 21005,
+      "isolatedGzipBytes": 6335,
+      "isolatedBrotliBytes": 5466
+    },
+    {
+      "source": "react",
+      "files": 6,
+      "sourceBytes": 19464,
+      "isolatedGzipBytes": 5835,
+      "isolatedBrotliBytes": 5017
+    },
+    {
+      "source": "@expo/cli",
+      "files": 1,
+      "sourceBytes": 23553,
+      "isolatedGzipBytes": 4961,
+      "isolatedBrotliBytes": 4330
+    },
+    {
+      "source": "inline-style-prefixer",
+      "files": 12,
+      "sourceBytes": 10863,
+      "isolatedGzipBytes": 4556,
+      "isolatedBrotliBytes": 3809
+    },
+    {
+      "source": "socket.io-parser",
+      "files": 3,
+      "sourceBytes": 15991,
+      "isolatedGzipBytes": 4491,
+      "isolatedBrotliBytes": 3854
+    },
+    {
+      "source": "html-parse-stringify",
+      "files": 1,
+      "sourceBytes": 12494,
+      "isolatedGzipBytes": 4296,
+      "isolatedBrotliBytes": 3714
+    },
+    {
+      "source": "expo-linking",
+      "files": 7,
+      "sourceBytes": 10856,
+      "isolatedGzipBytes": 4066,
+      "isolatedBrotliBytes": 3289
+    },
+    {
+      "source": "react-native-safe-area-context",
+      "files": 6,
+      "sourceBytes": 11228,
+      "isolatedGzipBytes": 3995,
+      "isolatedBrotliBytes": 3350
+    },
+    {
+      "source": "engine.io-parser",
+      "files": 5,
+      "sourceBytes": 12984,
+      "isolatedGzipBytes": 3978,
+      "isolatedBrotliBytes": 3422
+    },
+    {
+      "source": "@babel/runtime",
+      "files": 17,
+      "sourceBytes": 6580,
+      "isolatedGzipBytes": 3921,
+      "isolatedBrotliBytes": 3205
+    },
+    {
+      "source": "css-in-js-utils",
+      "files": 15,
+      "sourceBytes": 7858,
+      "isolatedGzipBytes": 3825,
+      "isolatedBrotliBytes": 3106
+    },
+    {
+      "source": "expo-haptics",
+      "files": 3,
+      "sourceBytes": 9845,
+      "isolatedGzipBytes": 3464,
+      "isolatedBrotliBytes": 2712
+    },
+    {
+      "source": "expo-constants",
+      "files": 3,
+      "sourceBytes": 11447,
+      "isolatedGzipBytes": 3343,
+      "isolatedBrotliBytes": 2731
+    },
+    {
+      "source": "color",
+      "files": 1,
+      "sourceBytes": 11169,
+      "isolatedGzipBytes": 3335,
+      "isolatedBrotliBytes": 2917
+    },
+    {
+      "source": "postcss-value-parser",
+      "files": 5,
+      "sourceBytes": 12844,
+      "isolatedGzipBytes": 3248,
+      "isolatedBrotliBytes": 2823
+    },
+    {
+      "source": "styleq",
+      "files": 3,
+      "sourceBytes": 7434,
+      "isolatedGzipBytes": 2735,
+      "isolatedBrotliBytes": 2236
+    },
+    {
+      "source": "scheduler",
+      "files": 2,
+      "sourceBytes": 10375,
+      "isolatedGzipBytes": 2662,
+      "isolatedBrotliBytes": 2292
+    },
+    {
+      "source": "query-string",
+      "files": 1,
+      "sourceBytes": 11554,
+      "isolatedGzipBytes": 2624,
+      "isolatedBrotliBytes": 2341
+    },
+    {
+      "source": "react-native-qrcode-svg",
+      "files": 6,
+      "sourceBytes": 6364,
+      "isolatedGzipBytes": 2415,
+      "isolatedBrotliBytes": 2100
+    },
+    {
+      "source": "@radix-ui/react-slot",
+      "files": 1,
+      "sourceBytes": 7240,
+      "isolatedGzipBytes": 2346,
+      "isolatedBrotliBytes": 2037
+    },
+    {
+      "source": "fbjs",
+      "files": 3,
+      "sourceBytes": 4182,
+      "isolatedGzipBytes": 2105,
+      "isolatedBrotliBytes": 1661
+    },
+    {
+      "source": "react-remove-scroll-bar",
+      "files": 4,
+      "sourceBytes": 5100,
+      "isolatedGzipBytes": 1959,
+      "isolatedBrotliBytes": 1595
+    },
+    {
+      "source": "dijkstrajs",
+      "files": 1,
+      "sourceBytes": 5206,
+      "isolatedGzipBytes": 1959,
+      "isolatedBrotliBytes": 1608
+    },
+    {
+      "source": "hoist-non-react-statics",
+      "files": 3,
+      "sourceBytes": 5493,
+      "isolatedGzipBytes": 1951,
+      "isolatedBrotliBytes": 1599
+    },
+    {
+      "source": "expo-secure-store",
+      "files": 2,
+      "sourceBytes": 6869,
+      "isolatedGzipBytes": 1905,
+      "isolatedBrotliBytes": 1556
+    },
+    {
+      "source": "fontfaceobserver",
+      "files": 1,
+      "sourceBytes": 4455,
+      "isolatedGzipBytes": 1726,
+      "isolatedBrotliBytes": 1429
+    },
+    {
+      "source": "@oxy.so/telemetry",
+      "files": 2,
+      "sourceBytes": 5118,
+      "isolatedGzipBytes": 1725,
+      "isolatedBrotliBytes": 1496
+    },
+    {
+      "source": "color-string",
+      "files": 1,
+      "sourceBytes": 5716,
+      "isolatedGzipBytes": 1671,
+      "isolatedBrotliBytes": 1479
+    },
+    {
+      "source": "react-fast-compare",
+      "files": 1,
+      "sourceBytes": 4823,
+      "isolatedGzipBytes": 1664,
+      "isolatedBrotliBytes": 1398
+    },
+    {
+      "source": "@react-native-async-storage/async-storage",
+      "files": 3,
+      "sourceBytes": 4805,
+      "isolatedGzipBytes": 1661,
+      "isolatedBrotliBytes": 1393
+    },
+    {
+      "source": "expo-document-picker",
+      "files": 3,
+      "sourceBytes": 4182,
+      "isolatedGzipBytes": 1653,
+      "isolatedBrotliBytes": 1317
+    },
+    {
+      "source": "expo-blur",
+      "files": 4,
+      "sourceBytes": 4569,
+      "isolatedGzipBytes": 1582,
+      "isolatedBrotliBytes": 1377
+    },
+    {
+      "source": "zustand",
+      "files": 5,
+      "sourceBytes": 3768,
+      "isolatedGzipBytes": 1568,
+      "isolatedBrotliBytes": 1371
+    },
+    {
+      "source": "@react-native/js-polyfills",
+      "files": 1,
+      "sourceBytes": 4174,
+      "isolatedGzipBytes": 1523,
+      "isolatedBrotliBytes": 1237
+    },
+    {
+      "source": "color-name",
+      "files": 1,
+      "sourceBytes": 4617,
+      "isolatedGzipBytes": 1510,
+      "isolatedBrotliBytes": 1333
+    },
+    {
+      "source": "merge-options",
+      "files": 2,
+      "sourceBytes": 4235,
+      "isolatedGzipBytes": 1497,
+      "isolatedBrotliBytes": 1296
+    },
+    {
+      "source": "base64-js",
+      "files": 1,
+      "sourceBytes": 3932,
+      "isolatedGzipBytes": 1378,
+      "isolatedBrotliBytes": 1194
+    },
+    {
+      "source": "expo-glass-effect",
+      "files": 5,
+      "sourceBytes": 1976,
+      "isolatedGzipBytes": 1307,
+      "isolatedBrotliBytes": 1014
+    },
+    {
+      "source": "expo-status-bar",
+      "files": 2,
+      "sourceBytes": 3190,
+      "isolatedGzipBytes": 1267,
+      "isolatedBrotliBytes": 1071
+    },
+    {
+      "source": "react-style-singleton",
+      "files": 4,
+      "sourceBytes": 2660,
+      "isolatedGzipBytes": 1224,
+      "isolatedBrotliBytes": 1001
+    },
+    {
+      "source": "react-is",
+      "files": 2,
+      "sourceBytes": 4634,
+      "isolatedGzipBytes": 1216,
+      "isolatedBrotliBytes": 1004
+    },
+    {
+      "source": "@expo/metro-runtime",
+      "files": 2,
+      "sourceBytes": 2107,
+      "isolatedGzipBytes": 1194,
+      "isolatedBrotliBytes": 927
+    },
+    {
+      "source": "@radix-ui/react-compose-refs",
+      "files": 1,
+      "sourceBytes": 2532,
+      "isolatedGzipBytes": 1008,
+      "isolatedBrotliBytes": 868
+    },
+    {
+      "source": "@socket.io/component-emitter",
+      "files": 1,
+      "sourceBytes": 3311,
+      "isolatedGzipBytes": 988,
+      "isolatedBrotliBytes": 827
+    },
+    {
+      "source": "decode-uri-component",
+      "files": 1,
+      "sourceBytes": 2261,
+      "isolatedGzipBytes": 953,
+      "isolatedBrotliBytes": 801
+    },
+    {
+      "source": "use-sync-external-store",
+      "files": 2,
+      "sourceBytes": 2201,
+      "isolatedGzipBytes": 898,
+      "isolatedBrotliBytes": 744
+    },
+    {
+      "source": "other",
+      "files": 6,
+      "sourceBytes": 1069,
+      "isolatedGzipBytes": 836,
+      "isolatedBrotliBytes": 610
+    },
+    {
+      "source": "ieee754",
+      "files": 1,
+      "sourceBytes": 2154,
+      "isolatedGzipBytes": 777,
+      "isolatedBrotliBytes": 706
+    },
+    {
+      "source": "nativewind",
+      "files": 2,
+      "sourceBytes": 2056,
+      "isolatedGzipBytes": 764,
+      "isolatedBrotliBytes": 636
+    },
+    {
+      "source": "invariant",
+      "files": 1,
+      "sourceBytes": 1397,
+      "isolatedGzipBytes": 720,
+      "isolatedBrotliBytes": 541
+    },
+    {
+      "source": "jwt-decode",
+      "files": 1,
+      "sourceBytes": 1697,
+      "isolatedGzipBytes": 633,
+      "isolatedBrotliBytes": 521
+    },
+    {
+      "source": "fast-deep-equal",
+      "files": 1,
+      "sourceBytes": 1177,
+      "isolatedGzipBytes": 481,
+      "isolatedBrotliBytes": 393
+    },
+    {
+      "source": "shallowequal",
+      "files": 1,
+      "sourceBytes": 979,
+      "isolatedGzipBytes": 415,
+      "isolatedBrotliBytes": 338
+    },
+    {
+      "source": "escape-string-regexp",
+      "files": 1,
+      "sourceBytes": 461,
+      "isolatedGzipBytes": 326,
+      "isolatedBrotliBytes": 268
+    },
+    {
+      "source": "simple-swizzle",
+      "files": 1,
+      "sourceBytes": 571,
+      "isolatedGzipBytes": 319,
+      "isolatedBrotliBytes": 266
+    },
+    {
+      "source": "nanoid",
+      "files": 1,
+      "sourceBytes": 508,
+      "isolatedGzipBytes": 293,
+      "isolatedBrotliBytes": 253
+    },
+    {
+      "source": "hyphenate-style-name",
+      "files": 1,
+      "sourceBytes": 452,
+      "isolatedGzipBytes": 273,
+      "isolatedBrotliBytes": 225
+    },
+    {
+      "source": "nullthrows",
+      "files": 1,
+      "sourceBytes": 384,
+      "isolatedGzipBytes": 257,
+      "isolatedBrotliBytes": 201
+    },
+    {
+      "source": "split-on-first",
+      "files": 1,
+      "sourceBytes": 459,
+      "isolatedGzipBytes": 250,
+      "isolatedBrotliBytes": 205
+    },
+    {
+      "source": "clsx",
+      "files": 1,
+      "sourceBytes": 388,
+      "isolatedGzipBytes": 239,
+      "isolatedBrotliBytes": 192
+    },
+    {
+      "source": "filter-obj",
+      "files": 1,
+      "sourceBytes": 346,
+      "isolatedGzipBytes": 237,
+      "isolatedBrotliBytes": 194
+    },
+    {
+      "source": "is-arrayish",
+      "files": 1,
+      "sourceBytes": 318,
+      "isolatedGzipBytes": 229,
+      "isolatedBrotliBytes": 176
+    },
+    {
+      "source": "warn-once",
+      "files": 1,
+      "sourceBytes": 314,
+      "isolatedGzipBytes": 210,
+      "isolatedBrotliBytes": 181
+    },
+    {
+      "source": "is-plain-obj",
+      "files": 1,
+      "sourceBytes": 245,
+      "isolatedGzipBytes": 173,
+      "isolatedBrotliBytes": 141
+    },
+    {
+      "source": "react-native-is-edge-to-edge",
+      "files": 1,
+      "sourceBytes": 350,
+      "isolatedGzipBytes": 170,
+      "isolatedBrotliBytes": 142
+    },
+    {
+      "source": "get-nonce",
+      "files": 1,
+      "sourceBytes": 300,
+      "isolatedGzipBytes": 156,
+      "isolatedBrotliBytes": 127
+    },
+    {
+      "source": "strict-uri-encode",
+      "files": 1,
+      "sourceBytes": 138,
+      "isolatedGzipBytes": 146,
+      "isolatedBrotliBytes": 109
+    },
+    {
+      "source": "standard-navigation",
+      "files": 1,
+      "sourceBytes": 186,
+      "isolatedGzipBytes": 140,
+      "isolatedBrotliBytes": 104
+    },
+    {
+      "source": "metro-runtime",
+      "files": 1,
+      "sourceBytes": 14,
+      "isolatedGzipBytes": 34,
+      "isolatedBrotliBytes": 18
+    }
+  ],
+  "iconFamilies": [
+    {
+      "family": "Ionicons",
+      "path": "assets/__node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf",
+      "bytes": 389724
+    },
+    {
+      "family": "BlomusModernus-Regular",
+      "path": "assets/__node_modules/@oxy.so/bloom/lib/module/fonts/assets/BlomusModernus-Regular.6a898c26aeb50e6f31189d06dd2bf3e9.woff2",
+      "bytes": 77644
+    },
+    {
+      "family": "BlomusModernus-Bold",
+      "path": "assets/__node_modules/@oxy.so/bloom/lib/module/fonts/assets/BlomusModernus-Bold.c8e4c906b137ccc90f9aa1fbccbe85b2.woff2",
+      "bytes": 77612
+    },
+    {
+      "family": "InterVariable",
+      "path": "assets/__node_modules/@oxy.so/bloom/lib/module/fonts/assets/InterVariable.260c81a4759baf163c025001c4f27872.woff2",
+      "bytes": 48256
+    },
+    {
+      "family": "OxyServicesIonicons",
+      "path": "assets/__node_modules/@oxy.so/services/lib/module/assets/fonts/icons/OxyServicesIonicons.48b1d8ee549a265d0c1aa67fed7fbca2.ttf",
+      "bytes": 43004
+    },
+    {
+      "family": "JetBrainsMono-Variable",
+      "path": "assets/__node_modules/@oxy.so/bloom/lib/module/fonts/assets/JetBrainsMono-Variable.b058178d7f309414f8f856b99fd80d9b.woff2",
+      "bytes": 40404
+    },
+    {
+      "family": "OxyServicesMaterialCommunityIcons",
+      "path": "assets/__node_modules/@oxy.so/services/lib/module/assets/fonts/icons/OxyServicesMaterialCommunityIcons.88d575089a17d9d10e08c411fd7105ba.ttf",
+      "bytes": 28852
+    }
+  ],
+  "largestFiles": [
+    {
+      "path": "_expo/static/js/web/__common-0a6a2ef796f7afe76ac6ead5c2780303.js",
+      "kind": "javascript",
+      "initial": true,
+      "bytes": 4082227,
+      "gzipBytes": 983550,
+      "brotliBytes": 764847
+    },
+    {
+      "path": "_expo/static/js/web/entry-877bf934d7dc3e6a2cc05f46618d34bb.js",
+      "kind": "javascript",
+      "initial": true,
+      "bytes": 1112330,
+      "gzipBytes": 292190,
+      "brotliBytes": 229204
+    },
+    {
+      "path": "assets/__node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf",
+      "kind": "font",
+      "initial": false,
+      "bytes": 389724,
+      "gzipBytes": null,
+      "brotliBytes": null
+    },
+    {
+      "path": "_expo/static/js/web/_layout-569b5350edbdab3a3f4d9b01c73135dd.js",
+      "kind": "javascript",
+      "initial": false,
+      "bytes": 203449,
+      "gzipBytes": 52048,
+      "brotliBytes": 44708
+    },
+    {
+      "path": "_expo/static/js/web/ru-6701d44df7aa23e41a1acfd851dd5aaa.js",
+      "kind": "javascript",
+      "initial": false,
+      "bytes": 199220,
+      "gzipBytes": 33499,
+      "brotliBytes": 26164
+    },
+    {
+      "path": "_expo/static/js/web/ar-69d22cdc3794c6db4ada2d58367ba43b.js",
+      "kind": "javascript",
+      "initial": false,
+      "bytes": 178032,
+      "gzipBytes": 31578,
+      "brotliBytes": 24998
+    },
+    {
+      "path": "_expo/static/js/web/bn-7986b13573ee813e9276614378bc7051.js",
+      "kind": "javascript",
+      "initial": false,
+      "bytes": 173479,
+      "gzipBytes": 30005,
+      "brotliBytes": 23813
+    },
+    {
+      "path": "_expo/static/js/web/hi-0ef5c59aaad354ae749187cb1f7a4ab1.js",
+      "kind": "javascript",
+      "initial": false,
+      "bytes": 168160,
+      "gzipBytes": 30514,
+      "brotliBytes": 24198
+    },
+    {
+      "path": "_expo/static/js/web/ja-2601ff4d0fc91851141082127a585f56.js",
+      "kind": "javascript",
+      "initial": false,
+      "bytes": 103861,
+      "gzipBytes": 27743,
+      "brotliBytes": 22879
+    },
+    {
+      "path": "assets/__node_modules/@oxy.so/services/lib/module/assets/signIn/slide-1.b29a38b76e9e9e426cc152c3a1a56a73.jpg",
+      "kind": "image",
+      "initial": false,
+      "bytes": 102174,
+      "gzipBytes": null,
+      "brotliBytes": null
+    },
+    {
+      "path": "assets/__node_modules/@oxy.so/services/lib/module/assets/signIn/slide-2.045f767e731a6b2801ce1ea8dbda92f5.jpg",
+      "kind": "image",
+      "initial": false,
+      "bytes": 87909,
+      "gzipBytes": null,
+      "brotliBytes": null
+    },
+    {
+      "path": "_expo/static/js/web/_layout-cda4f30147fa0f96f232c710c301fa40.js",
+      "kind": "javascript",
+      "initial": false,
+      "bytes": 87510,
+      "gzipBytes": 23834,
+      "brotliBytes": 20093
+    },
+    {
+      "path": "_expo/static/js/web/zh-7aead95fddb2f9aadca776803e44c459.js",
+      "kind": "javascript",
+      "initial": false,
+      "bytes": 81079,
+      "gzipBytes": 25441,
+      "brotliBytes": 21432
+    },
+    {
+      "path": "assets/__node_modules/@oxy.so/bloom/lib/module/fonts/assets/BlomusModernus-Regular.6a898c26aeb50e6f31189d06dd2bf3e9.woff2",
+      "kind": "font",
+      "initial": false,
+      "bytes": 77644,
+      "gzipBytes": null,
+      "brotliBytes": null
+    },
+    {
+      "path": "assets/__node_modules/@oxy.so/bloom/lib/module/fonts/assets/BlomusModernus-Bold.c8e4c906b137ccc90f9aa1fbccbe85b2.woff2",
+      "kind": "font",
+      "initial": false,
+      "bytes": 77612,
+      "gzipBytes": null,
+      "brotliBytes": null
+    }
+  ]
+}

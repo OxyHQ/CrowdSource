@@ -1,0 +1,56 @@
+{
+  "source": "b925b946321e09596215b4c15cb568f9e4ef7603",
+  "sources": [
+    {
+      "path": "scripts/doctor.mjs",
+      "sha256": "5312d6c75f8645f3612c11cce1119edc5d245f2af01e9ba65d42ed96a8792b5c"
+    },
+    {
+      "path": "packages/reviewer/bundle-budgets.json",
+      "sha256": "4d9a339ced5d8c34255a34beef3d280cb275b7579d01606f3cb3565244ee1143"
+    }
+  ],
+  "records": [
+    {
+      "path": "docs/audits/2026-10-04-registry-ci-followup/records/final-ci-failed.log",
+      "sha256": "0f6302591acf349a9971eb471ce70220ea337fa6160ffaeb357ef54870be9fa5"
+    },
+    {
+      "path": "docs/audits/2026-10-04-registry-ci-followup/records/final-full-check.log",
+      "sha256": "13da135a22b6a6aa749e4ba888c8649d57bff74712991831b0012dead0509286"
+    },
+    {
+      "path": "docs/audits/2026-10-04-registry-ci-followup/records/bundle-final-attribution.json",
+      "sha256": "fb516d1341f89e85e52909487c6b0b150e6c15a739f73ec2c81bf23c5a48e4a3"
+    },
+    {
+      "path": "docs/audits/2026-10-04-registry-ci-followup/records/bundle-local-final.json",
+      "sha256": "624ed56c27f23c6fce762562f33c41104ded9799ae2659a601ffec6936b9b08e"
+    },
+    {
+      "path": "docs/audits/2026-10-04-registry-ci-followup/records/bundle-local-final.log",
+      "sha256": "d95c83ed640ed080bcf86318f82917ca1ec92668de424988ed27af3e4e91f9b6"
+    },
+    {
+      "path": "docs/audits/2026-10-04-registry-ci-followup/records/ci-bundle-artifact-crowdsource-bundle-report.json",
+      "sha256": "91c234e54c81a1170b201e4a7a2b9d6239c0951e8a89eb942fe334eef5faa5cb"
+    },
+    {
+      "path": "docs/audits/2026-10-04-registry-ci-followup/records/baseline-bundle-artifact-crowdsource-bundle-report.json",
+      "sha256": "61b6ecf46b4987bb9b47053bacc2c73b8dc999d4a8d55068b4388fedef4d91ff"
+    }
+  ],
+  "validation": {
+    "canonicalFullCheck": "passed with Node22.17.0/Bun1.4.2",
+    "bundleBudget": "passed all6",
+    "totalBytes": 8955862,
+    "previousTotalCeiling": 8912896,
+    "allOther5CeilingsUnchanged": true
+  },
+  "limits": [
+    "Total ceiling increases only to exact measured CI/local bytes. All61690 additional bytes relative to main are in the same initial common JS bundle; assets/fonts/other chunks unchanged.",
+    "Isolated source gzip attribution is non-additive and not a safety proof. Runtime authority and application source are unchanged.",
+    "Doctor now enforces the reviewed exact6.2.1 override/importer/installed pins. It does not relax version drift checks.",
+    "Requires root source review and final CI before merge."
+  ]
+}
