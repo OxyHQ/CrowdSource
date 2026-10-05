@@ -7,6 +7,22 @@
       "reason": "Expo, Jest and ESLint still resolve the legacy CommonJS API. Forcing brace-expansion 5 across those dependency contracts is a breaking transitive override.",
       "compensation": "No server request path or shipped application bundle invokes glob expansion; CI passes only repository-owned paths and patterns.",
       "expires": "2026-10-31"
+    },
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "scope": "frontend build tooling only (Metro, Jest and Expo CLI file maps in @crowdsource/console and @crowdsource/reviewer)",
+      "reason": "No fixed version of braces exists: the advisory covers <=3.0.3 and 3.0.3 is the latest published release, so an override has nothing to point at. Its only path is micromatch 4, required by metro-file-map, @expo/metro-file-map, jest-haste-map and @jest/transform. @crowdsource/backend reaches it only through @oxy.so/core's optional expo peers, which the backend image omits (--omit=peer --omit=optional).",
+      "compensation": "Stack-exhaustion denial of service needs a hostile, deeply nested brace pattern. Only repository-owned globs and paths reach micromatch at build and test time; no server request path, published package or shipped app bundle expands a glob.",
+      "expires": "2026-10-31"
+    },
+    {
+      "advisory": "GHSA-86w9-cpqp-85rv",
+      "package": "node-forge",
+      "scope": "Expo CLI, build time only (@crowdsource/console and @crowdsource/reviewer)",
+      "reason": "No fixed version of node-forge exists: the advisory covers <=1.4.0 and 1.4.0 is the latest published release, so an override has nothing to point at. Its only paths are @expo/cli and @expo/code-signing-certificates, entered through expo by the two app workspaces; @crowdsource/backend reaches it only through @oxy.so/core's optional expo peers, which the backend image omits (--omit=peer --omit=optional).",
+      "compensation": "The flaw is lenient RSA PKCS#1 v1.5 signature verification. The repository only runs expo export for static web bundles; it never verifies expo-updates code-signing signatures, and no server request path, published package or shipped app bundle loads node-forge.",
+      "expires": "2026-10-31"
     }
   ]
 }

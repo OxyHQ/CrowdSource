@@ -58,7 +58,7 @@
   },
   "devDependencies": {
     "@oxy.so/doctor": "1.1.0",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.6.4",
     "typescript": "~5.9.3",
     "yaml": "^2.9.1"
   },
@@ -75,10 +75,11 @@
     "@react-native/babel-preset": "0.85.3",
     "@react-native/metro-babel-transformer": "0.85.3",
     "@react-native/metro-config": "0.85.3",
-    "@oxy.so/bloom": "6.2.1",
+    "@oxy.so/bloom": "7.1.2",
     "@oxy.so/core": "4.2.0",
     "@oxy.so/services": "11.1.0",
     "brace-expansion": "2.1.7",
+    "http-cache-semantics": "4.3.0",
     "socket.io-parser": "4.2.7",
     "fast-uri": "3.1.4",
     "fast-xml-parser": "5.10.1",
