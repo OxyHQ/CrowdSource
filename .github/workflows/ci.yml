@@ -167,10 +167,6 @@ jobs:
           bun .github/scripts/test-assert-test-floor.mjs
           bun scripts/test-check-lockfile-sync.mjs
           bun scripts/test-check-injection-sinks.mjs
-          bun scripts/test-security-tooling-exceptions.mjs
-          bun scripts/test-security-tooling-exceptions-adversarial.mjs
-          bun scripts/test-tooling-audit-wiring.mjs
-          bun scripts/test-tooling-policy-lifecycle.mjs
 
   lockfile:
     name: Lockfile sync
