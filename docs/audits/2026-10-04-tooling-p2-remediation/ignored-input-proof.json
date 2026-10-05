@@ -1,0 +1,82 @@
+{
+  "kind": "crowdsource-ignored-build-input-refusal-proof-v1",
+  "sourceSha": "d53106c37e53cc67f3882bc6f4462723d1966c57",
+  "baseSha": "bc52402a5934ef74eaab1db2494053d142ebd1f5",
+  "review": "https://github.com/OxyHQ/CrowdSource/pull/222#discussion_r4177810402",
+  "expiry": "2026-10-09T22:00:00Z",
+  "records": [
+    {
+      "path": "scripts/security-tooling-exceptions.mjs",
+      "sha256": "0b1a12cdfb791471650c184d39108b142cffa44ba999475ae426baeac3605b3f"
+    },
+    {
+      "path": "scripts/test-tooling-policy-lifecycle.mjs",
+      "sha256": "d1286b3ec90817200eefcd915843e3af885a0758b239641d1235cf1e9e58e326"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/ignored-red.log",
+      "sha256": "d4574f48ec9bf3a650fd518520a6e0ae354021185d914fe69f4b669099f4050a"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/ignored-green.log",
+      "sha256": "075dc77a76b723f3a6428b9d2e89b357cbc16bad1975d99c26c081c16dbfa073"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/ignored-existing-controls.log",
+      "sha256": "c5025366f901f45cc042df5c5b4dab8dafdf5f0eaacbc673565dd0abcc43be2a"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/ignored-workflows.log",
+      "sha256": "e313689cb9b7f0807d0d5944df89b70fcc66e472cdd9eaad2e59835e4b82544c"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/ignored-live-audit.log",
+      "sha256": "98f94fb1ce089738d4bb6f58571b397e16b2e3e0c3c76d88bdf4ae32d87bd567"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/frozen-ignored-audit-security.mjs",
+      "sha256": "843ffcef6decf7898393d2c94b0d01b45d8adaeb3610d737cc8a066395896450"
+    },
+    {
+      "path": "docs/audits/2026-10-04-tooling-p2-remediation/records/frozen-ignored-security-tooling-exceptions.mjs",
+      "sha256": "7451a9c114ad1aac2dc7762d7f237abda99329c19807038430415e843e122952"
+    }
+  ],
+  "red": {
+    "pass": 15,
+    "fail": 4,
+    "exit": 1
+  },
+  "green": {
+    "pass": 19,
+    "fail": 0,
+    "exit": 0
+  },
+  "existingControls": {
+    "scoped": 21,
+    "adversarial": 6,
+    "wiring": 6,
+    "workflows": 7,
+    "publisherClassification": 13,
+    "liveAuditExit": 0
+  },
+  "inputBindingUnchanged": {
+    "recordCount": 760,
+    "sha256": "da757f26e23be7a1460fc68b723e1ff79763eebe717a3e393bb097d3d8cda618",
+    "snapshotSource": "c8efe295",
+    "runtimeSource": "97a1d9dc"
+  },
+  "contract": [
+    "Refuse any ignored file/directory outside exact root and tracked package manifest node_modules directory slots.",
+    "Reject symlink/non-regular sealed source entries and symlink dependency-directory slots.",
+    "Do not read or print ignored file contents, including .env secrets.",
+    "Require clean source checkout before application builds: no ignored cache/output/tmp/env allowance.",
+    "Canonical CI installs frozen --ignore-scripts and calls audit before build."
+  ],
+  "limits": [
+    "Installed dependency directories remain in the separate pinned-lock/provenance boundary; this source seal does not attest every mutable node_modules byte.",
+    "Local warm output/config checkout is refused; operator must select a clean checkout, guard deletes nothing.",
+    "Previously accepted runtime97 ARM/exports remain historical runtime evidence; no new application build/image is claimed.",
+    "Package source/manifests/lock/Docker/expiry unchanged; no deployment or issue state mutation."
+  ]
+}

@@ -1,0 +1,36 @@
+PASS unchanged inputs just before fixed deadline admit
+PASS deferred Bun audit crossing exact deadline refuses
+PASS deadline crossed after predicate before acceptance refuses
+PASS invalid clock after audit refuses
+PASS source-only import of installed target without lock change refuses
+PASS new source file importing target refuses
+PASS missing source/build binding refuses
+PASS build config change refuses
+PASS foreign image source refuses even with updated record hash
+PASS ARM proof with included tooling refuses
+PASS missing export record refuses
+PASS missing reviewed runtime evidence refuses
+FAIL ignored executable module outside dependencies refuses: ignored executable module outside dependencies refuses
+
+
+true !== false
+
+FAIL ignored environment configuration refuses without reading its content: ignored environment configuration refuses without reading its content
+
+
+true !== false
+
+FAIL ignored generated dist input refuses: ignored generated dist input refuses
+
+
+true !== false
+
+PASS ordinary installed dependency directory stays outside source census
+FAIL arbitrary nested node_modules under application source refuses: arbitrary nested node_modules under application source refuses
+
+
+true !== false
+
+PASS ignored installed directory symlink outside checkout refuses
+PASS tracked symlink into outside payload refuses
+15 PASS / 4 FAIL; all owned fixture directories removed
