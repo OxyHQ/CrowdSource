@@ -90,7 +90,7 @@
     "@crowdsource.you/contracts": "workspace:*",
     "@oxy.so/db": "^1.0.0",
     "@types/express": "^5.0.6",
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "drizzle-kit": "^0.31.11",
     "drizzle-orm": "^0.45.3",
     "express": "^5.2.1",

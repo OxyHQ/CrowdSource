@@ -6,7 +6,7 @@
       "name": "crowdsource",
       "devDependencies": {
         "@oxy.so/doctor": "1.1.0",
-        "@types/node": "^26.6.3",
+        "@types/node": "^26.6.4",
         "typescript": "~5.9.3",
         "yaml": "^2.9.1",
       },
@@ -115,7 +115,7 @@
         "zod": "^4.6.5",
       },
       "devDependencies": {
-        "@types/node": "^26.6.3",
+        "@types/node": "^26.6.4",
         "typescript": "^5.9.3",
         "vitest": "^5.0.3",
       },
@@ -130,7 +130,7 @@
         "@crowdsource.you/contracts": "workspace:*",
         "@oxy.so/db": "^1.0.0",
         "@types/express": "^5.0.6",
-        "@types/node": "^26.6.3",
+        "@types/node": "^26.6.4",
         "drizzle-kit": "^0.31.11",
         "drizzle-orm": "^0.45.3",
         "express": "^5.2.1",
@@ -1017,7 +1017,7 @@
 
     "@types/ms": ["@types/ms@2.1.0", "", {}, "sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA=="],
 
-    "@types/node": ["@types/node@26.6.3", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-dsqMQQoeTLqu9wynDD00q573mNzso3IdQOAfHRJqLCcmCFPoGo9A1bDpUcv/9tnKpErQWv9uKeGfl37EIS02Yg=="],
+    "@types/node": ["@types/node@26.6.4", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-ldVPDCzj7fsaGZrLB0NuHuTvJcsNasysBAqMolr/cgxrLd1xbqxIr3XJiPnHHJUCxj5sNF1vnRj9aWnrVh5Jcg=="],
 
     "@types/qs": ["@types/qs@6.15.1", "", {}, "sha512-GZHUBZR9hckSUhrxmp1nG6NwdpM9fCunJwyThLW1X3AyHgd9IlHb6VANpQQqDr2o/qQp6McZ3y/IA2rVzKzSbw=="],
 
