@@ -68,11 +68,18 @@ updates:
       # AI SDK — intentionally pinned (breaking changes between minors).
       - dependency-name: "ai"
       # Expo SDK 56 ships react-native-safe-area-context ~5.7.0 and
-      # react-native-gesture-handler ~2.31; @oxy.so/services 11.1 also peers
-      # gesture-handler <3. They move with the Expo SDK, not on their own.
+      # react-native-gesture-handler ~2.31 (native modules, so a minor counts);
+      # @oxy.so/services 11.1 also peers gesture-handler <3. They move with the
+      # Expo SDK, not on their own.
       - dependency-name: "react-native-safe-area-context"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
       - dependency-name: "react-native-gesture-handler"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      # ESLint 10 (Expo apps' env-var lint only) pulls a minimatch that calls
+      # brace-expansion's named `expand`, but the root security override pins
+      # brace-expansion 2.1.7, which has none: `expo lint` dies with
+      # "brace_expansion_1.expand is not a function" (measured on #230).
+      - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
       # Babel 8 plugins peer @babel/core ^8; Expo SDK 56 runs Babel 7.
       - dependency-name: "@babel/plugin-transform-export-namespace-from"
