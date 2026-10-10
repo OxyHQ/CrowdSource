@@ -150,7 +150,9 @@ export function scanForForbiddenFields(payload: unknown): string[] {
     visited += 1;
 
     if (Array.isArray(node)) {
-      node.forEach((item, index) => walk(item, `${path}[${index}]`, depth + 1));
+      node.forEach((item, index) => {
+        walk(item, `${path}[${index}]`, depth + 1);
+      });
       return;
     }
 
