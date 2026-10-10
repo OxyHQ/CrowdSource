@@ -12,7 +12,9 @@
   // ---------------------------------------------------------------------------
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "lib": ["ES2020"],
+    // ES2022 for `Object.hasOwn`: the image runs Bun 1.4 (Dockerfile) and the
+    // tests Node 22, both of which ship it. `target` stays the root ES2020.
+    "lib": ["ES2022"],
     "types": ["node"],
     // --- Intentional override of the root base: emit CommonJS for Node/Bun.
     // The ECS image executes the emitted `dist/**` as CommonJS; `node`

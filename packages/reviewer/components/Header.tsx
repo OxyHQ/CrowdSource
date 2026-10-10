@@ -1,5 +1,5 @@
 import React, { type ReactNode, useEffect, useState } from 'react';
-import { StyleSheet, View, Text, Pressable, ViewStyle, Platform } from 'react-native';
+import { StyleSheet, View, Text, Pressable, type ViewStyle, Platform } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useSafeBack } from '@/hooks/useSafeBack';

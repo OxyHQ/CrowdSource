@@ -3,9 +3,9 @@ import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm';
 import { outboxEvents, type OutboxStatus } from '../schema/infrastructure';
 import type { TenantContext } from '../../tenantScope';
 import { requireTransaction, type PgHandle, type PgTransactionHandle } from '../withTenant';
-import {
-  type OutboxEventPayload,
-  type OutboxEventType,
+import type {
+  OutboxEventPayload,
+  OutboxEventType,
 } from '../../../modules/outbox/outbox.collection';
 import { newPublicId } from '../../../utils/identifiers';
 

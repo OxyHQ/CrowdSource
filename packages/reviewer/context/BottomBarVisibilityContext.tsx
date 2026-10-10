@@ -28,7 +28,8 @@
 
 import { setMinimized, useMinimizeState } from '@oxy.so/bloom/tab-bar';
 import { usePathname } from 'expo-router';
-import React, { createContext, useContext, useEffect } from 'react';
+import type React from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import { useAnimatedReaction, useSharedValue, type SharedValue } from 'react-native-reanimated';
 
 import { useLayoutScroll } from '@/context/LayoutScrollContext';

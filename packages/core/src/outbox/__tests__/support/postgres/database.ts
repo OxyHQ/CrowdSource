@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import postgres from 'postgres';
+import type postgres from 'postgres';
 import { createDatabase, type OxyDatabase } from '@oxy.so/db';
 import { runMigrations } from '@oxy.so/db/migrate';
 import { createTestDatabase, dropTestDatabase } from '@oxy.so/db/testing';

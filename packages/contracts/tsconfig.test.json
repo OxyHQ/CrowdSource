@@ -18,6 +18,9 @@
     "declarationMap": false,
     "noEmit": true,
     "types": ["node"],
+    // The tests run on Node 22 only, never in a consumer bundle, so they may use
+    // ES2022 built-ins (`Object.hasOwn`). The emitting project keeps the root lib.
+    "lib": ["ES2022"],
     // The emitting project pins `rootDir` to `src/` so `dist/` mirrors it. This
     // project emits nothing and also covers `vitest.config.ts` at the package
     // root, so it widens `rootDir` rather than moving the config file.

@@ -1,7 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 
 import { appTrustSnapshots } from '../schema/infrastructure';
-import { type PgHandle } from '../withTenant';
+import type { PgHandle } from '../withTenant';
 
 /**
  * Application trust standing, as a PostgreSQL repository.

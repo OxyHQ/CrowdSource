@@ -25,7 +25,8 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import React, { useLayoutEffect, useRef } from 'react';
+import type React from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 import { clearActiveAssignment } from '@/lib/reviewer-api/active-assignment';
 import { reviewerQueryKeys } from '@/lib/reviewer-api/query-keys';

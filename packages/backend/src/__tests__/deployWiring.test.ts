@@ -310,7 +310,7 @@ describe('the migration interlock', () => {
 
   it('deploys the backend whenever its scope changed, with no repository-variable switch', () => {
     const deployJob =
-      /^  deploy:\n([\s\S]*?)(?=^  [a-z][a-z0-9-]*:\n)/m.exec(deployWorkflow)?.[1] ?? '';
+      /^ {2}deploy:\n([\s\S]*?)(?=^ {2}[a-z][a-z0-9-]*:\n)/m.exec(deployWorkflow)?.[1] ?? '';
     const directives = directivesOnly(deployJob);
     expect(directives).toContain("needs.scope.outputs.deploy == 'true'");
     expect(directives).not.toMatch(/vars\./);

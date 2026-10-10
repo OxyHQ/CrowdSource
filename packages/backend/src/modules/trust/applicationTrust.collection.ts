@@ -1,6 +1,6 @@
 import { defineUnscopedCollection } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
-import { APPLICATION_STANDINGS, STANDING_REASONS } from '../../domain/closedValues';
+import type { APPLICATION_STANDINGS, STANDING_REASONS } from '../../domain/closedValues';
 
 /**
  * Application moderation trust (§11.13).

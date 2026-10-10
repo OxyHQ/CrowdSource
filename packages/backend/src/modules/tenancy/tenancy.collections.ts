@@ -1,5 +1,5 @@
 import { defineUnscopedCollection } from '../../db/collections';
-import {
+import type {
   APPLICATION_STATUSES,
   CREDENTIAL_STATUSES,
   ORGANIZATION_STATUSES,

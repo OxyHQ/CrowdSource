@@ -2,7 +2,7 @@ import type { TaxonomyCode } from '@crowdsource.you/contracts';
 
 import { defineTenantCollection } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
-import { CASE_STATUSES } from '../../domain/closedValues';
+import type { CASE_STATUSES } from '../../domain/closedValues';
 import type { ContentSnapshot } from '../evidence/contentSnapshot';
 import type { ReviewPool, SensitivityClass } from '../triage/triage';
 

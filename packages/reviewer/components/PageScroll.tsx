@@ -13,7 +13,7 @@
  * `LayoutScrollProvider` owns it.
  */
 
-import React from 'react';
+import type React from 'react';
 import { ScrollView } from 'react-native';
 
 import { useBottomBarReservedSpace } from '@/components/BottomBar';

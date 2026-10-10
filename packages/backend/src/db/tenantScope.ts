@@ -66,7 +66,7 @@ export function createTenantContext(organizationId: string, applicationId: strin
 
 function assertNoTenantKeys(subject: object, what: string): void {
   for (const key of TENANT_KEYS) {
-    if (Object.prototype.hasOwnProperty.call(subject, key)) {
+    if (Object.hasOwn(subject, key)) {
       // Deliberately a throw rather than a silent override. Supplying a tenant
       // key means the caller believes it chooses the tenant, and that belief is
       // the bug — it must surface in tests, not be quietly corrected in
