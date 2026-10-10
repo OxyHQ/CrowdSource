@@ -8,7 +8,7 @@ import {
   COMMUNITY_NOTE_TEXT_MAX_LENGTH,
 } from '@crowdsource.you/contracts';
 
-import { parseClaims } from './appealsAdr.test';
+import { parseClaims } from './support/adrClaims';
 import {
   ASSIGNMENT_TTL_MS,
   NOTES_PER_AUTHOR_PER_DAY,

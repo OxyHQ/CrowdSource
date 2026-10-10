@@ -106,7 +106,7 @@ function doc(relativePath: string): string {
 // --- the fenced claims blocks -----------------------------------------------
 
 /** The `key: value` lines of a fenced `docs-claims` block. */
-export function parseClaims(document: string): ReadonlyMap<string, readonly string[]> {
+function parseClaims(document: string): ReadonlyMap<string, readonly string[]> {
   const fenced = /```docs-claims\n([\s\S]*?)```/.exec(document);
   if (!fenced) throw new Error('this document has no fenced `docs-claims` block');
 
@@ -241,7 +241,7 @@ const GUARD_CLASSES: ReadonlyMap<string, CallerClass> = new Map([
  * path, so a route mounted with no guard at all does not silently parse as one
  * caller class or another — it fails the count floor below.
  */
-export function servedRoutes(): readonly ServedRoute[] {
+function servedRoutes(): readonly ServedRoute[] {
   const pattern =
     /\w+Router\.(get|post|put|patch|delete)\(\s*\n?\s*'([^']+)'\s*,\s*\n?\s*(?:\.\.\.)?(require\w+)\(([^)]*)\)/g;
 
@@ -282,7 +282,7 @@ interface DocumentedRoute {
  * failing on, and a route moved between two DOCUMENTS is caught by the
  * caller-class assertion instead.
  */
-export function documentedRoutes(document: string): readonly DocumentedRoute[] {
+function documentedRoutes(document: string): readonly DocumentedRoute[] {
   const rows: DocumentedRoute[] = [];
   for (const line of document.split('\n')) {
     if (!line.startsWith('|')) continue;
