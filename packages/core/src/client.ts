@@ -174,6 +174,7 @@ function lazyApplicationId(transport: Transport): Promise<string> {
   // an application — makes no identity call at all. Awaiting it twice still
   // makes one.
   return {
+    // biome-ignore lint/suspicious/noThenProperty: a lazy thenable is the point, see above
     then: (onFulfilled, onRejected) => resolve().then(onFulfilled, onRejected),
   } as Promise<string>;
 }
