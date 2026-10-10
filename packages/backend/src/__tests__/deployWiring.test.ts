@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -320,51 +320,52 @@ describe('the migration interlock', () => {
 
 describe('the secrets the service cannot boot without', () => {
   /**
-   * SYNCED IMPLIES NAMED — an implication, not a biconditional, and the
-   * correction matters more than the rule.
-   *
-   * This started as `inAllowlist === inTaskDefinition`, on the reasoning that a
-   * sync entry and a task-definition entry are two halves of one fact. That is
-   * true only while CI OWNS the secret. `/oxy/crowdsource/DATABASE_URL` is a
-   * hand-written SecureString with no GitHub secret behind it, so the
-   * biconditional would have failed the correct configuration and, worse, the
-   * obvious way to satisfy it would be to add the allow-list entry — which
-   * declares CI ownership of a value CI does not write, and arms the next
-   * deploy to overwrite a live credential with an empty or placeholder secret.
-   *
-   * What the workflow can genuinely enforce is one direction: a secret CI
-   * writes that no task definition names reaches SSM and nothing else, which is
-   * what the file's own comment says. The converse — named but not synced — is
-   * legitimate and is the intended configuration for every hand-managed
-   * parameter.
-   *
-   * What this cannot check is that the named parameter EXISTS in SSM. That is
-   * an infrastructure fact, and naming one that does not exist is what holds a
-   * service at `desired_count = 0`, unable to start.
+   * Runtime secrets live ONLY in SSM `/oxy/crowdsource/*` (oxy-infra runbook
+   * 46). Until 2026-10-10 the deploy copied a repo secret into SSM on every
+   * run, which made GitHub a second, overriding source of a production
+   * credential: anyone able to edit the repo secret changed what production
+   * ran with, and a placeholder overwrote the live value. Now no workflow
+   * writes SSM and none reads a repo secret beyond what CI itself spends.
+   * Comment lines are skipped, so the rule can be explained where it applies.
    */
-  it('never syncs a secret the task definition does not name', () => {
-    const syncedNames = /SSM_SECRET_ALLOWLIST:([^\n]*)/.exec(deployWorkflow)?.[1] ?? '';
-    const taskDefinition =
-      /TASK_SECRET_OVERRIDES_JSON:[\s\S]*?\n(?= {8}\S|\S)/.exec(deployWorkflow)?.[0] ?? '';
+  const CI_ONLY_SECRETS = new Set([
+    'GITHUB_TOKEN',
+    'CLOUDFLARE_API_TOKEN',
+    'CLOUDFLARE_ACCOUNT_ID',
+    'NPM_TOKEN',
+    'ADD_TO_PROJECT_TOKEN',
+  ]);
+  const workflowsDir = path.join(repoRoot, '.github', 'workflows');
+  const workflows = readdirSync(workflowsDir)
+    .filter((file) => /\.ya?ml$/.test(file))
+    .map((file) => [file, directivesOnly(read('.github', 'workflows', file))] as const);
 
-    const synced = syncedNames.trim().split(/\s+/).filter(Boolean);
-    expect(synced.length).toBeGreaterThan(0); // the allow-list must not read as empty
-
-    for (const name of synced) {
-      expect(taskDefinition).toContain(`"${name}"`);
-    }
+  it('no workflow writes SSM', () => {
+    expect(workflows.length).toBeGreaterThan(3); // vacuity floor
+    const writers = workflows
+      .filter(([, text]) => /\bssm\s+(put-parameter|delete-parameters?|label-parameter-version)\b/i.test(text))
+      .map(([file]) => file);
+    expect(writers).toEqual([]);
   });
 
-  /**
-   * The named-but-unsynced direction, asserted as a POSITIVE fact rather than
-   * left implicit, so that reintroducing the allow-list entry is a deliberate
-   * act somebody has to argue for rather than a tidy-up nobody notices.
-   */
-  it('leaves the hand-managed DATABASE_URL out of the sync allow-list', () => {
-    expect(deployWorkflow).toMatch(
-      /TASK_SECRET_OVERRIDES_JSON:[\s\S]*?"DATABASE_URL":[\s\S]*?parameter\/oxy\/crowdsource\/DATABASE_URL/,
+  it('no workflow reads a repo secret beyond the CI-only allow-list', () => {
+    const runtime = workflows.flatMap(([file, text]) =>
+      [...text.matchAll(/\bsecrets\.([A-Za-z_][A-Za-z0-9_]*)/g)]
+        .map((match) => match[1])
+        .filter((name) => !CI_ONLY_SECRETS.has(name))
+        .map((name) => `${file}: ${name}`),
     );
-    expect(deployWorkflow).not.toMatch(/SSM_SECRET_ALLOWLIST:[^\n]*\bDATABASE_URL\b/);
+    expect(runtime).toEqual([]);
+  });
+
+  it('names every runtime secret on the task definition by its SSM path', () => {
+    const overrides =
+      /TASK_SECRET_OVERRIDES_JSON:[\s\S]*?\n(?= {8}\S|\S)/.exec(deployWorkflow)?.[0] ?? '';
+    for (const name of ['DATABASE_URL', 'WEBHOOK_SECRET_ENCRYPTION_KEY']) {
+      expect(overrides).toMatch(
+        new RegExp(`"${name}":\\s*"arn:aws:ssm:[^"]*:parameter/oxy/crowdsource/${name}"`),
+      );
+    }
   });
 
   /**

@@ -113,46 +113,11 @@ jobs:
       - name: Verify current main before production changes
         run: bash .github/scripts/require-current-main.sh
 
-      - name: Sync GitHub secrets to SSM
-        env:
-          # Only what the service actually reads (packages/backend/src/config).
-          # A parameter nothing consumes is a secret with no owner: it never
-          # rotates, and nothing fails when it goes stale. Each module adds its
-          # own here as it ships — REDIS_URL arrives with the first BullMQ queue,
-          # and it will need the shared-Valkey database-index guard back.
-          # The key webhook signing secrets are encrypted with at rest (§13.4).
-          # Without it the two webhook-management routes answer 503 and no
-          # endpoint can be registered — the service still boots, deliberately,
-          # so that adding this variable could not take production down on the
-          # deploy that introduced it.
-          WEBHOOK_SECRET_ENCRYPTION_KEY: ${{ secrets.WEBHOOK_SECRET_ENCRYPTION_KEY }}
-          SSM_SECRET_ALLOWLIST: WEBHOOK_SECRET_ENCRYPTION_KEY
-        run: |
-          set -euo pipefail
-
-          is_set() {
-            local value="${1:-}"
-            [[ -n "$value" && "$value" != "-" ]]
-          }
-
-          # Every parameter written here is namespaced under /oxy/crowdsource/.
-          # This app never writes the shared parameter namespace, which backs
-          # every Oxy backend at once.
-          for key in $SSM_SECRET_ALLOWLIST; do
-            value="${!key:-}"
-            if ! is_set "$value"; then
-              echo "::warning::Skipping empty or placeholder secret $key; SSM unchanged."
-              continue
-            fi
-
-            aws ssm put-parameter \
-              --name "/oxy/$APP/$key" \
-              --value "$value" \
-              --type SecureString \
-              --overwrite \
-              >/dev/null
-            echo "Synced /oxy/$APP/$key"
-          done
+      # Runtime secrets live ONLY in SSM /oxy/crowdsource/* (SecureString);
+      # the task definition reads them at task start and this deploy writes
+      # none. Set or rotate one with `aws ssm put-parameter --overwrite`
+      # (oxy-infra runbook 46). Until 2026-10-10 a step here copied the
+      # WEBHOOK_SECRET_ENCRYPTION_KEY repo secret into SSM.
 
       - name: Re-verify current main before ECS rollout
         run: bash .github/scripts/require-current-main.sh
@@ -186,21 +151,10 @@ jobs:
           MIGRATION_COMMAND_JSON: >-
             ["bun","packages/backend/dist/scripts/migrate.js"]
           POST_DEPLOY_SMOKE_SCRIPT: .github/scripts/smoke-crowdsource.sh
-          # Syncing a parameter to SSM does not put it in the container: the
-          # task definition has to name it. A secret in the allow-list above
-          # with no entry here reaches SSM and nothing else.
-          #
-          # DATABASE_URL is named here and is deliberately NOT in that
-          # allow-list, which is not an oversight — it is how the parameter is
-          # managed. `/oxy/crowdsource/DATABASE_URL` is a hand-written
-          # SecureString (Alia's shape); there is no GitHub secret behind it,
-          # and there must not be one. An allow-list entry would declare that CI
-          # owns the value, so the day somebody creates a `DATABASE_URL` secret
-          # — a placeholder, a stale copy, the migrator's string — the next
-          # deploy would overwrite the credential the service cannot boot
-          # without. The relationship the workflow can enforce is therefore
-          # one-way: SYNCED IMPLIES NAMED, never the converse.
-          # `deployWiring.test.ts` pins exactly that implication.
+          # Every runtime secret is named here by its SSM path. A parameter
+          # must EXIST before it is named: a task definition naming a missing
+          # parameter fails at task start. `deployWiring.test.ts` fails the
+          # build if any workflow writes SSM or reads a runtime repo secret.
           #
           # MIGRATOR_DATABASE_URL must NEVER appear here. It names
           # crowdsource_migrator, which OWNS every table — and a table's owner
