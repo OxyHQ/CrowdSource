@@ -17,9 +17,9 @@
  * } from '@crowdsource.you/core/outbox/postgres';
  * ```
  *
- * `drizzle-orm`, `postgres` and `@oxy.so/db` are OPTIONAL peers, which is what this
- * split buys: a deployment on Mongo never installs them, and a bundler never has
- * to resolve them. Importing this subpath without them fails at the import, by
+ * `drizzle-orm`, `postgres` and `@oxy.so/db` are OPTIONAL peers, which is what
+ * this split buys: a consumer of the package root never installs them, and a
+ * bundler never has to resolve them. Importing this subpath without them fails at the import, by
  * name — which is the failure you want, rather than a driver quietly missing at
  * the first write.
  *

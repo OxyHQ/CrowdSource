@@ -42,18 +42,15 @@ import {
 } from './reviewOnlyApplication.js';
 
 /**
- * The same fictional application, second implementation.
+ * The fictional application, over PostgreSQL.
  *
  * Every member of the `Harness` façade is implemented here over drizzle, and
- * nothing in a test body changes. What differs is only what has to: a widget is a
- * row in a drizzle table rather than a Mongoose document, an absent id is a uuid
- * v7 rather than an ObjectId hex, and a detached handle is the POOL rather than a
- * session nobody opened a transaction on.
+ * nothing in a test body changes: a widget is a row in a drizzle table, an
+ * absent id is a uuid v7, and a detached handle is the POOL.
  *
- * Two things the Mongo harness needs and this one does not, both because a `text`
- * id has nothing to parse: the `isValidObjectId` guards in the subject provider
- * and in `apply` are gone. Their absence is the same property `findById` relies
- * on — a malformed id matches no rows rather than throwing.
+ * Ids are `text`, so there is nothing to parse and no id-format guard in the
+ * subject provider or in `apply` — the same property `findById` relies on: a
+ * malformed id matches no rows rather than throwing.
  */
 
 /** The application's own noun, read and written through the handle. */
@@ -81,7 +78,7 @@ function postgresWidgetSubjectProvider(db: ModerationPgHandle): ModerationSubjec
   };
 }
 
-/** The same enforcement table as the Mongo harness, with drizzle effects. */
+/** The fictional application's enforcement table, with drizzle effects. */
 function postgresTestEnforcement(db: ModerationPgHandle): ModerationEnforcementConfig<TestAction> {
   const readWidget = async (
     id: string,
@@ -231,7 +228,7 @@ function postgresOutboxFacade(input: {
        * so it can BLOCK — and the pool's `statement_timeout` turns that into a
        * named `57014` in two seconds rather than a hang with no verdict. That
        * bound is set on the connection rather than per statement, which is why
-       * nothing is passed here; `maxTimeMS` is Mongo's equivalent.
+       * nothing is passed here.
        */
       await db.update(outbox).set({ leaseOwner }).where(eq(outbox.id, eventId));
     },
@@ -277,9 +274,8 @@ function postgresEnforcementFacade(db: ModerationPgHandle): HarnessEnforcement {
         .select()
         .from(moderation.enforcements)
         /**
-         * `created_at` then `decision_revision`, ascending. The tie-breaker is the
-         * same one the Mongo façade carries and for the same reason: both backends
-         * stamp `created_at` at millisecond precision, so two rows written inside
+         * `created_at` then `decision_revision`, ascending. The tie-breaker exists
+         * because `created_at` is stamped at millisecond precision, so two rows written inside
          * one millisecond order arbitrarily and a test identifying a row by
          * position would fail once in a while with nothing to reproduce.
          */
@@ -385,7 +381,7 @@ async function createPostgresHarness(options: HarnessOptions = {}): Promise<Harn
        * A uuid v7, which is what `generatedId()` mints — so it is WELL-FORMED and
        * simply absent. On a `text` id column a malformed string would also match
        * no rows, but then the test would be exercising the parser rather than the
-       * absence, and on Mongo the same string throws.
+       * absence.
        */
       absentId() {
         return uuidv7();

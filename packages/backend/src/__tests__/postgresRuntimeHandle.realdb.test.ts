@@ -114,9 +114,7 @@ describe('requireTransaction', () => {
    *
    * `PgTransactionHandle` makes "passed the pool" a compile error wherever the
    * handle is typed. This covers what arrives through a cast, an `any` or a
-   * generic boundary — the same hole the Mongo `requireTransaction` was written
-   * for, where the root connection and a session-bearing handle shared one type
-   * alias and nothing could tell them apart at compile time.
+   * generic boundary, which no type can tell apart at compile time.
    *
    * The pool is passed as the REAL pool rather than a stub, because the property
    * being asserted is a fact about drizzle's own objects: `rollback` exists on

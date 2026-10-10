@@ -19,11 +19,9 @@ import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 /**
  * Where a reviewer's declared relationship came from (§8.5).
  *
- * Declared HERE rather than in `reviewer.collection.ts`, following the same move
- * `OUTBOX_STATUSES` made: the Mongoose file is what goes away at the switch, and
- * the CHECK below has to be rendered from the same tuple the Mongoose `enum`
- * validates. Two copies of a closed value set is how they drift, and the copy
- * that survives should be the one in the store that survives.
+ * Declared HERE, beside the table, following the same move `OUTBOX_STATUSES`
+ * made: the CHECK below is rendered from this tuple, and two copies of a closed
+ * value set is how they drift.
  *
  * `REVIEWER_STATES` does NOT move and is imported from the contracts package
  * instead. It crosses the reviewer API boundary — the app renders it — so
@@ -40,15 +38,13 @@ export type ReviewerRelationSource = (typeof REVIEWER_RELATION_SOURCES)[number];
  * by design (§8.2, and `candidatePool.ts` has no tenant filter deliberately), so
  * three of these four tables carry no tenant column at all.
  *
- * The fourth is the one worth reading twice. `reviewer_principal_links` has no
- * Mongo counterpart — it is `ReviewerProfile.principalLinks`, an embedded array,
- * extracted into a table because the draw QUERIES INTO IT:
- *
- *   principalLinks: { $elemMatch: { applicationId: …,
- *                                   externalPrincipalId: { $in: [...] } } }
+ * The fourth is the one worth reading twice. `reviewer_principal_links` is
+ * `ReviewerProfile.principalLinks`, held as its own table rather than a jsonb
+ * array because the draw QUERIES INTO IT: "any link with this application and
+ * one of these principals".
  *
  * That is the one predicate shape jsonb containment cannot serve — GIN answers
- * `@>`, and an `$in` over an element field becomes either N OR'd containments or
+ * `@>`, and an `IN` over an element field becomes either N OR'd containments or
  * a lateral over `jsonb_array_elements`. As a table it is
  * `application_id = $1 AND external_principal_id = ANY($2)`: one btree, exactly
  * the predicate, on the draw's hot path.
@@ -139,9 +135,7 @@ export const reviewerProfiles = pgTable(
     /**
      * §12.7's eligibility dimensions, as TWO indexes.
      *
-     * In Mongo the reason for two was that a compound index cannot span two array
-     * fields. In Postgres the reason is different and needs saying, because the
-     * Mongo one no longer applies: these are GIN indexes over `text[]`, and GIN
+     * The reason for two needs saying: these are GIN indexes over `text[]`, and GIN
      * serves the containment predicate the candidate query actually uses
      * (`categories @> ARRAY[$1]`). A btree here would be an index the planner
      * cannot use for containment — coverage in name only, which reads as
@@ -149,8 +143,7 @@ export const reviewerProfiles = pgTable(
      *
      * `sampling_key` is deliberately NOT part of them: GIN cannot carry an
      * ordered range column, so the bounded-window scan is a separate btree below.
-     * That is a real difference from the Mongo shape and is why the two are
-     * listed apart rather than transliterated.
+     * That is why the two are listed apart.
      */
     index('reviewer_profiles_categories_idx').using('gin', table.categories),
     index('reviewer_profiles_languages_idx').using('gin', table.languages),
@@ -162,7 +155,7 @@ export const reviewerProfiles = pgTable(
     index('reviewer_profiles_risk_cluster_id_idx').on(table.riskClusterId),
 
     /**
-     * The port's replacement for Mongoose's `enum: REVIEWER_STATES`.
+     * The closed value set of `state`, rendered from `REVIEWER_STATES`.
      *
      * §8.1's ladder is enforced in code by `assertTransition`, which decides
      * which MOVES are legal. This decides which VALUES exist at all, and the two
@@ -181,9 +174,9 @@ export const reviewerProfiles = pgTable(
      * NOTHING ELSE on this table gets a CHECK, and the asymmetry is deliberate.
      * `max_sensitivity_rank` is an integer whose meaning is an index into
      * `CONSENTABLE_SENSITIVITY`, and a range CHECK on it would be a NEW
-     * restriction smuggled in under a port — Mongo constrained it with
-     * `type: Number` and nothing more. `categories`, `languages` and the two
-     * consent arrays were `[String]` with no `enum`, for the same reason.
+     * restriction the domain never asked for — it is a plain number.
+     * `categories`, `languages` and the two consent arrays are open string
+     * arrays, for the same reason.
      */
     check(
       'reviewer_profiles_state_check',
@@ -212,9 +205,8 @@ export const reviewerPrincipalLinks = pgTable(
   },
   (table) => [
     /**
-     * The source array explicitly used `_id: false`, so these three source
-     * values are the identity. A synthetic id here would force the cutover to
-     * invent one that cannot be reconciled back to Mongo.
+     * A link has no id of its own, so these three values are the identity. A
+     * synthetic id here would be an invented key that names nothing.
      */
     primaryKey({
       name: 'reviewer_principal_links_reviewer_application_principal_pk',
@@ -269,7 +261,7 @@ export const reviewerRelations = pgTable(
     ),
 
     /**
-     * The port's replacement for Mongoose's `enum: REVIEWER_RELATION_SOURCES`.
+     * The closed value set of `source`, rendered from `REVIEWER_RELATION_SOURCES`.
      *
      * Two members, and the narrowness is the point: `source` is what a later
      * reader uses to tell a conflict the reviewer DECLARED from one inferred

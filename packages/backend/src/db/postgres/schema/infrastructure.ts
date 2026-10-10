@@ -92,10 +92,10 @@ export const outboxEvents = pgTable(
     index('outbox_events_status_available_at_idx').on(table.status, table.availableAt),
 
     /**
-     * The port's replacement for Mongoose's `enum: OUTBOX_STATUSES`.
+     * The closed value set of `status`, rendered from `OUTBOX_STATUSES`.
      *
-     * That validator was the single writer-side enforcement this table had, and
-     * a port that dropped it would convert a structural guarantee into a comment
+     * This is the single writer-side enforcement this table has, and dropping
+     * it would convert a structural guarantee into a comment
      * — which is where a wrong belief survives, because nothing recomputes it. A
      * prohibition is a TYPE or a CHECK, never a convention.
      *
@@ -106,9 +106,8 @@ export const outboxEvents = pgTable(
      * its SQL name still comes from the casing authority.
      *
      * `type` DELIBERATELY GETS NO CHECK, and the asymmetry is recorded so a later
-     * reader does not "fix" it: `type` was never enum-constrained in Mongo
-     * (`type: { type: String, required: true }`), so constraining it here would
-     * be a NEW restriction smuggled in under a port, not a preserved one.
+     * reader does not "fix" it: `type` is a required string with an open value
+     * set, so constraining it here would be a NEW restriction.
      */
     check(
       'outbox_events_status_check',
@@ -121,8 +120,8 @@ export const appTrustSnapshots = pgTable(
   'app_trust_snapshots',
   {
     /**
-     * One row per application, so the application id IS the identity — it was a
-     * `unique: true` path in Mongo. `organization_id` rides along because the
+     * One row per application, so the application id IS the identity.
+     * `organization_id` rides along because the
      * console shows standing per organization, not because the row is owned.
      */
     applicationId: text('application_id').primaryKey(),

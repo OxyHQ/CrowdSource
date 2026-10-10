@@ -11,9 +11,8 @@
  * two states it distinguishes look identical from outside: whether the row is
  * gone is only observable by trying the same decision revision again.
  *
- * The row is addressed by its idempotency KEY rather than by a record id, which
- * is what lets both backends release the same row — through Mongo's unique index
- * and through Postgres's composite primary key. A release that matched nothing
+ * The row is addressed by its idempotency KEY rather than by a record id — the
+ * composite primary key. A release that matched nothing
  * type-checks perfectly.
  */
 

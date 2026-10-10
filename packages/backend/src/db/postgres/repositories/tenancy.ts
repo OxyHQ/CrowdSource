@@ -38,20 +38,14 @@ import type { PgHandle } from '../withTenant';
  * `RETURNING` makes the count the number of rows in hand, which is unambiguous in
  * a way that does not depend on knowing that trap.
  *
- * MEASURED, because the Mongo semantics it replaces are not obviously the same:
- * the wrapper these ports return `modifiedCount`, and Postgres `rowCount` behaves
- * like `matchedCount`. Probed against a real mongod on 2026-08-10 —
- * `changed=1, unchangedSameValue=1, noMatch=0`. Mongoose's `timestamps: true`
- * stamps `updated_at` on every `updateOne`, so a matched row ALWAYS counts as
- * modified and the two are equivalent. No `status <> $new` predicate is needed,
- * and adding one would CHANGE behaviour rather than preserve it.
+ * The count is MATCHED rows: every update also stamps `updated_at`, so a
+ * matched row is always a modified one. No `status <> $new` predicate is
+ * needed, and adding one would CHANGE behaviour.
  *
- * One consequence worth carrying to the switch: `setOrganizationStatus` and
- * `setApplicationStatus` answer `not_found` with the message "No such
- * organization, or it already had that status". The second half of that sentence
- * is already false on Mongo — setting a status to the value it already holds
- * matches, counts as modified and succeeds. The port preserves the behaviour, not
- * the sentence.
+ * One consequence: `setOrganizationStatus` and `setApplicationStatus` answer
+ * `not_found` with the message "No such organization, or it already had that
+ * status". The second half of that sentence is false — setting a status to the
+ * value it already holds matches and succeeds.
  */
 type UpdatedRowCount = number;
 
@@ -198,9 +192,8 @@ export async function findApplicationCredentialById(db: PgHandle, credentialId: 
  * Revoking is scoped by the full triple AND by `status = 'active'`.
  *
  * The status predicate is NOT the trap the `UpdatedRowCount` note describes. It is
- * carried over deliberately from the Mongo filter, where it distinguishes "no such
- * credential" from "already revoked" — both of which must answer `not_found`, and
- * neither of which may re-stamp `revoked_at` over the original revocation instant.
+ * deliberate: "no such credential" and "already revoked" must both answer
+ * `not_found`, and neither may re-stamp `revoked_at` over the original revocation instant.
  */
 export async function revokeApplicationCredential(
   db: PgHandle,

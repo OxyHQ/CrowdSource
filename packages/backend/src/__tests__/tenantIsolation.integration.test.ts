@@ -17,10 +17,9 @@ import {
 /**
  * Tenant isolation.
  *
- * PostgreSQL would have made this a property of the database. On MongoDB it is a
- * property of this codebase and of nothing else, so these are the tests standing
- * where Row Level Security would have — and a test that passes against broken
- * isolation would be worse than no test at all, because it would license the
+ * Row Level Security enforces the boundary in the database
+ * (`rlsTenantIsolation.realdb.test.ts`); these tests prove it end to end through
+ * the HTTP surface — and a test that passes against broken isolation would be worse than no test at all, because it would license the
  * belief that the boundary is being checked.
  *
  * Every assertion below is therefore paired with a control that fails if the

@@ -68,7 +68,7 @@ const LOCAL_STATUSES = [
   'closed',
 ] as const satisfies readonly ModerationLocalStatus[];
 
-/** Mongo's `detailsMaxLength ?? 2_000`, for the same reason: it bounds free text. */
+/** The default `detailsMaxLength`: it bounds free text. */
 const DEFAULT_DETAILS_MAX_LENGTH = 2_000;
 
 export interface ModerationReportColumnOptions {
@@ -103,11 +103,11 @@ export function moderationReportColumns(options: ModerationReportColumnOptions =
     /**
      * `text`, not `uuid`, and generated in the application.
      *
-     * `generatedId()` holds a uuid v7 for a row created here and a 24-character
-     * ObjectId hex for every row that existed before a Mongo cutover, so one id
-     * space serves both. The consequence that matters downstream: a malformed id
-     * matches no rows instead of raising `22P02`, which is exactly the Mongo
-     * behaviour the delivery path already handles.
+     * `generatedId()` holds a uuid v7 for a row created here and any existing
+     * text id an adopter imports, so one id space serves both. The consequence
+     * that matters downstream: a malformed id matches no rows instead of raising
+     * `22P02`, which is the "report is gone" case the delivery path already
+     * handles.
      */
     id: generatedId(),
 

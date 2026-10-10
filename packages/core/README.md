@@ -385,9 +385,7 @@ stores a report and its outbox event atomically, delivers reports with retries,
 verifies signed webhook bodies, applies revisions in order and records reversible
 enforcement exactly once.
 
-This entry point is PostgreSQL-only. The former `/mongoose` entry point was
-removed before the scope rename; the package does not install, import or publish
-a MongoDB driver.
+This entry point stores everything in PostgreSQL.
 
 ## Install
 
@@ -538,17 +536,6 @@ crowdSource: {
   `moderationExpirySweepTargets()` and retain the supplied expiry indexes.
 - Never log report content, webhook secrets or provider credentials.
 
-## Migrating an adopter's data
-
-Do not upgrade first. The repository runbook
-[`../../docs/runbooks/crowdsource-app-postgres-cutover.md`](../../docs/runbooks/crowdsource-app-postgres-cutover.md)
-defines the fail-closed sequence and evidence manifest. The important boundary
-is simple: export with the old application release, import into a separately
-named empty PostgreSQL database, reconcile counts and canonical SHA-256 digests,
-then deploy the PostgreSQL application release. This package cannot infer an
-adopter's custom report collection, primary key or extra columns, so it does not
-ship a data copier that guesses them.
-
 ---
 
 # `@crowdsource.you/core/testing`
@@ -633,7 +620,6 @@ bun run --cwd packages/core lint
 bun run --cwd packages/core build
 CROWDSOURCE_APP_TEST_POSTGRES_URL=postgres://... \
   bun run --cwd packages/core test
-bun run check:outbox-postgres-only
 ```
 
 `CROWDSOURCE_APP_TEST_POSTGRES_URL` keeps the name it had when the outbox was its

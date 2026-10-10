@@ -20,17 +20,15 @@ export const policySets = pgTable(
     title: text('title').notNull(),
 
     /**
-     * The one genuinely optional field in this batch. Nullable, and note that on
-     * Mongo the key was ABSENT rather than null on older documents — a backfill
-     * must not read "missing" as a locale of `null` meaning anything.
+     * The one genuinely optional field in this batch. Nullable, and `null`
+     * means "no locale recorded", nothing more.
      */
     locale: text('locale'),
 
     /**
-     * Rules stay `jsonb`, and the Mongoose schema's own comment is the reason:
-     * it used `Mixed` deliberately so the zod contract remains the single
+     * Rules stay `jsonb` deliberately, so the zod contract remains the single
      * authority on rule shape. Normalising them into a child table would
-     * re-create exactly the drift that comment exists to prevent, and nothing
+     * re-create exactly that drift, and nothing
      * queries into them — both reads are by `(policy_set_id, version)`.
      */
     rules: jsonb('rules').notNull(),
@@ -120,8 +118,7 @@ export const usageCounters = pgTable(
     /**
      * `text`, holding `YYYY-MM-DD`, and NOT a date column.
      *
-     * The Mongoose schema states the reason and it survives the port intact: a
-     * date invites a timezone-dependent truncation that splits one day's count
+     * A date invites a timezone-dependent truncation that splits one day's count
      * across two rows. It is range-queried as a string, and lexical ordering on
      * the ISO form is what makes that correct.
      */

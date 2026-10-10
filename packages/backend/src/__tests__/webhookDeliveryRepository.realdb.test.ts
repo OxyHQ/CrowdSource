@@ -119,8 +119,7 @@ describe('recording a delivery once per (endpoint, event)', () => {
   /**
    * The empty result is the answer, and NO statement fails.
    *
-   * The Mongo site catches `11000` and returns false. That does not port: one
-   * failed statement aborts the whole transaction in PostgreSQL (`25P02`), so a
+   * Never a caught duplicate-key error: one failed statement aborts the whole transaction in PostgreSQL (`25P02`), so a
    * caught duplicate inside the fan-out transaction would doom every write around
    * it. Asserted by doing it INSIDE a transaction and then writing again — which
    * is impossible if the conflict aborted it.
@@ -480,10 +479,10 @@ describe('the tenant-scoped reads', () => {
 });
 
 /**
- * The counts, where `GROUP BY` and `countDocuments` disagree about absence.
+ * The counts, and what `GROUP BY` does with absence.
  *
- * A `GROUP BY` omits a status nobody is in; it does not return zero for it. Mongo's
- * `countDocuments` returns `0`. So the zero-fill is the whole port, and the test
+ * A `GROUP BY` omits a status nobody is in; it does not return zero for it. So
+ * the zero-fill is the whole point, and the test
  * that matters is the one with a status nobody is in.
  */
 describe('delivery health counts', () => {

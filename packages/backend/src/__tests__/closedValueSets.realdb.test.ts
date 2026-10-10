@@ -18,15 +18,12 @@ import { OUTBOX_STATUSES } from '../db/postgres/schema/infrastructure';
  * no meaning for. That is *a prohibition is a TYPE or a CHECK, never a
  * convention* failing one slice at a time.
  *
- * It was found the way these things are always found — by accident, while
- * porting something else. `reviewer_profiles.state` and
- * `reviewer_relations.source` had both lost theirs, and the only reason anybody
- * noticed is that somebody happened to read the Mongoose schema beside the
- * `pgTable`. This file exists so the next one is not found by luck.
+ * `reviewer_profiles.state` and `reviewer_relations.source` once both lost
+ * theirs, and it was noticed only by luck. This file exists so the next one is
+ * not found by luck.
  *
- * The Mongo-era census froze 41 value-set decisions. Mongo is no longer a test
- * oracle or a dependency: the frozen port ledger below is now the input, and the
- * migrated PostgreSQL catalogue is the authority that may refuse its mappings.
+ * The ledger below freezes 41 value-set decisions, and the migrated PostgreSQL
+ * catalogue is the authority that may refuse its mappings.
  *
  * ## Why the CHECK side is read from the DATABASE
  *
@@ -43,8 +40,8 @@ import { OUTBOX_STATUSES } from '../db/postgres/schema/infrastructure';
  * merely SKIPPED what its map does not mention would be satisfied by a map that
  * forgot the newest table, which is precisely the item it exists to catch.
  *
- * The map is hand-written and deliberately NOT derived from names. A Mongo
- * collection name is arbitrary and a column name need not match its path — an
+ * The map is hand-written and deliberately NOT derived from names. A domain
+ * name is arbitrary and a column name need not match its field — an
  * auto-mapping by string similarity would produce a check that cannot fail.
  */
 
@@ -128,8 +125,7 @@ const MAPPED: Readonly<
   },
   /**
    * `requested_slots` is `text[]`, so its constraint is CONTAINMENT (`<@`) rather
-   * than `in (...)` — Mongo put the `enum` on the caster, constraining each
-   * element. It is mapped here like any other member check; the separate
+   * than `in (...)`, constraining each element. It is mapped here like any other member check; the separate
    * cardinality constraint on the same column is NOT a value set and is asserted
    * in `sortitionRepositories.realdb.test.ts` instead.
    */
@@ -156,12 +152,9 @@ const MAPPED: Readonly<
    * console API boundaries, so contracts is already their one authority and no
    * relocation was needed.
    *
-   * All four validators genuinely FIRED on Mongo — each row is written through
-   * `insertOne`, which reaches `Model.create()`. Established rather than assumed:
-   * `updateOne` and `findOneAndUpdate` never pass `runValidators` anywhere in
-   * `db/collections.ts`, so a field written only by those paths had a validator
-   * that never ran. Those are recorded in `NOT_APPLICABLE` instead, because a
-   * validator that never RAN must not become a constraint that does.
+   * Fields whose value set was never enforced on any write path are recorded
+   * in `NOT_APPLICABLE` instead, because a validator that never RAN must not
+   * become a constraint that does.
    */
   'Appeal.reason': {
     table: 'appeals',
@@ -187,12 +180,11 @@ const MAPPED: Readonly<
   /**
    * The delivery lifecycle, closed by the same migration. Their tuples MOVED out
    * of `webhook.collections.ts` into `db/postgres/schema/webhooks.ts` to render
-   * these: a schema importing from a Mongoose module would pull mongoose into
-   * `db:generate`, so the dependency runs one way only.
+   * these, so the dependency runs one way only.
    *
    * `event_type` is deliberately absent from every bucket here and that is
-   * correct rather than an oversight — it carries no Mongoose `enum`, so the
-   * walk never sees it as a value set at all. Constraining it would be a new
+   * correct rather than an oversight — it has no closed value set, so the
+   * walk never sees it as one at all. Constraining it would be a new
    * restriction, not a restored one.
    */
   'WebhookDelivery.status': {
@@ -418,7 +410,7 @@ const KNOWN_GAPS: readonly EnumKey[] = [];
 /** Ratcheted to zero by the backend PostgreSQL-only cut; never raise it. */
 const KNOWN_GAP_COUNT = 0;
 
-/** The 41 frozen value-set decisions, now expressed without a Mongo runtime. */
+/** The 41 frozen value-set decisions. */
 const PORTED_VALUE_SET_KEYS = [
   ...Object.keys(MAPPED),
   ...Object.keys(NOT_APPLICABLE),

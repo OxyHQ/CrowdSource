@@ -47,13 +47,11 @@ function describe(table: PgTable, column: Column): string {
 }
 
 /**
- * The two tables that carried a Mongo TTL index, as sweep targets.
+ * The two tables with an expiry deadline, as sweep targets.
  *
- * **A TTL index is a behaviour of the SOURCE that does not survive the port.**
- * Mongo reaps; Postgres does not. Both tables here were declared
- * `expireAfterSeconds: 0` on an `expiresAt` the WRITER computes, so
- * `retentionSeconds` is 0: the column already IS the deadline, and the retention
- * window lives in `src/retention.ts` where both backends read it.
+ * **Postgres does not reap.** Both tables here carry an `expiresAt` the WRITER
+ * computes, so `retentionSeconds` is 0: the column already IS the deadline, and
+ * the retention window lives in `src/retention.ts`.
  *
  * Without an entry, a table grows forever — no error, no failing test, no
  * symptom of any kind until disk. Nothing about it is visible in a diff, because

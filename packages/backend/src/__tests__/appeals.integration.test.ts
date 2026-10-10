@@ -1050,7 +1050,7 @@ describe('two appeals of one decision, filed at the same instant', () => {
      * The other collision, isolated so it is DETERMINISTIC.
      *
      * Two filings against the same case violate both unique indexes at once, and
-     * which one MongoDB reports is its choice — so that race exercises either catch
+     * which one the database reports is its choice — so that race exercises either catch
      * branch from run to run, which is fine for the invariant and useless as
      * coverage. Two filings under one key against two DIFFERENT cases can only
      * collide on `applicationId + idempotencyKey`, so the key branch is the one

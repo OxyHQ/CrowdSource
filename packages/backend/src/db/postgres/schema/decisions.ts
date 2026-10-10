@@ -43,7 +43,7 @@ export const decisions = pgTable(
      *
      * Nothing queries or filters on either — every read is by `decision_id`,
      * `case_id` or `revision` — and their sub-fields are closed sets enforced by
-     * zod rather than by Mongo, which declared them as bare strings. Flattening
+     * zod. Flattening
      * them into child tables would move the vocabulary's authority out of the
      * contracts package for no read that needs it.
      */
@@ -74,7 +74,7 @@ export const decisions = pgTable(
   },
   (table) => [
     /**
-     * NOT prefixed by the tenant, deliberately — the Mongo index was not either.
+     * NOT prefixed by the tenant, deliberately.
      * A case id is globally unique, and one revision number per case is the
      * invariant regardless of who owns it, so a tenant prefix would weaken the
      * constraint to "unique within a tenant" and let a bug mint a second
@@ -90,8 +90,7 @@ export const decisions = pgTable(
     /**
      * §9.6's three closed sets, restored as constraints.
      *
-     * All three validators fired on Mongo — a decision is written through
-     * `insertOne`, which reaches `Model.create()`. They render from the CONTRACTS
+     * They render from the CONTRACTS
      * package rather than a schema-local tuple because they cross the reviewer
      * and console API boundaries, so contracts is already their one authority.
      *
@@ -183,12 +182,8 @@ export const appeals = pgTable(
     /**
      * §9.8's grounds for appeal, restored as a constraint.
      *
-     * Mongoose enforced `enum: APPEAL_REASONS` and the validator DID fire — the
-     * appeal is written through `insertOne`, which goes to `Model.create()`.
-     * Everything in this repo that writes through `updateOne` or
-     * `findOneAndUpdate` never ran its validators, because nothing passes
-     * `runValidators`; those are recorded in the gate as not-applicable rather
-     * than given a constraint they never had.
+     * Value sets that were never enforced on any write path are recorded in
+     * the gate as not-applicable rather than given a constraint.
      *
      * `sql.raw` on the value list is required, not stylistic: an ordinary
      * interpolation into `check()` emits the bound parameter `$1` into the

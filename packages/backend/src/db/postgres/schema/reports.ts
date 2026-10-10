@@ -49,9 +49,8 @@ export const reports = pgTable(
      *
      * `report.service.ts` inserts, catches the duplicate-key failure, and reads
      * WHICH index collided to decide whether this was a replay of the same
-     * delivery or a different report reusing an external id. On Mongo that came
-     * off `error.keyPattern`; on Postgres the equivalent is the constraint name in
-     * `23505`, so these names are part of the contract rather than decoration.
+     * delivery or a different report reusing an external id. That comes off the
+     * constraint name in `23505`, so these names are part of the contract rather than decoration.
      */
     uniqueIndex('reports_application_external_key').on(table.applicationId, table.externalReportId),
     uniqueIndex('reports_application_idempotency_key').on(
@@ -72,7 +71,7 @@ export const caseReports = pgTable(
   'case_reports',
   {
     /**
-     * No natural single-column key exists on Mongo — the row was identified by
+     * No natural single-column key exists — the row is identified by
      * `(applicationId, reportId)`, which is the unique below. A surrogate would
      * be a second identity nobody references, so the composite IS the key.
      */
@@ -85,11 +84,10 @@ export const caseReports = pgTable(
     /**
      * Taxonomy codes, as `text[]`.
      *
-     * Deliberately WITHOUT a CHECK against the taxonomy vocabulary. The Mongo
-     * schema declared this as bare `[String]` with no enum, so the stored values
-     * were never validated at the storage layer — adding a constraint here would
-     * be a tightening the existing data has never been held to, and this port
-     * changes storage rather than policy. It belongs on a backfill audit list,
+     * Deliberately WITHOUT a CHECK against the taxonomy vocabulary. The stored
+     * values have never been validated at the storage layer — adding a
+     * constraint here would be a tightening the existing data has never been
+     * held to. It belongs on a backfill audit list,
      * not in this migration.
      */
     allegationCodes: text('allegation_codes').array().notNull().default([]),

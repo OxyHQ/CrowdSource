@@ -90,7 +90,7 @@ export class ModerationOutboxTransactionError extends Error {
  *
  * Every error `@crowdsource.you/core` throws carries `retryable`, which is the only
  * thing a delivery worker needs from it. Anything else — a bug in this code, a
- * Mongo error — is treated as retryable, because assuming a defect is permanent
+ * database error — is treated as retryable, because assuming a defect is permanent
  * is how a recoverable outage becomes lost moderation work.
  */
 export function isRetryableDeliveryError(error: unknown): boolean {
@@ -149,8 +149,8 @@ export interface OutboxService<TTx> extends OutboxDrain {
    * The type makes the transaction mandatory; the STORE makes it mandatory that
    * the transaction is ACTUALLY OPEN, by throwing
    * {@link ModerationOutboxTransactionError}. A required parameter is satisfied
-   * by any handle — including a bare Mongo `startSession()` nobody opened a
-   * transaction on, which type-checks perfectly and commits the row on its own.
+   * by any handle — including the bare POOL, which type-checks perfectly and
+   * commits the row on its own.
    * That is the shape of the mistake worth catching: it looks exactly like
    * correct code, it passes any test that only asserts the row exists, and it
    * fails as lost moderation work with no trace on the day something restarts
@@ -296,9 +296,8 @@ export function createOutboxService<TTx>(input: {
       leaseOwner,
       status: deadLettered ? 'dead_letter' : 'pending',
       availableAt: deadLettered ? now : nextAttemptAt(event.attempts, now),
-      // Bounded here rather than by a column width, so both dialects agree: a
-      // Mongoose validator throws on overflow and Postgres errors 22001, and
-      // neither is what a failed delivery should turn into.
+      // Bounded here rather than only by the column width: Postgres errors
+      // 22001 on overflow, which is not what a failed delivery should turn into.
       lastError: message.slice(0, 2_000),
       now,
     });

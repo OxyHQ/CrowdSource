@@ -69,12 +69,10 @@ export const webhookEndpoints = pgTable(
 
     /**
      * The ONE array in this batch that is genuinely QUERIED — the fan-out asks
-     * for active endpoints subscribed to an event type, which on Mongo was array
-     * containment. `text[]` preserves that with `= ANY`/`&&` and takes a GIN
+     * for active endpoints subscribed to an event type. `text[]` serves that with `= ANY`/`&&` and takes a GIN
      * index below; `jsonb` would make the hot path awkward for no gain.
      *
-     * No CHECK against the event vocabulary, and the Mongoose file says why:
-     * the values are kept as plain strings so a new event type is additive. A
+     * No CHECK against the event vocabulary: the values are kept as plain strings so a new event type is additive. A
      * constraint here would make adding one a migration.
      */
     eventTypes: text('event_types').array().notNull().default([]),
@@ -155,9 +153,8 @@ export const webhookSecrets = pgTable(
 /**
  * The delivery attempt journal. Append-only; nothing outside tests reads it.
  *
- * THIS TABLE IS THE ONE WITH A RETENTION DEADLINE. On Mongo a TTL index on
- * `attempted_at` deleted rows after 90 days silently, on a clock nobody ran.
- * Postgres has no equivalent, so the deadline is carried by an
+ * THIS TABLE IS THE ONE WITH A RETENTION DEADLINE: rows go after 90 days on
+ * `attempted_at`. Postgres has no TTL index, so the deadline is carried by an
  * `@oxy.so/db/expiry` sweep target AND a caller that runs it — a registry nothing
  * runs is how another Oxy service served expired rows for hours while every code
  * search came up clean. See `db/postgres/expiry.ts`.
@@ -197,7 +194,7 @@ export const webhookAttempts = pgTable(
   },
   (table) => [
     /**
-     * NOT tenant-prefixed, deliberately — as on Mongo. It is what stops a worker
+     * NOT tenant-prefixed, deliberately. It is what stops a worker
      * that crashed after sending and before recording from writing the same
      * attempt twice on replay, and a delivery id is globally unique.
      */
@@ -282,7 +279,7 @@ export const webhookDeliveries = pgTable(
      * replaying the same outbox row both read nothing and both insert, and the
      * tenant receives one decision twice.
      *
-     * No tenant prefix, on purpose and as on Mongo — endpoint ids are random and
+     * No tenant prefix, on purpose — endpoint ids are random and
      * globally unique, so the pair is already stronger than a prefixed version.
      */
     uniqueIndex('webhook_deliveries_endpoint_event_key').on(table.webhookEndpointId, table.eventId),
@@ -297,8 +294,7 @@ export const webhookDeliveries = pgTable(
 
     /**
      * §12.7's delivery lifecycle and §10.9's stop reasons, restored as
-     * constraints. Both validators fired on Mongo: a delivery is written through
-     * `insertOne`, which reaches `Model.create()`.
+     * constraints.
      *
      * `dead_letter_reason` IS NULLABLE and this CHECK admits NULL without saying
      * so anywhere else, which is the thing a reader gets wrong: a CHECK rejects
@@ -309,9 +305,8 @@ export const webhookDeliveries = pgTable(
      *
      * `event_type` DELIBERATELY GETS NO CHECK, recorded here because its absence
      * beside these two reads as an omission. §10.6's event types are a published
-     * vocabulary, but the Mongoose path is `{ type: String, required: true }`
-     * with no `enum` — so a constraint would be a NEW restriction rather than a
-     * restored one. It is also the field most likely to gain a member, and a
+     * vocabulary, but the column is a required plain string — so a constraint
+     * would be a NEW restriction. It is also the field most likely to gain a member, and a
      * CHECK there dead-letters a legitimate new event at the DATABASE rather than
      * at the contract, in exactly the rollout where that is hardest to diagnose.
      */

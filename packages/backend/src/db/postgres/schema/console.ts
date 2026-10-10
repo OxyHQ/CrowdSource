@@ -35,8 +35,8 @@ export const organizationMembers = pgTable(
   {
     /**
      * A surrogate key. The natural key is `(organization_id, oxy_user_id)`, which
-     * is the unique below; a membership has no id of its own in Mongo, so one is
-     * minted here rather than making the pair the primary key — every other table
+     * is the unique below; an id is minted rather than making the pair the
+     * primary key — every other table
      * in this schema is addressed by a single text id and a lone exception would
      * be a shape somebody has to notice.
      */
@@ -57,7 +57,7 @@ export const organizationMembers = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [
-    /** One membership per person per organization — the Mongo unique, ported. */
+    /** One membership per person per organization. */
     uniqueIndex('organization_members_organization_id_oxy_user_id_key').on(
       table.organizationId,
       table.oxyUserId,
@@ -83,8 +83,8 @@ export const trustSafetyStaff = pgTable(
   'trust_safety_staff',
   {
     /**
-     * The Oxy account IS the identity here — one staff row per person, which was
-     * a `unique: true` path in Mongo and is the primary key in Postgres.
+     * The Oxy account IS the identity here — one staff row per person, so it is
+     * the primary key.
      */
     oxyUserId: text('oxy_user_id').primaryKey(),
 

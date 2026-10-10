@@ -22,13 +22,12 @@ import {
 } from './support/postgresTestDatabase';
 
 /**
- * The Postgres tenant boundary gate — the successor to
- * `collectionBoundary.test.ts`, and a deliberate improvement on it.
+ * The Postgres tenant boundary gate.
  *
- * The Mongo gate could not see `Decision` or `Appeal` because the set it
- * inspected came from a hand-maintained import list, so two of the most
- * consequential collections in the system were outside it while every assertion
- * passed. This one takes its input from the FILESYSTEM: every table declared in
+ * A gate whose set comes from a hand-maintained import list can miss a table —
+ * `Decision` and `Appeal`, two of the most consequential in the system, once sat
+ * outside such a list while every assertion passed. This one takes its input
+ * from the FILESYSTEM: every table declared in
  * `db/postgres/schema/` must appear in the registry, so a new table cannot become
  * invisible by nobody adding it to a list.
  *

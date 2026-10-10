@@ -55,12 +55,9 @@ export const organizations = pgTable(
      * Unique so two organizations cannot present as one another to an operator.
      *
      * A FUNCTIONAL index on `lower(slug)`, not a plain unique on the column, and
-     * the difference is load-bearing. The Mongoose path declared
-     * `lowercase: true`, so that setter — not the index — is what made the
-     * uniqueness case-insensitive. Drizzle has no setters, so porting the column
-     * as plain `text` with a plain unique would let `Acme` and `acme` coexist
-     * where Mongo folded them into one, silently widening the namespace
-     * organizations are addressed by.
+     * the difference is load-bearing. Drizzle has no setters, so a plain `text`
+     * column with a plain unique would let `Acme` and `acme` coexist, silently
+     * widening the namespace organizations are addressed by.
      *
      * A CHECK asserting the stored value is already lowercase was the other
      * candidate and is worse: it fails the backfill on any row a non-validating

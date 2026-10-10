@@ -6,8 +6,6 @@
 | [`outbox-backlog.md`](./outbox-backlog.md) | Reports are accepted and nothing happens to them. |
 | [`case-cannot-empanel.md`](./case-cannot-empanel.md) | Cases sit without a jury. |
 | [`audit-trails.md`](./audit-trails.md) | Reconstructing who did what. There are **two** trails. |
-| [`crowdsource-app-postgres-cutover.md`](./crowdsource-app-postgres-cutover.md) | Moving an adopter off the Mongoose store onto `@crowdsource.you/core/outbox`'s PostgreSQL one. |
-| [`crowdsource-backend-postgres-cutover.md`](./crowdsource-backend-postgres-cutover.md) | Moving the CrowdSource service data into its PostgreSQL-only runtime. |
 
 AWS account, region, role and infrastructure facts are **not** duplicated here â€”
 `~/Oxy/oxy-infra` owns them.
@@ -15,8 +13,7 @@ AWS account, region, role and infrastructure facts are **not** duplicated here â
 ## What you are operating
 
 One backend on ECS Fargate at `api.crowdsource.oxy.so`, one PostgreSQL database,
-and no queue. Repository state does not prove that the production data cutover
-has happened; verify the deployed artifact and task configuration separately.
+and no queue.
 
 **There is no BullMQ, no Redis and no SQS in this service.** Both background
 loops poll durable PostgreSQL tables directly:

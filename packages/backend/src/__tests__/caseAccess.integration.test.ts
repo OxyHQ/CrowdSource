@@ -17,8 +17,7 @@ import {
 /**
  * `GET /v1/cases/{id}` (§10.2) and the access half of §15.3's audit requirement.
  *
- * Two properties are being checked. The first is isolation, which on MongoDB is
- * a property of this codebase alone. The second is the PROJECTION: what an
+ * Two properties are being checked. The first is isolation. The second is the PROJECTION: what an
  * application gets back is deliberately not the stored document, because a case
  * carries the triage position an application could learn to game, the pool its
  * material went to, reporter fingerprints, and the evidence snapshot itself.

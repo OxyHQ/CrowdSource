@@ -25,62 +25,52 @@ import { newPublicId } from '../../../utils/identifiers';
  * `reviewerRepositories.realdb.test.ts` exercises them against the real schema,
  * constraints and unprivileged role.
  *
- * ## The one behaviour change in this file, and why it is deliberate
+ * ## An empty `families` list matches NOTHING, deliberately
  *
- * `eligibilityFilter` narrows on `categories: { $all: criteria.families }`.
- * `$all` is set-containment, so the two stores answer the DEGENERATE input in
- * opposite directions. Measured 2026-08-11 against a real mongod and PostgreSQL
- * 17.10, each with a control in the same currency and a seeded-row floor:
+ * `categories @> ARRAY[]::text[]` matches every row, because the empty set is
+ * contained in every set. Measured 2026-08-11 against PostgreSQL 17.10, with a
+ * control and a seeded-row floor:
  *
- *   mongo   `$all: ["spam"]`              -> 2 of 3 rows   (control)
- *   mongo   `$all: ["spam","harassment"]` -> 1 of 3 rows   (control)
- *   mongo   `$all: []`                    -> 0 rows
  *   pg      `categories @> ARRAY['spam']` -> 2 of 3 rows   (control)
  *   pg      `categories @> ARRAY[]::text[]` -> 3 of 3 rows
  *
- * Every OTHER operator in that filter agrees across the two stores on its
- * degenerate input — `$in: []` and `= ANY(ARRAY[]::text[])` both match nothing,
- * `languages: ''` and `'' = ANY(languages)` both match nothing — so the
- * divergence is confined to the two `$all` clauses and is handled in one place,
+ * Every OTHER operator in the filter matches nothing on its degenerate input —
+ * `= ANY(ARRAY[]::text[])` and `'' = ANY(languages)` both match nothing — so the
+ * special case is confined to the containment clause and handled in one place,
  * `eligibilityPredicate` below.
  *
- * What a transliterated `@>` would have done is worth stating exactly, because
- * the obvious description of it is wrong. It is NOT that Postgres would skip a
- * consent check Mongo enforced: `eligibilityRejection`, the authoritative
- * predicate, ALSO admits everybody when `families` is empty, since
- * `[].every(...)` is `true` and both `category_not_accepted` and
- * `category_consent_missing` are vacuously satisfied. What inverts is the
- * OUTCOME. On Mongo the filter matches zero rows, `drawPanel` receives fewer
- * candidates than it has slots, and the draw refuses with
- * `candidate_pool_too_small`. On Postgres with a bare `@>` the filter matches
- * every reviewer, the predicate rejects none of them, and a full panel is seated
- * for a case that alleges nothing.
+ * What a bare `@>` would do is worth stating exactly, because the obvious
+ * description of it is wrong. It is NOT that a consent check would be skipped:
+ * `eligibilityRejection`, the authoritative predicate, ALSO admits everybody
+ * when `families` is empty, since `[].every(...)` is `true` and both
+ * `category_not_accepted` and `category_consent_missing` are vacuously
+ * satisfied. What changes is the OUTCOME. With the explicit branch the filter
+ * matches zero rows, `drawPanel` receives fewer candidates than it has slots,
+ * and the draw refuses with `candidate_pool_too_small`. With a bare `@>` the
+ * filter matches every reviewer, the predicate rejects none of them, and a full
+ * panel is seated for a case that alleges nothing.
  *
  * Reachability, measured rather than assumed: `families` is empty iff
  * `allegationCodes` is empty (`taxonomyFamilyOf` THROWS on an unrecognised
  * family via `TaxonomyFamilySchema.parse`, so it cannot quietly yield
- * `undefined`), and `allegationCodes` is `$addToSet`-ed from
+ * `undefined`), and `allegationCodes` is accumulated from
  * `envelope.allegations`, which the contract pins at `.min(1)`. So it is NOT
  * reachable through ingestion today — it is LATENT, not live. It is
- * representable, though: the Mongoose path is
- * `{ type: [String], required: true, default: [] }`, and Mongoose's `required`
- * does not mean non-empty on an array. Three production sites already branch on
+ * representable, though: `NOT NULL` on a `text[]` column does not mean
+ * non-empty. Three production sites already branch on
  * `families.length === 0` (`sortition.service.ts:168`, `sortition.service.ts:295`,
  * `reliability.ts:34`), so the codebase is written expecting the state.
  *
- * Preserved with an EXPLICIT branch rather than a containment predicate that
- * happens to be vacuously true, because a vacuously-true predicate is one
+ * Kept as an EXPLICIT branch rather than a containment predicate that happens
+ * to be vacuously true, because a vacuously-true predicate is one
  * simplification away from being reintroduced by somebody tidying up — and the
  * reintroduction has no failing test unless the branch is the thing under test.
  *
- * One honesty note that belongs next to the fix rather than in a commit message:
- * `eligibilityFilter`'s own header states the invariant that the filter "only has
- * to be a SUPERSET of the truth, so nothing eligible is missed". On empty
- * families the MONGO filter violates that invariant — the empty set against a
- * truth of "everyone otherwise eligible". So the fail-closed behaviour being
- * preserved here is an accident of `$all`, not a designed refusal. It is still
- * the right behaviour to keep (a case alleging nothing should not seat a jury),
- * and it is kept on purpose rather than by transliteration.
+ * One honesty note: `eligibilityFilter`'s own header states the invariant that
+ * the filter "only has to be a SUPERSET of the truth, so nothing eligible is
+ * missed". On empty families this filter deliberately violates that invariant —
+ * the empty set against a truth of "everyone otherwise eligible" — because a
+ * case alleging nothing should not seat a jury.
  */
 
 /** A row as the database returns it. */
@@ -93,7 +83,7 @@ export type ReviewerPrincipalLinkRow = typeof reviewerPrincipalLinks.$inferSelec
  * Everything a profile write may set, minus the three the repository owns.
  *
  * `personhoodConfidence` is REQUIRED rather than optional, and that is a
- * type-level restatement of a Mongo invariant rather than an ergonomic choice:
+ * type-level restatement of a domain invariant rather than an ergonomic choice:
  * `mutateProfile` is documented as "the single writer of `personhoodConfidence`",
  * re-deriving it from the merged document on every write. Requiring it here means
  * a caller that patches `oxyAccountVerified` or `suspectedSockPuppet` — both
@@ -146,8 +136,7 @@ export async function findReviewerProfileByOxyUserId(
  * `inArray`, never a bare array interpolated into a `sql` template — a bare array
  * renders as a ROW CONSTRUCTOR, which matches nothing and reads as "these
  * reviewers do not exist". The empty case needs no guard: drizzle renders
- * `inArray(column, [])` as the literal `false`, which is what Mongo's `$in: []`
- * matches too, so the two stores agree without one.
+ * `inArray(column, [])` as the literal `false`, which matches nothing.
  */
 export async function findReviewerProfilesByIds(
   db: PgHandle,
@@ -164,12 +153,11 @@ export async function findReviewerProfilesByIds(
  *
  * `ON CONFLICT … DO NOTHING` then a read, rather than an insert guarded by a
  * prior read: two concurrent first requests from the same person both reach the
- * insert, and on Mongo the loser hit the unique index and surfaced an error as
- * that person's first interaction with the product. The Mongo fix was an upsert
- * with `$setOnInsert`; this is the same shape, and it matters that no statement
- * FAILS — one failed statement aborts the whole transaction in Postgres
- * (`25P02`), so the read-the-row-back-after-duplicate-key recovery Mongo allows
- * does not port.
+ * insert, and a plain insert would make the loser hit the unique index and
+ * surface an error as that person's first interaction with the product. It
+ * matters that no statement FAILS — one failed statement aborts the whole
+ * transaction in Postgres (`25P02`), so catching a duplicate key and reading
+ * the row back is not an option.
  *
  * The conflict target is `oxy_user_id`, which is the unique the race is against.
  * Naming `reviewer_id` instead would compile, run, and never fire — the losing
@@ -200,8 +188,7 @@ export async function insertReviewerProfileIfAbsent(
 /**
  * Applies a patch to one profile, returning the row AFTER the write.
  *
- * `returning()` yields the post-image, which is what Mongo's
- * `returnDocument: 'after'` gave (hardcoded in `collections.ts`) and what every
+ * `returning()` yields the post-image, which is what every
  * caller of `mutateProfile` consumes — `openCalibrationIfReady` reads the state
  * it just wrote off this row.
  *
@@ -242,11 +229,8 @@ export async function incrementCompletedReviewCount(
  *
  * ## Why this one takes a transaction
  *
- * On Mongo these links were an ARRAY INSIDE the profile document, and the
- * preferences write set it with `$set: { principalLinks: [...] }` — a whole-array
- * replace that was atomic by construction, because a single document update is.
- * Extracted into a child table, "replace the set" becomes DELETE then INSERT: two
- * statements, and between them the reviewer has NO links at all.
+ * The links live in a child table, so "replace the set" is DELETE then INSERT:
+ * two statements, and between them the reviewer has NO links at all.
  *
  * That intermediate state is not a cosmetic concern. `principalLinks` is §8.5's
  * SELF-EXCLUSION — it is how the draw knows that a candidate is one of the
@@ -256,8 +240,7 @@ export async function incrementCompletedReviewCount(
  * There is no error, no log line and nothing that later recomputes it; the
  * profile still exists and still looks complete.
  *
- * So the atomicity Mongo supplied structurally has to be supplied explicitly
- * here, and the parameter type is what forces the caller to have opened a
+ * So the atomicity has to be supplied explicitly here, and the parameter type is what forces the caller to have opened a
  * transaction rather than leaving it to review. `requireTransaction` is the
  * runtime half, for a handle arriving through a cast, an `any` or a generic
  * boundary.
@@ -267,15 +250,9 @@ export async function incrementCompletedReviewCount(
  * Both layers prove the handle is A transaction. Neither proves it is THE SAME
  * transaction as the profile update it accompanies — a caller holding two open
  * transactions and passing the wrong one satisfies both. The profile patch and
- * this replacement are ONE logical write (they are one `ProfileMutation` on
- * Mongo, `principalLinks` being one of its fields), and they must share a
- * transaction. No type closes that gap, in either store; the Mongo side had the
- * identical hole and closed it by the array being in the same document.
- *
- * At the switch, `updateReviewerPreferences` is the caller, and it has NO
- * transaction today — `mutateProfile` is a plain `findOneAndUpdate`. Opening one
- * there is a real change to that path, and this signature is what makes `tsc`
- * ask for it rather than a reviewer noticing.
+ * this replacement are ONE logical write (one `ProfileMutation`,
+ * `principalLinks` being one of its fields), and they must share a
+ * transaction. No type closes that gap.
  */
 export async function replaceReviewerPrincipalLinks(
   tx: PgTransactionHandle,
@@ -311,13 +288,12 @@ export async function findReviewerPrincipalLinks(
 /**
  * The profiles of people who ARE one of this case's principals (§8.5).
  *
- * On Mongo this was an `$elemMatch` into the embedded array; here it is a join
- * onto the extracted table, which is the predicate the child table was created to
- * serve: `application_id = $1 AND external_principal_id = ANY($2)`, one btree.
+ * A join onto the principal-link table, which is the predicate that table
+ * exists to serve: `application_id = $1 AND external_principal_id = ANY($2)`, one btree.
  *
  * `DISTINCT` because a reviewer who has claimed two of the case's principals
- * matches twice, and `$elemMatch` returned the parent document ONCE however many
- * elements matched. Without it a duplicate profile reaches
+ * matches twice, and the caller wants each profile ONCE however many
+ * links matched. Without it a duplicate profile reaches
  * `partyRiskClusterIds`, which is a Set and would absorb it — and reaches the
  * caller's other consumers, which are not.
  */
@@ -358,9 +334,8 @@ function eligibilityPredicate(criteria: CaseEligibilityCriteria, now: Date) {
     eq(reviewerProfiles.available, true),
     eq(reviewerProfiles.suspectedSockPuppet, false),
     /**
-     * Mongo's `rulesAcceptedAt: { $ne: null }` matched documents where the field
-     * exists and is not null; the column is nullable and always present, so
-     * `IS NOT NULL` is the same population.
+     * Only reviewers who have accepted the rules; the column is nullable and
+     * `IS NOT NULL` is exactly that population.
      */
     sql`${reviewerProfiles.rulesAcceptedAt} is not null`,
     or(isNull(reviewerProfiles.suspendedUntil), lte(reviewerProfiles.suspendedUntil, now)),
@@ -368,9 +343,8 @@ function eligibilityPredicate(criteria: CaseEligibilityCriteria, now: Date) {
     /**
      * THE `$all` BRANCH. See this file's header for the measurement.
      *
-     * `sql`false`` rather than an omitted clause or a bare containment: Mongo's
-     * `$all: []` matched NOTHING, and `categories @> ARRAY[]::text[]` matches
-     * EVERYTHING. This is the same rendering drizzle already produces for
+     * `sql`false`` rather than an omitted clause or a bare containment:
+     * `categories @> ARRAY[]::text[]` matches EVERYTHING. This is the same rendering drizzle already produces for
      * `inArray(column, [])`, so it is the idiom this codebase uses for "match
      * nothing" rather than a novel spelling.
      */
@@ -433,15 +407,13 @@ export async function findEligibleReviewerWindow(
 /**
  * Records a declared conflict, once.
  *
- * `DO NOTHING`, not `DO UPDATE`: the Mongo write was `$setOnInsert` only, so a
- * second declaration of the same conflict left `source` as whatever the FIRST one
- * said. A `declared` conflict that a later `recusal` would have overwritten keeps
- * its original source, and that is the behaviour being preserved — a recusal for
- * a person already declared is not new information.
+ * `DO NOTHING`, not `DO UPDATE`: a second declaration of the same conflict
+ * leaves `source` as whatever the FIRST one said. A `declared` conflict that a
+ * later `recusal` would have overwritten keeps its original source — a recusal
+ * for a person already declared is not new information.
  *
  * No statement fails, so this is safe inside a caller's transaction: a duplicate
- * key raised and caught would abort the whole transaction (`25P02`), which is the
- * Mongo recovery that does not port.
+ * key raised and caught would abort the whole transaction (`25P02`).
  */
 export async function declareReviewerRelation(
   db: PgHandle,
@@ -484,7 +456,7 @@ export async function findReviewerRelationsForPrincipals(
 /**
  * Pairs among these reviewers who have served together too often (§8.3).
  *
- * Both id columns are constrained to the same set, matching the Mongo filter:
+ * Both id columns are constrained to the same set:
  * the question is which pairs are BOTH in the sample, not which pairs touch it.
  */
 export async function findAffinitiesAboveThreshold(
@@ -509,7 +481,7 @@ export async function findAffinitiesAboveThreshold(
 /**
  * Counts one more panel these two reviewers have served on together.
  *
- * Takes a transaction because the Mongo call site does: `recordCoService` runs
+ * Takes a transaction because `recordCoService` runs
  * inside the draw's `withTransaction`, so the affinity counters and the
  * assignments they constrain commit together. A count incremented outside that
  * transaction would survive a draw that rolled back, and the pair would be
@@ -521,9 +493,8 @@ export async function findAffinitiesAboveThreshold(
  * name, so `lastServedAt` would render as `excluded.lastservedat` and fail with
  * `42703` at runtime — a failure that no typecheck and no mocked test can reach.
  *
- * The insert value for `co_served_count` is 1, not 0. On Mongo the upsert applied
- * `$setOnInsert` and `$inc` together, so a first co-service inserted the row AND
- * incremented it in one operation; a 0 here would undercount every pair's first
+ * The insert value for `co_served_count` is 1, not 0: a first co-service both
+ * inserts the row AND counts that panel; a 0 here would undercount every pair's first
  * panel by one, forever, and the error is invisible until a pair reaches the
  * threshold a panel later than it should.
  */

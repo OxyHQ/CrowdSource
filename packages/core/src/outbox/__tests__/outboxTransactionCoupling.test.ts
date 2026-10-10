@@ -189,8 +189,8 @@ describe.each(BACKENDS)('$name', (backend) => {
        * A repeated enqueue is ordinary — a transaction retry, two concurrent
        * duplicate submissions, a reconciliation sweep re-deriving an event — and
        * the dispatcher is concurrently taking, renewing and completing leases on
-       * these same rows. If the upsert wrote (which it does when Mongoose owns
-       * `updatedAt` and adds its own `$set`), it would conflict with a live lease
+       * these same rows. If the upsert wrote (an ORM that owns `updatedAt` adds
+       * its own update), it would conflict with a live lease
        * update and abort the enclosing transaction. `updatedAt` is the observable
        * edge of that: unchanged means nothing was written.
        */
@@ -225,28 +225,19 @@ describe.each(BACKENDS)('$name', (backend) => {
        * which is deterministic everywhere. This one observes a LOCK, and an
        * UNBOUNDED lock observation has no stable verdict.
        *
-       * Three of us measured the same defect on the same topology — a single-node
-       * `MongoMemoryReplSet` — with three different results. `allo`'s unbounded
-       * probe ABORTED (the write fails code 112 `WriteConflict`, and the commit
-       * that follows fails code 251 `NoSuchTransaction`; both carry
-       * `TransientTransactionError`). This one HUNG for 88 seconds until
-       * the runner's timeout. `mercaria` ran this test's earlier, unbounded shape
-       * and saw NO conflict at all, so it passed with and without the defect for
-       * them.
-       *
-       * Same defect, same topology, three verdicts — which is the whole argument.
-       * It is not that some environments are unlucky; it is that "did the
-       * contending write throw" is not a question with one answer, so a test
-       * asking it can go green, red, or nowhere, and none of the three means
-       * anything. (`allo` established this by checking their own topology after I
-       * had loosely blamed environment differences; the variable was the bound.)
+       * The same defect, measured three times on one topology, produced three
+       * different results: an abort, a hang of 88 seconds until the runner's
+       * timeout, and no conflict at all. "Did the contending write throw" is
+       * not a question with one answer, so an unbounded test asking it can go
+       * green, red, or nowhere, and none of the three means anything; the
+       * variable was the bound.
        *
        * ## Why it is bounded
        *
-       * `maxTimeMS` is the difference between a guard and a trap. Unbounded, this
+       * A statement timeout is the difference between a guard and a trap. Unbounded, this
        * test does fail under the defect — measured, by HANGING for 88 seconds
        * until the runner's timeout. A failure mode of "hang" cannot distinguish a
-       * broken guard from a broken harness (a slow CI box, a stalled mongod), so
+       * broken guard from a broken harness (a slow CI box, a stalled server), so
        * a red run would tell the next person nothing about which. Bounded, the
        * blocked write fails as a NAMED server error in about two seconds.
        *

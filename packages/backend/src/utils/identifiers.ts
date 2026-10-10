@@ -48,10 +48,8 @@ export const ID_PREFIX = {
   /**
    * One row of `reviewer_relations` and one of `reviewer_principal_links`.
    *
-   * Neither existed on Mongo: the relation was identified by its `_id` and the
-   * principal link was an ELEMENT of an array inside the reviewer profile, so
-   * neither had an id of its own. Both tables carry a surrogate text primary key,
-   * so both need something to put in it.
+   * Both tables carry a surrogate text primary key, so both need something to
+   * put in it.
    *
    * Prefixed like every other key in this map rather than a bare UUID, even
    * though neither id crosses an API boundary. The prefix earns its place in a

@@ -3,10 +3,9 @@ import type { ExpirySweepTarget } from '@oxy.so/db/expiry';
 import { webhookAttempts } from './schema/webhooks';
 
 /**
- * The retention deadlines Mongo used to keep with a TTL index.
+ * The retention deadlines this service keeps.
  *
- * On Mongo, `webhook_attempts` carried `expireAfterSeconds` on `attempted_at`
- * and the server deleted rows on its own clock. Postgres has no equivalent, so
+ * `webhook_attempts` expires on `attempted_at`. Postgres has no TTL index, so
  * the deadline has to be swept — and a registry that nothing RUNS is the failure
  * this file exists to avoid: another Oxy service served expired rows for hours
  * while every code search for the retention logic found a correct-looking
@@ -17,7 +16,7 @@ import { webhookAttempts } from './schema/webhooks';
  * later table gains a deadline it belongs here, beside its own reason.
  */
 
-/** 90 days, the value `WEBHOOK_ATTEMPT_RETENTION_SECONDS` carried on Mongo. */
+/** 90 days. */
 export const WEBHOOK_ATTEMPT_RETENTION_SECONDS = 90 * 24 * 60 * 60;
 
 export function expirySweepTargets(): ExpirySweepTarget[] {

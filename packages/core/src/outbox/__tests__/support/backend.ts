@@ -139,10 +139,8 @@ export function legacyStatusFor(decision: Decision): { legacyStatus: string } {
 /**
  * An outbox row.
  *
- * Absent values are `null` rather than `undefined`, deliberately: Mongo omits a
- * `$unset` field and Postgres stores a NULL, so a suite that asserted
- * `toBeUndefined()` would pass on one backend and fail on the other while the
- * behaviour was identical. One shape, one assertion.
+ * Absent values are `null` rather than `undefined`, deliberately: Postgres
+ * stores a NULL, so that is the one shape a suite asserts.
  */
 export interface HarnessOutboxRow {
   id: string;
@@ -194,8 +192,7 @@ export interface HarnessApp {
   readReport(id: string): Promise<TestReport | null>;
   countReports(): Promise<number>;
   /**
-   * A well-formed id for a row that does not exist — ObjectId hex on Mongo, uuid
-   * v7 on Postgres.
+   * A well-formed id for a row that does not exist — a uuid v7.
    *
    * WELL-FORMED is the point. A test needing "an id nothing matches" must not
    * hand over a string one backend refuses to parse, because then it is testing

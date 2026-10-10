@@ -3,14 +3,8 @@
 Architecture decision records, the threat model, and the module boundaries of the
 backend's modular monolith.
 
-The live checklist for the unfinished service database cut is
-[`postgres-runtime-cut.md`](./postgres-runtime-cut.md). It records
-the PostgreSQL-only application package from being mistaken for a completed
-backend or production cutover.
-
 | Document | Settles |
 | --- | --- |
-| [ADR 0001](0001-divergence-from-the-plan.md) | Where CrowdSource diverges from the plan's infrastructure, and what each divergence costs. |
 | [ADR 0002](0002-the-universal-case-envelope.md) | One Case Envelope for every application, why resources and policies are versioned, and what the envelope refuses to carry. |
 | [ADR 0003](0003-reputation-axes.md) | Why contribution, conduct, reporting, reviewing and personhood are separate axes and never one number. |
 | [Account erasure](account-erasure.md) | What happens to a person's reports, notes, reviewer profile and console access when their Oxy account is deleted: the signed event, what is deleted, what is kept anonymised and why. |

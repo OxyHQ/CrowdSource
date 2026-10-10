@@ -45,7 +45,7 @@ export type ModerationPgHandle = PgDatabase<
  * not serialized at READ COMMITTED, and the "one report per reporter per object"
  * unique index is explicitly the application's responsibility.
  *
- * The failure this runner exists to make impossible is subtler than Mongo's. A
+ * The failure this runner exists to make impossible is subtle. A
  * store call given `db` instead of `tx` inside the callback runs on a DIFFERENT
  * pooled connection and commits on its own — no error, no warning, and the
  * atomicity the outbox exists for is simply gone. `postgresOutboxStore.enqueue`

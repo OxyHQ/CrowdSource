@@ -217,7 +217,7 @@ export interface PlannedEnforcementAction<TAction extends string> {
  * Opaque to this package and owned by the application: it is written on the
  * enforcement row when an action is applied and handed back to
  * {@link ModerationEnforcementConfig.apply} when a superseding revision reverses
- * it. Keep it small, flat and JSON-serialisable — it is stored in Mongo, and it
+ * it. Keep it small, flat and JSON-serialisable — it is stored as JSON, and it
  * must never contain reported material.
  */
 export type EnforcementPreviousState = Readonly<

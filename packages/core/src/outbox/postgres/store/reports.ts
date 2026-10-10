@@ -21,20 +21,19 @@ import type { ModerationPgHandle } from './transaction.js';
  * but the wrong TYPE passes, because every member of `ModerationReportTable` is a
  * bare `PgColumn`. The DDL and the schema tests are what cover that half.
  *
- * ## Two Mongo hazards that do not exist here
+ * ## Two hazards that do not exist here
  *
  * **A malformed id is not an error.** `id` is `text`, so an id nothing could have
  * generated simply matches no rows and `findById` answers `null` — which is
  * exactly what the delivery worker already does with "the report is gone".
- * Mongoose raises a `CastError` for the same input and its store has to catch it.
- * There is nothing to catch here, and adding a branch for `22P02` would be
+ * There is nothing to catch, and adding a branch for `22P02` would be
  * writing a handler for an error this column cannot raise.
  *
  * **A bound parameter cannot become a query operator.** `requireIdentifier` in
  * `intake.ts` still runs, and still should — a non-string corrupts data on any
  * backend, and the function is exported for callers with no route validation. But
  * the specific failure it was written for, `{ $ne: null }` arriving as a value and
- * matching an unrelated report, is a Mongo shape: here a parameter is a parameter.
+ * matching an unrelated report, cannot happen: here a parameter is a parameter.
  *
  * ## One thing that is worse, stated plainly
  *
@@ -46,12 +45,9 @@ import type { ModerationPgHandle } from './transaction.js';
 /**
  * The fields `ModerationReportFields` declares OPTIONAL, computed from the type.
  *
- * Postgres stores an absent value as NULL; Mongo omits the field. Both are the
- * same claim — "this never happened" — and one suite has to be able to assert it
- * once, so the package's own optional fields come back ABSENT from either
- * backend. Two `describe.each` pairs failed on exactly this before it was
- * settled, both reading `expected null to be undefined`, and neither was about
- * behaviour.
+ * Postgres stores an absent value as NULL, and the package's own optional
+ * fields come back ABSENT rather than `null`, so a caller sees the same shape
+ * `ModerationReportFields` declares — "this never happened" is `undefined`.
  *
  * Only the fields the PORT owns are normalised. An adopter's own nullable column
  * is theirs: `extra` goes in untouched and comes back untouched.
@@ -102,8 +98,7 @@ function absentWhereNull(row: Record<string, unknown>): Record<string, unknown> 
 /**
  * The row, as the port declares it.
  *
- * An unchecked declaration, not a conversion — the same escape the Mongoose store
- * takes with `.lean<TReport>()`, and for the same reason: a driver cannot know an
+ * An unchecked declaration, not a conversion, because a driver cannot know an
  * adopter's row type, and `ModerationReportTable` deliberately erases column types
  * so that any adopter's table is accepted.
  *
@@ -161,10 +156,9 @@ export function postgresReportStore<TReport extends ModerationReportFields>(inpu
            * `localStatus` came from `extra` would be queued with nothing to
            * deliver it, or received with a delivery event that tries anyway.
            *
-           * A key that is not a column raises here — Postgres has no silent
-           * discard. Mongoose strict mode drops an undeclared path with no throw
-           * and no warning, which is why the Mongo half needs a standing test
-           * that every DTO field resolves to a schema path.
+           * A key that is not a column is DROPPED silently: drizzle builds the
+           * INSERT from the table's declared columns, so Postgres never sees it.
+           * `postgresReportStore.test.ts` records the measurement.
            */
           ...report.extra,
           reportedType: report.reportedType,
@@ -226,8 +220,7 @@ export function postgresReportStore<TReport extends ModerationReportFields>(inpu
              * being applied — and an older revision landing last would otherwise
              * overwrite the current answer.
              *
-             * `IS NULL` is the port of Mongo's `$exists: false`, because a report
-             * with no decision yet stores NULL rather than omitting the column.
+             * `IS NULL` because a report with no decision yet stores NULL.
              * `<=` rather than `<` is deliberate: a redelivery of the SAME
              * revision rewrites, which is harmless and keeps a partially-applied
              * decision converging.
@@ -252,7 +245,7 @@ export function postgresReportStore<TReport extends ModerationReportFields>(inpu
           submittedAt: submission.submittedAt,
           // A report that has landed carries no failure and no reason it was
           // going nowhere. `null` CLEARS in drizzle; `undefined` would leave the
-          // stale value in place, which is the port of Mongo's `$unset`.
+          // stale value in place.
           lastDeliveryError: null,
           localStatusReason: null,
         })
