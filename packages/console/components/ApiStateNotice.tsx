@@ -108,10 +108,7 @@ export function ApiStateNotice({ error }: { error: unknown }) {
 
   if (error instanceof ConsoleForbiddenError) {
     return error.surface === 'trust-safety' ? (
-      <Panel
-        title={t('state.forbiddenStaff.title')}
-        description={t('state.forbiddenStaff.body')}
-      />
+      <Panel title={t('state.forbiddenStaff.title')} description={t('state.forbiddenStaff.body')} />
     ) : (
       <Panel title={t('state.forbidden.title')} description={t('state.forbidden.body')} />
     );

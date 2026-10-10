@@ -37,12 +37,12 @@ describe('tenant scope', () => {
    * pattern and eventually find a path that is not corrected.
    */
   it('refuses a caller-supplied tenant key on a filter', () => {
-    expect(() =>
-      tenantScopedFilter(context, { applicationId: 'app_other_tenant' }),
-    ).toThrow(/must not set 'applicationId'/);
-    expect(() =>
-      tenantScopedFilter(context, { organizationId: 'org_someone_else' }),
-    ).toThrow(/must not set 'organizationId'/);
+    expect(() => tenantScopedFilter(context, { applicationId: 'app_other_tenant' })).toThrow(
+      /must not set 'applicationId'/,
+    );
+    expect(() => tenantScopedFilter(context, { organizationId: 'org_someone_else' })).toThrow(
+      /must not set 'organizationId'/,
+    );
   });
 
   it('refuses a caller-supplied tenant key on a document', () => {
@@ -60,9 +60,9 @@ describe('tenant scope', () => {
   });
 
   it('recognises whether a value belongs to a tenant', () => {
-    expect(isScopedToTenant(context, { organizationId: 'org_1', applicationId: 'app_example' })).toBe(
-      true,
-    );
+    expect(
+      isScopedToTenant(context, { organizationId: 'org_1', applicationId: 'app_example' }),
+    ).toBe(true);
     expect(isScopedToTenant(context, { organizationId: 'org_1', applicationId: 'app_other' })).toBe(
       false,
     );

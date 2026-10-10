@@ -17,15 +17,14 @@
 // and exclude globs to a concrete file list, so this never re-implements glob
 // semantics and cannot disagree with the compiler about what is covered.
 
-import { readdir, readFile, stat } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = resolve(
-  process.env.TYPECHECK_COVERAGE_ROOT ||
-    resolve(dirname(fileURLToPath(import.meta.url)), "../.."),
+  process.env.TYPECHECK_COVERAGE_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '../..'),
 );
-const typescriptBin = join(repositoryRoot, "node_modules", "typescript", "bin", "tsc");
+const typescriptBin = join(repositoryRoot, 'node_modules', 'typescript', 'bin', 'tsc');
 const TEST_FILE_PATTERN = /\.(test|spec)\.tsx?$/;
 const decoder = new TextDecoder();
 
@@ -44,7 +43,7 @@ async function walk(directory) {
     return found;
   }
   for (const entry of entries) {
-    if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".expo") continue;
+    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.expo') continue;
     const path = join(directory, entry.name);
     if (entry.isDirectory()) found.push(...(await walk(path)));
     else if (entry.isFile()) found.push(path);
@@ -57,13 +56,13 @@ async function walk(directory) {
 // listing — are what this reads.
 function configsFromScripts(scripts) {
   const configs = new Set();
-  for (const name of ["lint", "typecheck"]) {
+  for (const name of ['lint', 'typecheck']) {
     const script = scripts?.[name];
-    if (typeof script !== "string") continue;
-    for (const invocation of script.split("&&")) {
+    if (typeof script !== 'string') continue;
+    for (const invocation of script.split('&&')) {
       if (!/(^|\s|\/)tsc(\s|$)/.test(invocation)) continue;
       const projectMatch = /-p\s+(\S+)|--project\s+(\S+)/.exec(invocation);
-      configs.add(projectMatch ? (projectMatch[1] ?? projectMatch[2]) : "tsconfig.json");
+      configs.add(projectMatch ? (projectMatch[1] ?? projectMatch[2]) : 'tsconfig.json');
     }
   }
   return [...configs];
@@ -71,10 +70,10 @@ function configsFromScripts(scripts) {
 
 async function filesCoveredBy(packageDirectory, configName) {
   const result = Bun.spawnSync({
-    cmd: [process.execPath, typescriptBin, "-p", configName, "--showConfig"],
+    cmd: [process.execPath, typescriptBin, '-p', configName, '--showConfig'],
     cwd: packageDirectory,
-    stdout: "pipe",
-    stderr: "pipe",
+    stdout: 'pipe',
+    stderr: 'pipe',
   });
   if (result.exitCode !== 0) {
     die(
@@ -88,20 +87,18 @@ async function filesCoveredBy(packageDirectory, configName) {
   } catch (error) {
     die(`Could not parse --showConfig output for ${configName}: ${error.message}`);
   }
-  return new Set(
-    (resolved.files ?? []).map((file) => resolve(packageDirectory, file)),
-  );
+  return new Set((resolved.files ?? []).map((file) => resolve(packageDirectory, file)));
 }
 
-const rootManifest = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8"));
+const rootManifest = JSON.parse(await readFile(join(repositoryRoot, 'package.json'), 'utf8'));
 const patterns = Array.isArray(rootManifest.workspaces) ? rootManifest.workspaces : [];
-if (patterns.length === 0) die("package.json declares no workspaces.");
+if (patterns.length === 0) die('package.json declares no workspaces.');
 
 const workspacePaths = [];
 for (const pattern of patterns) {
   const globMatch = /^([A-Za-z0-9._-]+)\/\*$/.exec(String(pattern));
   if (!globMatch) {
-    workspacePaths.push(String(pattern).replace(/\/+$/, ""));
+    workspacePaths.push(String(pattern).replace(/\/+$/, ''));
     continue;
   }
   const [, directory] = globMatch;
@@ -114,16 +111,14 @@ const uncovered = [];
 const report = [];
 for (const workspacePath of workspacePaths) {
   const packageDirectory = join(repositoryRoot, workspacePath);
-  const manifestPath = join(packageDirectory, "package.json");
+  const manifestPath = join(packageDirectory, 'package.json');
   try {
     if (!(await stat(manifestPath)).isFile()) continue;
   } catch {
     continue;
   }
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  const testFiles = (await walk(packageDirectory)).filter((path) =>
-    TEST_FILE_PATTERN.test(path),
-  );
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const testFiles = (await walk(packageDirectory)).filter((path) => TEST_FILE_PATTERN.test(path));
   if (testFiles.length === 0) continue;
 
   const configs = configsFromScripts(manifest.scripts);
@@ -141,11 +136,11 @@ for (const workspacePath of workspacePaths) {
   const missing = testFiles.filter((file) => !covered.has(resolve(file)));
   if (missing.length > 0) {
     uncovered.push(
-      `${workspacePath}: ${missing.length} of ${testFiles.length} test file(s) are outside every type-checked project (${configs.join(", ")}), starting with ${relative(repositoryRoot, missing[0])}`,
+      `${workspacePath}: ${missing.length} of ${testFiles.length} test file(s) are outside every type-checked project (${configs.join(', ')}), starting with ${relative(repositoryRoot, missing[0])}`,
     );
   }
   report.push(
-    `${workspacePath}: ${testFiles.length} test file(s), ${testFiles.length - missing.length} type-checked via ${configs.join(" + ")}.`,
+    `${workspacePath}: ${testFiles.length} test file(s), ${testFiles.length - missing.length} type-checked via ${configs.join(' + ')}.`,
   );
 }
 
@@ -160,11 +155,11 @@ if (report.length < 2) {
 for (const line of report) console.log(line);
 
 if (uncovered.length > 0) {
-  die("Test files are not type-checked:", [
+  die('Test files are not type-checked:', [
     ...uncovered.map((entry) => `  - ${entry}`),
-    "",
-    "A test that does not compile is a test nobody is running, and lint passing is",
-    "not evidence that it does. Add a type-check-only project covering the tests",
+    '',
+    'A test that does not compile is a test nobody is running, and lint passing is',
+    'not evidence that it does. Add a type-check-only project covering the tests',
     "(see packages/backend/tsconfig.test.json) and run it from the package's lint.",
   ]);
 }

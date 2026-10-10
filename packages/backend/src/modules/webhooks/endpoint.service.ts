@@ -80,7 +80,10 @@ const EVENT_TYPE_SET: ReadonlySet<string> = new Set(WEBHOOK_EVENT_TYPES);
  */
 export function assertDeliverableUrl(rawUrl: string): void {
   if (rawUrl.length > MAX_URL_LENGTH) {
-    throw new ApiError('invalid_request', `A webhook URL may not exceed ${MAX_URL_LENGTH} characters.`);
+    throw new ApiError(
+      'invalid_request',
+      `A webhook URL may not exceed ${MAX_URL_LENGTH} characters.`,
+    );
   }
 
   let parsed: URL;
@@ -120,7 +123,10 @@ export function assertDeliverableUrl(rawUrl: string): void {
 /** Validates the subscription list against §10.6. */
 export function assertKnownEventTypes(eventTypes: readonly string[]): WebhookEventType[] {
   if (eventTypes.length === 0) {
-    throw new ApiError('invalid_request', 'A webhook endpoint must subscribe to at least one event type.');
+    throw new ApiError(
+      'invalid_request',
+      'A webhook endpoint must subscribe to at least one event type.',
+    );
   }
 
   const unknown = eventTypes.filter((type) => !EVENT_TYPE_SET.has(type));
@@ -306,7 +312,11 @@ export async function rotateWebhookSecret(
   input: RotateWebhookSecretInput = {},
 ): Promise<RotatedWebhookSecret> {
   const overlapSeconds = input.overlapSeconds ?? DEFAULT_SECRET_OVERLAP_SECONDS;
-  if (!Number.isInteger(overlapSeconds) || overlapSeconds < 0 || overlapSeconds > MAX_SECRET_OVERLAP_SECONDS) {
+  if (
+    !Number.isInteger(overlapSeconds) ||
+    overlapSeconds < 0 ||
+    overlapSeconds > MAX_SECRET_OVERLAP_SECONDS
+  ) {
     throw new ApiError(
       'invalid_request',
       `overlapSeconds must be a whole number of seconds between 0 and ${MAX_SECRET_OVERLAP_SECONDS}.`,

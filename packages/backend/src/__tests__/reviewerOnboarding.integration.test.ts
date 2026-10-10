@@ -106,9 +106,7 @@ describe('the first request creates the profile (§8.1)', () => {
      * entry has to be a check the server actually performs, so an applicant who
      * has done nothing must show every acquirable one unmet.
      */
-    const response = await request(app)
-      .get('/v1/reviewer/profile')
-      .set(asReviewer(newOxyUserId()));
+    const response = await request(app).get('/v1/reviewer/profile').set(asReviewer(newOxyUserId()));
 
     const unmet = response.body.eligibility
       .filter((requirement: { met: boolean }) => !requirement.met)

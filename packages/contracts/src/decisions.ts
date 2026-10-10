@@ -21,7 +21,12 @@
 
 import { z } from 'zod';
 
-import { CONTRACT_LIMITS, IdentifierSchema, TimestampSchema, UnitIntervalSchema } from './primitives.js';
+import {
+  CONTRACT_LIMITS,
+  IdentifierSchema,
+  TimestampSchema,
+  UnitIntervalSchema,
+} from './primitives.js';
 import { DecisionPolicyVersionsSchema, PolicyRuleIdSchema } from './policies.js';
 import { ResourceIdSchema } from './resources.js';
 import { ContextSufficiencySchema } from './reviews.js';

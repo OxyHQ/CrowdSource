@@ -62,7 +62,8 @@ function textOf(tree: TestRenderer.ReactTestRenderer): string[] {
     const children = Array.isArray(node.props.children)
       ? node.props.children
       : [node.props.children];
-    return children.filter((c: unknown) => typeof c === 'string' || typeof c === 'number')
+    return children
+      .filter((c: unknown) => typeof c === 'string' || typeof c === 'number')
       .map(String);
   });
 }

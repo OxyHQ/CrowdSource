@@ -171,9 +171,7 @@ export async function withTenant<T>(
   context: TenantContext,
   operation: (tx: TenantScopedHandle) => Promise<T>,
 ): Promise<T> {
-  return await db.transaction(async (tx) =>
-    withTenantTransaction(tx, context, operation),
-  );
+  return await db.transaction(async (tx) => withTenantTransaction(tx, context, operation));
 }
 
 /**

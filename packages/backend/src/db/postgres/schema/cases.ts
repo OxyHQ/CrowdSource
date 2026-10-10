@@ -107,21 +107,14 @@ export const cases = pgTable(
      * that did not write it themselves, so an index that does not lead with the
      * tenant is one the planner cannot use for the common read.
      */
-    index('cases_tenant_status_idx').on(
-      table.organizationId,
-      table.applicationId,
-      table.status,
-    ),
+    index('cases_tenant_status_idx').on(table.organizationId, table.applicationId, table.status),
     index('cases_application_dedup_idx').on(table.applicationId, table.caseDedupKey),
     index('cases_status_priority_created_idx').on(
       table.status,
       table.priorityScore.desc(),
       table.createdAt,
     ),
-    check(
-      'cases_status_check',
-      sql`${table.status} in (${sql.raw(inList(CASE_STATUSES))})`,
-    ),
+    check('cases_status_check', sql`${table.status} in (${sql.raw(inList(CASE_STATUSES))})`),
     check('cases_report_count_check', sql`${table.reportCount} >= 0`),
     check('cases_reach_check', sql`${table.reach} >= 0`),
     check('cases_retention_days_check', sql`${table.retentionDays} > 0`),

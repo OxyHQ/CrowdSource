@@ -1,5 +1,9 @@
 import type { TransactionSession } from '../../db/collections';
-import { taxonomyFamilyOf, type TaxonomyCode, type TaxonomyFamily } from '@crowdsource.you/contracts';
+import {
+  taxonomyFamilyOf,
+  type TaxonomyCode,
+  type TaxonomyFamily,
+} from '@crowdsource.you/contracts';
 
 import { withTransaction } from '../../db/transaction';
 import type { TenantContext } from '../../db/tenantScope';
@@ -212,10 +216,9 @@ async function gatherParties(stored: CaseDocument): Promise<CaseParties> {
     findAssignmentsForCase(getPostgresDatabase(), stored.caseId) as Promise<AssignmentDocument[]>,
     stored.incidentId === null
       ? Promise.resolve<AssignmentDocument[]>([])
-      : findAssignmentsForIncident(
-          getPostgresDatabase(),
-          stored.incidentId,
-        ) as Promise<AssignmentDocument[]>,
+      : (findAssignmentsForIncident(getPostgresDatabase(), stored.incidentId) as Promise<
+          AssignmentDocument[]
+        >),
     principalIds.length === 0
       ? Promise.resolve([])
       : findReviewerRelationsForPrincipals(
@@ -225,11 +228,11 @@ async function gatherParties(stored: CaseDocument): Promise<CaseParties> {
         ),
     principalIds.length === 0
       ? Promise.resolve<ReviewerProfileDocument[]>([])
-      : findReviewerProfilesLinkedToPrincipals(
+      : (findReviewerProfilesLinkedToPrincipals(
           getPostgresDatabase(),
           stored.applicationId,
           principalIds,
-        ) as Promise<ReviewerProfileDocument[]>,
+        ) as Promise<ReviewerProfileDocument[]>),
   ]);
 
   return {
@@ -711,13 +714,7 @@ async function bumpAffinities(
     for (let right = left + 1; right < seats.length; right += 1) {
       const a = seats[left].reviewerId;
       const b = seats[right].reviewerId;
-      await recordCoService(
-        session,
-        affinityPairKey(a, b),
-        a < b ? a : b,
-        a < b ? b : a,
-        now,
-      );
+      await recordCoService(session, affinityPairKey(a, b), a < b ? a : b, a < b ? b : a, now);
     }
   }
 }
@@ -790,7 +787,9 @@ export async function replayDraw(drawId: string): Promise<readonly string[] | nu
   });
   const drawnHere = new Set(record.selected.map((seat) => seat.reviewerId));
   const incumbents: SeatedReviewer[] = panel
-    .filter((assignment) => assignment.drawId !== record.drawId && !drawnHere.has(assignment.reviewerId))
+    .filter(
+      (assignment) => assignment.drawId !== record.drawId && !drawnHere.has(assignment.reviewerId),
+    )
     .map((assignment) => ({
       reviewerId: assignment.reviewerId,
       slotType: assignment.slotType,

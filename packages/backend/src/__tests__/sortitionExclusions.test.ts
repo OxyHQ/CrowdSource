@@ -198,7 +198,9 @@ describe('the reporter check is drift-proof by construction', () => {
       reporterFingerprint(APPLICATION, `principal_${REPORTER}`),
       reporterFingerprint('app_other', principalReporterKey(REPORTER)),
     ]) {
-      expect(exclusionFor(candidate, parties({ reporterFingerprints: new Set([drifted]) }))).toBeNull();
+      expect(
+        exclusionFor(candidate, parties({ reporterFingerprints: new Set([drifted]) })),
+      ).toBeNull();
     }
   });
 });

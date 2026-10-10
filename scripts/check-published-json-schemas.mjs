@@ -31,10 +31,10 @@
  * can mutation-test it without packing anything; the CLI half only does the I/O.
  */
 
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * The fewest names this package has ever published. A floor, not an equality —
@@ -59,15 +59,21 @@ export function assertJsonSchemaSurface(contracts) {
   const convert = contracts.crowdSourceJsonSchema;
 
   if (!Array.isArray(names)) {
-    failures.push("CONTRACT_JSON_SCHEMA_NAMES is not an array; the package surface is not what this check expects.");
+    failures.push(
+      'CONTRACT_JSON_SCHEMA_NAMES is not an array; the package surface is not what this check expects.',
+    );
     return failures;
   }
-  if (schemas === null || typeof schemas !== "object") {
-    failures.push("CONTRACT_SCHEMAS is not an object; the package surface is not what this check expects.");
+  if (schemas === null || typeof schemas !== 'object') {
+    failures.push(
+      'CONTRACT_SCHEMAS is not an object; the package surface is not what this check expects.',
+    );
     return failures;
   }
-  if (typeof convert !== "function") {
-    failures.push("crowdSourceJsonSchema is not a function; the package surface is not what this check expects.");
+  if (typeof convert !== 'function') {
+    failures.push(
+      'crowdSourceJsonSchema is not a function; the package surface is not what this check expects.',
+    );
     return failures;
   }
 
@@ -75,15 +81,15 @@ export function assertJsonSchemaSurface(contracts) {
   if (names.length < MINIMUM_PUBLISHED_NAMES) {
     failures.push(
       `only ${names.length} published schema name(s) found, below the floor of ${MINIMUM_PUBLISHED_NAMES}. ` +
-        "Either the import is broken or names were removed; neither should pass silently.",
+        'Either the import is broken or names were removed; neither should pass silently.',
     );
   }
 
   const duplicates = names.filter((name, index) => names.indexOf(name) !== index);
   if (duplicates.length > 0) {
     failures.push(
-      `duplicate published name(s): ${[...new Set(duplicates)].join(", ")}. ` +
-        "A duplicate inflates the count while hiding an omission.",
+      `duplicate published name(s): ${[...new Set(duplicates)].join(', ')}. ` +
+        'A duplicate inflates the count while hiding an omission.',
     );
   }
 
@@ -96,14 +102,14 @@ export function assertJsonSchemaSurface(contracts) {
 
   if (missingSchema.length > 0) {
     failures.push(
-      `named in CONTRACT_JSON_SCHEMA_NAMES but absent from CONTRACT_SCHEMAS: ${missingSchema.join(", ")}. ` +
-        "Asking for one of these throws.",
+      `named in CONTRACT_JSON_SCHEMA_NAMES but absent from CONTRACT_SCHEMAS: ${missingSchema.join(', ')}. ` +
+        'Asking for one of these throws.',
     );
   }
   if (missingName.length > 0) {
     failures.push(
-      `present in CONTRACT_SCHEMAS but not published in CONTRACT_JSON_SCHEMA_NAMES: ${missingName.join(", ")}. ` +
-        "An integrator enumerating the published names never learns it exists.",
+      `present in CONTRACT_SCHEMAS but not published in CONTRACT_JSON_SCHEMA_NAMES: ${missingName.join(', ')}. ` +
+        'An integrator enumerating the published names never learns it exists.',
     );
   }
 
@@ -116,11 +122,11 @@ export function assertJsonSchemaSurface(contracts) {
     } catch (error) {
       failures.push(
         `crowdSourceJsonSchema('${name}') THREW: ${error instanceof Error ? error.message : String(error)}. ` +
-          "Conversion is lazy, so this reaches an integrator rather than a build.",
+          'Conversion is lazy, so this reaches an integrator rather than a build.',
       );
       continue;
     }
-    if (document === null || typeof document !== "object" || Object.keys(document).length === 0) {
+    if (document === null || typeof document !== 'object' || Object.keys(document).length === 0) {
       failures.push(`crowdSourceJsonSchema('${name}') returned no usable document.`);
     }
   }
@@ -129,60 +135,69 @@ export function assertJsonSchemaSurface(contracts) {
 }
 
 if (import.meta.main) {
-  const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-  const contractsDirectory = resolve(repositoryRoot, "packages", "contracts");
-  const scratch = await mkdtemp(resolve(tmpdir(), "cs-jsonschema-"));
+  const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const contractsDirectory = resolve(repositoryRoot, 'packages', 'contracts');
+  const scratch = await mkdtemp(resolve(tmpdir(), 'cs-jsonschema-'));
 
   try {
     const pack = Bun.spawnSync({
-      cmd: ["bun", "pm", "pack", "--destination", scratch],
+      cmd: ['bun', 'pm', 'pack', '--destination', scratch],
       cwd: contractsDirectory,
     });
     if (pack.exitCode !== 0) {
-      console.error("Packing @crowdsource.you/contracts failed:");
+      console.error('Packing @crowdsource.you/contracts failed:');
       console.error(new TextDecoder().decode(pack.stderr));
       process.exit(1);
     }
 
-    const tarball = (await Array.fromAsync(new Bun.Glob("*.tgz").scan({ cwd: scratch, absolute: true })))[0];
+    const tarball = (
+      await Array.fromAsync(new Bun.Glob('*.tgz').scan({ cwd: scratch, absolute: true }))
+    )[0];
     if (tarball === undefined) {
-      console.error("Packing reported success but produced no tarball.");
+      console.error('Packing reported success but produced no tarball.');
       process.exit(1);
     }
 
     await writeFile(
-      resolve(scratch, "package.json"),
-      `${JSON.stringify({ name: "cs-jsonschema-probe", private: true, version: "0.0.0" }, null, 2)}\n`,
+      resolve(scratch, 'package.json'),
+      `${JSON.stringify({ name: 'cs-jsonschema-probe', private: true, version: '0.0.0' }, null, 2)}\n`,
     );
 
     // Installed for real, the way an adopter does. A failure here is a failure —
     // never a skip, because a check that skips is worse than no check at all.
     const install = Bun.spawnSync({
-      cmd: ["bun", "add", tarball],
+      cmd: ['bun', 'add', tarball],
       cwd: scratch,
-      env: { ...process.env, BUN_INSTALL_CACHE_DIR: resolve(scratch, ".cache") },
+      env: { ...process.env, BUN_INSTALL_CACHE_DIR: resolve(scratch, '.cache') },
     });
     const installOutput = `${new TextDecoder().decode(install.stdout)}${new TextDecoder().decode(install.stderr)}`;
     // bun can exit 0 while reporting a failed extraction, so the output is read too.
     if (install.exitCode !== 0 || /\berror:/i.test(installOutput)) {
-      console.error("Installing the packed tarball failed:");
+      console.error('Installing the packed tarball failed:');
       console.error(installOutput);
       process.exit(1);
     }
 
-    const entry = resolve(scratch, "node_modules", "@crowdsource.you", "contracts", "dist", "index.js");
+    const entry = resolve(
+      scratch,
+      'node_modules',
+      '@crowdsource.you',
+      'contracts',
+      'dist',
+      'index.js',
+    );
     const contracts = await import(entry);
 
     const failures = assertJsonSchemaSurface(contracts);
     if (failures.length > 0) {
-      console.error("The packed contracts tarball has an unusable JSON-Schema surface:\n");
+      console.error('The packed contracts tarball has an unusable JSON-Schema surface:\n');
       for (const failure of failures) console.error(`- ${failure}`);
       process.exit(1);
     }
 
     console.log(
       `All ${contracts.CONTRACT_JSON_SCHEMA_NAMES.length} published JSON Schema name(s) convert from the packed tarball, ` +
-        "and the name list and schema registry agree.",
+        'and the name list and schema registry agree.',
     );
   } finally {
     await rm(scratch, { recursive: true, force: true });

@@ -159,9 +159,7 @@ const WebhookEndpointSchema = z.looseObject({
 const RotatedWebhookSecretSchema = z.looseObject({
   webhookEndpointId: z.string(),
   secret: WebhookSecretSchema,
-  previousSecret: z
-    .looseObject({ version: z.number(), expiresAt: z.string() })
-    .nullish(),
+  previousSecret: z.looseObject({ version: z.number(), expiresAt: z.string() }).nullish(),
 });
 
 /**
@@ -231,8 +229,7 @@ export class WebhookEndpoints {
     const response = await this.transport.request<unknown>({
       method: 'POST',
       path: `/v1/webhook-endpoints/${encodeURIComponent(webhookEndpointId)}/rotate-secret`,
-      body:
-        options.overlapSeconds === undefined ? {} : { overlapSeconds: options.overlapSeconds },
+      body: options.overlapSeconds === undefined ? {} : { overlapSeconds: options.overlapSeconds },
       idempotencyKey:
         options.idempotencyKey ??
         `webhook-endpoint.${sha256Digest(webhookEndpointId).replace('sha256:', '')}.rotate`,

@@ -287,11 +287,7 @@ describe('a tenant sees only its own rows', () => {
       SELECT case_id FROM cases ORDER BY case_id
     `;
 
-    expect(rows.map((row) => row.case_id)).toEqual([
-      'case_alpha',
-      'case_beta',
-      'case_sibling',
-    ]);
+    expect(rows.map((row) => row.case_id)).toEqual(['case_alpha', 'case_beta', 'case_sibling']);
   });
 
   it('READ: excludes another organization and a sibling application', async () => {
@@ -342,12 +338,14 @@ describe('a tenant sees only its own rows', () => {
   it('INSERT: refuses a row belonging to another tenant', async () => {
     await expectPolicyRefusal(async () =>
       withTenant(database.db, alpha, async (tx) =>
-        tx.execute(insertCaseStatement({
-          caseId: 'case_forged',
-          organizationId: 'org_beta',
-          applicationId: 'app_beta',
-          subject: 'post_forged',
-        })),
+        tx.execute(
+          insertCaseStatement({
+            caseId: 'case_forged',
+            organizationId: 'org_beta',
+            applicationId: 'app_beta',
+            subject: 'post_forged',
+          }),
+        ),
       ),
     );
 
@@ -355,24 +353,28 @@ describe('a tenant sees only its own rows', () => {
     // same organization, different application.
     await expectPolicyRefusal(async () =>
       withTenant(database.db, alpha, async (tx) =>
-        tx.execute(insertCaseStatement({
-          caseId: 'case_forged_sib',
-          organizationId: 'org_alpha',
-          applicationId: 'app_sibling',
-          subject: 'post_forged_sib',
-        })),
+        tx.execute(
+          insertCaseStatement({
+            caseId: 'case_forged_sib',
+            organizationId: 'org_alpha',
+            applicationId: 'app_sibling',
+            subject: 'post_forged_sib',
+          }),
+        ),
       ),
     );
 
     // The positive control: an insert into its OWN tenant succeeds, so the
     // refusal above is the policy and not a broken statement.
     await withTenant(database.db, alpha, async (tx) =>
-      tx.execute(insertCaseStatement({
-        caseId: 'case_alpha_own',
-        organizationId: 'org_alpha',
-        applicationId: 'app_alpha',
-        subject: 'post_own',
-      })),
+      tx.execute(
+        insertCaseStatement({
+          caseId: 'case_alpha_own',
+          organizationId: 'org_alpha',
+          applicationId: 'app_alpha',
+          subject: 'post_own',
+        }),
+      ),
     );
 
     const [row] = await database.asMigrator<{ total: number }[]>`
@@ -419,8 +421,7 @@ describe('the tenant context does not outlive its transaction', () => {
         )) as unknown as { organization_id: string; application_id: string }[];
 
       const first = await readAs(alpha);
-      expect(first.length, 'alpha must see something, or the check is vacuous')
-        .toBeGreaterThan(0);
+      expect(first.length, 'alpha must see something, or the check is vacuous').toBeGreaterThan(0);
       for (const row of first) {
         expect(row.organization_id).toBe(alpha.organizationId);
         expect(row.application_id).toBe(alpha.applicationId);
@@ -461,7 +462,9 @@ describe('the mutation test', () => {
    */
   it('a policy narrowed to the organization key alone leaks the sibling application', async () => {
     const restore = async (): Promise<void> => {
-      await database.asMigrator.unsafe(`DROP POLICY IF EXISTS "${TENANT_ISOLATION_POLICY}" ON cases`);
+      await database.asMigrator.unsafe(
+        `DROP POLICY IF EXISTS "${TENANT_ISOLATION_POLICY}" ON cases`,
+      );
       await database.asMigrator.unsafe(`
         CREATE POLICY "${TENANT_ISOLATION_POLICY}" ON cases
           FOR ALL

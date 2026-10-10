@@ -72,7 +72,9 @@ if (import.meta.main) {
   const manifest = JSON.parse(readFileSync(resolve(path), 'utf8'));
   const violations = cutoverManifestViolations(manifest);
   if (violations.length > 0) {
-    process.stderr.write(`Cutover manifest refused:\n${violations.map((entry) => `  - ${entry}`).join('\n')}\n`);
+    process.stderr.write(
+      `Cutover manifest refused:\n${violations.map((entry) => `  - ${entry}`).join('\n')}\n`,
+    );
     process.exit(1);
   }
   process.stdout.write('Cutover manifest reconciles counts, digests and empty-target evidence.\n');

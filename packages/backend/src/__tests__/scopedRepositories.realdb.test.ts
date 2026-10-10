@@ -64,7 +64,9 @@ async function seedSiblings(): Promise<void> {
     `;
   }
 
-  const [seeded] = await database.asMigrator<{ n: number }[]>`SELECT count(*)::int AS n FROM reports`;
+  const [seeded] = await database.asMigrator<
+    { n: number }[]
+  >`SELECT count(*)::int AS n FROM reports`;
   expect(seeded.n).toBe(2);
 }
 

@@ -54,8 +54,15 @@ const census = {
   })),
 };
 
-const verified = validateArchiveRecoveryEvidence({ archivePath: archive, census, profile: expectedProfile });
-if (verified.totalCount !== 2 || verified.databaseFingerprint !== archiveSourceFingerprint(expectedProfile)) {
+const verified = validateArchiveRecoveryEvidence({
+  archivePath: archive,
+  census,
+  profile: expectedProfile,
+});
+if (
+  verified.totalCount !== 2 ||
+  verified.databaseFingerprint !== archiveSourceFingerprint(expectedProfile)
+) {
   throw new Error('Valid archive evidence did not produce its exact count/fingerprint.');
 }
 const verifiedBytes = validateArchiveRecoveryEvidence({
@@ -74,37 +81,57 @@ if (
 }
 
 expectFailure(
-  () => validateArchiveRecoveryEvidence({
-    archivePath: archive,
-    census,
-    profile: { ...expectedProfile, archiveSha256: sha256('different') },
-  }),
+  () =>
+    validateArchiveRecoveryEvidence({
+      archivePath: archive,
+      census,
+      profile: { ...expectedProfile, archiveSha256: sha256('different') },
+    }),
   /SHA-256 differs/,
 );
 expectFailure(
-  () => validateArchiveRecoveryEvidence({
-    archivePath: archive,
-    census: { ...census, databaseName: 'crowdsource-similar' },
-    profile: expectedProfile,
-  }),
+  () =>
+    validateArchiveRecoveryEvidence({
+      archivePath: archive,
+      census: { ...census, databaseName: 'crowdsource-similar' },
+      profile: expectedProfile,
+    }),
   /different source/,
 );
 const missingCollection = structuredClone(census);
 missingCollection.collections.pop();
 expectFailure(
-  () => validateArchiveRecoveryEvidence({ archivePath: archive, census: missingCollection, profile: expectedProfile }),
+  () =>
+    validateArchiveRecoveryEvidence({
+      archivePath: archive,
+      census: missingCollection,
+      profile: expectedProfile,
+    }),
   /exactly 26 collections/,
 );
 const reordered = structuredClone(census);
-[reordered.collections[0], reordered.collections[1]] = [reordered.collections[1], reordered.collections[0]];
+[reordered.collections[0], reordered.collections[1]] = [
+  reordered.collections[1],
+  reordered.collections[0],
+];
 expectFailure(
-  () => validateArchiveRecoveryEvidence({ archivePath: archive, census: reordered, profile: expectedProfile }),
+  () =>
+    validateArchiveRecoveryEvidence({
+      archivePath: archive,
+      census: reordered,
+      profile: expectedProfile,
+    }),
   /collection position 0/,
 );
 const countChanged = structuredClone(census);
 countChanged.collections.find((entry) => entry.name === 'reviewer_profiles').count = 1;
 expectFailure(
-  () => validateArchiveRecoveryEvidence({ archivePath: archive, census: countChanged, profile: expectedProfile }),
+  () =>
+    validateArchiveRecoveryEvidence({
+      archivePath: archive,
+      census: countChanged,
+      profile: expectedProfile,
+    }),
   /differs from the final backup census/,
 );
 
@@ -118,7 +145,10 @@ if (
   FINAL_BACKUP_RECOVERY_PROFILE.recoveryImage !==
     'mongo@sha256:951c2ff9fc6bdb6cb89b1dfea4a0e8ae3ee4fb287c0bf579b2bba54c7803f75d' ||
   FINAL_BACKUP_RECOVERY_PROFILE.expectedCounts.reviewer_profiles !== 2 ||
-  Object.values(FINAL_BACKUP_RECOVERY_PROFILE.expectedCounts).reduce((sum, count) => sum + count, 0) !== 2
+  Object.values(FINAL_BACKUP_RECOVERY_PROFILE.expectedCounts).reduce(
+    (sum, count) => sum + count,
+    0,
+  ) !== 2
 ) {
   throw new Error('Canonical final-backup identity/count profile drifted.');
 }
@@ -168,13 +198,17 @@ const reviewerWithOmittedNullableField = await canonicalizeSourceDocument('revie
 if (reviewerWithOmittedNullableField.rulesAcceptedAt !== null) {
   throw new Error('An omitted nullable Mongo field was not normalized to PostgreSQL NULL.');
 }
-const reviewerTargetRows = await targetRowsForDataset(
+const reviewerTargetRows = await targetRowsForDataset('reviewer_profiles', [
+  reviewerWithOmittedNullableField,
+]);
+const [roundTrippedReviewer] = await canonicalRowsFromTarget(
   'reviewer_profiles',
-  [reviewerWithOmittedNullableField],
+  reviewerTargetRows,
 );
-const [roundTrippedReviewer] = await canonicalRowsFromTarget('reviewer_profiles', reviewerTargetRows);
 if (canonicalJson(roundTrippedReviewer) !== canonicalJson(reviewerWithOmittedNullableField)) {
-  throw new Error('A reviewer with an omitted nullable field cannot round-trip through PostgreSQL.');
+  throw new Error(
+    'A reviewer with an omitted nullable field cannot round-trip through PostgreSQL.',
+  );
 }
 
 const entrypoint = readFileSync(
@@ -182,11 +216,21 @@ const entrypoint = readFileSync(
   'utf8',
 );
 for (const required of [
-  "--pull=never", "--network=none", "--read-only", "--cap-drop=ALL",
-  "--security-opt=no-new-privileges", "--archive", "--stopOnError",
-  "--noIndexRestore", "--numParallelCollections=1", "input: archiveEvidence.archiveBytes",
-  "'context', 'show'", "unix:///var/run/docker.sock", "dockerEnvironment()",
-  "constants.O_NOFOLLOW", "cleanup.status !== 0",
+  '--pull=never',
+  '--network=none',
+  '--read-only',
+  '--cap-drop=ALL',
+  '--security-opt=no-new-privileges',
+  '--archive',
+  '--stopOnError',
+  '--noIndexRestore',
+  '--numParallelCollections=1',
+  'input: archiveEvidence.archiveBytes',
+  "'context', 'show'",
+  'unix:///var/run/docker.sock',
+  'dockerEnvironment()',
+  'constants.O_NOFOLLOW',
+  'cleanup.status !== 0',
 ]) {
   if (!entrypoint.includes(required)) throw new Error(`Archive recovery omitted '${required}'.`);
 }
@@ -204,7 +248,12 @@ const extractor = readFileSync(
   new URL('./crowdsource-backend-recover-archive.mongosh.js', import.meta.url),
   'utf8',
 );
-for (const required of ['getDBNames()', 'getCollectionInfos', 'countDocuments({})', 'EJSON.stringify']) {
+for (const required of [
+  'getDBNames()',
+  'getCollectionInfos',
+  'countDocuments({})',
+  'EJSON.stringify',
+]) {
   if (!extractor.includes(required)) throw new Error(`Archive extractor omitted '${required}'.`);
 }
 if (/mongodb(?:\+srv)?:\/\//i.test(extractor)) {

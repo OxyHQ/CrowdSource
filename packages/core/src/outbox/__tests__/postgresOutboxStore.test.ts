@@ -84,11 +84,7 @@ function runner(): ModerationTransactionRunner<ModerationPgHandle> {
 }
 
 /** Enqueue through the store, in a real transaction, exactly as the service does. */
-async function enqueue(input: {
-  eventId: string;
-  now: Date;
-  reportId?: string;
-}): Promise<void> {
+async function enqueue(input: { eventId: string; now: Date; reportId?: string }): Promise<void> {
   await runner().run(async (tx) => {
     await outboxStore().enqueue(
       {
@@ -113,9 +109,7 @@ async function readRow(eventId: string): Promise<Record<string, unknown> | undef
 }
 
 async function countRows(): Promise<number> {
-  const rows = await handle()
-    .select({ total: sql<number>`count(*)::int` })
-    .from(moderation.outbox);
+  const rows = await handle().select({ total: sql<number>`count(*)::int` }).from(moderation.outbox);
   return rows[0]?.total ?? 0;
 }
 
@@ -373,14 +367,12 @@ describe('the lease transitions', () => {
   it('completes only for the owner that holds the lease', async () => {
     /** Catches dropping `leaseOwner` from `complete`'s WHERE: a task that lost its
      * lease would then retire an event another task is mid-delivery on. */
-    expect(
-      await outboxStore().complete({ eventId, leaseOwner: OTHER_OWNER, now: claimedAt }),
-    ).toBe(false);
+    expect(await outboxStore().complete({ eventId, leaseOwner: OTHER_OWNER, now: claimedAt })).toBe(
+      false,
+    );
     expect(await outboxStore().statusOf(eventId)).toBe('processing');
 
-    expect(await outboxStore().complete({ eventId, leaseOwner: OWNER, now: claimedAt })).toBe(
-      true,
-    );
+    expect(await outboxStore().complete({ eventId, leaseOwner: OWNER, now: claimedAt })).toBe(true);
     expect(await outboxStore().statusOf(eventId)).toBe('processed');
     const row = await readRow(eventId);
     expect(row?.leaseOwner).toBeNull();

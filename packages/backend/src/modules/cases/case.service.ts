@@ -99,7 +99,9 @@ function reporterKeys(envelope: CaseEnvelope, reportId: string): string[] {
   const keys = new Set<string>();
   for (const allegation of envelope.allegations) {
     const ref = allegation.reporterPrincipalRef;
-    keys.add(ref === undefined ? `report:${reportId}` : (externalIdByRef.get(ref) ?? `report:${reportId}`));
+    keys.add(
+      ref === undefined ? `report:${reportId}` : (externalIdByRef.get(ref) ?? `report:${reportId}`),
+    );
   }
   // An envelope always carries at least one allegation, so this is never empty;
   // the fallback keeps the invariant local rather than relying on that.

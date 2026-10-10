@@ -132,10 +132,11 @@ bun run build           # contracts, backend, SDKs
 bun run build:reviewer  # reviewer static web export
 bun run build:console   # console static web export
 bun run test            # vitest for the backend and the libraries, jest for the two Expo apps
-bun run lint
+bun run lint            # Biome format + lint over the whole tree, per-package tsc, Expo env-var ESLint
+bun run format          # apply Biome formatting
 ```
 
-`check` is the whole gate: workspace doctor, workflow validation, security audit, injection sink scan, peer contract check, build, published shape checks, type check and lint.
+`check` is the whole gate: workspace doctor, workflow validation, security audit, injection sink scan, peer contract check, build, published shape checks, type check and lint. Formatting and linting are [Biome](https://biomejs.dev) (`biome.json` at the root, covering source, tests and scripts alike); the two Expo apps keep a minimal ESLint config for `eslint-plugin-expo`'s env-var rules only.
 
 Rebuild `contracts` before you believe a red type check. Every other package imports the built shape, never `src`, so after a rebase that lands a contracts change the rest of the repo still compiles against the previous build and reports the new symbols as missing in files nobody touched.
 

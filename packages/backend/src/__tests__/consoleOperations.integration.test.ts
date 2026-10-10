@@ -182,7 +182,7 @@ describe('webhook endpoints and their delivery health', () => {
     expect(rotated.body.previousSecret.version).toBe(1);
   });
 
-  it('refuses a rotation a viewer asks for, and an endpoint that is not this tenant\'s', async () => {
+  it("refuses a rotation a viewer asks for, and an endpoint that is not this tenant's", async () => {
     const mine = await provisionTenant();
     const theirs = await provisionTenant();
     const viewerId = newOxyUserId();
@@ -357,8 +357,11 @@ describe("the tenant's own audit trail", () => {
       .get(`/v1/console/applications/${tenant.applicationId}/audit?caseId=${delivered.body.caseId}`)
       .set(asUser(admin));
     expect(scoped.status).toBe(200);
-    expect(scoped.body.events.every((event: { caseId: string }) =>
-      event.caseId === delivered.body.caseId)).toBe(true);
+    expect(
+      scoped.body.events.every(
+        (event: { caseId: string }) => event.caseId === delivered.body.caseId,
+      ),
+    ).toBe(true);
 
     // A malformed case filter is IGNORED rather than refused here: the parameter narrows
     // a list that is already tenant-scoped, so the worst a bad value can do is show the
@@ -517,7 +520,7 @@ describe('the case explorer pages past one screen', () => {
 });
 
 describe('the organization screens', () => {
-  it('reports the caller\'s own seats on the session, with the organizations they are in', async () => {
+  it("reports the caller's own seats on the session, with the organizations they are in", async () => {
     const tenant = await provisionTenant();
     const admin = await adminOf(tenant);
 
@@ -596,7 +599,11 @@ describe('the organization screens', () => {
     const tenant = await provisionTenant();
     const admin = await adminOf(tenant);
 
-    for (const body of [{}, { oxyUserId: newOxyUserId() }, { oxyUserId: newOxyUserId(), role: 'god' }]) {
+    for (const body of [
+      {},
+      { oxyUserId: newOxyUserId() },
+      { oxyUserId: newOxyUserId(), role: 'god' },
+    ]) {
       const refused = await request(app)
         .post(`/v1/console/organizations/${tenant.organizationId}/members`)
         .set(asUser(admin))
@@ -621,9 +628,7 @@ describe('the organization screens', () => {
     const admin = await adminOf(tenant);
 
     const credential = await request(app)
-      .post(
-        `/v1/console/applications/${tenant.applicationId}/credentials/not-a-credential/revoke`,
-      )
+      .post(`/v1/console/applications/${tenant.applicationId}/credentials/not-a-credential/revoke`)
       .set(asUser(admin));
     expect(credential.status).toBe(404);
 
@@ -706,9 +711,9 @@ describe('the membership service at its edges', () => {
 
   it('refuses to revoke a seat that is not held', async () => {
     const tenant = await provisionTenant();
-    await expect(
-      revokeMembership(tenant.organizationId, newOxyUserId()),
-    ).rejects.toMatchObject({ code: 'not_found' });
+    await expect(revokeMembership(tenant.organizationId, newOxyUserId())).rejects.toMatchObject({
+      code: 'not_found',
+    });
   });
 
   it('refuses a malformed organization id on the members route', async () => {

@@ -117,14 +117,9 @@ export default function PlatformMetricsScreen() {
             />
           </Panel>
 
-          <Panel
-            title={t('metrics.unavailable.title')}
-            description={t('metrics.unavailable.body')}
-          >
+          <Panel title={t('metrics.unavailable.title')} description={t('metrics.unavailable.body')}>
             {metrics.data.unavailable.length === 0 ? (
-              <Text className="text-sm text-muted-foreground">
-                {t('metrics.unavailable.none')}
-              </Text>
+              <Text className="text-sm text-muted-foreground">{t('metrics.unavailable.none')}</Text>
             ) : (
               <View className="gap-1">
                 {metrics.data.unavailable.map((metric) => (

@@ -15,82 +15,82 @@
  * is the same class of defect the checker itself is guarding against.
  */
 
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const checker = resolve(dirname(fileURLToPath(import.meta.url)), "check-dist-orphans.mjs");
+const checker = resolve(dirname(fileURLToPath(import.meta.url)), 'check-dist-orphans.mjs');
 
 /** A built `sdk` whose every output has a source. */
 function healthyTree() {
   return {
-    "packages/core/src/index.ts": "export const a = 1;\n",
-    "packages/core/src/client.ts": "export const b = 2;\n",
-    "packages/core/dist/index.js": "exports.a = 1;\n",
-    "packages/core/dist/index.d.ts": "export declare const a: number;\n",
-    "packages/core/dist/index.js.map": "{}\n",
-    "packages/core/dist/index.d.ts.map": "{}\n",
-    "packages/core/dist/client.js": "exports.b = 2;\n",
-    "packages/core/dist/client.d.ts": "export declare const b: number;\n",
+    'packages/core/src/index.ts': 'export const a = 1;\n',
+    'packages/core/src/client.ts': 'export const b = 2;\n',
+    'packages/core/dist/index.js': 'exports.a = 1;\n',
+    'packages/core/dist/index.d.ts': 'export declare const a: number;\n',
+    'packages/core/dist/index.js.map': '{}\n',
+    'packages/core/dist/index.d.ts.map': '{}\n',
+    'packages/core/dist/client.js': 'exports.b = 2;\n',
+    'packages/core/dist/client.d.ts': 'export declare const b: number;\n',
   };
 }
 
 const cases = [
-  { name: "a fully-sourced dist passes", expectFailure: false, mutate: (t) => t },
+  { name: 'a fully-sourced dist passes', expectFailure: false, mutate: (t) => t },
   {
-    name: "the 0.3.0 near miss is caught: source deleted, output left behind",
+    name: 'the 0.3.0 near miss is caught: source deleted, output left behind',
     expectFailure: true,
-    mustMention: "packages/core/dist/uploads.js",
+    mustMention: 'packages/core/dist/uploads.js',
     mutate: (t) => ({
       ...t,
-      "packages/core/dist/uploads.js": "exports.upload = () => {};\n",
-      "packages/core/dist/uploads.d.ts": "export declare const upload: () => void;\n",
-      "packages/core/dist/uploads.js.map": "{}\n",
+      'packages/core/dist/uploads.js': 'exports.upload = () => {};\n',
+      'packages/core/dist/uploads.d.ts': 'export declare const upload: () => void;\n',
+      'packages/core/dist/uploads.js.map': '{}\n',
     }),
   },
   {
-    name: "a stale output in a nested directory is caught",
+    name: 'a stale output in a nested directory is caught',
     expectFailure: true,
-    mustMention: "internal/gone.js",
-    mutate: (t) => ({ ...t, "packages/core/dist/internal/gone.js": "exports.x = 1;\n" }),
+    mustMention: 'internal/gone.js',
+    mutate: (t) => ({ ...t, 'packages/core/dist/internal/gone.js': 'exports.x = 1;\n' }),
   },
   {
-    name: "a stale declaration map alone is caught",
+    name: 'a stale declaration map alone is caught',
     expectFailure: true,
-    mustMention: "removed.d.ts.map",
-    mutate: (t) => ({ ...t, "packages/core/dist/removed.d.ts.map": "{}\n" }),
+    mustMention: 'removed.d.ts.map',
+    mutate: (t) => ({ ...t, 'packages/core/dist/removed.d.ts.map': '{}\n' }),
   },
   {
-    name: "an unrecognised file in dist is reported rather than ignored",
+    name: 'an unrecognised file in dist is reported rather than ignored',
     expectFailure: true,
-    mustMention: "not a recognised build output",
-    mutate: (t) => ({ ...t, "packages/core/dist/notes.txt": "hello\n" }),
+    mustMention: 'not a recognised build output',
+    mutate: (t) => ({ ...t, 'packages/core/dist/notes.txt': 'hello\n' }),
   },
   {
-    name: "buildinfo inside dist is build state, not a stale output",
+    name: 'buildinfo inside dist is build state, not a stale output',
     expectFailure: false,
-    mutate: (t) => ({ ...t, "packages/core/dist/tsconfig.tsbuildinfo": "{}\n" }),
+    mutate: (t) => ({ ...t, 'packages/core/dist/tsconfig.tsbuildinfo': '{}\n' }),
   },
   {
-    name: "a dist with no recognised outputs at all trips the vacuity floor",
+    name: 'a dist with no recognised outputs at all trips the vacuity floor',
     expectFailure: true,
-    mustMention: "traversal is broken",
+    mustMention: 'traversal is broken',
     // Only buildinfo present: the directory exists, so the check ran, but it
     // examined nothing. Reporting success here would mean the check passes on a
     // tree it never looked at.
     mutate: () => ({
-      "packages/core/src/index.ts": "export const a = 1;\n",
-      "packages/core/dist/tsconfig.tsbuildinfo": "{}\n",
+      'packages/core/src/index.ts': 'export const a = 1;\n',
+      'packages/core/dist/tsconfig.tsbuildinfo': '{}\n',
     }),
   },
   {
-    name: "a .tsx source satisfies its output",
+    name: 'a .tsx source satisfies its output',
     expectFailure: false,
     mutate: (t) => ({
       ...t,
-      "packages/core/src/widget.tsx": "export const W = null;\n",
-      "packages/core/dist/widget.js": "exports.W = null;\n",
+      'packages/core/src/widget.tsx': 'export const W = null;\n',
+      'packages/core/dist/widget.js': 'exports.W = null;\n',
     }),
   },
 ];
@@ -98,7 +98,7 @@ const cases = [
 let failed = 0;
 
 for (const testCase of cases) {
-  const root = await mkdtemp(resolve(tmpdir(), "cs-distorphan-"));
+  const root = await mkdtemp(resolve(tmpdir(), 'cs-distorphan-'));
   try {
     for (const [path, contents] of Object.entries(testCase.mutate(healthyTree()))) {
       const full = resolve(root, path);
@@ -106,14 +106,14 @@ for (const testCase of cases) {
       await writeFile(full, contents);
     }
 
-    const run = Bun.spawnSync({ cmd: ["bun", checker, root] });
+    const run = Bun.spawnSync({ cmd: ['bun', checker, root] });
     const output = `${new TextDecoder().decode(run.stdout)}${new TextDecoder().decode(run.stderr)}`;
     const didFail = run.exitCode !== 0;
 
     if (didFail !== testCase.expectFailure) {
       failed += 1;
       console.error(
-        `FAIL  ${testCase.name}\n      expected ${testCase.expectFailure ? "a failure" : "a pass"}, got exit ${run.exitCode}\n${output}`,
+        `FAIL  ${testCase.name}\n      expected ${testCase.expectFailure ? 'a failure' : 'a pass'}, got exit ${run.exitCode}\n${output}`,
       );
       continue;
     }
@@ -131,7 +131,9 @@ for (const testCase of cases) {
 }
 
 if (failed > 0) {
-  console.error(`\n${failed} mutation case(s) failed: check-dist-orphans.mjs is not a working guard.`);
+  console.error(
+    `\n${failed} mutation case(s) failed: check-dist-orphans.mjs is not a working guard.`,
+  );
   process.exit(1);
 }
 

@@ -101,8 +101,16 @@ async function eraseInTenant(
       'communityNotes.subjectAuthorAnonymised',
       await anonymiseCommunityNoteSubjectAuthor(tx, oxyUserId, ERASED_ACCOUNT),
     );
-    add(counts, 'appeals.appellantAnonymised', await anonymiseAppellant(tx, oxyUserId, ERASED_ACCOUNT));
-    add(counts, 'auditEvents.actorAnonymised', await anonymiseAuditActor(tx, oxyUserId, ERASED_ACCOUNT));
+    add(
+      counts,
+      'appeals.appellantAnonymised',
+      await anonymiseAppellant(tx, oxyUserId, ERASED_ACCOUNT),
+    );
+    add(
+      counts,
+      'auditEvents.actorAnonymised',
+      await anonymiseAuditActor(tx, oxyUserId, ERASED_ACCOUNT),
+    );
   });
 
   // Reports and cases in bounded pages, each its own transaction. A rewritten
@@ -152,7 +160,11 @@ async function eraseInTenant(
  * Erase everything this service holds for one Oxy account. Idempotent: an
  * account with nothing left (or never seen) returns empty counts.
  */
-export async function eraseAccount(oxyUserId: string, eventId: string, now: Date = new Date()): Promise<ErasureCounts> {
+export async function eraseAccount(
+  oxyUserId: string,
+  eventId: string,
+  now: Date = new Date(),
+): Promise<ErasureCounts> {
   const db = getPostgresDatabase();
   const counts: ErasureCounts = {};
 
@@ -160,10 +172,19 @@ export async function eraseAccount(oxyUserId: string, eventId: string, now: Date
   // reviewer id to the person, and a crash before the end must leave it
   // findable so the re-run can finish the job.
   for (const tenant of await listApplicationTenants(db)) {
-    await eraseInTenant(createTenantContext(tenant.organizationId, tenant.applicationId), oxyUserId, eventId, counts);
+    await eraseInTenant(
+      createTenantContext(tenant.organizationId, tenant.applicationId),
+      oxyUserId,
+      eventId,
+      counts,
+    );
   }
 
-  add(counts, 'webhookDeliveries.bodiesAnonymised', await anonymiseWebhookBodies(db, oxyUserId, ERASED_ACCOUNT));
+  add(
+    counts,
+    'webhookDeliveries.bodiesAnonymised',
+    await anonymiseWebhookBodies(db, oxyUserId, ERASED_ACCOUNT),
+  );
 
   const named = await deleteReviewerRowsNamingPrincipal(db, oxyUserId);
   add(counts, 'reviewers.relationsNamingAccountDeleted', named.relationsDeleted);
@@ -216,7 +237,10 @@ export async function processAccountErasure(
   } catch (caught: unknown) {
     const classification = errorClassification(caught);
     await failAccountErasure(db, row.eventId, classification);
-    logger.error({ eventId, classification }, 'Account erasure failed; the reconciliation tick retries it');
+    logger.error(
+      { eventId, classification },
+      'Account erasure failed; the reconciliation tick retries it',
+    );
     return 'failed';
   }
 }
@@ -250,7 +274,10 @@ export interface IntakeResult {
 }
 
 /** Record a VERIFIED event and start its erasure. Shared by push and pull. */
-export async function acceptAccountEvent(event: OxyAccountEvent, source: AccountErasureSource): Promise<IntakeResult> {
+export async function acceptAccountEvent(
+  event: OxyAccountEvent,
+  source: AccountErasureSource,
+): Promise<IntakeResult> {
   const occurredAt = new Date(event.occurredAt);
   const { inserted, row } = await recordAccountErasure(getPostgresDatabase(), {
     eventId: event.eventId,
@@ -259,7 +286,10 @@ export async function acceptAccountEvent(event: OxyAccountEvent, source: Account
     occurredAt: Number.isNaN(occurredAt.getTime()) ? null : occurredAt,
     retained: event.retained,
   });
-  logger.info({ eventId: event.eventId, source, inserted, status: row.status }, 'Account event recorded');
+  logger.info(
+    { eventId: event.eventId, source, inserted, status: row.status },
+    'Account event recorded',
+  );
   scheduleAccountErasure(row);
   return { inserted, status: row.status };
 }

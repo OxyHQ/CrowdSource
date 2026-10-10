@@ -47,7 +47,10 @@ describe('route tree', () => {
     // render on both sides of the boundary.
     const stray = files
       .map(relative)
-      .filter((path) => path !== '_layout.tsx' && !path.startsWith('(auth)/') && !path.startsWith('(console)/'));
+      .filter(
+        (path) =>
+          path !== '_layout.tsx' && !path.startsWith('(auth)/') && !path.startsWith('(console)/'),
+      );
     expect(stray).toEqual([]);
   });
 
@@ -57,7 +60,9 @@ describe('route tree', () => {
     // screen. `[caseId]` is here and `[reviewId]` never can be: there is no reviewer
     // record in this app's API surface at all.
     const params = new Set(
-      files.flatMap((file) => [...relative(file).matchAll(/\[([^\]]+)\]/g)].map((match) => match[1])),
+      files.flatMap((file) =>
+        [...relative(file).matchAll(/\[([^\]]+)\]/g)].map((match) => match[1]),
+      ),
     );
     expect([...params].sort()).toEqual(['applicationId', 'caseId', 'organizationId']);
   });
@@ -73,9 +78,7 @@ describe('route tree', () => {
     // Not cosmetic: `buildNavigation` gates that subtree on a staff role, and a staff
     // screen living anywhere else would be reachable from a rail entry that was never
     // gated. The API refuses either way; this keeps the two halves legible.
-    const staffScreens = files
-      .map(relative)
-      .filter((path) => /trust-?safety/i.test(path));
+    const staffScreens = files.map(relative).filter((path) => /trust-?safety/i.test(path));
     expect(staffScreens.length).toBeGreaterThan(0);
     for (const path of staffScreens) {
       expect(path.startsWith('(console)/trust-safety/')).toBe(true);
@@ -84,10 +87,7 @@ describe('route tree', () => {
 });
 
 describe('the console API surface', () => {
-  const client = readFileSync(
-    join(PACKAGE_ROOT, 'lib', 'console-api', 'client.ts'),
-    'utf8',
-  );
+  const client = readFileSync(join(PACKAGE_ROOT, 'lib', 'console-api', 'client.ts'), 'utf8');
 
   /**
    * The request paths, with every interpolation collapsed to `:param`.
@@ -109,9 +109,7 @@ describe('the console API surface', () => {
 
   it('calls only the two routers this app is a client of', () => {
     for (const path of paths) {
-      expect(
-        path.startsWith('/v1/console/') || path.startsWith('/v1/trust-safety/'),
-      ).toBe(true);
+      expect(path.startsWith('/v1/console/') || path.startsWith('/v1/trust-safety/')).toBe(true);
     }
   });
 

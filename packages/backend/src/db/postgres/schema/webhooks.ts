@@ -42,7 +42,6 @@ export const WEBHOOK_DEAD_LETTER_REASONS = [
 ] as const;
 export type WebhookDeadLetterReason = (typeof WEBHOOK_DEAD_LETTER_REASONS)[number];
 
-
 /**
  * Webhook endpoints, their signing secrets, the delivery attempt journal — and
  * `webhook_deliveries`, which is the odd one out and sits at the bottom.
@@ -202,10 +201,7 @@ export const webhookAttempts = pgTable(
      * that crashed after sending and before recording from writing the same
      * attempt twice on replay, and a delivery id is globally unique.
      */
-    uniqueIndex('webhook_attempts_delivery_attempt_key').on(
-      table.deliveryId,
-      table.attemptNumber,
-    ),
+    uniqueIndex('webhook_attempts_delivery_attempt_key').on(table.deliveryId, table.attemptNumber),
     index('webhook_attempts_application_attempted_idx').on(
       table.applicationId,
       table.attemptedAt.desc(),
@@ -289,15 +285,9 @@ export const webhookDeliveries = pgTable(
      * No tenant prefix, on purpose and as on Mongo — endpoint ids are random and
      * globally unique, so the pair is already stronger than a prefixed version.
      */
-    uniqueIndex('webhook_deliveries_endpoint_event_key').on(
-      table.webhookEndpointId,
-      table.eventId,
-    ),
+    uniqueIndex('webhook_deliveries_endpoint_event_key').on(table.webhookEndpointId, table.eventId),
     /** The worker's claim, which spans every tenant. */
-    index('webhook_deliveries_status_next_attempt_at_idx').on(
-      table.status,
-      table.nextAttemptAt,
-    ),
+    index('webhook_deliveries_status_next_attempt_at_idx').on(table.status, table.nextAttemptAt),
     /** "What happened to this tenant's webhooks lately" — the console's question. */
     index('webhook_deliveries_application_status_created_idx').on(
       table.applicationId,

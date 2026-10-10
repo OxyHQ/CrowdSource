@@ -234,15 +234,10 @@ export function createOutboxService<TTx>(input: {
       now,
     });
 
-  function startLeaseHeartbeat(options: {
-    eventId: string;
-    leaseOwner: string;
-    leaseMs: number;
-  }): { stop: () => Promise<LeaseHeartbeatResult> } {
-    const renewIntervalMs = Math.max(
-      MIN_LEASE_RENEW_INTERVAL_MS,
-      Math.floor(options.leaseMs / 3),
-    );
+  function startLeaseHeartbeat(options: { eventId: string; leaseOwner: string; leaseMs: number }): {
+    stop: () => Promise<LeaseHeartbeatResult>;
+  } {
+    const renewIntervalMs = Math.max(MIN_LEASE_RENEW_INTERVAL_MS, Math.floor(options.leaseMs / 3));
     let stopped = false;
     let lost = false;
     let renewalError: unknown;
@@ -288,18 +283,10 @@ export function createOutboxService<TTx>(input: {
     });
   };
 
-  const complete: OutboxService<TTx>['complete'] = async (
-    eventId,
-    leaseOwner,
-    now = new Date(),
-  ) => await store.complete({ eventId, leaseOwner, now });
+  const complete: OutboxService<TTx>['complete'] = async (eventId, leaseOwner, now = new Date()) =>
+    await store.complete({ eventId, leaseOwner, now });
 
-  const fail: OutboxService<TTx>['fail'] = async (
-    event,
-    leaseOwner,
-    error,
-    now = new Date(),
-  ) => {
+  const fail: OutboxService<TTx>['fail'] = async (event, leaseOwner, error, now = new Date()) => {
     const message = error instanceof Error ? error.message : String(error);
     const retryable = isRetryableDeliveryError(error);
     const deadLettered = !retryable || event.attempts >= MAX_RETRYABLE_ATTEMPTS;
@@ -327,9 +314,7 @@ export function createOutboxService<TTx>(input: {
           kind: enqueueInput.kind,
           payload: enqueueInput.payload,
           availableAt: now,
-          expiresAt: new Date(
-            now.getTime() + MODERATION_OUTBOX_RETENTION_SECONDS * 1_000,
-          ),
+          expiresAt: new Date(now.getTime() + MODERATION_OUTBOX_RETENTION_SECONDS * 1_000),
           now,
         },
         tx,
@@ -402,10 +387,7 @@ export function createOutboxService<TTx>(input: {
             eventId: event.id,
             kind: event.kind,
             attempts: event.attempts,
-            error:
-              deliveryError instanceof Error
-                ? deliveryError.message
-                : String(deliveryError),
+            error: deliveryError instanceof Error ? deliveryError.message : String(deliveryError),
           };
           // A dead letter is moderation work that will not happen without a
           // human, so it must not be discoverable only by reading a warn-level

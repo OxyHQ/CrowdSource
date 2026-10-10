@@ -31,7 +31,9 @@ if (
   throw new Error('Archive recovery dataset/count binding is malformed.');
 }
 
-const userDatabases = db.getMongo().getDBNames()
+const userDatabases = db
+  .getMongo()
+  .getDBNames()
   .filter((name) => !['admin', 'config', 'local'].includes(name))
   .sort();
 if (userDatabases.length !== 1 || userDatabases[0] !== sourceDatabase) {
@@ -72,7 +74,8 @@ for (const name of datasets) {
     fs.closeSync(descriptor);
     fs.chmodSync(filename, 0o600);
   }
-  if (written !== count) throw new Error(`Archive collection '${name}' changed during isolated extraction.`);
+  if (written !== count)
+    throw new Error(`Archive collection '${name}' changed during isolated extraction.`);
   counts[name] = count;
 }
 

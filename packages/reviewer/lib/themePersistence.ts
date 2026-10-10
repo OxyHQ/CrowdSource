@@ -21,4 +21,4 @@ export const BLOOM_THEME_PERSIST_KEY = 'crowdsource.bloom.theme';
  * must supply the AsyncStorage adapter explicitly.
  */
 export const BLOOM_THEME_STORAGE: BloomThemeStorage =
-    Platform.OS === 'web' && webLocalStorage ? webLocalStorage : AsyncStorage;
+  Platform.OS === 'web' && webLocalStorage ? webLocalStorage : AsyncStorage;

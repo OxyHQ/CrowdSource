@@ -43,9 +43,10 @@ describe('resolveViewer', () => {
 
   it('still withholds the key when cold boot is unresolved but a user is already known', () => {
     // Resolution is the gate, not the presence of a user object.
-    expect(
-      resolveViewer({ ...RESOLVED_SIGNED_IN, isAuthResolved: false }),
-    ).toEqual({ key: null, canQuery: false });
+    expect(resolveViewer({ ...RESOLVED_SIGNED_IN, isAuthResolved: false })).toEqual({
+      key: null,
+      canQuery: false,
+    });
   });
 
   it('forbids querying when resolved and signed out', () => {
@@ -89,9 +90,10 @@ describe('resolveViewer', () => {
   });
 
   it('treats a missing user id as not queryable even when flagged authenticated', () => {
-    expect(
-      resolveViewer({ ...RESOLVED_SIGNED_IN, userId: null }),
-    ).toEqual({ key: 'anonymous', canQuery: false });
+    expect(resolveViewer({ ...RESOLVED_SIGNED_IN, userId: null })).toEqual({
+      key: 'anonymous',
+      canQuery: false,
+    });
   });
 });
 

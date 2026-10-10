@@ -2,7 +2,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import * as appTrust from '../db/postgres/repositories/appTrust';
 import { appTrustSnapshots } from '../db/postgres/schema/infrastructure';
-import { createPostgresTestDatabase, type PostgresTestDatabase } from './support/postgresTestDatabase';
+import {
+  createPostgresTestDatabase,
+  type PostgresTestDatabase,
+} from './support/postgresTestDatabase';
 
 /**
  * Application trust standing, against a real PostgreSQL server.
@@ -113,7 +116,10 @@ describe('the tenant-filtered read', () => {
     await seed([trustRow({ applicationId: 'app_theirs', organizationId: 'org_somebody_else' })]);
 
     const byId = await appTrust.findByApplicationId(database.db, 'app_theirs');
-    expect(byId, "the unfiltered read should still find it — that is what it is for").not.toBeNull();
+    expect(
+      byId,
+      'the unfiltered read should still find it — that is what it is for',
+    ).not.toBeNull();
 
     const forTenant = await appTrust.findForTenant(database.db, ORGANIZATION_ID, 'app_theirs');
     expect(forTenant, "another organization's trust row was returned").toBeNull();
@@ -167,7 +173,11 @@ describe('the Trust & Safety list', () => {
     await seed([
       trustRow({ applicationId: 'app_old', updatedAt: offset(-30 * MINUTE) }),
       trustRow({ applicationId: 'app_new', updatedAt: offset(-1 * MINUTE) }),
-      trustRow({ applicationId: 'app_restricted', standing: 'restricted', updatedAt: offset(-2 * MINUTE) }),
+      trustRow({
+        applicationId: 'app_restricted',
+        standing: 'restricted',
+        updatedAt: offset(-2 * MINUTE),
+      }),
     ]);
 
     const all = await appTrust.listByStanding(database.db, undefined, 10);

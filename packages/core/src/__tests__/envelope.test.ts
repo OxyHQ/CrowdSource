@@ -49,7 +49,9 @@ function contentOf(envelope: ReturnType<typeof composeCaseEnvelope>): string {
 
 describe('composeCaseEnvelope', () => {
   it('produces an envelope the published contract accepts', () => {
-    expect(() => CaseEnvelopeSchema.parse(composeCaseEnvelope(report(), COMPOSITION))).not.toThrow();
+    expect(() =>
+      CaseEnvelopeSchema.parse(composeCaseEnvelope(report(), COMPOSITION)),
+    ).not.toThrow();
   });
 
   it('takes applicationId from the composition, never from the input', () => {
@@ -103,9 +105,10 @@ describe('composeCaseEnvelope', () => {
     const payload = (): string =>
       canonicalJson({
         externalReportId: report().externalReportId,
-        envelope: JSON.parse(
-          JSON.stringify(composeCaseEnvelope(report(), COMPOSITION)),
-        ) as Record<string, never>,
+        envelope: JSON.parse(JSON.stringify(composeCaseEnvelope(report(), COMPOSITION))) as Record<
+          string,
+          never
+        >,
       });
 
     const first = payload();
@@ -118,8 +121,10 @@ describe('composeCaseEnvelope', () => {
   it('carries source only when the application says when the user reported it', () => {
     expect(composeCaseEnvelope(report(), COMPOSITION).source).toBeUndefined();
     expect(
-      composeCaseEnvelope(report({ submittedAt: new Date('2026-07-29T10:00:00.000Z') }), COMPOSITION)
-        .source,
+      composeCaseEnvelope(
+        report({ submittedAt: new Date('2026-07-29T10:00:00.000Z') }),
+        COMPOSITION,
+      ).source,
     ).toEqual({ environment: 'production', submittedAt: '2026-07-29T10:00:00.000Z' });
   });
 
@@ -163,7 +168,9 @@ describe('composeCaseEnvelope', () => {
 
   it('carries no binding proof for an actor that has no Oxy identity', () => {
     const envelope = composeCaseEnvelope(
-      report({ subject: { externalId: 'post_1', type: 'social.post', author: { id: 'local_42' } } }),
+      report({
+        subject: { externalId: 'post_1', type: 'social.post', author: { id: 'local_42' } },
+      }),
       COMPOSITION,
     );
 
@@ -287,7 +294,9 @@ describe('composeCaseEnvelope', () => {
 
   it('attributes every allegation to the reporter when there is one', () => {
     const envelope = composeCaseEnvelope(
-      report({ allegations: ['integrity.spam', { code: 'hate.slur', details: 'in the third line' }] }),
+      report({
+        allegations: ['integrity.spam', { code: 'hate.slur', details: 'in the third line' }],
+      }),
       COMPOSITION,
     );
     const reporterRef = envelope.principalBindings.find(
@@ -302,7 +311,10 @@ describe('composeCaseEnvelope', () => {
 
   it('reports the field and the reason when an input cannot become an envelope', () => {
     expect(() =>
-      composeCaseEnvelope(report({ subject: { externalId: 'not a valid id!', type: 'social.post' } }), COMPOSITION),
+      composeCaseEnvelope(
+        report({ subject: { externalId: 'not a valid id!', type: 'social.post' } }),
+        COMPOSITION,
+      ),
     ).toThrow(/subject.externalId/);
   });
 

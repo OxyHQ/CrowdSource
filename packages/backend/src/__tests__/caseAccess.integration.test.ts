@@ -150,9 +150,9 @@ describe('a case belongs to one application', () => {
 
   it('answers 404 for an id that is not one, without querying for it', async () => {
     expect((await readCase(tenant.token, 'not-a-case-id')).status).toBe(404);
-    expect(
-      (await readCase(tenant.token, 'case_00000000000000000000000000000000')).status,
-    ).toBe(404);
+    expect((await readCase(tenant.token, 'case_00000000000000000000000000000000')).status).toBe(
+      404,
+    );
   });
 
   it('refuses a request with no credential at all', async () => {

@@ -5,7 +5,7 @@ import { accepted, rejectionPaths } from './support/assertions.js';
 import { decisionExample } from './support/examples.js';
 
 describe('DecisionSchema', () => {
-  it('accepts Appendix B\'s shape', () => {
+  it("accepts Appendix B's shape", () => {
     const decision = accepted(DecisionSchema, decisionExample());
     expect(decision.status).toBe('final');
   });
@@ -146,7 +146,7 @@ describe('findings and actions', () => {
     ]);
   });
 
-  it('rejects §10.7\'s bare-string recommended actions on a decision', () => {
+  it("rejects §10.7's bare-string recommended actions on a decision", () => {
     /**
      * §10.7 writes them as strings and Appendix B as objects. Appendix B is the
      * reference Decision and wins; see `reference-documents.test.ts` for the

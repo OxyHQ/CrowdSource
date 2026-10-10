@@ -5,7 +5,7 @@ import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.
 import { reviewSubmissionExample } from './support/examples.js';
 
 describe('ReviewSubmissionSchema', () => {
-  it('accepts §9.3\'s result shape', () => {
+  it("accepts §9.3's result shape", () => {
     const review = accepted(ReviewSubmissionSchema, reviewSubmissionExample());
     expect(review.outcome).toBe('violation');
     expect(review.findings[0]?.confidence).toBe(0.88);
@@ -49,8 +49,9 @@ describe('ReviewSubmissionSchema', () => {
      * reason.
      */
     for (const outcome of ['inconclusive', 'escalated', 'duplicate']) {
-      expect(rejectionPaths(ReviewSubmissionSchema, { ...reviewSubmissionExample(), outcome }))
-        .toEqual(['outcome']);
+      expect(
+        rejectionPaths(ReviewSubmissionSchema, { ...reviewSubmissionExample(), outcome }),
+      ).toEqual(['outcome']);
     }
   });
 
@@ -146,7 +147,9 @@ describe('ReviewSubmissionSchema', () => {
   it('treats an absent context as "no exception applies"', () => {
     // Absence is the safe direction: a finding with no exception stands as
     // classified. It is optional for that reason, not by oversight.
-    expect(accepted(ReviewSubmissionSchema, reviewSubmissionExample()).findings[0]?.context).toBeUndefined();
+    expect(
+      accepted(ReviewSubmissionSchema, reviewSubmissionExample()).findings[0]?.context,
+    ).toBeUndefined();
   });
 
   it('refuses an exception the taxonomy does not name', () => {
@@ -191,7 +194,12 @@ describe('ReviewSubmissionSchema', () => {
 
 describe('RecusalSubmissionSchema', () => {
   it('accepts the four reasons §4.1 lists', () => {
-    for (const reason of ['conflict_of_interest', 'language', 'too_sensitive', 'insufficient_context']) {
+    for (const reason of [
+      'conflict_of_interest',
+      'language',
+      'too_sensitive',
+      'insufficient_context',
+    ]) {
       expect(accepted(RecusalSubmissionSchema, { reason }).reason).toBe(reason);
     }
   });

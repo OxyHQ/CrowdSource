@@ -97,8 +97,6 @@ export function findingScopeOf(code: TaxonomyCode, severity: Severity): FindingS
  * an effect land without a binding proof anyway and attributing conduct to
  * somebody whose material was found not to violate is a claim nobody made.
  */
-export function findingAttributionOf(
-  outcome: DecisionOutcome,
-): FindingAttribution | undefined {
+export function findingAttributionOf(outcome: DecisionOutcome): FindingAttribution | undefined {
   return outcome === 'violation' ? 'author' : undefined;
 }

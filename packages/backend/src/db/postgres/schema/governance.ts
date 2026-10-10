@@ -94,19 +94,13 @@ export const auditEvents = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [
-    index('audit_events_application_occurred_idx').on(
-      table.applicationId,
-      table.occurredAt.desc(),
-    ),
+    index('audit_events_application_occurred_idx').on(table.applicationId, table.occurredAt.desc()),
     index('audit_events_application_case_occurred_idx').on(
       table.applicationId,
       table.caseId,
       table.occurredAt.desc(),
     ),
-    check(
-      'audit_events_action_check',
-      sql`${table.action} in (${sql.raw(inList(AUDIT_ACTIONS))})`,
-    ),
+    check('audit_events_action_check', sql`${table.action} in (${sql.raw(inList(AUDIT_ACTIONS))})`),
     check(
       'audit_events_reason_check',
       sql`${table.reason} is null or ${table.reason} in (${sql.raw(inList(AUDIT_REASONS))})`,

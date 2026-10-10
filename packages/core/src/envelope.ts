@@ -48,7 +48,11 @@ import {
   type TaxonomyCode,
 } from '@crowdsource.you/contracts';
 
-import { DEFAULT_POLICY, allegationsForbiddingCommunityReview, defaultPrivacy } from './defaults.js';
+import {
+  DEFAULT_POLICY,
+  allegationsForbiddingCommunityReview,
+  defaultPrivacy,
+} from './defaults.js';
 import { canonicalJson, resourceDigest, sha256Digest, type CanonicalValue } from './digest.js';
 import { CrowdSourceError } from './errors.js';
 

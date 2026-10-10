@@ -1,12 +1,6 @@
-
-import {
-  defineTenantCollection,
-  type TransactionSession,
-} from '../../db/collections';
+import { defineTenantCollection, type TransactionSession } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
-import {
-  incrementUsageCounter,
-} from '../../db/postgres/repositories/scoped/governance';
+import { incrementUsageCounter } from '../../db/postgres/repositories/scoped/governance';
 import { withTenantTransaction } from '../../db/postgres/withTenant';
 
 /**

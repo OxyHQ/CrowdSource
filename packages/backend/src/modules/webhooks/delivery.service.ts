@@ -95,26 +95,26 @@ export async function recordDelivery(
   const now = request.now ?? new Date();
 
   return insertDeliveryIfAbsent(getPostgresDatabase(), {
-      organizationId: context.organizationId,
-      applicationId: context.applicationId,
-      deliveryId: newPublicId('webhookDelivery'),
-      webhookEndpointId: request.webhookEndpointId,
-      eventId: request.eventId,
-      eventType: request.eventType,
-      body: request.body,
-      status: 'pending',
-      attemptCount: 0,
-      cycleAttemptCount: 0,
-      // Due immediately: §10.9's ladder begins with the initial attempt.
-      nextAttemptAt: now,
-      leaseExpiresAt: null,
-      lastResponseStatus: null,
-      deadLetterReason: null,
-      succeededAt: null,
-      deadLetteredAt: null,
-      replayCount: 0,
-      createdAt: now,
-      updatedAt: now,
+    organizationId: context.organizationId,
+    applicationId: context.applicationId,
+    deliveryId: newPublicId('webhookDelivery'),
+    webhookEndpointId: request.webhookEndpointId,
+    eventId: request.eventId,
+    eventType: request.eventType,
+    body: request.body,
+    status: 'pending',
+    attemptCount: 0,
+    cycleAttemptCount: 0,
+    // Due immediately: §10.9's ladder begins with the initial attempt.
+    nextAttemptAt: now,
+    leaseExpiresAt: null,
+    lastResponseStatus: null,
+    deadLetterReason: null,
+    succeededAt: null,
+    deadLetteredAt: null,
+    replayCount: 0,
+    createdAt: now,
+    updatedAt: now,
   });
 }
 

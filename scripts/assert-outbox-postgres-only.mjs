@@ -82,7 +82,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = process.argv[2] === undefined ? repositoryRoot : resolve(process.argv[2]);
   const violations = outboxPostgresOnlyViolations(root);
   if (violations.length > 0) {
-    process.stderr.write(`The application half is not PostgreSQL-only:\n${violations.map((entry) => `  - ${entry}`).join('\n')}\n`);
+    process.stderr.write(
+      `The application half is not PostgreSQL-only:\n${violations.map((entry) => `  - ${entry}`).join('\n')}\n`,
+    );
     process.exit(1);
   }
   process.stdout.write('The application half has no MongoDB runtime, dependency or export.\n');

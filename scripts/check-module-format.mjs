@@ -45,9 +45,9 @@
  * which is how `test-check-module-format.mjs` mutation-tests it.
  */
 
-import { readFile } from "node:fs/promises";
-import { dirname, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFile } from 'node:fs/promises';
+import { dirname, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Every published package, and the MINIMUM number of code-selecting export
@@ -70,10 +70,9 @@ const PUBLISHED = {
 };
 /** Conditions that select code. `types` selects declarations and is exempt. */
 
-
 const repositoryRoot =
   process.argv[2] === undefined
-    ? resolve(dirname(fileURLToPath(import.meta.url)), "..")
+    ? resolve(dirname(fileURLToPath(import.meta.url)), '..')
     : resolve(process.argv[2]);
 
 const failures = [];
@@ -81,14 +80,14 @@ let entriesChecked = 0;
 
 /** Syntactic markers. A real ES module contains none of them. */
 const COMMONJS_MARKERS = [
-  { pattern: /(^|[^.\w])require\s*\(/m, name: "a require() call" },
-  { pattern: /(^|\s)exports\s*\./m, name: "an exports.* assignment" },
-  { pattern: /module\s*\.\s*exports/m, name: "a module.exports assignment" },
+  { pattern: /(^|[^.\w])require\s*\(/m, name: 'a require() call' },
+  { pattern: /(^|\s)exports\s*\./m, name: 'an exports.* assignment' },
+  { pattern: /module\s*\.\s*exports/m, name: 'a module.exports assignment' },
 ];
 
 async function readIfPresent(path) {
   try {
-    return await readFile(path, "utf8");
+    return await readFile(path, 'utf8');
   } catch {
     return undefined;
   }
@@ -113,7 +112,7 @@ async function nearestModuleMarker(packageDir, fromDirectory) {
   const root = resolve(packageDir);
   let current = resolve(packageDir, fromDirectory);
   while (current !== root && current.startsWith(root)) {
-    const contents = await readIfPresent(resolve(current, "package.json"));
+    const contents = await readIfPresent(resolve(current, 'package.json'));
     if (contents !== undefined) return { directory: current, contents };
     const parent = dirname(current);
     if (parent === current) break;
@@ -123,10 +122,10 @@ async function nearestModuleMarker(packageDir, fromDirectory) {
 }
 
 for (const [name, minimumEntries] of Object.entries(PUBLISHED)) {
-  const packageDir = resolve(repositoryRoot, "packages", name);
+  const packageDir = resolve(repositoryRoot, 'packages', name);
   let manifest;
   try {
-    manifest = JSON.parse(await readFile(resolve(packageDir, "package.json"), "utf8"));
+    manifest = JSON.parse(await readFile(resolve(packageDir, 'package.json'), 'utf8'));
   } catch {
     failures.push(`packages/${name}/package.json is missing or unreadable.`);
     continue;
@@ -135,17 +134,17 @@ for (const [name, minimumEntries] of Object.entries(PUBLISHED)) {
   let entriesForPackage = 0;
 
   for (const [subpath, conditions] of Object.entries(manifest.exports ?? {})) {
-    if (typeof conditions !== "object" || conditions === null) continue;
+    if (typeof conditions !== 'object' || conditions === null) continue;
     const esm = conditions.import;
     const cjs = conditions.require;
-    if (typeof esm !== "string" && typeof cjs !== "string") continue;
+    if (typeof esm !== 'string' && typeof cjs !== 'string') continue;
     entriesChecked += 1;
     entriesForPackage += 1;
 
-    if (typeof esm !== "string" || typeof cjs !== "string") {
+    if (typeof esm !== 'string' || typeof cjs !== 'string') {
       failures.push(
         `${label} "${subpath}" declares only one of import/require. Both must be present so a ` +
-          "consumer of either module system resolves the format it can actually load.",
+          'consumer of either module system resolves the format it can actually load.',
       );
       continue;
     }
@@ -153,9 +152,9 @@ for (const [name, minimumEntries] of Object.entries(PUBLISHED)) {
     if (esm === cjs) {
       failures.push(
         `${label} resolves "${subpath}" to the same file for import and require (${esm}). That is ` +
-          "the defect that took a backend down on 2026-07-30: a bundler targeting ESM inlines the " +
+          'the defect that took a backend down on 2026-07-30: a bundler targeting ESM inlines the ' +
           'CommonJS and throws `Dynamic require of "..." is not supported` at container start, ' +
-          "with green CI. Point import at the ESM build.",
+          'with green CI. Point import at the ESM build.',
       );
       continue;
     }
@@ -166,16 +165,19 @@ for (const [name, minimumEntries] of Object.entries(PUBLISHED)) {
       if (found.length > 0) {
         failures.push(
           `${label} maps the import condition of "${subpath}" to ${esm}, which is CommonJS ` +
-            `(${found.map((marker) => marker.name).join(", ")}).`,
+            `(${found.map((marker) => marker.name).join(', ')}).`,
         );
       }
     }
 
     const cjsSource = await readIfPresent(resolve(packageDir, cjs));
-    if (cjsSource !== undefined && !COMMONJS_MARKERS.some(({ pattern }) => pattern.test(cjsSource))) {
+    if (
+      cjsSource !== undefined &&
+      !COMMONJS_MARKERS.some(({ pattern }) => pattern.test(cjsSource))
+    ) {
       failures.push(
         `${label} maps the require condition of "${subpath}" to ${cjs}, which does not look like ` +
-          "CommonJS. A CommonJS consumer would fail to load it.",
+          'CommonJS. A CommonJS consumer would fail to load it.',
       );
     }
 
@@ -191,9 +193,9 @@ for (const [name, minimumEntries] of Object.entries(PUBLISHED)) {
         failures.push(
           `${label} has no ${dirname(esm)}/package.json beside its ESM entry. The root manifest is ` +
             '"type": "commonjs", so Node parses that output as CommonJS and fails on its first ' +
-            "import statement.",
+            'import statement.',
         );
-      } else if (JSON.parse(marker.contents).type !== "module") {
+      } else if (JSON.parse(marker.contents).type !== 'module') {
         failures.push(
           `${label}'s ${relative(packageDir, marker.directory)}/package.json does not declare ` +
             '"type": "module".',
@@ -211,7 +213,7 @@ for (const [name, minimumEntries] of Object.entries(PUBLISHED)) {
     failures.push(
       `packages/${name} (${label}) declares ${entriesForPackage} code-selecting export ` +
         `entr(ies); expected at least ${minimumEntries}. A subpath that disappears from the ` +
-        "manifest resolves to nothing for anyone importing it.",
+        'manifest resolves to nothing for anyone importing it.',
     );
   }
 }
@@ -227,7 +229,7 @@ if (entriesChecked < expectedEntries) {
 }
 
 if (failures.length > 0) {
-  console.error("The module-format check failed:\n");
+  console.error('The module-format check failed:\n');
   for (const failure of failures) console.error(`- ${failure}\n`);
   process.exit(1);
 }

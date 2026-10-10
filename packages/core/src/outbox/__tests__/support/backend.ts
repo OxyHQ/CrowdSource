@@ -77,12 +77,13 @@ export interface TestWidgetState {
  * reads and writes rows: the widget subject provider and the enforcement `apply`.
  */
 
-export const recordingLogger = (
-  sink: Harness['logs'],
-): ModerationLogger => ({
-  info: (message, context) => void sink.push({ level: 'info', message, ...(context ? { context } : {}) }),
-  warn: (message, context) => void sink.push({ level: 'warn', message, ...(context ? { context } : {}) }),
-  error: (message, context) => void sink.push({ level: 'error', message, ...(context ? { context } : {}) }),
+export const recordingLogger = (sink: Harness['logs']): ModerationLogger => ({
+  info: (message, context) =>
+    void sink.push({ level: 'info', message, ...(context ? { context } : {}) }),
+  warn: (message, context) =>
+    void sink.push({ level: 'warn', message, ...(context ? { context } : {}) }),
+  error: (message, context) =>
+    void sink.push({ level: 'error', message, ...(context ? { context } : {}) }),
 });
 
 const CATEGORY_TO_ALLEGATION: Readonly<Record<string, TaxonomyCode>> = Object.freeze({
@@ -204,10 +205,7 @@ export interface HarnessApp {
 }
 
 export interface HarnessOutbox {
-  count(filter?: {
-    kind?: ModerationOutboxKind;
-    status?: ModerationOutboxStatus;
-  }): Promise<number>;
+  count(filter?: { kind?: ModerationOutboxKind; status?: ModerationOutboxStatus }): Promise<number>;
   read(eventId: string): Promise<HarnessOutboxRow | null>;
   /**
    * Overwrite the lease owner out of band, to simulate another task.

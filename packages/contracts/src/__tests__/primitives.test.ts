@@ -133,9 +133,9 @@ describe('MimeTypeSchema', () => {
 
 describe('MetadataBagSchema', () => {
   it('accepts a flat bag of scalars', () => {
-    expect(accepted(MetadataBagSchema, { visibility: 'public', contentVersion: 3, live: false })).toEqual(
-      { visibility: 'public', contentVersion: 3, live: false },
-    );
+    expect(
+      accepted(MetadataBagSchema, { visibility: 'public', contentVersion: 3, live: false }),
+    ).toEqual({ visibility: 'public', contentVersion: 3, live: false });
   });
 
   it('rejects nesting, so the bag cannot become a document tree', () => {
@@ -202,16 +202,19 @@ describe('CustomPayloadSchema', () => {
 
   it('rejects $-prefixed keys, which is every JSON Schema reference mechanism', () => {
     for (const key of ['$ref', '$dynamicRef', '$id', '$schema']) {
-      expect(rejectionIssues(CustomPayloadSchema, { [key]: 'https://evil.test/s.json' }).length)
-        .toBeGreaterThan(0);
+      expect(
+        rejectionIssues(CustomPayloadSchema, { [key]: 'https://evil.test/s.json' }).length,
+      ).toBeGreaterThan(0);
     }
   });
 
   it('rejects prototype-bearing keys at depth, not only at the root', () => {
-    expect(rejectionIssues(CustomPayloadSchema, { outer: { constructor: 'x' } }).length)
-      .toBeGreaterThan(0);
-    expect(rejectionIssues(CustomPayloadSchema, { outer: { prototype: 'x' } }).length)
-      .toBeGreaterThan(0);
+    expect(
+      rejectionIssues(CustomPayloadSchema, { outer: { constructor: 'x' } }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      rejectionIssues(CustomPayloadSchema, { outer: { prototype: 'x' } }).length,
+    ).toBeGreaterThan(0);
   });
 });
 

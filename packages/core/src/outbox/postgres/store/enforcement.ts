@@ -1,8 +1,5 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import type {
-  ModerationEnforcementKey,
-  ModerationEnforcementStore,
-} from '../../store/types.js';
+import type { ModerationEnforcementKey, ModerationEnforcementStore } from '../../store/types.js';
 import type { ModerationTables } from '../tables.js';
 import type { ModerationPgHandle } from './transaction.js';
 

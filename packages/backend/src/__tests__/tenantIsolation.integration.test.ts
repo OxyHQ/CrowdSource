@@ -155,9 +155,9 @@ describe('applicationId comes from the credential', () => {
       });
 
     expect(response.status).toBe(422);
-    expect(
-      await postgresControl.collection('reports').countDocuments({ externalReportId }),
-    ).toBe(0);
+    expect(await postgresControl.collection('reports').countDocuments({ externalReportId })).toBe(
+      0,
+    );
   });
 
   /**

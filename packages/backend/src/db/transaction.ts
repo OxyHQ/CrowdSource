@@ -35,10 +35,7 @@ export async function withTransaction<T>(
       return await db.transaction(async (tx) => operation(tx));
     } catch (error: unknown) {
       const state = sqlStateOf(error);
-      if (
-        attempt >= 3 ||
-        (state !== SERIALIZATION_FAILURE && state !== DEADLOCK_DETECTED)
-      ) {
+      if (attempt >= 3 || (state !== SERIALIZATION_FAILURE && state !== DEADLOCK_DETECTED)) {
         throw error;
       }
       // A PostgreSQL serialization/deadlock failure aborts the whole
@@ -78,13 +75,20 @@ export function duplicateKeyViolation(error: unknown): DuplicateKeyViolation | n
     appeals_application_idempotency_key: ['applicationId', 'idempotencyKey'],
     appeals_application_case_revision_key: ['applicationId', 'caseId', 'supersededRevision'],
     community_notes_application_idempotency_key: ['applicationId', 'idempotencyKey'],
-    community_notes_application_subject_author_key: ['applicationId', 'externalSubjectId', 'authorPrincipalId'],
+    community_notes_application_subject_author_key: [
+      'applicationId',
+      'externalSubjectId',
+      'authorPrincipalId',
+    ],
     community_note_ratings_application_idempotency_key: ['applicationId', 'idempotencyKey'],
-    community_note_ratings_application_note_rater_key: ['applicationId', 'noteId', 'raterPrincipalId'],
+    community_note_ratings_application_note_rater_key: [
+      'applicationId',
+      'noteId',
+      'raterPrincipalId',
+    ],
   };
 
   return {
-    indexFields:
-      typeof constraint === 'string' ? (fieldsByConstraint[constraint] ?? []) : [],
+    indexFields: typeof constraint === 'string' ? (fieldsByConstraint[constraint] ?? []) : [],
   };
 }

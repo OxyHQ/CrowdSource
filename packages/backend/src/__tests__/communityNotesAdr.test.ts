@@ -9,7 +9,10 @@ import {
 } from '@crowdsource.you/contracts';
 
 import { parseClaims } from './appealsAdr.test';
-import { ASSIGNMENT_TTL_MS, NOTES_PER_AUTHOR_PER_DAY } from '../modules/communityNotes/communityNotes.service';
+import {
+  ASSIGNMENT_TTL_MS,
+  NOTES_PER_AUTHOR_PER_DAY,
+} from '../modules/communityNotes/communityNotes.service';
 import { SCORING, SCORING_ALGORITHM_VERSION } from '../modules/communityNotes/scoring';
 
 /**
@@ -18,7 +21,16 @@ import { SCORING, SCORING_ALGORITHM_VERSION } from '../modules/communityNotes/sc
  * and not the other fails the build.
  */
 
-const adrPath = path.resolve(__dirname, '..', '..', '..', '..', 'docs', 'architecture', 'community-notes.md');
+const adrPath = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  '..',
+  'docs',
+  'architecture',
+  'community-notes.md',
+);
 const claims = parseClaims(readFileSync(adrPath, 'utf8'));
 
 function single(key: string): string {

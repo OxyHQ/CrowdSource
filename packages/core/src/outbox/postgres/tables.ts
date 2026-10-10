@@ -163,10 +163,7 @@ export function moderationTables(options: { enforcementActions: readonly string[
       updatedAt: updatedAt(),
     },
     (t) => [
-      check(
-        'moderation_outbox_kind_check',
-        sql`${t.kind} in (${sql.raw(inList(OUTBOX_KINDS))})`,
-      ),
+      check('moderation_outbox_kind_check', sql`${t.kind} in (${sql.raw(inList(OUTBOX_KINDS))})`),
       check(
         'moderation_outbox_status_check',
         sql`${t.status} in (${sql.raw(inList(OUTBOX_STATUSES))})`,
@@ -216,10 +213,7 @@ export function moderationTables(options: { enforcementActions: readonly string[
       updatedAt: updatedAt(),
     },
     (t) => [
-      check(
-        'moderation_events_state_check',
-        sql`${t.state} in (${sql.raw(inList(EVENT_STATES))})`,
-      ),
+      check('moderation_events_state_check', sql`${t.state} in (${sql.raw(inList(EVENT_STATES))})`),
       index('moderation_events_case_id_idx').on(t.caseId),
       // Operational: what arrived recently, and what never got past `claimed`.
       index('moderation_events_state_received_at_idx').on(t.state, t.receivedAt),

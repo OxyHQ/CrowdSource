@@ -161,9 +161,7 @@ export function reviewerProfileView(
  * us to tell a reasonable error from random answering and a reviewer who was
  * never taught the taxonomy makes the first kind look like the second.
  */
-export function reviewerTrainingView(
-  profile: ReviewerProfileDocument,
-): ReviewerTrainingView {
+export function reviewerTrainingView(profile: ReviewerProfileDocument): ReviewerTrainingView {
   const completed = new Set(profile.trainingCompletedModules);
   const trainingComplete = hasCompletedTraining(profile.trainingCompletedModules);
   const passedAt = profile.calibrationPassedAt;

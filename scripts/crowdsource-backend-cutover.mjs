@@ -3,10 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import {
-  readJsonFile,
-  verifyFinalManifestEvidence,
-} from './crowdsource-backend-cutover-lib.mjs';
+import { readJsonFile, verifyFinalManifestEvidence } from './crowdsource-backend-cutover-lib.mjs';
 import {
   importPostgres,
   reexportPostgres,
@@ -21,7 +18,8 @@ const legacyConnectionEnvironment = [
 
 function parseArguments(argv) {
   const [command, ...tokens] = argv;
-  if (command === undefined || command.startsWith('--')) throw new Error('A cutover command is required.');
+  if (command === undefined || command.startsWith('--'))
+    throw new Error('A cutover command is required.');
   const options = {};
   for (const token of tokens) {
     const match = /^--([a-z][a-z0-9-]*)=(.*)$/.exec(token);
@@ -44,7 +42,9 @@ function exactOptions(options, required) {
 
 function rejectLegacyConnectionEnvironment() {
   if (legacyConnectionEnvironment.some((name) => process.env[name] !== undefined)) {
-    throw new Error('Database connection URLs must be supplied only on standard input, never through environment variables.');
+    throw new Error(
+      'Database connection URLs must be supplied only on standard input, never through environment variables.',
+    );
   }
 }
 
@@ -68,7 +68,8 @@ function requiredConnectionFromStdin() {
 
 function safeErrorMessage(error) {
   let message = error instanceof Error ? error.message : String(error);
-  for (const value of sensitiveValues) message = message.split(value).join('[redacted connection URL]');
+  for (const value of sensitiveValues)
+    message = message.split(value).join('[redacted connection URL]');
   return message.replace(
     /\b(?:mongodb(?:\+srv)?|postgres(?:ql)?):\/\/[^\s'"`]+/giu,
     '[redacted connection URL]',
@@ -76,7 +77,13 @@ function safeErrorMessage(error) {
 }
 
 async function importTarget(options) {
-  exactOptions(options, ['bundle', 'receipt', 'target-database', 'expected-target-fingerprint', 'phase']);
+  exactOptions(options, [
+    'bundle',
+    'receipt',
+    'target-database',
+    'expected-target-fingerprint',
+    'phase',
+  ]);
   const result = await importPostgres({
     bundleDirectory: options.bundle,
     receiptPath: options.receipt,
@@ -110,7 +117,9 @@ async function reexportTarget(options) {
     expectedTargetFingerprint: options['expected-target-fingerprint'],
     phase: options.phase,
   });
-  process.stdout.write(`Final reconciled manifest written to '${resolve(options['output-manifest'])}'.\n`);
+  process.stdout.write(
+    `Final reconciled manifest written to '${resolve(options['output-manifest'])}'.\n`,
+  );
 }
 
 function fingerprintTarget(options) {
@@ -134,11 +143,20 @@ async function main() {
   rejectLegacyConnectionEnvironment();
   const { command, options } = parseArguments(process.argv.slice(2));
   switch (command) {
-    case 'fingerprint-target': fingerprintTarget(options); break;
-    case 'import-postgres': await importTarget(options); break;
-    case 'reexport-postgres': await reexportTarget(options); break;
-    case 'verify-manifest': await verifyManifest(options); break;
-    default: throw new Error(`Unknown cutover command '${command}'.`);
+    case 'fingerprint-target':
+      fingerprintTarget(options);
+      break;
+    case 'import-postgres':
+      await importTarget(options);
+      break;
+    case 'reexport-postgres':
+      await reexportTarget(options);
+      break;
+    case 'verify-manifest':
+      await verifyManifest(options);
+      break;
+    default:
+      throw new Error(`Unknown cutover command '${command}'.`);
   }
 }
 

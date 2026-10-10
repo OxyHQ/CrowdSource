@@ -148,6 +148,11 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts
       - name: Verify Oxy dependency health
         run: bun run doctor:oxy
+      # Formatting and lint for the WHOLE tree — src, tests and scripts alike —
+      # in the read-only CI mode. `bun run lint` inside `check` runs it again
+      # alongside the per-package tsc projects and the Expo env-var ESLint rules.
+      - name: Check formatting and lint (Biome)
+        run: bunx biome ci .
       - name: Verify workspace, build, lint and typecheck
         run: bun run check
       # The dist-orphan check is inside `bun run check` above, as `check:dist`, and

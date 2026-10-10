@@ -1,4 +1,8 @@
-import { taxonomyFamilyOf, type TaxonomyCode, type TaxonomyFamily } from '@crowdsource.you/contracts';
+import {
+  taxonomyFamilyOf,
+  type TaxonomyCode,
+  type TaxonomyFamily,
+} from '@crowdsource.you/contracts';
 
 /**
  * Triage (§7.4, §7.5) — deterministic, and with no AI in it.
@@ -83,36 +87,121 @@ const CODE_ROUTES: Partial<Record<TaxonomyCode, Route>> = Object.freeze({
    * comes from what the material is alleged to be, not from what the tenant
    * asked for.
    */
-  'child_safety.sexualization': { sensitivity: 'prohibited', pool: 'legal', escalate: true, redact: true },
-  'child_safety.grooming': { sensitivity: 'prohibited', pool: 'legal', escalate: true, redact: true },
-  'child_safety.exploitation': { sensitivity: 'prohibited', pool: 'legal', escalate: true, redact: true },
+  'child_safety.sexualization': {
+    sensitivity: 'prohibited',
+    pool: 'legal',
+    escalate: true,
+    redact: true,
+  },
+  'child_safety.grooming': {
+    sensitivity: 'prohibited',
+    pool: 'legal',
+    escalate: true,
+    redact: true,
+  },
+  'child_safety.exploitation': {
+    sensitivity: 'prohibited',
+    pool: 'legal',
+    escalate: true,
+    redact: true,
+  },
 
   /** §7.5 row 2: imminent risk. The application keeps its own emergency path. */
-  'self_harm.imminent_risk': { sensitivity: 'restricted', pool: 'specialist', escalate: true, redact: false },
-  'harassment.credible_threat': { sensitivity: 'restricted', pool: 'specialist', escalate: true, redact: false },
-  'violence.threat': { sensitivity: 'restricted', pool: 'specialist', escalate: true, redact: false },
+  'self_harm.imminent_risk': {
+    sensitivity: 'restricted',
+    pool: 'specialist',
+    escalate: true,
+    redact: false,
+  },
+  'harassment.credible_threat': {
+    sensitivity: 'restricted',
+    pool: 'specialist',
+    escalate: true,
+    redact: false,
+  },
+  'violence.threat': {
+    sensitivity: 'restricted',
+    pool: 'specialist',
+    escalate: true,
+    redact: false,
+  },
 
   /** §7.5 row 3 and the non-consensual sexual material of §6.5. */
-  'sexual_content.non_consensual': { sensitivity: 'restricted', pool: 'specialist', escalate: true, redact: true },
-  'sexual_content.exploitation': { sensitivity: 'restricted', pool: 'specialist', escalate: true, redact: true },
-  'privacy.intimate_media': { sensitivity: 'restricted', pool: 'specialist', escalate: true, redact: true },
-  'violence.graphic': { sensitivity: 'sensitive', pool: 'specialist', escalate: false, redact: false },
+  'sexual_content.non_consensual': {
+    sensitivity: 'restricted',
+    pool: 'specialist',
+    escalate: true,
+    redact: true,
+  },
+  'sexual_content.exploitation': {
+    sensitivity: 'restricted',
+    pool: 'specialist',
+    escalate: true,
+    redact: true,
+  },
+  'privacy.intimate_media': {
+    sensitivity: 'restricted',
+    pool: 'specialist',
+    escalate: true,
+    redact: true,
+  },
+  'violence.graphic': {
+    sensitivity: 'sensitive',
+    pool: 'specialist',
+    escalate: false,
+    redact: false,
+  },
 
   /** §7.5 row 4: personal data and documents. Redact first, then minimal access. */
-  'privacy.personal_information': { sensitivity: 'sensitive', pool: 'community', escalate: false, redact: true },
-  'privacy.location_exposure': { sensitivity: 'sensitive', pool: 'community', escalate: false, redact: true },
-  'harassment.doxxing': { sensitivity: 'sensitive', pool: 'community', escalate: false, redact: true },
+  'privacy.personal_information': {
+    sensitivity: 'sensitive',
+    pool: 'community',
+    escalate: false,
+    redact: true,
+  },
+  'privacy.location_exposure': {
+    sensitivity: 'sensitive',
+    pool: 'community',
+    escalate: false,
+    redact: true,
+  },
+  'harassment.doxxing': {
+    sensitivity: 'sensitive',
+    pool: 'community',
+    escalate: false,
+    redact: true,
+  },
 
   /**
    * §7.5 row 5: ordinary adult pornography. Community, but `sensitive` — the
    * per-category adult consent §8.2 requires is a reviewer ELIGIBILITY property,
    * gated on this class, not a pool of its own.
    */
-  'sexual_content.nudity': { sensitivity: 'sensitive', pool: 'community', escalate: false, redact: false },
-  'sexual_content.explicit_activity': { sensitivity: 'sensitive', pool: 'community', escalate: false, redact: false },
+  'sexual_content.nudity': {
+    sensitivity: 'sensitive',
+    pool: 'community',
+    escalate: false,
+    redact: false,
+  },
+  'sexual_content.explicit_activity': {
+    sensitivity: 'sensitive',
+    pool: 'community',
+    escalate: false,
+    redact: false,
+  },
 
-  'self_harm.promotion': { sensitivity: 'sensitive', pool: 'community', escalate: false, redact: false },
-  'self_harm.instruction': { sensitivity: 'sensitive', pool: 'community', escalate: false, redact: false },
+  'self_harm.promotion': {
+    sensitivity: 'sensitive',
+    pool: 'community',
+    escalate: false,
+    redact: false,
+  },
+  'self_harm.instruction': {
+    sensitivity: 'sensitive',
+    pool: 'community',
+    escalate: false,
+    redact: false,
+  },
 });
 
 /**
@@ -267,11 +356,7 @@ export function triageCase(input: TriageInput): TriageResult {
     (input.now.getTime() - input.firstReportedAt.getTime()) / HOUR_MS,
   );
 
-  const severityHint = clamp(
-    severityWeight(input.allegationCodes),
-    0,
-    TRIAGE_WEIGHTS.SEVERITY_MAX,
-  );
+  const severityHint = clamp(severityWeight(input.allegationCodes), 0, TRIAGE_WEIGHTS.SEVERITY_MAX);
 
   /**
    * Reports per hour, not reports. A hundred reports over a month is a case

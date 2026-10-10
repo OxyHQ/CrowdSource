@@ -10,7 +10,16 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { FINDING_CONTEXTS, RECOMMENDED_ACTIONS, RELATION_TYPES, RESOURCE_TYPES, REVIEWER_ELIGIBILITY_REQUIREMENTS, REVIEWER_SENSITIVITY_CLASSES, REVIEWER_STATES, TAXONOMY_FAMILIES } from '@crowdsource.you/contracts';
+import {
+  FINDING_CONTEXTS,
+  RECOMMENDED_ACTIONS,
+  RELATION_TYPES,
+  RESOURCE_TYPES,
+  REVIEWER_ELIGIBILITY_REQUIREMENTS,
+  REVIEWER_SENSITIVITY_CLASSES,
+  REVIEWER_STATES,
+  TAXONOMY_FAMILIES,
+} from '@crowdsource.you/contracts';
 
 import { REVIEWER_RECOMMENDED_ACTIONS } from '@/lib/review-form';
 import en from '@/locales/en.json';
@@ -63,8 +72,7 @@ describe('locales', () => {
       // hole in it, which reads as a bug in the data rather than in the copy.
       const mismatches = baseKeys.filter(
         (key) =>
-          placeholders(valueAt(BASE, key)).join(',') !==
-          placeholders(valueAt(tree, key)).join(','),
+          placeholders(valueAt(BASE, key)).join(',') !== placeholders(valueAt(tree, key)).join(','),
       );
       expect(mismatches).toEqual([]);
     });

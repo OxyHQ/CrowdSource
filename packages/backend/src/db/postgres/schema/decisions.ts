@@ -194,9 +194,6 @@ export const appeals = pgTable(
      * interpolation into `check()` emits the bound parameter `$1` into the
      * generated migration, which then fails at APPLY time with no local signal.
      */
-    check(
-      'appeals_reason_check',
-      sql`${table.reason} in (${sql.raw(inList(APPEAL_REASONS))})`,
-    ),
+    check('appeals_reason_check', sql`${table.reason} in (${sql.raw(inList(APPEAL_REASONS))})`),
   ],
 );

@@ -142,9 +142,7 @@ export default function OnboardingScreen() {
           <Checkbox
             key={family.id}
             checked={sensitiveCategories.includes(family.id)}
-            onCheckedChange={() =>
-              setSensitiveCategories((current) => toggle(current, family.id))
-            }
+            onCheckedChange={() => setSensitiveCategories((current) => toggle(current, family.id))}
             disabled={!categories.includes(family.id)}
             label={t(`category.${family.id}`)}
             description={

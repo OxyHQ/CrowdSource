@@ -81,8 +81,9 @@ describe('§11.7 validations the contract makes structural', () => {
 
   it('rejects a superseded or corrected decision (§11.7.8)', () => {
     for (const decisionStatus of ['superseded', 'corrected']) {
-      expect(rejectionPaths(ReputationEventSchema, { ...reputationEventExample(), decisionStatus }))
-        .toEqual(['decisionStatus']);
+      expect(
+        rejectionPaths(ReputationEventSchema, { ...reputationEventExample(), decisionStatus }),
+      ).toEqual(['decisionStatus']);
     }
   });
 
@@ -118,9 +119,7 @@ describe('privacy of the payload (§13.5)', () => {
         },
       ],
     });
-    expect(issues).toEqual([
-      { path: 'findings.0', message: 'Unrecognized key: "resourceIds"' },
-    ]);
+    expect(issues).toEqual([{ path: 'findings.0', message: 'Unrecognized key: "resourceIds"' }]);
   });
 
   it('refuses to carry reviewer notes or any other free text', () => {
@@ -143,11 +142,12 @@ describe('attribution and findings', () => {
   });
 
   it('rejects an event with no findings, which could produce no effect anyway', () => {
-    expect(rejectionPaths(ReputationEventSchema, { ...reputationEventExample(), findings: [] }))
-      .toEqual(['findings']);
+    expect(
+      rejectionPaths(ReputationEventSchema, { ...reputationEventExample(), findings: [] }),
+    ).toEqual(['findings']);
   });
 
-  it('carries the three policy versions §6.4 requires, under §11.6\'s own names', () => {
+  it("carries the three policy versions §6.4 requires, under §11.6's own names", () => {
     const event = accepted(ReputationEventSchema, reputationEventExample());
     expect(Object.keys(event.policyVersions).sort()).toEqual([
       'application',

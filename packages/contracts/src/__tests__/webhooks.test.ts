@@ -165,7 +165,7 @@ describe('delivery retries (§10.9)', () => {
     expect([...WEBHOOK_RETRY_SCHEDULE_SECONDS]).toEqual([30, 120, 900, 3_600, 21_600, 86_400]);
   });
 
-  it('is frozen, so no consumer can reschedule another tenant\'s deliveries', () => {
+  it("is frozen, so no consumer can reschedule another tenant's deliveries", () => {
     expect(Object.isFrozen(WEBHOOK_RETRY_SCHEDULE_SECONDS)).toBe(true);
   });
 });

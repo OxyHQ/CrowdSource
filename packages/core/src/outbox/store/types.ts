@@ -235,12 +235,7 @@ export interface ModerationEventStore<TTx> {
    * CrowdSource tell us about this case, and when" is the first question asked
    * when a report looks stuck.
    */
-  markIgnored(input: {
-    eventId: string;
-    type: string;
-    caseId?: string;
-    now: Date;
-  }): Promise<void>;
+  markIgnored(input: { eventId: string; type: string; caseId?: string; now: Date }): Promise<void>;
 }
 
 /* ------------------------------------------------------------------------- */

@@ -1,14 +1,7 @@
 import type { SubjectRegistry } from './evidence.js';
 import { reportSubmitEventId, type OutboxService } from './outbox/service.js';
-import type {
-  ModerationReportStore,
-  ModerationTransactionRunner,
-} from './store/types.js';
-import type {
-  CreateReportInput,
-  CreateReportResult,
-  ModerationReportFields,
-} from './types.js';
+import type { ModerationReportStore, ModerationTransactionRunner } from './store/types.js';
+import type { CreateReportInput, CreateReportResult, ModerationReportFields } from './types.js';
 
 /**
  * Storing a report and, when there is somewhere to send it, the promise to

@@ -322,9 +322,7 @@ export async function countDeliveriesForEndpoint(
 }
 
 /** How many deliveries sit in each state across every tenant (§16.4). */
-export async function countDeliveriesAcrossTenants(
-  db: PgHandle,
-): Promise<DeliveryStatusCounts> {
+export async function countDeliveriesAcrossTenants(db: PgHandle): Promise<DeliveryStatusCounts> {
   const rows = await db
     .select({ status: webhookDeliveries.status, count: sql<number>`count(*)` })
     .from(webhookDeliveries)

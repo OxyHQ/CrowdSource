@@ -126,7 +126,10 @@ webhookEndpointsRouter.post(
     const webhookEndpointId = request.params.webhookEndpointId;
     // A malformed id and one belonging to another tenant get the same answer;
     // the tenant filter is what decides, and the shape check only saves a query.
-    if (typeof webhookEndpointId !== 'string' || !isPublicId('webhookEndpoint', webhookEndpointId)) {
+    if (
+      typeof webhookEndpointId !== 'string' ||
+      !isPublicId('webhookEndpoint', webhookEndpointId)
+    ) {
       throw new ApiError('not_found', 'No such webhook endpoint.');
     }
 

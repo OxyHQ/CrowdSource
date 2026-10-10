@@ -1,11 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { config } from '../config';
-import {
-  closePostgresDatabase,
-  getPostgresDatabase,
-  pingPostgres,
-} from '../db/postgres/database';
+import { closePostgresDatabase, getPostgresDatabase, pingPostgres } from '../db/postgres/database';
 import { cases } from '../db/postgres/schema/cases';
 import {
   requireTransaction,

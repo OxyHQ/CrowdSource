@@ -127,7 +127,11 @@ export function severeConsequence(
   decision: Pick<DecisionDocument, 'recommendedActions' | 'findings'>,
 ): boolean {
   if (decision.recommendedActions.some((action) => SEVERE_ACTIONS.has(action.action))) return true;
-  if (decision.findings.some((finding) => finding.severity === 'high' || finding.severity === 'critical')) {
+  if (
+    decision.findings.some(
+      (finding) => finding.severity === 'high' || finding.severity === 'critical',
+    )
+  ) {
     return true;
   }
   return decision.findings.some((finding) =>

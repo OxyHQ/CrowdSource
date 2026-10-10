@@ -81,7 +81,10 @@ describe('the submission a tenant sends', () => {
       // A strict object reports an unrecognised key at the OBJECT's path, naming
       // the key in the message — so the message is what has to be asserted, or
       // the test would pass for any rejection at all.
-      expect(issues.map((issue) => issue.path), `${field} was tolerated`).toEqual(['']);
+      expect(
+        issues.map((issue) => issue.path),
+        `${field} was tolerated`,
+      ).toEqual(['']);
       expect(issues[0].message, `${field} was tolerated`).toContain(field);
     }
   });
@@ -109,9 +112,7 @@ describe('the submission a tenant sends', () => {
       authorContext: { statement: 'a'.repeat(CONTRACT_LIMITS.LONG_TEXT_MAX_LENGTH + 1) },
     };
 
-    expect(rejectionPaths(AppealSubmissionSchema, tooLong)).toEqual([
-      'authorContext.statement',
-    ]);
+    expect(rejectionPaths(AppealSubmissionSchema, tooLong)).toEqual(['authorContext.statement']);
   });
 
   it('refuses an empty statement, which says nothing and still costs a revision', () => {
@@ -205,9 +206,9 @@ describe('the appeal as it travels back', () => {
   });
 
   it('refuses a decided appeal with nothing that decided it', () => {
-    expect(
-      rejectionPaths(AppealSchema, { ...appealExample(), status: 'decided' }),
-    ).toEqual(['decision']);
+    expect(rejectionPaths(AppealSchema, { ...appealExample(), status: 'decided' })).toEqual([
+      'decision',
+    ]);
   });
 
   it('refuses an open appeal that carries a decision', () => {

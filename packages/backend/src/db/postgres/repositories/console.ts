@@ -53,7 +53,9 @@ export async function findActiveMembershipsByUser(db: PgHandle, oxyUserId: strin
   return await db
     .select()
     .from(organizationMembers)
-    .where(and(eq(organizationMembers.oxyUserId, oxyUserId), eq(organizationMembers.status, 'active')));
+    .where(
+      and(eq(organizationMembers.oxyUserId, oxyUserId), eq(organizationMembers.status, 'active')),
+    );
 }
 
 export async function findOrganizationMember(
@@ -142,11 +144,7 @@ export async function countActiveMembersWithRole(
 }
 
 /** An organization's members, oldest first, bounded — the console's list. */
-export async function listOrganizationMembers(
-  db: PgHandle,
-  organizationId: string,
-  limit = 500,
-) {
+export async function listOrganizationMembers(db: PgHandle, organizationId: string, limit = 500) {
   return await db
     .select()
     .from(organizationMembers)

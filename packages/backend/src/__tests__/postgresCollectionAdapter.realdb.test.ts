@@ -2,13 +2,12 @@ import { randomUUID } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  TenantCollection,
-  UnscopedCollection,
-  type TenantScopedUpdate,
-} from '../db/collections';
+import { TenantCollection, UnscopedCollection, type TenantScopedUpdate } from '../db/collections';
 import type { TenantContext } from '../db/tenantScope';
-import { reviewerProfiles, type ReviewerProfileDocument } from '../modules/reviewer/reviewer.collection';
+import {
+  reviewerProfiles,
+  type ReviewerProfileDocument,
+} from '../modules/reviewer/reviewer.collection';
 import { trainingView } from '../modules/reviewer/reviewer.service';
 import { reviewerAxesFor } from './support/reviewerAxes';
 import { createReviewer } from './support/reviewers';
@@ -101,12 +100,10 @@ describe('the PostgreSQL collection adapter query boundary', () => {
     await expect(cases.findOne(context, { 'caseId.part': 'value' })).rejects.toThrow(
       /Unsupported nested PostgreSQL field/,
     );
-    await expect(
-      cases.findOne(context, { 'contentSnapshot.1invalid': 'value' }),
-    ).rejects.toThrow(/Unsupported nested PostgreSQL field/);
-    await expect(
-      cases.find(context, { 'contentSnapshot.text': 'absent' }),
-    ).resolves.toEqual([]);
+    await expect(cases.findOne(context, { 'contentSnapshot.1invalid': 'value' })).rejects.toThrow(
+      /Unsupported nested PostgreSQL field/,
+    );
+    await expect(cases.find(context, { 'contentSnapshot.text': 'absent' })).resolves.toEqual([]);
     await expect(cases.findOne(context, { caseId: { $unknown: 'value' } })).rejects.toThrow(
       /Unsupported PostgreSQL filter operator '\$unknown'/,
     );

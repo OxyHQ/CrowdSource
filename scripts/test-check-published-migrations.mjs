@@ -12,16 +12,13 @@
  * be present on disk and absent from the tarball, or the reverse.
  */
 
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const checker = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "check-published-migrations.mjs",
-);
-const PACKAGES = ["contracts", "core"];
+const checker = resolve(dirname(fileURLToPath(import.meta.url)), 'check-published-migrations.mjs');
+const PACKAGES = ['contracts', 'core'];
 
 /** A package that ships its build output and its sources, minus its tests. */
 function healthyTree() {
@@ -31,21 +28,20 @@ function healthyTree() {
       {
         manifest: {
           name: `@crowdsource.you/${name}`,
-          version: "0.0.0",
-          files: ["dist/**/*", "src/**/*", "!src/**/__tests__/**"],
+          version: '0.0.0',
+          files: ['dist/**/*', 'src/**/*', '!src/**/__tests__/**'],
         },
         files: {
-          "dist/index.js": "module.exports = {};\n",
-          "src/index.ts": "export const ok = true;\n",
+          'dist/index.js': 'module.exports = {};\n',
+          'src/index.ts': 'export const ok = true;\n',
           // Where this package's own migrations legitimately live: excluded by
           // `files`, so present on disk and absent from the tarball.
           // Nested one level deeper than they used to be, because the
           // application half is an entry point of `core` now rather than a
           // package of its own — which is exactly the depth the `files`
           // exclusion has to keep reaching.
-          "src/outbox/__tests__/support/postgres/migrations/0000_first.sql":
-            "create table t ();\n",
-          "src/outbox/__tests__/support/postgres/migrations/meta/_journal.json": "{}\n",
+          'src/outbox/__tests__/support/postgres/migrations/0000_first.sql': 'create table t ();\n',
+          'src/outbox/__tests__/support/postgres/migrations/meta/_journal.json': '{}\n',
         },
       },
     ]),
@@ -53,42 +49,46 @@ function healthyTree() {
 }
 
 const cases = [
-  { name: "a tree whose migrations are all under __tests__ passes", expectFailure: false, mutate: (t) => t },
   {
-    name: "a migrations folder moved into the published source is caught",
+    name: 'a tree whose migrations are all under __tests__ passes',
+    expectFailure: false,
+    mutate: (t) => t,
+  },
+  {
+    name: 'a migrations folder moved into the published source is caught',
     expectFailure: true,
-    mustMention: "@crowdsource.you/core",
+    mustMention: '@crowdsource.you/core',
     // The exact edit the design document predicts: somebody tidies the folder out
     // of `__tests__/`, everything still works locally, and it ships.
     mutate: (tree) => {
-      tree.core.files["src/outbox/postgres/migrations/0000_first.sql"] = "create table t ();\n";
+      tree.core.files['src/outbox/postgres/migrations/0000_first.sql'] = 'create table t ();\n';
       return tree;
     },
   },
   {
-    name: "a stray .sql anywhere in the published tree is caught",
+    name: 'a stray .sql anywhere in the published tree is caught',
     expectFailure: true,
-    mustMention: "@crowdsource.you/core",
+    mustMention: '@crowdsource.you/core',
     mutate: (tree) => {
-      tree.core.files["src/backfill.sql"] = "update t set x = 1;\n";
+      tree.core.files['src/backfill.sql'] = 'update t set x = 1;\n';
       return tree;
     },
   },
   {
-    name: "a Migrations folder with a capital M is caught too",
+    name: 'a Migrations folder with a capital M is caught too',
     expectFailure: true,
-    mustMention: "@crowdsource.you/core",
+    mustMention: '@crowdsource.you/core',
     mutate: (tree) => {
-      tree.core.files["dist/testing/Migrations/index.js"] = "module.exports = {};\n";
+      tree.core.files['dist/testing/Migrations/index.js'] = 'module.exports = {};\n';
       return tree;
     },
   },
   {
-    name: "a package that packs nothing but its manifest trips the vacuity floor",
+    name: 'a package that packs nothing but its manifest trips the vacuity floor',
     expectFailure: true,
-    mustMention: "packed nothing but its manifest",
+    mustMention: 'packed nothing but its manifest',
     mutate: (tree) => {
-      tree.contracts.manifest.files = ["does-not-exist/**/*"];
+      tree.contracts.manifest.files = ['does-not-exist/**/*'];
       return tree;
     },
   },
@@ -96,27 +96,27 @@ const cases = [
 
 let failed = 0;
 for (const testCase of cases) {
-  const root = await mkdtemp(resolve(tmpdir(), "cs-migrations-"));
+  const root = await mkdtemp(resolve(tmpdir(), 'cs-migrations-'));
   try {
     const tree = testCase.mutate(healthyTree());
     for (const [directory, { manifest, files }] of Object.entries(tree)) {
-      const base = resolve(root, "packages", directory);
+      const base = resolve(root, 'packages', directory);
       await mkdir(base, { recursive: true });
-      await writeFile(resolve(base, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+      await writeFile(resolve(base, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`);
       for (const [relative, contents] of Object.entries(files)) {
         await mkdir(dirname(resolve(base, relative)), { recursive: true });
         await writeFile(resolve(base, relative), contents);
       }
     }
 
-    const run = Bun.spawnSync({ cmd: ["bun", checker, root] });
+    const run = Bun.spawnSync({ cmd: ['bun', checker, root] });
     const output = `${new TextDecoder().decode(run.stdout)}${new TextDecoder().decode(run.stderr)}`;
     const didFail = run.exitCode !== 0;
 
     if (didFail !== testCase.expectFailure) {
       failed += 1;
       console.error(
-        `FAIL  ${testCase.name}\n      expected ${testCase.expectFailure ? "a failure" : "a pass"}, ` +
+        `FAIL  ${testCase.name}\n      expected ${testCase.expectFailure ? 'a failure' : 'a pass'}, ` +
           `got exit ${run.exitCode}\n${output}`,
       );
       continue;

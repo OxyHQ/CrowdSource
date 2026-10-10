@@ -1,6 +1,11 @@
 import React, { memo, useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, { interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { Backdrop } from '@oxy.so/bloom/overlay';
 
@@ -44,10 +49,7 @@ export const DrawerOverlay = memo(function DrawerOverlay() {
           click. `pointerEvents` on an ancestor is safe; opacity is not (it
           would neutralise the blur), which is why the fade rides on
           `progress` instead. */}
-      <View
-        pointerEvents={isOpen ? 'auto' : 'none'}
-        style={StyleSheet.absoluteFill}
-      >
+      <View pointerEvents={isOpen ? 'auto' : 'none'} style={StyleSheet.absoluteFill}>
         <Backdrop onPress={close} progress={progress} />
       </View>
       <Animated.View

@@ -101,16 +101,15 @@ export interface NewAuditEvent {
  * key off is worse than one that names nobody on purpose — the first is a gap you
  * cannot tell from the second afterwards.
  */
-export async function appendAuditEvent(db: TenantScopedHandle, event: NewAuditEvent): Promise<void> {
+export async function appendAuditEvent(
+  db: TenantScopedHandle,
+  event: NewAuditEvent,
+): Promise<void> {
   await db.insert(auditEvents).values(event);
 }
 
 /** One case's trail, newest first. */
-export async function listAuditEventsForCase(
-  db: TenantScopedHandle,
-  caseId: string,
-  limit = 100,
-) {
+export async function listAuditEventsForCase(db: TenantScopedHandle, caseId: string, limit = 100) {
   return await db
     .select()
     .from(auditEvents)

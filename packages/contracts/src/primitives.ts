@@ -220,7 +220,10 @@ export const ObjectKeySchema = z
   .string()
   .min(1)
   .max(CONTRACT_LIMITS.METADATA_KEY_MAX_LENGTH)
-  .regex(METADATA_KEY_PATTERN, 'must start with a letter and contain only letters, digits, ".", "_" or "-"')
+  .regex(
+    METADATA_KEY_PATTERN,
+    'must start with a letter and contain only letters, digits, ".", "_" or "-"',
+  )
   .refine((key) => !FORBIDDEN_OBJECT_KEYS.includes(key), {
     message: 'must not be a prototype-bearing key',
   });

@@ -89,8 +89,7 @@ const MUTATIONS = [
       {
         find: `            at: outcomes.some(
               (outcome) =>
-                effectiveAction(outcome) === enforcedAction &&
-                outcome.result === 'applied',
+                effectiveAction(outcome) === enforcedAction && outcome.result === 'applied',
             )
               ? new Date()
               : null,`,
@@ -490,15 +489,21 @@ for (const mutation of MUTATIONS) {
 
   // --- 3. the test fails, and names itself.
   const result = run(
-    ['node', '../../node_modules/vitest/vitest.mjs', 'run', '-c', 'vitest.outbox.config.ts', mutation.test, '--reporter=verbose'],
+    [
+      'node',
+      '../../node_modules/vitest/vitest.mjs',
+      'run',
+      '-c',
+      'vitest.outbox.config.ts',
+      mutation.test,
+      '--reporter=verbose',
+    ],
     /**
      * A guard in one store cannot be proven by a test the OTHER store answered:
      * with both backends running, the twin's leaf stays green and its own leaf
      * fails, so the run is narrowed to the backend under attack.
      */
-    mutation.backend === 'shared'
-      ? {}
-      : { CROWDSOURCE_APP_TEST_BACKEND: mutation.backend },
+    mutation.backend === 'shared' ? {} : { CROWDSOURCE_APP_TEST_BACKEND: mutation.backend },
   );
   const output = `${result.stdout}${result.stderr}`;
 
@@ -526,9 +531,7 @@ restoreAll();
 
 // --- Vacuity floor: a traversal that silently checked nothing must not pass.
 if (checked !== MUTATIONS.length) {
-  failures.push(
-    `only ${checked} of ${MUTATIONS.length} mutations were confirmed caught.`,
-  );
+  failures.push(`only ${checked} of ${MUTATIONS.length} mutations were confirmed caught.`);
 }
 for (const [backend, expected] of Object.entries(EXPECTED_BY_BACKEND)) {
   if (checkedByBackend[backend] !== expected) {

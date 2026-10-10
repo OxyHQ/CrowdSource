@@ -7,18 +7,10 @@ import {
 
 import { createTenantContext } from '../../db/tenantScope';
 import { logger } from '../../utils/logger';
-import {
-  claimDueDelivery,
-  recordAttempt,
-  type AttemptResult,
-} from './delivery.service';
+import { claimDueDelivery, recordAttempt, type AttemptResult } from './delivery.service';
 import { disableWebhookEndpoint, signingSecretAt } from './endpoint.service';
 import { WebhookSecretUnavailableError } from './secretCipher';
-import {
-  classifyResponseStatus,
-  parseRetryAfter,
-  type WebhookOutcome,
-} from './retrySchedule';
+import { classifyResponseStatus, parseRetryAfter, type WebhookOutcome } from './retrySchedule';
 import { signWebhookPayload, webhookTimestamp } from './signature';
 import { webhookEndpoints, type WebhookDeliveryDocument } from './webhook.collections';
 import { safeFetchTransport, type WebhookTransport } from './transport';
@@ -283,7 +275,10 @@ export function startWebhookDeliveryWorker(intervalMs = 1_000): void {
 
   timer = setInterval(() => {
     void runWebhookPass().catch((_error: unknown) => {
-      logger.error({ classification: 'webhook_delivery_pass_failed' }, 'Webhook delivery pass failed');
+      logger.error(
+        { classification: 'webhook_delivery_pass_failed' },
+        'Webhook delivery pass failed',
+      );
     });
   }, intervalMs);
   timer.unref?.();

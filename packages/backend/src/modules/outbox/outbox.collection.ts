@@ -1,4 +1,3 @@
-
 import { defineUnscopedCollection, type TransactionSession } from '../../db/collections';
 import type { OutboxStatus } from '../../db/postgres/schema/infrastructure';
 import { tenantScopedDocument, type TenantContext } from '../../db/tenantScope';

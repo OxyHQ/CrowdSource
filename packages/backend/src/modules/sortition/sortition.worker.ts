@@ -54,7 +54,9 @@ export async function handleCaseReadyForReview(event: OutboxEventDocument): Prom
    */
   const stored = await cases.findOne(context, { caseId });
   if (!stored) {
-    throw new Error(`Outbox event '${event.eventId}' names case '${caseId}', which does not exist.`);
+    throw new Error(
+      `Outbox event '${event.eventId}' names case '${caseId}', which does not exist.`,
+    );
   }
 
   const existing = await assignments.find({ caseId, caseRevision: stored.currentRevision });
@@ -77,7 +79,9 @@ export async function handleAssignmentVacated(event: OutboxEventDocument): Promi
 
   const vacated = await assignments.findOne({ assignmentId });
   if (!vacated) {
-    throw new Error(`Outbox event '${event.eventId}' names assignment '${assignmentId}', which does not exist.`);
+    throw new Error(
+      `Outbox event '${event.eventId}' names assignment '${assignmentId}', which does not exist.`,
+    );
   }
 
   // Already replaced — a replayed event, or a sweep and a recusal racing.

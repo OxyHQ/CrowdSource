@@ -16,9 +16,15 @@ import type { OxyAccountEvent, OxyAccountEventFeedPage } from '@oxy.so/core/serv
 
 const { createApp } = await import('../app');
 const { getPostgresDatabase } = await import('../db/postgres/database');
-const { accountErasures, accountEventCursors } = await import('../db/postgres/schema/accountErasure');
-const { recordAccountErasure, findAccountErasure } = await import('../db/postgres/repositories/accountErasure');
-const { setAccountEventClientForTests } = await import('../modules/accountErasure/oxyAccountEvents');
+const { accountErasures, accountEventCursors } = await import(
+  '../db/postgres/schema/accountErasure'
+);
+const { recordAccountErasure, findAccountErasure } = await import(
+  '../db/postgres/repositories/accountErasure'
+);
+const { setAccountEventClientForTests } = await import(
+  '../modules/accountErasure/oxyAccountEvents'
+);
 const { settleBackgroundErasures, processAccountErasure, acceptAccountEvent } = await import(
   '../modules/accountErasure/accountErasure.service'
 );
@@ -83,7 +89,11 @@ class FakeOxy {
 
 let oxy: FakeOxy;
 
-function feedItem(fake: FakeOxy, value: OxyAccountEvent | 'refuse' | 'outage', id: string = randomUUID()) {
+function feedItem(
+  fake: FakeOxy,
+  value: OxyAccountEvent | 'refuse' | 'outage',
+  id: string = randomUUID(),
+) {
   const base = typeof value === 'object' ? value : event({ eventId: id });
   return {
     eventId: base.eventId,
@@ -105,7 +115,10 @@ async function cursor(): Promise<string | null | undefined> {
 }
 
 function deliver(token: string, contentType = 'application/secevent+jwt') {
-  return request(app).post('/webhooks/oxy/account-events').set('Content-Type', contentType).send(token);
+  return request(app)
+    .post('/webhooks/oxy/account-events')
+    .set('Content-Type', contentType)
+    .send(token);
 }
 
 beforeAll(async () => {
@@ -115,7 +128,9 @@ beforeAll(async () => {
 beforeEach(async () => {
   oxy = new FakeOxy();
   setAccountEventClientForTests(oxy);
-  await db.delete(accountEventCursors).where(eq(accountEventCursors.feed, reconciliation.ACCOUNT_EVENTS_FEED));
+  await db
+    .delete(accountEventCursors)
+    .where(eq(accountEventCursors.feed, reconciliation.ACCOUNT_EVENTS_FEED));
 });
 
 afterEach(async () => {
@@ -141,9 +156,16 @@ describe('POST /webhooks/oxy/account-events', () => {
     expect(again.body.duplicate).toBe(true);
 
     await settleBackgroundErasures();
-    const rows = await db.select().from(accountErasures).where(eq(accountErasures.eventId, deleted.eventId));
+    const rows = await db
+      .select()
+      .from(accountErasures)
+      .where(eq(accountErasures.eventId, deleted.eventId));
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ source: 'webhook', status: 'completed', oxyUserId: deleted.userId });
+    expect(rows[0]).toMatchObject({
+      source: 'webhook',
+      status: 'completed',
+      oxyUserId: deleted.userId,
+    });
   });
 
   it('refuses a token that does not verify with 401, and erases nothing', async () => {
@@ -175,7 +197,9 @@ describe('POST /webhooks/oxy/account-events', () => {
   });
 
   it('is not reachable under /v1 and needs no credential', async () => {
-    expect((await request(app).post('/v1/webhooks/oxy/account-events').send('a.b.c')).status).not.toBe(202);
+    expect(
+      (await request(app).post('/v1/webhooks/oxy/account-events').send('a.b.c')).status,
+    ).not.toBe(202);
   });
 });
 
@@ -188,14 +212,22 @@ describe('the pull feed', () => {
 
     const result = await reconciliation.pullAccountEvents();
 
-    expect(result).toMatchObject({ leased: true, recorded: 1, refused: 1, cursorAdvanced: true, pages: 1 });
+    expect(result).toMatchObject({
+      leased: true,
+      recorded: 1,
+      refused: 1,
+      cursorAdvanced: true,
+      pages: 1,
+    });
     expect(await cursor()).toBe('cursor-1');
     expect((await findAccountErasure(db, recorded.eventId))?.source).toBe('reconciliation');
   });
 
   it('reads forward from the stored cursor, page after page', async () => {
     const page = (next: string) => ({
-      events: Array.from({ length: reconciliation.RECONCILIATION_PAGE_SIZE }, () => feedItem(oxy, event())),
+      events: Array.from({ length: reconciliation.RECONCILIATION_PAGE_SIZE }, () =>
+        feedItem(oxy, event()),
+      ),
       nextCursor: next,
     });
     oxy.pages = [page('c-1'), page('c-2'), { events: [], nextCursor: 'c-2' }];
@@ -208,7 +240,9 @@ describe('the pull feed', () => {
   });
 
   it('does not move the cursor past a page it could not verify, and throws for the tick to log', async () => {
-    oxy.pages = [{ events: [feedItem(oxy, event()), feedItem(oxy, 'outage')], nextCursor: 'never' }];
+    oxy.pages = [
+      { events: [feedItem(oxy, event()), feedItem(oxy, 'outage')], nextCursor: 'never' },
+    ];
     await expect(reconciliation.pullAccountEvents()).rejects.toThrow('JWKS unreachable');
     expect(await cursor()).toBeNull();
 
@@ -226,7 +260,10 @@ describe('the pull feed', () => {
     await reconciliation.pullAccountEvents();
     await settleBackgroundErasures();
 
-    const rows = await db.select().from(accountErasures).where(eq(accountErasures.eventId, deleted.eventId));
+    const rows = await db
+      .select()
+      .from(accountErasures)
+      .where(eq(accountErasures.eventId, deleted.eventId));
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ source: 'webhook', status: 'completed', attempts: 1 });
   });
@@ -306,11 +343,19 @@ describe('retrying unfinished erasures', () => {
     vi.resetModules();
 
     const failed = await findAccountErasure(db, failing.eventId);
-    expect(failed).toMatchObject({ status: 'failed', lastError: 'TypeError', leaseUntil: null, attempts: 1 });
+    expect(failed).toMatchObject({
+      status: 'failed',
+      lastError: 'TypeError',
+      leaseUntil: null,
+      attempts: 1,
+    });
 
     expect(await reconciliation.retryUnfinishedErasures()).toBeGreaterThanOrEqual(2);
     expect((await findAccountErasure(db, pending.eventId))?.status).toBe('completed');
-    expect(await findAccountErasure(db, failing.eventId)).toMatchObject({ status: 'completed', attempts: 2 });
+    expect(await findAccountErasure(db, failing.eventId)).toMatchObject({
+      status: 'completed',
+      attempts: 2,
+    });
 
     // A completed erasure is never claimed again.
     expect(await processAccountErasure(pending.eventId)).toBe('skipped');
@@ -331,7 +376,9 @@ describe('retrying unfinished erasures', () => {
       .where(eq(accountErasures.eventId, running.eventId));
 
     expect(await processAccountErasure(running.eventId)).toBe('skipped');
-    expect(await processAccountErasure(running.eventId, new Date(Date.now() + 120_000))).toBe('completed');
+    expect(await processAccountErasure(running.eventId, new Date(Date.now() + 120_000))).toBe(
+      'completed',
+    );
   });
 
   it('records an event whose time Oxy did not state as unknown, rather than refusing it', async () => {

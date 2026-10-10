@@ -166,7 +166,9 @@ const CORPUS: readonly Case[] = [
     accepted: false,
     input: {
       ...delivery(),
-      signatureHeader: prefixCollidingSignature(sign(ACTIVE_SECRET, VALID_TIMESTAMP, ORIGINAL_BODY)),
+      signatureHeader: prefixCollidingSignature(
+        sign(ACTIVE_SECRET, VALID_TIMESTAMP, ORIGINAL_BODY),
+      ),
       rawBody: ORIGINAL_BODY,
     },
   },
@@ -322,8 +324,7 @@ const MUTANTS: readonly Mutant[] = [
       if (!wellFormedSignature(input) || input.timestampHeader === undefined) return false;
       const presented = (input.signatureHeader ?? '').slice('v1='.length);
       return input.secrets.some(
-        (secret) =>
-          createHmac('sha256', secret).update(input.rawBody).digest('hex') === presented,
+        (secret) => createHmac('sha256', secret).update(input.rawBody).digest('hex') === presented,
       );
     },
   },

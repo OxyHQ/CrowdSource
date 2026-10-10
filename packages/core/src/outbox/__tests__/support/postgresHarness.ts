@@ -82,9 +82,7 @@ function postgresWidgetSubjectProvider(db: ModerationPgHandle): ModerationSubjec
 }
 
 /** The same enforcement table as the Mongo harness, with drizzle effects. */
-function postgresTestEnforcement(
-  db: ModerationPgHandle,
-): ModerationEnforcementConfig<TestAction> {
+function postgresTestEnforcement(db: ModerationPgHandle): ModerationEnforcementConfig<TestAction> {
   const readWidget = async (
     id: string,
   ): Promise<{ status: string; flagged: boolean } | undefined> => {
@@ -152,10 +150,7 @@ function postgresTestEnforcement(
           if (widget.status === 'restricted') {
             return { changed: false, reason: 'The widget was already restricted' };
           }
-          await db
-            .update(widgets)
-            .set({ status: 'restricted' })
-            .where(eq(widgets.id, subject.id));
+          await db.update(widgets).set({ status: 'restricted' }).where(eq(widgets.id, subject.id));
           return { changed: true, previousState: { status: widget.status } };
         }
         case 'restore': {
@@ -328,14 +323,11 @@ async function createPostgresHarness(options: HarnessOptions = {}): Promise<Harn
       enabled: options.enabled ?? true,
       ...(options.serviceKey === undefined ? {} : { serviceKey: options.serviceKey }),
       ...(options.baseUrl === undefined ? {} : { baseUrl: options.baseUrl }),
-      ...(options.webhookSecret === undefined
-        ? {}
-        : { webhookSecret: options.webhookSecret }),
+      ...(options.webhookSecret === undefined ? {} : { webhookSecret: options.webhookSecret }),
       enforcementMode: options.enforcementMode ?? 'automatic',
       outboxPollIntervalMs: 50,
     },
-    subjects:
-      options.subjects ?? [postgresWidgetSubjectProvider(db), doodadSubjectProvider()],
+    subjects: options.subjects ?? [postgresWidgetSubjectProvider(db), doodadSubjectProvider()],
     taxonomy: testTaxonomy(),
     enforcement: options.enforcement ?? postgresTestEnforcement(db),
     logger: recordingLogger(logs),

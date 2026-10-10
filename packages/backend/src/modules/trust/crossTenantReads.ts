@@ -124,9 +124,7 @@ const QUEUE_LIMIT = 200;
  * inventing a second runtime secret. Each callback can see exactly one
  * application; only this module may combine its fixed projection/scalars.
  */
-async function forEveryTenant<T>(
-  read: Parameters<typeof withTenant<T>>[2],
-): Promise<T[]> {
+async function forEveryTenant<T>(read: Parameters<typeof withTenant<T>>[2]): Promise<T[]> {
   const db = getPostgresDatabase();
   const tenants = await db
     .select({
@@ -216,7 +214,10 @@ export async function countDecisionsByOutcomeAcrossTenants(): Promise<
         .groupBy(decisionRows.outcome),
     )
   ).flat();
-  const result = Object.fromEntries(DECISION_OUTCOMES.map((outcome) => [outcome, 0])) as Record<DecisionOutcome, number>;
+  const result = Object.fromEntries(DECISION_OUTCOMES.map((outcome) => [outcome, 0])) as Record<
+    DecisionOutcome,
+    number
+  >;
   for (const row of grouped) {
     if (DECISION_OUTCOMES.some((outcome) => outcome === row.outcome)) {
       result[row.outcome as DecisionOutcome] += row.count;
@@ -237,7 +238,10 @@ export async function countCasesByStatusAcrossTenants(): Promise<
         .groupBy(caseRows.status),
     )
   ).flat();
-  const result = Object.fromEntries(CASE_STATUSES.map((status) => [status, 0])) as Record<CaseStatus, number>;
+  const result = Object.fromEntries(CASE_STATUSES.map((status) => [status, 0])) as Record<
+    CaseStatus,
+    number
+  >;
   for (const row of grouped) {
     if (CASE_STATUSES.some((status) => status === row.status)) {
       result[row.status as CaseStatus] += row.count;

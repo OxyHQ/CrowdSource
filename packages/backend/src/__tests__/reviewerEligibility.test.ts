@@ -22,10 +22,7 @@ import {
   type EligibilityRejection,
   type ExposureFacts,
 } from '../modules/reviewer/eligibility';
-import {
-  personhoodConfidence,
-  PERSONHOOD_WEIGHTS,
-} from '../modules/reviewer/personhood';
+import { personhoodConfidence, PERSONHOOD_WEIGHTS } from '../modules/reviewer/personhood';
 import type { ReviewerProfileDocument } from '../modules/reviewer/reviewer.collection';
 import { REVIEWER_STATES } from '@crowdsource.you/contracts';
 
@@ -349,9 +346,7 @@ describe('the eligibility predicate (§8.2)', () => {
   });
 
   it('respects §13.7’s exposure limits', () => {
-    expect(reject({}, {}, { openAssignments: MAX_OPEN_ASSIGNMENTS })).toBe(
-      'open_assignment_limit',
-    );
+    expect(reject({}, {}, { openAssignments: MAX_OPEN_ASSIGNMENTS })).toBe('open_assignment_limit');
     expect(reject({ dailyReviewLimit: 5 }, {}, { reviewsToday: 5 })).toBe('daily_limit_reached');
   });
 
@@ -416,9 +411,9 @@ describe('availability (§8.4, §13.7)', () => {
   it('is the smaller of the daily and open-case headrooms', () => {
     expect(availabilityScore(profile({ dailyReviewLimit: 10 }), IDLE)).toBe(1);
 
-    expect(
-      availabilityScore(profile({ dailyReviewLimit: 10 }), { ...IDLE, reviewsToday: 5 }),
-    ).toBe(0.5);
+    expect(availabilityScore(profile({ dailyReviewLimit: 10 }), { ...IDLE, reviewsToday: 5 })).toBe(
+      0.5,
+    );
 
     // Two of three open cases caps it below the daily headroom.
     expect(
@@ -427,8 +422,8 @@ describe('availability (§8.4, §13.7)', () => {
   });
 
   it('never goes negative for somebody over their own limit', () => {
-    expect(
-      availabilityScore(profile({ dailyReviewLimit: 3 }), { ...IDLE, reviewsToday: 9 }),
-    ).toBe(0);
+    expect(availabilityScore(profile({ dailyReviewLimit: 3 }), { ...IDLE, reviewsToday: 9 })).toBe(
+      0,
+    );
   });
 });

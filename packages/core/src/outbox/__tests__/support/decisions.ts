@@ -33,15 +33,15 @@ export function decision(
     outcome,
     contextSufficiency: 'sufficient',
     confidence: 1,
-    findings: (
-      overrides.findings ?? [{ code: 'integrity.spam', severity: 'medium' }]
-    ).map((finding) => ({
-      code: finding.code,
-      resourceIds: ['res_subject'],
-      severity: finding.severity,
-      scope: 'application_local',
-      attribution: 'author',
-    })),
+    findings: (overrides.findings ?? [{ code: 'integrity.spam', severity: 'medium' }]).map(
+      (finding) => ({
+        code: finding.code,
+        resourceIds: ['res_subject'],
+        severity: finding.severity,
+        scope: 'application_local',
+        attribution: 'author',
+      }),
+    ),
     recommendedActions: overrides.recommendedActions ?? [],
     jury: {
       size: 3,

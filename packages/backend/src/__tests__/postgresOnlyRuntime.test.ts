@@ -35,7 +35,9 @@ function productionSources(directory: string): SourceFile[] {
       return entry.name === '__tests__' ? [] : productionSources(absolute);
     }
     if (!entry.name.endsWith('.ts')) return [];
-    return [{ path: path.relative(repositoryRoot, absolute), source: readFileSync(absolute, 'utf8') }];
+    return [
+      { path: path.relative(repositoryRoot, absolute), source: readFileSync(absolute, 'utf8') },
+    ];
   });
 }
 
@@ -46,7 +48,9 @@ function environmentTemplates(directory: string): SourceFile[] {
       return ignoredEnvironmentTemplateTrees.has(entry.name) ? [] : environmentTemplates(absolute);
     }
     if (!environmentTemplateName.test(entry.name)) return [];
-    return [{ path: path.relative(repositoryRoot, absolute), source: readFileSync(absolute, 'utf8') }];
+    return [
+      { path: path.relative(repositoryRoot, absolute), source: readFileSync(absolute, 'utf8') },
+    ];
   });
 }
 
@@ -81,7 +85,10 @@ const forbidden = [
   { name: 'Mongo connection string', pattern: /mongodb(?:\+srv)?:\/\// },
 ] as const;
 
-function forbiddenRuntimeViolations(files: readonly SourceFile[], stripCodeComments: boolean): string[] {
+function forbiddenRuntimeViolations(
+  files: readonly SourceFile[],
+  stripCodeComments: boolean,
+): string[] {
   return files.flatMap((file) => {
     const inspected = stripCodeComments ? executableSource(file.source) : file.source;
     return forbidden
@@ -92,7 +99,10 @@ function forbiddenRuntimeViolations(files: readonly SourceFile[], stripCodeComme
 
 describe('the backend runtime is PostgreSQL-only', () => {
   const sources = [
-    { path: 'packages/backend/server.ts', source: readFileSync(path.join(backendRoot, 'server.ts'), 'utf8') },
+    {
+      path: 'packages/backend/server.ts',
+      source: readFileSync(path.join(backendRoot, 'server.ts'), 'utf8'),
+    },
     {
       path: 'packages/backend/drizzle.config.ts',
       source: readFileSync(path.join(backendRoot, 'drizzle.config.ts'), 'utf8'),
@@ -127,9 +137,10 @@ describe('the backend runtime is PostgreSQL-only', () => {
   });
 
   it('declares no Mongo production or test dependency', () => {
-    const manifest = JSON.parse(
-      readFileSync(path.join(backendRoot, 'package.json'), 'utf8'),
-    ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+    const manifest = JSON.parse(readFileSync(path.join(backendRoot, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
     const dependencies = {
       ...manifest.dependencies,
       ...manifest.devDependencies,
@@ -161,7 +172,9 @@ describe('the backend runtime is PostgreSQL-only', () => {
       existsSync(path.join(repositoryRoot, 'scripts/crowdsource-backend-recover-archive.mjs')),
     ).toBe(true);
     expect(
-      existsSync(path.join(repositoryRoot, 'scripts/crowdsource-backend-recover-archive.mongosh.js')),
+      existsSync(
+        path.join(repositoryRoot, 'scripts/crowdsource-backend-recover-archive.mongosh.js'),
+      ),
     ).toBe(true);
   });
 
@@ -185,7 +198,10 @@ describe('the backend runtime is PostgreSQL-only', () => {
   it('rejects a Mongo connection reintroduced into the real backend environment template', () => {
     const mutatedTemplates = templates.map((file) =>
       file.path === 'packages/backend/.env.example'
-        ? { ...file, source: `${file.source}\nMONGODB_URI=mongodb://database.invalid/crowdsource\n` }
+        ? {
+            ...file,
+            source: `${file.source}\nMONGODB_URI=mongodb://database.invalid/crowdsource\n`,
+          }
         : file,
     );
 

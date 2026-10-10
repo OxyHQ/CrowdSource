@@ -376,11 +376,7 @@ export function useWebhookEndpoints(
  */
 export function useRotateSecret(
   applicationId: string,
-): UseMutationResult<
-  RotatedSecret,
-  Error,
-  { webhookEndpointId: string; overlapSeconds: number }
-> {
+): UseMutationResult<RotatedSecret, Error, { webhookEndpointId: string; overlapSeconds: number }> {
   const queryClient = useQueryClient();
   const { key } = useViewerKey();
   return useMutation({

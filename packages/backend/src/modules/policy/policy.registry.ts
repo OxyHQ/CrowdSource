@@ -109,9 +109,7 @@ export async function resolvePolicy(
       status: stored.status,
       title: stored.title,
       ...(stored.locale === undefined ? {} : { locale: stored.locale }),
-      ...(stored.publishedAt === null
-        ? {}
-        : { publishedAt: stored.publishedAt.toISOString() }),
+      ...(stored.publishedAt === null ? {} : { publishedAt: stored.publishedAt.toISOString() }),
       rules: stored.rules,
     }),
   };

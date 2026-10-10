@@ -37,8 +37,14 @@ describe('bootstrapping a first-party application', () => {
     const applicationId = await bootstrapFirstParty(input);
 
     const application = await applications.findOne({ applicationId });
-    expect(application).toMatchObject({ name: 'Mention', status: 'active', oxyApplicationId: input.oxyApplicationId });
-    const organization = await organizations.findOne({ organizationId: application?.organizationId });
+    expect(application).toMatchObject({
+      name: 'Mention',
+      status: 'active',
+      oxyApplicationId: input.oxyApplicationId,
+    });
+    const organization = await organizations.findOne({
+      organizationId: application?.organizationId,
+    });
     expect(organization).toMatchObject({ slug: input.organizationSlug });
   });
 
@@ -64,8 +70,14 @@ describe('bootstrapping a first-party application', () => {
 
   it('puts two services in ONE organization rather than one each', async () => {
     const slug = `oxy-test-${randomUUID().slice(0, 8)}`;
-    const first = await bootstrapFirstParty({ ...args('Homiio', `oxy-app-${randomUUID()}`), organizationSlug: slug });
-    const second = await bootstrapFirstParty({ ...args('Noted', `oxy-app-${randomUUID()}`), organizationSlug: slug });
+    const first = await bootstrapFirstParty({
+      ...args('Homiio', `oxy-app-${randomUUID()}`),
+      organizationSlug: slug,
+    });
+    const second = await bootstrapFirstParty({
+      ...args('Noted', `oxy-app-${randomUUID()}`),
+      organizationSlug: slug,
+    });
 
     const one = await applications.findOne({ applicationId: first });
     const two = await applications.findOne({ applicationId: second });
@@ -121,14 +133,25 @@ describe('reading the arguments', () => {
       'Oxy Staging',
     ]);
 
-    expect(args).toMatchObject({ organizationSlug: 'oxy-staging', organizationName: 'Oxy Staging' });
+    expect(args).toMatchObject({
+      organizationSlug: 'oxy-staging',
+      organizationName: 'Oxy Staging',
+    });
   });
 
   it.each([
     ['nothing at all', [], /--name is required/],
     ['no application', ['--name', 'Mention'], /--oxy-application-id is required/],
-    ['a name that is only spaces', ['--name', '   ', '--oxy-application-id', 'app_1'], /--name is required/],
-    ['a flag with no value', ['--name', 'Mention', '--oxy-application-id'], /Unrecognised argument/],
+    [
+      'a name that is only spaces',
+      ['--name', '   ', '--oxy-application-id', 'app_1'],
+      /--name is required/,
+    ],
+    [
+      'a flag with no value',
+      ['--name', 'Mention', '--oxy-application-id'],
+      /Unrecognised argument/,
+    ],
     ['a bare word', ['name', 'Mention'], /Unrecognised argument/],
   ])('refuses %s', (_label, argv, message) => {
     expect(() => parseArguments(argv)).toThrow(message);
@@ -138,7 +161,14 @@ describe('reading the arguments', () => {
     // `--organization-slug ''` is what an unset shell variable expands to in a
     // `run-task` override, and it must not create an organization with an empty
     // slug.
-    const args = parseArguments(['--name', 'Mention', '--oxy-application-id', 'app_1', '--organization-slug', '  ']);
+    const args = parseArguments([
+      '--name',
+      'Mention',
+      '--oxy-application-id',
+      'app_1',
+      '--organization-slug',
+      '  ',
+    ]);
 
     expect(args.organizationSlug).toBe('oxy');
   });

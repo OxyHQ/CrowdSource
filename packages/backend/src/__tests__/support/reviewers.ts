@@ -10,7 +10,6 @@ import {
   type ReviewerProfileDocument,
 } from '../../modules/reviewer/reviewer.collection';
 
-
 /**
  * Support for the reviewer and sortition integration tests.
  *
@@ -103,9 +102,7 @@ export interface CreateReviewerOptions {
  * and `personhoodConfidence` is called here rather than hard-coded so a fixture
  * cannot claim an eligibility the real rules would not grant.
  */
-export async function createReviewer(
-  options: CreateReviewerOptions,
-): Promise<ReviewerFixture> {
+export async function createReviewer(options: CreateReviewerOptions): Promise<ReviewerFixture> {
   const now = new Date();
   const reviewerId = `rvw_${randomUUID().replace(/-/g, '')}`;
   const oxyUserId = `oxy_${randomUUID().replace(/-/g, '')}`;

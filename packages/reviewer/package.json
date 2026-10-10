@@ -20,7 +20,7 @@
     "test": "node ../../node_modules/jest/bin/jest.js --watchAll=false --runInBand",
     "test:coverage": "node ../../node_modules/jest/bin/jest.js --watchAll=false --runInBand --coverage",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint",
+    "lint": "expo lint .",
     "clean": "rm -rf dist .expo *.tsbuildinfo",
     "analyze-bundle": "bun ./scripts/analyze-bundle.js"
   },
@@ -48,8 +48,7 @@
   "expo": {
     "install": {
       "exclude": [
-        "typescript",
-        "eslint-config-expo"
+        "typescript"
       ]
     }
   },
@@ -111,8 +110,9 @@
     "@types/jest": "~30.0.0",
     "@types/react": "~19.2.17",
     "@types/react-dom": "~19.2.3",
+    "@typescript-eslint/parser": "^8.62.1",
     "eslint": "^9.39.5",
-    "eslint-config-expo": "~55.0.1",
+    "eslint-plugin-expo": "^1.0.3",
     "jest": "~30.5.2",
     "jest-expo": "^56.0.5",
     "typescript": "~5.9.3"

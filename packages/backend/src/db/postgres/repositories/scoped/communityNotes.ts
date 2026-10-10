@@ -24,16 +24,26 @@ export type NewCommunityNote = typeof communityNotes.$inferInsert;
 export type NewCommunityNoteRating = typeof communityNoteRatings.$inferInsert;
 export type NewCommunityNoteRevision = typeof communityNoteStatusRevisions.$inferInsert;
 
-export async function insertCommunityNote(db: TenantScopedHandle, note: NewCommunityNote): Promise<void> {
+export async function insertCommunityNote(
+  db: TenantScopedHandle,
+  note: NewCommunityNote,
+): Promise<void> {
   await db.insert(communityNotes).values(note);
 }
 
 export async function findCommunityNoteById(db: TenantScopedHandle, noteId: string) {
-  const [row] = await db.select().from(communityNotes).where(eq(communityNotes.noteId, noteId)).limit(1);
+  const [row] = await db
+    .select()
+    .from(communityNotes)
+    .where(eq(communityNotes.noteId, noteId))
+    .limit(1);
   return row ?? null;
 }
 
-export async function findCommunityNoteByIdempotencyKey(db: TenantScopedHandle, idempotencyKey: string) {
+export async function findCommunityNoteByIdempotencyKey(
+  db: TenantScopedHandle,
+  idempotencyKey: string,
+) {
   const [row] = await db
     .select()
     .from(communityNotes)
@@ -51,13 +61,22 @@ export async function countCommunityNotesByAuthorSince(
   const rows = await db
     .select({ total: sql<number>`count(*)::int` })
     .from(communityNotes)
-    .where(and(eq(communityNotes.authorPrincipalId, authorPrincipalId), gte(communityNotes.createdAt, since)));
+    .where(
+      and(
+        eq(communityNotes.authorPrincipalId, authorPrincipalId),
+        gte(communityNotes.createdAt, since),
+      ),
+    );
   // An aggregate always answers one row; summing keeps that fact out of a branch.
   return rows.reduce((sum, row) => sum + row.total, 0);
 }
 
 /** A writer's own notes, newest first. */
-export async function findCommunityNotesByAuthor(db: TenantScopedHandle, authorPrincipalId: string, limit: number) {
+export async function findCommunityNotesByAuthor(
+  db: TenantScopedHandle,
+  authorPrincipalId: string,
+  limit: number,
+) {
   return await db
     .select()
     .from(communityNotes)
@@ -73,13 +92,25 @@ export async function findCommunityNotesByAuthor(db: TenantScopedHandle, authorP
  * shown FIRST keeps its place, so a reader does not watch the note under a post
  * swap every time ratings move.
  */
-export async function findShownCommunityNotes(db: TenantScopedHandle, externalSubjectIds: readonly string[]) {
+export async function findShownCommunityNotes(
+  db: TenantScopedHandle,
+  externalSubjectIds: readonly string[],
+) {
   if (externalSubjectIds.length === 0) return [];
   const rows = await db
     .select()
     .from(communityNotes)
-    .where(and(inArray(communityNotes.externalSubjectId, [...externalSubjectIds]), eq(communityNotes.status, 'shown')))
-    .orderBy(asc(communityNotes.externalSubjectId), asc(communityNotes.statusChangedAt), asc(communityNotes.noteId));
+    .where(
+      and(
+        inArray(communityNotes.externalSubjectId, [...externalSubjectIds]),
+        eq(communityNotes.status, 'shown'),
+      ),
+    )
+    .orderBy(
+      asc(communityNotes.externalSubjectId),
+      asc(communityNotes.statusChangedAt),
+      asc(communityNotes.noteId),
+    );
 
   const seen = new Set<string>();
   return rows.filter((row) => {
@@ -173,7 +204,10 @@ export async function issueCommunityNoteAssignment(
         expiresAt: assignment.expiresAt,
         updatedAt: assignment.issuedAt,
       },
-      setWhere: and(isNull(communityNoteAssignments.ratedAt), lt(communityNoteAssignments.expiresAt, assignment.issuedAt)),
+      setWhere: and(
+        isNull(communityNoteAssignments.ratedAt),
+        lt(communityNoteAssignments.expiresAt, assignment.issuedAt),
+      ),
     })
     .returning();
   return row ?? null;
@@ -198,12 +232,19 @@ export async function findAssignmentsByIssuance(
     .orderBy(asc(communityNoteAssignments.issuedAt), asc(communityNoteAssignments.assignmentId));
 }
 
-export async function findAssignmentForRater(db: TenantScopedHandle, noteId: string, raterPrincipalId: string) {
+export async function findAssignmentForRater(
+  db: TenantScopedHandle,
+  noteId: string,
+  raterPrincipalId: string,
+) {
   const [row] = await db
     .select()
     .from(communityNoteAssignments)
     .where(
-      and(eq(communityNoteAssignments.noteId, noteId), eq(communityNoteAssignments.raterPrincipalId, raterPrincipalId)),
+      and(
+        eq(communityNoteAssignments.noteId, noteId),
+        eq(communityNoteAssignments.raterPrincipalId, raterPrincipalId),
+      ),
     )
     .limit(1);
   return row ?? null;
@@ -233,11 +274,17 @@ export async function consumeCommunityNoteAssignment(
   return rows.length;
 }
 
-export async function insertCommunityNoteRating(db: TenantScopedHandle, rating: NewCommunityNoteRating): Promise<void> {
+export async function insertCommunityNoteRating(
+  db: TenantScopedHandle,
+  rating: NewCommunityNoteRating,
+): Promise<void> {
   await db.insert(communityNoteRatings).values(rating);
 }
 
-export async function findCommunityNoteRatingByIdempotencyKey(db: TenantScopedHandle, idempotencyKey: string) {
+export async function findCommunityNoteRatingByIdempotencyKey(
+  db: TenantScopedHandle,
+  idempotencyKey: string,
+) {
   const [row] = await db
     .select()
     .from(communityNoteRatings)
@@ -247,7 +294,11 @@ export async function findCommunityNoteRatingByIdempotencyKey(db: TenantScopedHa
 }
 
 /** A rater's own ratings with the notes they rated, newest first. */
-export async function findCommunityNoteRatingsByRater(db: TenantScopedHandle, raterPrincipalId: string, limit: number) {
+export async function findCommunityNoteRatingsByRater(
+  db: TenantScopedHandle,
+  raterPrincipalId: string,
+  limit: number,
+) {
   return await db
     .select({ rating: communityNoteRatings, note: communityNotes })
     .from(communityNoteRatings)
@@ -271,7 +322,10 @@ export async function findRatingsForScoring(db: TenantScopedHandle) {
 }
 
 /** Current status of the given notes, for the scorer to diff against. */
-export async function findCommunityNoteStatuses(db: TenantScopedHandle, noteIds: readonly string[]) {
+export async function findCommunityNoteStatuses(
+  db: TenantScopedHandle,
+  noteIds: readonly string[],
+) {
   if (noteIds.length === 0) return [];
   return await db
     .select({

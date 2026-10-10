@@ -1,4 +1,4 @@
-const pkg = require('./package.json')
+const pkg = require('./package.json');
 
 /**
  * Expo config for the console — WEB ONLY.
@@ -12,12 +12,12 @@ const pkg = require('./package.json')
  * already true.
  */
 module.exports = function (_config) {
-  const APP_ENV = process.env.EXPO_PUBLIC_ENV ?? 'development'
-  const VALID_APP_ENVS = ['development', 'production']
+  const APP_ENV = process.env.EXPO_PUBLIC_ENV ?? 'development';
+  const VALID_APP_ENVS = ['development', 'production'];
   if (!VALID_APP_ENVS.includes(APP_ENV)) {
     throw new Error(
       `Invalid EXPO_PUBLIC_ENV "${APP_ENV}". Expected one of: ${VALID_APP_ENVS.join(', ')}`,
-    )
+    );
   }
 
   return {
@@ -71,5 +71,5 @@ module.exports = function (_config) {
       },
       owner: 'oxyhq',
     },
-  }
-}
+  };
+};

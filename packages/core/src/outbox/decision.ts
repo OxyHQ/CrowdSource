@@ -108,9 +108,7 @@ export function createDecisionWorker<
   return async (event) => {
     const caseId = event.payload.caseId;
     if (caseId === undefined) {
-      throw new ModerationDecisionRejectedError(
-        'A decision.apply event carried no caseId.',
-      );
+      throw new ModerationDecisionRejectedError('A decision.apply event carried no caseId.');
     }
 
     /**
@@ -142,9 +140,7 @@ export function createDecisionWorker<
        * delivery is being retried. Backing off is correct; dead-lettering would
        * throw the decision away.
        */
-      throw new ModerationDecisionDeferredError(
-        `No local report is linked to case ${caseId} yet.`,
-      );
+      throw new ModerationDecisionDeferredError(`No local report is linked to case ${caseId} yet.`);
     }
 
     /**
@@ -184,8 +180,7 @@ export function createDecisionWorker<
             action: enforcedAction,
             at: outcomes.some(
               (outcome) =>
-                effectiveAction(outcome) === enforcedAction &&
-                outcome.result === 'applied',
+                effectiveAction(outcome) === enforcedAction && outcome.result === 'applied',
             )
               ? new Date()
               : null,

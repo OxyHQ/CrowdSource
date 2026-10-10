@@ -234,7 +234,10 @@ export function reviewFormReducer(
         ),
       };
     case 'toggleResource':
-      return { ...state, affectedResourceIds: toggle(state.affectedResourceIds, action.resourceId) };
+      return {
+        ...state,
+        affectedResourceIds: toggle(state.affectedResourceIds, action.resourceId),
+      };
     case 'toggleMissingContext':
       return {
         ...state,
@@ -285,7 +288,9 @@ export function reviewFormReducer(
       return {
         ...state,
         findings: state.findings.map((finding) =>
-          finding.ruleId === action.ruleId ? { ...finding, confidence: action.confidence } : finding,
+          finding.ruleId === action.ruleId
+            ? { ...finding, confidence: action.confidence }
+            : finding,
         ),
       };
     case 'setFindingException':

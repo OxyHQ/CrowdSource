@@ -135,10 +135,7 @@ async function openCase(subject: string, language: string): Promise<string> {
   return created.body.caseId;
 }
 
-async function vote(
-  reviewerId: string,
-  outcome: 'violation' | 'no_violation',
-): Promise<void> {
+async function vote(reviewerId: string, outcome: 'violation' | 'no_violation'): Promise<void> {
   const profile = await reviewerProfiles.findOne({ reviewerId });
   if (!profile) throw new Error(`no profile for ${reviewerId}`);
 
@@ -396,10 +393,7 @@ describe('§10.2: POST /v1/cases/{id}/appeals', () => {
   });
 
   it('§9.4: the appeal panel is five, on the appeal ladder, with its own seed', async () => {
-    const draws = await sortitionDraws.find(
-      { caseId: appealedCaseId },
-      { sort: { drawnAt: 1 } },
-    );
+    const draws = await sortitionDraws.find({ caseId: appealedCaseId }, { sort: { drawnAt: 1 } });
     const second = draws.filter((draw) => draw.caseRevision === 2);
 
     expect(second).toHaveLength(1);
@@ -929,7 +923,10 @@ describe('phase 4’s bug, under the new ladder: the replay guard is scoped by R
     // The pre-state of the bug, asserted rather than assumed: if revision 2 already
     // had seats here, the draw below would prove nothing.
     expect(await seatsOf(replayCaseId, 1), 'revision 1 lost its panel').toHaveLength(3);
-    expect(await seatsOf(replayCaseId, 2), 'revision 2 was drawn before the handler ran').toHaveLength(0);
+    expect(
+      await seatsOf(replayCaseId, 2),
+      'revision 2 was drawn before the handler ran',
+    ).toHaveLength(0);
 
     await handleCaseReadyForReview(readyEvent(replayCaseId));
 
@@ -1016,10 +1013,7 @@ describe('two appeals of one decision, filed at the same instant', () => {
     const opened: string[] = [];
     for (const name of ['key-race-a', 'key-race-b']) {
       const caseId = await openCase(name, KEY_RACE_LANGUAGE);
-      await drainUntil(
-        async () => (await seatsOf(caseId, 1)).length === 3,
-        `a panel for ${name}`,
-      );
+      await drainUntil(async () => (await seatsOf(caseId, 1)).length === 3, `a panel for ${name}`);
       for (const reviewerId of await seatsOf(caseId, 1)) await vote(reviewerId, 'violation');
       await drainUntil(
         async () => (await decisions.countDocuments(tenant.tenant, { caseId })) === 1,
@@ -1081,7 +1075,9 @@ describe('two appeals of one decision, filed at the same instant', () => {
     expect(filedFor.reduce((total, count) => total + count, 0)).toBe(1);
 
     const revisions = await Promise.all(
-      keyRaceCases.map(async (caseId) => (await cases.findOne(tenant.tenant, { caseId }))?.currentRevision),
+      keyRaceCases.map(
+        async (caseId) => (await cases.findOne(tenant.tenant, { caseId }))?.currentRevision,
+      ),
     );
     expect([...revisions].sort()).toEqual([1, 2]);
   });

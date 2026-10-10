@@ -71,9 +71,7 @@ export function createWebhookRouter(input: {
      * deployment 404s here, which is indistinguishable from not having the
      * feature — which is exactly what it is.
      */
-    input.logger.info(
-      '[CrowdSource] webhook route not mounted: no webhook secret is configured',
-    );
+    input.logger.info('[CrowdSource] webhook route not mounted: no webhook secret is configured');
     return router;
   }
 
@@ -81,9 +79,7 @@ export function createWebhookRouter(input: {
     input.path ?? '/crowdsource',
     crowdsourceWebhooks({
       secret: input.secret,
-      ...(input.previousSecret === undefined
-        ? {}
-        : { previousSecret: input.previousSecret }),
+      ...(input.previousSecret === undefined ? {} : { previousSecret: input.previousSecret }),
       // Shared across tasks: the in-process default would dedupe only the
       // instance that happened to receive both copies of a redelivery.
       store: input.store,

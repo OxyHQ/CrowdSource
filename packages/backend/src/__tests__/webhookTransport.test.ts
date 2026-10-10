@@ -49,9 +49,9 @@ describe('the production transport refuses an internal target', () => {
     ['https://10.0.0.5/hook', 'a private range'],
     ['https://[::1]/hook', 'IPv6 loopback'],
   ])('rejects %s (%s)', async (url) => {
-    await expect(
-      safeFetchTransport({ url, body: '{}', headers: {} }),
-    ).rejects.toBeInstanceOf(SsrfRejection);
+    await expect(safeFetchTransport({ url, body: '{}', headers: {} })).rejects.toBeInstanceOf(
+      SsrfRejection,
+    );
   });
 });
 

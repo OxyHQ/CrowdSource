@@ -47,7 +47,9 @@ const CLOSED_VALUES = join(BACKEND, 'domain', 'closedValues.ts');
  */
 function readStringArray(file: string, name: string): string[] {
   const source = readFileSync(file, 'utf8');
-  const declaration = new RegExp(`export const ${name} = \\[([\\s\\S]*?)\\] as const;`).exec(source);
+  const declaration = new RegExp(`export const ${name} = \\[([\\s\\S]*?)\\] as const;`).exec(
+    source,
+  );
   if (declaration === null) {
     throw new Error(`No 'export const ${name} = [...] as const' in ${file}`);
   }
@@ -116,9 +118,7 @@ describe('the vocabularies this console validates against', () => {
     expect([...APPLICATION_STATUSES]).toEqual(
       readStringArray(CLOSED_VALUES, 'APPLICATION_STATUSES'),
     );
-    expect([...CREDENTIAL_STATUSES]).toEqual(
-      readStringArray(CLOSED_VALUES, 'CREDENTIAL_STATUSES'),
-    );
+    expect([...CREDENTIAL_STATUSES]).toEqual(readStringArray(CLOSED_VALUES, 'CREDENTIAL_STATUSES'));
   });
 
   it('matches the application standings and standing reasons', () => {

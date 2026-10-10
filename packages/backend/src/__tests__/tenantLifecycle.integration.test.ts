@@ -49,8 +49,12 @@ describe('application suspension', () => {
 
     await setApplicationStatus(tenant.applicationId, 'suspended');
 
-    await expect(authenticateServiceCredential(tenant.token)).rejects.toMatchObject({ status: 401 });
-    await expect(authenticateServiceCredential(second.token)).rejects.toMatchObject({ status: 401 });
+    await expect(authenticateServiceCredential(tenant.token)).rejects.toMatchObject({
+      status: 401,
+    });
+    await expect(authenticateServiceCredential(second.token)).rejects.toMatchObject({
+      status: 401,
+    });
 
     // Reversible: suspension is an operational state, not a deletion.
     await setApplicationStatus(tenant.applicationId, 'active');
@@ -166,13 +170,17 @@ describe('a credential whose application moved organizations', () => {
       { organizationId: other.organizationId },
     );
 
-    await expect(authenticateServiceCredential(tenant.token)).rejects.toMatchObject({ status: 401 });
+    await expect(authenticateServiceCredential(tenant.token)).rejects.toMatchObject({
+      status: 401,
+    });
   });
 });
 
 describe('provisioning failures that are not conflicts', () => {
   it('re-raises a write failure that is not a duplicate key', async () => {
-    vi.spyOn(organizations, 'insertOne').mockRejectedValueOnce(new Error('replica set stepped down'));
+    vi.spyOn(organizations, 'insertOne').mockRejectedValueOnce(
+      new Error('replica set stepped down'),
+    );
 
     await expect(
       createOrganization({ name: 'Unlucky', slug: `unlucky-${randomUUID()}` }),

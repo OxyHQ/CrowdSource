@@ -1,8 +1,4 @@
-
-import {
-  defineTenantCollection,
-  type TransactionSession,
-} from '../../db/collections';
+import { defineTenantCollection, type TransactionSession } from '../../db/collections';
 import type { TenantContext } from '../../db/tenantScope';
 import { AUDIT_ACTIONS, AUDIT_REASONS } from '../../domain/closedValues';
 import { newPublicId } from '../../utils/identifiers';

@@ -50,7 +50,8 @@ export function eraseFromEnvelope(stored: unknown, principalId: string): Envelop
   let bindingsErased = 0;
   const principalBindings = stored.principalBindings.map((binding: unknown) => {
     if (!isRecord(binding)) return binding;
-    const names = binding.externalPrincipalId === principalId || binding.bindingProofId === principalId;
+    const names =
+      binding.externalPrincipalId === principalId || binding.bindingProofId === principalId;
     if (!names) return binding;
     bindingsErased += 1;
     if (typeof binding.principalRef === 'string') erasedRefs.add(binding.principalRef);
@@ -92,8 +93,12 @@ export function eraseFromEnvelope(stored: unknown, principalId: string): Envelop
  * `content_hash` is left as it is: it is a digest, it is what later reports of
  * the same material dedupe against, and the material itself is unchanged.
  */
-export function eraseFromSnapshot(stored: unknown, principalId: string): { snapshot: Json | null; principalsErased: number } {
-  if (!isRecord(stored) || !Array.isArray(stored.principals)) return { snapshot: null, principalsErased: 0 };
+export function eraseFromSnapshot(
+  stored: unknown,
+  principalId: string,
+): { snapshot: Json | null; principalsErased: number } {
+  if (!isRecord(stored) || !Array.isArray(stored.principals))
+    return { snapshot: null, principalsErased: 0 };
   let principalsErased = 0;
   const principals = stored.principals.map((principal: unknown) => {
     if (!isRecord(principal) || principal.externalPrincipalId !== principalId) return principal;

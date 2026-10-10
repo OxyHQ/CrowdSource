@@ -85,7 +85,10 @@ export function DescriptiveStep({ state, dispatch, resources }: DescriptiveStepP
         </View>
       </Panel>
 
-      <Panel title={t('review.step1.certainty.title')} description={t('review.step1.certainty.help')}>
+      <Panel
+        title={t('review.step1.certainty.title')}
+        description={t('review.step1.certainty.help')}
+      >
         <View className="gap-1">
           {CERTAINTY_LEVELS.map((certainty) => (
             <ChoiceRow

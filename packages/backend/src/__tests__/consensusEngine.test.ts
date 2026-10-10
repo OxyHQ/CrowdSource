@@ -133,7 +133,12 @@ describe('§9.4: the six dimensions are one agreement, not six checks', () => {
       ...base,
       findings: [
         { code: CODE, resourceIds: ['res_post'], severity: 'medium', confidence: 0.9 },
-        { code: 'privacy.location_exposure', resourceIds: ['res_a'], severity: 'low', confidence: 0.4 },
+        {
+          code: 'privacy.location_exposure',
+          resourceIds: ['res_a'],
+          severity: 'low',
+          confidence: 0.4,
+        },
       ],
     };
     const other: Ballot = {
@@ -149,7 +154,12 @@ describe('§9.4: the six dimensions are one agreement, not six checks', () => {
     const mixed = positionOf({
       ...base,
       findings: [
-        { code: 'privacy.location_exposure', resourceIds: ['res_a'], severity: 'low', confidence: 0.4 },
+        {
+          code: 'privacy.location_exposure',
+          resourceIds: ['res_a'],
+          severity: 'low',
+          confidence: 0.4,
+        },
         { code: CODE, resourceIds: ['res_post'], severity: 'high', confidence: 0.9 },
       ],
     });
@@ -196,21 +206,30 @@ describe('§9.4: the six dimensions are one agreement, not six checks', () => {
    * through.
    */
   it.each([
-    { dropped: 'family', differing: ballot({ reviewerId: 'rvw_b', code: 'privacy.personal_information' }) },
-    { dropped: 'resourceIds', differing: ballot({ reviewerId: 'rvw_b', resourceIds: ['res_image'] }) },
+    {
+      dropped: 'family',
+      differing: ballot({ reviewerId: 'rvw_b', code: 'privacy.personal_information' }),
+    },
+    {
+      dropped: 'resourceIds',
+      differing: ballot({ reviewerId: 'rvw_b', resourceIds: ['res_image'] }),
+    },
     { dropped: 'severity', differing: ballot({ reviewerId: 'rvw_b', severity: 'critical' }) },
     { dropped: 'context', differing: ballot({ reviewerId: 'rvw_b', context: 'satire' }) },
-  ])('mutation: a key without $dropped would agree where the real one does not', ({ dropped, differing }) => {
-    const weakened = (position: ReviewPosition): string =>
-      JSON.stringify(
-        Object.entries(position)
-          .filter(([field]) => field !== dropped)
-          .map(([, value]) => value),
-      );
+  ])(
+    'mutation: a key without $dropped would agree where the real one does not',
+    ({ dropped, differing }) => {
+      const weakened = (position: ReviewPosition): string =>
+        JSON.stringify(
+          Object.entries(position)
+            .filter(([field]) => field !== dropped)
+            .map(([, value]) => value),
+        );
 
-    expect(weakened(positionOf(base))).toBe(weakened(positionOf(differing)));
-    expect(positionKey(positionOf(base))).not.toBe(positionKey(positionOf(differing)));
-  });
+      expect(weakened(positionOf(base))).toBe(weakened(positionOf(differing)));
+      expect(positionKey(positionOf(base))).not.toBe(positionKey(positionOf(differing)));
+    },
+  );
 });
 
 describe('§8.6 and §9.4: the threshold is the stricter of the ladder and the risk row', () => {
@@ -334,7 +353,10 @@ describe('§8.6: a disagreement expands, and the ladder ends', () => {
 
   it('decides at round 2 when four of five do agree', () => {
     const verdict = evaluateConsensus({
-      ballots: [...unanimous(4), ballot({ reviewerId: 'rvw_z', outcome: 'no_violation', noFindings: true })],
+      ballots: [
+        ...unanimous(4),
+        ballot({ reviewerId: 'rvw_z', outcome: 'no_violation', noFindings: true }),
+      ],
       round: 2,
       risk: 'low',
       finalRound: MAX_PANEL_ROUND,

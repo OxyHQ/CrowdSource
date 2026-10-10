@@ -49,7 +49,9 @@ try {
     throw new Error('The gate did not catch a reintroduced dependency.');
   }
 
-  process.stdout.write('The PostgreSQL-only outbox gate catches runtime, harness and dependency mutations.\n');
+  process.stdout.write(
+    'The PostgreSQL-only outbox gate catches runtime, harness and dependency mutations.\n',
+  );
 } finally {
   rmSync(fixture, { recursive: true, force: true });
 }

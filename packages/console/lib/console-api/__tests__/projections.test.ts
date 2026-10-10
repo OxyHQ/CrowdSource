@@ -163,9 +163,9 @@ describe('projectSession', () => {
   it('rejects a staff role it does not recognise', () => {
     // A string this app does not know would either hide a surface a staff member is
     // entitled to or show one they are not.
-    expect(() => projectSession({ oxyUserId: 'oxy_1', memberships: [], staffRoles: ['root'] })).toThrow(
-      MalformedPayloadError,
-    );
+    expect(() =>
+      projectSession({ oxyUserId: 'oxy_1', memberships: [], staffRoles: ['root'] }),
+    ).toThrow(MalformedPayloadError);
   });
 });
 
@@ -327,12 +327,7 @@ describe('projectCredentials and projectIssuedCredential', () => {
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(projected.token).toBe('app_1:cred_1:secret');
-    expect(Object.keys(projected).sort()).toEqual([
-      'createdAt',
-      'credentialId',
-      'scopes',
-      'token',
-    ]);
+    expect(Object.keys(projected).sort()).toEqual(['createdAt', 'credentialId', 'scopes', 'token']);
     expect(serialize(projected)).not.toContain(LEAK);
   });
 });
@@ -372,16 +367,17 @@ describe('projectWebhookEndpoints, projectRotatedSecret and projectDeliveries', 
     const projected = projectRotatedSecret({
       ...PROBES,
       webhookEndpointId: 'whe_1',
-      secret: { ...PROBES, version: 2, value: 'whsec_new', signingStartsAt: '2026-01-03T00:00:00.000Z' },
+      secret: {
+        ...PROBES,
+        version: 2,
+        value: 'whsec_new',
+        signingStartsAt: '2026-01-03T00:00:00.000Z',
+      },
       previousSecret: { ...PROBES, version: 1, expiresAt: '2026-01-03T01:00:00.000Z' },
     });
     expect(projected.secret.value).toBe('whsec_new');
     expect(projected.secret.signingStartsAt).toBe('2026-01-03T00:00:00.000Z');
-    expect(Object.keys(projected.secret).sort()).toEqual([
-      'signingStartsAt',
-      'value',
-      'version',
-    ]);
+    expect(Object.keys(projected.secret).sort()).toEqual(['signingStartsAt', 'value', 'version']);
     expect(serialize(projected)).not.toContain(LEAK);
   });
 
@@ -518,7 +514,12 @@ describe('projectCasePage and projectCaseDetail', () => {
             agreement: 0.8,
             specialistPresent: false,
           },
-          policyVersions: { ...PROBES, taxonomy: '1.0.0', application: '1.0.0', oxyConduct: '1.0.0' },
+          policyVersions: {
+            ...PROBES,
+            taxonomy: '1.0.0',
+            application: '1.0.0',
+            oxyConduct: '1.0.0',
+          },
           supersedesDecisionId: null,
           publishedAt: '2026-01-02T00:00:00.000Z',
         },
@@ -650,7 +651,14 @@ describe('the Trust & Safety projections', () => {
     const projected = projectPlatformMetrics({
       ...PROBES,
       applicationsByStanding: { ...PROBES, sandbox: 3, trusted: 1, restricted: 0 },
-      deliveries: { ...PROBES, pending: 0, delivering: 0, succeeded: 0, deadLetter: 0, successRate: null },
+      deliveries: {
+        ...PROBES,
+        pending: 0,
+        delivering: 0,
+        succeeded: 0,
+        deadLetter: 0,
+        successRate: null,
+      },
       unavailable: ['case_queue_age_seconds', 'inconclusive_rate'],
     });
     expect(projected.unavailable).toEqual(['case_queue_age_seconds', 'inconclusive_rate']);

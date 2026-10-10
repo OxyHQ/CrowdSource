@@ -1,10 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-import {
-  CaseEnvelopeSchema,
-  type CaseEnvelope,
-  type Resource,
-} from '@crowdsource.you/contracts';
+import { CaseEnvelopeSchema, type CaseEnvelope, type Resource } from '@crowdsource.you/contracts';
 
 import { config } from '../../config';
 import { pingPostgres } from '../../db/postgres/database';
@@ -248,9 +244,7 @@ export function sampleEnvelope(options: SampleEnvelopeOptions): CaseEnvelope {
       retentionDays: options.retentionDays ?? 30,
       allowCommunityReview: options.allowCommunityReview ?? true,
     },
-    ...(options.reach === undefined
-      ? {}
-      : { urgency: { hint: 'normal', reach: options.reach } }),
+    ...(options.reach === undefined ? {} : { urgency: { hint: 'normal', reach: options.reach } }),
   });
 }
 

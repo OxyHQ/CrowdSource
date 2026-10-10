@@ -181,9 +181,9 @@ describe('what DOES change the content hash', () => {
   });
 
   it('dropping an attachment', () => {
-    expect(
-      hash(envelope({ resources: envelope().resources.slice(0, 1), relations: [] })),
-    ).not.toBe(hash(envelope()));
+    expect(hash(envelope({ resources: envelope().resources.slice(0, 1), relations: [] }))).not.toBe(
+      hash(envelope()),
+    );
   });
 });
 
@@ -222,14 +222,16 @@ describe('which principals the material points at', () => {
       relations: [{ from: 'res_post', type: 'authored_by', to: 'author_1' }],
     });
 
-    expect(contentSnapshotOf(authored).principals.map((p) => p.principalRef)).toEqual([
-      'author_1',
-    ]);
+    expect(contentSnapshotOf(authored).principals.map((p) => p.principalRef)).toEqual(['author_1']);
   });
 
   it('includes a listing seller, and still excludes the reporter', () => {
     const listing = envelope({
-      subject: { externalId: 'listing_1', type: 'commerce.listing', primaryResourceId: 'res_listing' },
+      subject: {
+        externalId: 'listing_1',
+        type: 'commerce.listing',
+        primaryResourceId: 'res_listing',
+      },
       resources: [
         {
           id: 'res_listing',

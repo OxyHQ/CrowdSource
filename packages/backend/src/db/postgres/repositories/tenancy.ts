@@ -100,10 +100,7 @@ export interface NewApplication {
   readonly status: string;
 }
 
-export async function insertApplication(
-  db: PgHandle,
-  application: NewApplication,
-): Promise<void> {
+export async function insertApplication(db: PgHandle, application: NewApplication): Promise<void> {
   await db.insert(applications).values(application);
 }
 

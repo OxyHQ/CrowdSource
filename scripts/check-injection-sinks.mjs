@@ -54,9 +54,9 @@
  * which is how the mutation test drives it.
  */
 
-import { readdir, readFile, stat } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * The sinks. Each entry is one way a string becomes behaviour.
@@ -66,15 +66,15 @@ import { fileURLToPath } from "node:url";
  */
 const SINKS = [
   {
-    what: "React HTML injection (dangerouslySetInnerHTML)",
+    what: 'React HTML injection (dangerouslySetInnerHTML)',
     pattern: /\bdangerouslySetInnerHTML\b/,
   },
   {
-    what: "DOM HTML sink (innerHTML / outerHTML)",
+    what: 'DOM HTML sink (innerHTML / outerHTML)',
     pattern: /\.(inner|outer)HTML\b/,
   },
   {
-    what: "DOM HTML sink (insertAdjacentHTML)",
+    what: 'DOM HTML sink (insertAdjacentHTML)',
     pattern: /\binsertAdjacentHTML\s*\(/,
   },
   {
@@ -84,7 +84,7 @@ const SINKS = [
      * `document.write(`. The mutation test caught exactly that, which is the
      * argument for having one.
      */
-    what: "DOM HTML sink (document.write)",
+    what: 'DOM HTML sink (document.write)',
     pattern: /\bdocument\s*\.\s*write(?:ln)?\s*\(/,
   },
   {
@@ -98,11 +98,11 @@ const SINKS = [
     pattern: /\bWebView\b/,
   },
   {
-    what: "code evaluation (eval)",
+    what: 'code evaluation (eval)',
     pattern: /\beval\s*\(/,
   },
   {
-    what: "code evaluation (new Function)",
+    what: 'code evaluation (new Function)',
     pattern: /\bnew\s+Function\s*\(/,
   },
   {
@@ -111,7 +111,7 @@ const SINKS = [
      * literal as the FIRST argument is a sink; a function is the normal use, so
      * the pattern requires the quote.
      */
-    what: "code evaluation (setTimeout/setInterval with a string body)",
+    what: 'code evaluation (setTimeout/setInterval with a string body)',
     pattern: /\bset(?:Timeout|Interval)\s*\(\s*["'`]/,
   },
 ];
@@ -128,17 +128,17 @@ export const INJECTION_SINK_ALLOWED = Object.freeze({});
 
 /** Directories that are never source. */
 const SKIP_DIRECTORIES = new Set([
-  "node_modules",
-  "dist",
-  "build",
-  ".expo",
-  ".next",
-  "coverage",
-  "android",
-  "ios",
+  'node_modules',
+  'dist',
+  'build',
+  '.expo',
+  '.next',
+  'coverage',
+  'android',
+  'ios',
 ]);
 
-const SOURCE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
+const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
 
 /**
  * Packages that must each contribute at least one scanned file.
@@ -147,7 +147,7 @@ const SOURCE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
  * failed, so this does not break the day a package is added or removed — but a
  * package that EXISTS and yields nothing means the walk is broken.
  */
-const EXPECTED_PACKAGES = ["contracts", "backend", "reviewer", "core"];
+const EXPECTED_PACKAGES = ['contracts', 'backend', 'reviewer', 'core'];
 
 const DEFAULT_MIN_FILES = 200;
 
@@ -164,7 +164,7 @@ for (const argument of process.argv.slice(2)) {
 
 const repositoryRoot =
   positional[0] === undefined
-    ? resolve(dirname(fileURLToPath(import.meta.url)), "..")
+    ? resolve(dirname(fileURLToPath(import.meta.url)), '..')
     : resolve(positional[0]);
 
 /**
@@ -181,8 +181,8 @@ function stripComments(source) {
   let inBlockComment = false;
   let quote = null;
 
-  for (const line of source.split("\n")) {
-    let kept = "";
+  for (const line of source.split('\n')) {
+    let kept = '';
     let index = 0;
 
     while (index < line.length) {
@@ -190,7 +190,7 @@ function stripComments(source) {
       const next = line[index + 1];
 
       if (inBlockComment) {
-        if (character === "*" && next === "/") {
+        if (character === '*' && next === '/') {
           inBlockComment = false;
           index += 2;
           continue;
@@ -201,8 +201,8 @@ function stripComments(source) {
 
       if (quote !== null) {
         kept += character;
-        if (character === "\\") {
-          kept += next ?? "";
+        if (character === '\\') {
+          kept += next ?? '';
           index += 2;
           continue;
         }
@@ -211,14 +211,14 @@ function stripComments(source) {
         continue;
       }
 
-      if (character === '"' || character === "'" || character === "`") {
+      if (character === '"' || character === "'" || character === '`') {
         quote = character;
         kept += character;
         index += 1;
         continue;
       }
-      if (character === "/" && next === "/") break;
-      if (character === "/" && next === "*") {
+      if (character === '/' && next === '/') break;
+      if (character === '/' && next === '*') {
         inBlockComment = true;
         index += 2;
         continue;
@@ -262,20 +262,20 @@ async function collectSourceFiles(directory) {
   return files;
 }
 
-const packagesRoot = resolve(repositoryRoot, "packages");
+const packagesRoot = resolve(repositoryRoot, 'packages');
 const files = await collectSourceFiles(packagesRoot);
 
 const findings = [];
 const perPackage = new Map();
 
 for (const absolute of files) {
-  const path = relative(repositoryRoot, absolute).replaceAll("\\", "/");
-  const packageName = path.split("/")[1];
+  const path = relative(repositoryRoot, absolute).replaceAll('\\', '/');
+  const packageName = path.split('/')[1];
   perPackage.set(packageName, (perPackage.get(packageName) ?? 0) + 1);
 
   if (isAllowed(path)) continue;
 
-  const source = await readFile(absolute, "utf8");
+  const source = await readFile(absolute, 'utf8');
   stripComments(source).forEach((code, index) => {
     for (const { what, pattern } of SINKS) {
       if (pattern.test(code)) {
@@ -294,16 +294,14 @@ for (const absolute of files) {
 const failures = [];
 
 for (const finding of findings) {
-  failures.push(
-    `${finding.path}:${finding.line} — ${finding.what}\n      ${finding.text}`,
-  );
+  failures.push(`${finding.path}:${finding.line} — ${finding.what}\n      ${finding.text}`);
 }
 
 if (files.length < minFiles) {
   failures.push(
     `only ${files.length} source files were scanned, below the floor of ${minFiles}. ` +
-      "A scan that traverses nothing reports the same clean result as a scan that finds " +
-      "nothing, so this is treated as a broken traversal rather than a pass.",
+      'A scan that traverses nothing reports the same clean result as a scan that finds ' +
+      'nothing, so this is treated as a broken traversal rather than a pass.',
   );
 }
 
@@ -320,13 +318,13 @@ for (const name of EXPECTED_PACKAGES) {
 }
 
 if (failures.length > 0) {
-  console.error("Injection-sink scan failed:\n");
+  console.error('Injection-sink scan failed:\n');
   for (const failure of failures) console.error(`- ${failure}`);
   console.error(
-    "\nCrowdSource renders hostile material to a jury by design. Nothing in the contract " +
-      "is ever interpreted as markup or code, and that is the whole reason a lexical filter " +
-      "on report text is unnecessary. A sink breaks that argument: see " +
-      "docs/architecture/threat-model.md §3.",
+    '\nCrowdSource renders hostile material to a jury by design. Nothing in the contract ' +
+      'is ever interpreted as markup or code, and that is the whole reason a lexical filter ' +
+      'on report text is unnecessary. A sink breaks that argument: see ' +
+      'docs/architecture/threat-model.md §3.',
   );
   process.exit(1);
 }

@@ -5,7 +5,11 @@ import {
   ORGANIZATION_STATUSES,
 } from '../../domain/closedValues';
 
-export { APPLICATION_STATUSES, CREDENTIAL_STATUSES, ORGANIZATION_STATUSES } from '../../domain/closedValues';
+export {
+  APPLICATION_STATUSES,
+  CREDENTIAL_STATUSES,
+  ORGANIZATION_STATUSES,
+} from '../../domain/closedValues';
 
 export type OrganizationStatus = (typeof ORGANIZATION_STATUSES)[number];
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];

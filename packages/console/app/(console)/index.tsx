@@ -52,7 +52,12 @@ export default function OrganizationsScreen() {
         <Text className="text-xs text-muted-foreground">{t('organizations.subtitle')}</Text>
       }
       actions={
-        <Button appearance="solid" tone="accent" size="sm" onPress={() => setIsCreating((open) => !open)}>
+        <Button
+          appearance="solid"
+          tone="accent"
+          size="sm"
+          onPress={() => setIsCreating((open) => !open)}
+        >
           {t('organizations.create.action')}
         </Button>
       }
@@ -245,7 +250,12 @@ function OrganizationPanel({ organization }: { organization: OrganizationSummary
               answers 403, and a control that only ever fails is worse than one that
               is not offered. */}
           {mayAdminister ? (
-            <Button appearance="solid" tone="accent" size="sm" onPress={() => setIsCreating((open) => !open)}>
+            <Button
+              appearance="solid"
+              tone="accent"
+              size="sm"
+              onPress={() => setIsCreating((open) => !open)}
+            >
               {t('applications.create.action')}
             </Button>
           ) : null}

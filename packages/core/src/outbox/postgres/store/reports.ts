@@ -57,9 +57,7 @@ import type { ModerationPgHandle } from './transaction.js';
  * is theirs: `extra` goes in untouched and comes back untouched.
  */
 type OptionalReportField = {
-  [K in keyof ModerationReportFields]-?: undefined extends ModerationReportFields[K]
-    ? K
-    : never;
+  [K in keyof ModerationReportFields]-?: undefined extends ModerationReportFields[K] ? K : never;
 }[keyof ModerationReportFields];
 
 const OPTIONAL_REPORT_FIELDS = [
@@ -115,9 +113,7 @@ function absentWhereNull(row: Record<string, unknown>): Record<string, unknown> 
  * `postgresReportStore.test.ts`. What remains unchecked is a column declared with
  * the wrong TYPE, which the migration and the schema test cover instead.
  */
-function asReport<TReport extends ModerationReportFields>(
-  row: Record<string, unknown>,
-): TReport {
+function asReport<TReport extends ModerationReportFields>(row: Record<string, unknown>): TReport {
   return absentWhereNull(row) as TReport;
 }
 
@@ -236,10 +232,7 @@ export function postgresReportStore<TReport extends ModerationReportFields>(inpu
              * revision rewrites, which is harmless and keeps a partially-applied
              * decision converging.
              */
-            or(
-              isNull(reports.decisionRevision),
-              lte(reports.decisionRevision, maxRevision),
-            ),
+            or(isNull(reports.decisionRevision), lte(reports.decisionRevision, maxRevision)),
           ),
         )
         .returning({ id: reports.id });
@@ -307,12 +300,7 @@ export function postgresReportStore<TReport extends ModerationReportFields>(inpu
       const rows = await db
         .select({ total })
         .from(reports)
-        .where(
-          and(
-            eq(reports.localStatus, 'submitted'),
-            lt(reports.submittedAt, submittedBefore),
-          ),
-        );
+        .where(and(eq(reports.localStatus, 'submitted'), lt(reports.submittedAt, submittedBefore)));
       return rows[0]?.total ?? 0;
     },
 
@@ -341,9 +329,7 @@ function decisionSet(update: ModerationReportDecisionUpdate): Record<string, unk
     decisionOutcome: update.decisionOutcome,
     decisionStatus: update.decisionStatus,
     decidedAt: update.decidedAt,
-    ...(update.enforcedAction === undefined
-      ? {}
-      : { enforcedAction: update.enforcedAction }),
+    ...(update.enforcedAction === undefined ? {} : { enforcedAction: update.enforcedAction }),
     ...(update.enforcedAt === undefined ? {} : { enforcedAt: update.enforcedAt }),
   };
 }

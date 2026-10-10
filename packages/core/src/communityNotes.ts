@@ -55,7 +55,10 @@ export class CommunityNotes {
   }
 
   /** Writes a note. A retry of the same writer's note on the same subject returns it. */
-  async write(submission: CommunityNoteSubmission, options: CommunityNoteRequestOptions = {}): Promise<CommunityNote> {
+  async write(
+    submission: CommunityNoteSubmission,
+    options: CommunityNoteRequestOptions = {},
+  ): Promise<CommunityNote> {
     return this.parse(
       CommunityNoteSchema,
       await this.transport.request<unknown>({
@@ -127,7 +130,8 @@ export class CommunityNotes {
         path: `/v1/community-notes/${encodeURIComponent(noteId)}/ratings`,
         body: submission,
         idempotencyKey:
-          options.idempotencyKey ?? `community-note-rating.${digestOf(noteId, submission.raterPrincipalId)}`,
+          options.idempotencyKey ??
+          `community-note-rating.${digestOf(noteId, submission.raterPrincipalId)}`,
         signal: options.signal,
       }),
       'a community note rating',
@@ -135,7 +139,10 @@ export class CommunityNotes {
   }
 
   /** The shown note, if any, for each of up to 50 subjects. */
-  async shown(externalSubjectIds: readonly string[], options: CommunityNoteReadOptions = {}): Promise<CommunityNote[]> {
+  async shown(
+    externalSubjectIds: readonly string[],
+    options: CommunityNoteReadOptions = {},
+  ): Promise<CommunityNote[]> {
     const subjects = [...new Set(externalSubjectIds)];
     if (subjects.length === 0) return [];
     const response = this.parse(
@@ -151,7 +158,10 @@ export class CommunityNotes {
   }
 
   /** A writer's own notes, newest first. */
-  async writtenBy(authorPrincipalId: string, options: CommunityNoteReadOptions = {}): Promise<CommunityNote[]> {
+  async writtenBy(
+    authorPrincipalId: string,
+    options: CommunityNoteReadOptions = {},
+  ): Promise<CommunityNote[]> {
     const response = this.parse(
       CommunityNoteListSchema,
       await this.transport.request<unknown>({
@@ -184,10 +194,13 @@ export class CommunityNotes {
   private parse<S extends z.ZodType>(schema: S, response: unknown, what: string): z.infer<S> {
     const parsed = schema.safeParse(response);
     if (!parsed.success) {
-      throw new CrowdSourceTransportError(`CrowdSource answered with ${what} this client does not recognise.`, {
-        retryable: false,
-        cause: parsed.error,
-      });
+      throw new CrowdSourceTransportError(
+        `CrowdSource answered with ${what} this client does not recognise.`,
+        {
+          retryable: false,
+          cause: parsed.error,
+        },
+      );
     }
     return parsed.data;
   }

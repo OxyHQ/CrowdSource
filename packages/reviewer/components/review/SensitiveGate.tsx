@@ -47,7 +47,9 @@ export function SensitiveGate({
   if (!revealed) {
     return (
       <View className="gap-3 rounded-lg border border-border bg-muted p-4">
-        <Text className="text-base font-semibold text-foreground">{t('review.sensitive.title')}</Text>
+        <Text className="text-base font-semibold text-foreground">
+          {t('review.sensitive.title')}
+        </Text>
         <View className="gap-1">
           <Text className="text-sm text-muted-foreground">
             {t(`sensitivity.${sensitivityClass}`)}

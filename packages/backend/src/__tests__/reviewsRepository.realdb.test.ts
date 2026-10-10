@@ -4,7 +4,10 @@ import { isCheckViolation, isUniqueViolation } from '@oxy.so/db';
 
 import * as reviewsRepository from '../db/postgres/repositories/reviews';
 import { reviews } from '../db/postgres/schema/sortition';
-import { createPostgresTestDatabase, type PostgresTestDatabase } from './support/postgresTestDatabase';
+import {
+  createPostgresTestDatabase,
+  type PostgresTestDatabase,
+} from './support/postgresTestDatabase';
 
 /**
  * The review ledger repository, against a real PostgreSQL server.
@@ -157,10 +160,25 @@ describe("§4.1's history page", () => {
     const tied = new Date(now.getTime() - MINUTE_MS);
 
     await seed([
-      reviewRow({ reviewId: 'rev_c_newest', reviewerId: REVIEWER_ID, caseId: 'case_1', submittedAt: now }),
+      reviewRow({
+        reviewId: 'rev_c_newest',
+        reviewerId: REVIEWER_ID,
+        caseId: 'case_1',
+        submittedAt: now,
+      }),
       // Two rows sharing an instant: only the id can break the tie.
-      reviewRow({ reviewId: 'rev_b_tie_hi', reviewerId: REVIEWER_ID, caseId: 'case_2', submittedAt: tied }),
-      reviewRow({ reviewId: 'rev_a_tie_lo', reviewerId: REVIEWER_ID, caseId: 'case_3', submittedAt: tied }),
+      reviewRow({
+        reviewId: 'rev_b_tie_hi',
+        reviewerId: REVIEWER_ID,
+        caseId: 'case_2',
+        submittedAt: tied,
+      }),
+      reviewRow({
+        reviewId: 'rev_a_tie_lo',
+        reviewerId: REVIEWER_ID,
+        caseId: 'case_3',
+        submittedAt: tied,
+      }),
       reviewRow({
         reviewId: 'rev_0_oldest',
         reviewerId: REVIEWER_ID,
@@ -173,7 +191,12 @@ describe("§4.1's history page", () => {
     expect(first.map((r) => r.reviewId)).toEqual(['rev_c_newest', 'rev_b_tie_hi']);
 
     const cursor = { submittedAt: first[1].submittedAt, reviewId: first[1].reviewId };
-    const second = await reviewsRepository.findReviewHistoryPage(database.db, REVIEWER_ID, cursor, 2);
+    const second = await reviewsRepository.findReviewHistoryPage(
+      database.db,
+      REVIEWER_ID,
+      cursor,
+      2,
+    );
 
     /**
      * `rev_a_tie_lo` shares its instant with the cursor row and must appear
@@ -190,7 +213,12 @@ describe("§4.1's history page", () => {
   it('returns only this reviewer, and honours the limit', async () => {
     const now = new Date();
     await seed([
-      reviewRow({ reviewId: 'rev_mine_1', reviewerId: REVIEWER_ID, caseId: 'case_a', submittedAt: now }),
+      reviewRow({
+        reviewId: 'rev_mine_1',
+        reviewerId: REVIEWER_ID,
+        caseId: 'case_a',
+        submittedAt: now,
+      }),
       reviewRow({
         reviewId: 'rev_mine_2',
         reviewerId: REVIEWER_ID,
@@ -295,9 +323,13 @@ describe('the restored closed value sets are enforced by the database', () => {
   it('refuses an outcome outside REVIEW_OUTCOMES', async () => {
     await seed([reviewRow({ reviewId: 'rev_outcome_ok', outcome: 'content_unavailable' })]);
     const control = await reviewsRepository.findReviewsForCaseRevision(database.db, CASE_ID, 1);
-    expect(control[0].outcome, 'the control member was itself rejected').toBe('content_unavailable');
+    expect(control[0].outcome, 'the control member was itself rejected').toBe(
+      'content_unavailable',
+    );
 
-    const refused = await seed([reviewRow({ reviewId: 'rev_outcome_bad', outcome: 'guilty' })]).then(
+    const refused = await seed([
+      reviewRow({ reviewId: 'rev_outcome_bad', outcome: 'guilty' }),
+    ]).then(
       () => null,
       (error: unknown) => error,
     );
@@ -307,9 +339,7 @@ describe('the restored closed value sets are enforced by the database', () => {
   });
 
   it('refuses a context sufficiency outside CONTEXT_SUFFICIENCIES', async () => {
-    await seed([
-      reviewRow({ reviewId: 'rev_ctx_ok', contextSufficiency: 'insufficient' }),
-    ]);
+    await seed([reviewRow({ reviewId: 'rev_ctx_ok', contextSufficiency: 'insufficient' })]);
     const control = await reviewsRepository.findReviewsForCaseRevision(database.db, CASE_ID, 1);
     expect(control[0].contextSufficiency, 'the control member was itself rejected').toBe(
       'insufficient',

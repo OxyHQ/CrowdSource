@@ -96,9 +96,7 @@ describe('who may import the privileged cross-tenant module', () => {
   /** The vacuity floor: a traversal returning nothing would make every check below pass. */
   it('scanned the source tree', () => {
     expect(sources.length).toBeGreaterThanOrEqual(15);
-    expect(sources.map((file) => file.path)).toContain(
-      'src/modules/trust/crossTenantReads.ts',
-    );
+    expect(sources.map((file) => file.path)).toContain('src/modules/trust/crossTenantReads.ts');
   });
 
   it('is exactly the pinned set, each with a stated reason', () => {
@@ -106,8 +104,10 @@ describe('who may import the privileged cross-tenant module', () => {
       Object.keys(PRIVILEGED_IMPORTERS).sort(),
     );
     for (const [importer, why] of Object.entries(PRIVILEGED_IMPORTERS)) {
-      expect(why.trim().length, `${importer} must say why it may read across tenants`)
-        .toBeGreaterThanOrEqual(30);
+      expect(
+        why.trim().length,
+        `${importer} must say why it may read across tenants`,
+      ).toBeGreaterThanOrEqual(30);
     }
   });
 
@@ -155,7 +155,7 @@ describe('who may import the privileged cross-tenant module', () => {
       },
       {
         path: 'src/modules/console/console.routes.ts',
-        source: " * See `src/modules/trust/crossTenantReads.ts` for the projected queries.",
+        source: ' * See `src/modules/trust/crossTenantReads.ts` for the projected queries.',
       },
     ];
 

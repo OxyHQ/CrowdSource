@@ -28,7 +28,6 @@ import { BACKENDS } from './support/backends.js';
  * visible, and the mutation script matches on the leaf.
  */
 describe.each(BACKENDS)('$name', (backend) => {
-
   const WEBHOOK_SECRET = 'whsec_test_0123456789abcdef0123456789abcdef';
 
   let harness: Harness | null = null;
@@ -206,8 +205,7 @@ describe.each(BACKENDS)('$name', (backend) => {
         const row = await wired.harness.app.readReport(report.id);
         expect(row?.localStatus).toBe('submitted');
       });
-      const caseId = (await wired.harness.app.readReport(report.id))
-        ?.crowdSourceCaseId;
+      const caseId = (await wired.harness.app.readReport(report.id))?.crowdSourceCaseId;
       if (caseId === undefined) throw new Error('the report was never given a case id');
 
       const simulator = new WebhookSimulator({ secret: WEBHOOK_SECRET, url: wired.app.url });
@@ -229,9 +227,7 @@ describe.each(BACKENDS)('$name', (backend) => {
         outcome: 'no_violation',
         status: 'corrected',
       });
-      expect(correction.recommendedActions.map((entry) => entry.action)).toEqual([
-        'no_action',
-      ]);
+      expect(correction.recommendedActions.map((entry) => entry.action)).toEqual(['no_action']);
       await simulator.deliver(wired.sandbox.eventFor(correction));
 
       await eventually(async () => {
@@ -273,8 +269,7 @@ describe.each(BACKENDS)('$name', (backend) => {
         const row = await wired.harness.app.readReport(report.id);
         expect(row?.localStatus).toBe('submitted');
       });
-      const caseId = (await wired.harness.app.readReport(report.id))
-        ?.crowdSourceCaseId;
+      const caseId = (await wired.harness.app.readReport(report.id))?.crowdSourceCaseId;
       if (caseId === undefined) throw new Error('the report was never given a case id');
 
       const simulator = new WebhookSimulator({ secret: WEBHOOK_SECRET, url: wired.app.url });
@@ -293,5 +288,4 @@ describe.each(BACKENDS)('$name', (backend) => {
       expect(decided?.enforcedAt).toBeUndefined();
     });
   });
-
 });

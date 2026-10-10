@@ -281,15 +281,8 @@ export async function recuseAssignment(
  * conditional filter makes a concurrent sweep harmless: whichever process
  * updates the row first is the one that emits its event.
  */
-export async function expireDueAssignments(
-  now: Date = new Date(),
-  limit = 100,
-): Promise<number> {
-  const due = (await findDueAssignments(
-    getPostgresDatabase(),
-    now,
-    limit,
-  )) as AssignmentDocument[];
+export async function expireDueAssignments(now: Date = new Date(), limit = 100): Promise<number> {
+  const due = (await findDueAssignments(getPostgresDatabase(), now, limit)) as AssignmentDocument[];
 
   let expired = 0;
   for (const assignment of due) {
@@ -339,7 +332,10 @@ export function startAssignmentExpirySweep(intervalMs = 60_000): void {
 
   sweepTimer = setInterval(() => {
     void expireDueAssignments().catch((_error: unknown) => {
-      logger.error({ classification: 'assignment_expiry_sweep_failed' }, 'Assignment expiry sweep failed');
+      logger.error(
+        { classification: 'assignment_expiry_sweep_failed' },
+        'Assignment expiry sweep failed',
+      );
     });
   }, intervalMs);
   sweepTimer.unref?.();

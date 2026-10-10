@@ -45,9 +45,7 @@ function isNotNull(column: CatalogueColumn): boolean {
  * columns nobody has decided about. The gate prints the offending columns rather
  * than a count, so the failure names what to fix.
  */
-export function tenantColumnShapeOf(
-  columns: readonly CatalogueColumn[],
-): TenantColumnShape | null {
+export function tenantColumnShapeOf(columns: readonly CatalogueColumn[]): TenantColumnShape | null {
   const organization = find(columns, ORGANIZATION_COLUMN);
   const application = find(columns, APPLICATION_COLUMN);
 

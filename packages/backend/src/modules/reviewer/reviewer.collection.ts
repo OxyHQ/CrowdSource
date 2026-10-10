@@ -8,7 +8,6 @@ import { defineUnscopedCollection } from '../../db/collections';
 import type { ReviewerRelationSource } from '../../db/postgres/schema/reviewers';
 import type { SensitivityClass } from '../triage/triage';
 
-
 /**
  * Reviewer profiles, declared conflicts and co-service affinity (§12.6's "Jury"
  * group, minus assignments — those live with sortition, which issues them).
@@ -172,9 +171,12 @@ export interface ReviewerProfileDocument {
   updatedAt: Date;
 }
 
-export const reviewerProfiles = defineUnscopedCollection<ReviewerProfileDocument>('ReviewerProfile', {
-  why: 'A reviewer is a person drawn across every application, not data owned by one tenant; profiles carry no tenant keys and are never returned to an application-API caller.',
-});
+export const reviewerProfiles = defineUnscopedCollection<ReviewerProfileDocument>(
+  'ReviewerProfile',
+  {
+    why: 'A reviewer is a person drawn across every application, not data owned by one tenant; profiles carry no tenant keys and are never returned to an application-API caller.',
+  },
+);
 
 /**
  * A relationship between a reviewer and someone on an application (§8.5's
@@ -258,8 +260,7 @@ export function affinityPairKey(left: string, right: string): string {
  * vocabularies honest: if triage's `SensitivityClass` ever stops covering what a
  * reviewer can consent to, this line stops compiling.
  */
-export const CONSENTABLE_SENSITIVITY: readonly SensitivityClass[] =
-  REVIEWER_SENSITIVITY_CLASSES;
+export const CONSENTABLE_SENSITIVITY: readonly SensitivityClass[] = REVIEWER_SENSITIVITY_CLASSES;
 
 /**
  * The rank of a consentable class.

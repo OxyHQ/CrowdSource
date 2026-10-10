@@ -62,7 +62,9 @@ export async function handleCaseReadyForTriage(event: OutboxEventDocument): Prom
       // Neither is retryable, and both are defects worth surfacing rather than
       // absorbing: the outbox row and the case commit together, so one without
       // the other means something wrote a row outside a transaction.
-      throw new Error(`Outbox event '${event.eventId}' names case '${caseId}', which does not exist.`);
+      throw new Error(
+        `Outbox event '${event.eventId}' names case '${caseId}', which does not exist.`,
+      );
     }
 
     const result = triageCase({

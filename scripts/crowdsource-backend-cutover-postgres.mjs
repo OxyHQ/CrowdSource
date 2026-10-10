@@ -75,8 +75,8 @@ export function canonicalPostgresDatabaseEvidence(rows) {
     if (collationVersion !== actualCollationVersion) {
       throw new Error(
         'PostgreSQL database collation version is stale: the recorded version does not ' +
-        'match the current provider version. REINDEX affected objects and refresh the ' +
-        'database collation version before cutover.',
+          'match the current provider version. REINDEX affected objects and refresh the ' +
+          'database collation version before cutover.',
       );
     }
 
@@ -703,9 +703,12 @@ export async function assertPostgresTarget(client, targetDatabase) {
     JOIN pg_database database ON database.datname = current_database()
     WHERE role.rolname = current_user
   `);
-  if (identity === undefined) throw new Error('PostgreSQL did not return the connected role identity.');
+  if (identity === undefined)
+    throw new Error('PostgreSQL did not return the connected role identity.');
   if (identity.currentUser !== MIGRATOR_ROLE) {
-    throw new Error(`Cutover requires role '${MIGRATOR_ROLE}', connected as '${identity.currentUser}'.`);
+    throw new Error(
+      `Cutover requires role '${MIGRATOR_ROLE}', connected as '${identity.currentUser}'.`,
+    );
   }
   if (identity.currentDatabase !== targetDatabase) {
     throw new Error(`Connected database '${identity.currentDatabase}' is not '${targetDatabase}'.`);
@@ -722,8 +725,8 @@ export async function assertPostgresTarget(client, targetDatabase) {
   if (catalogSha256 !== EXPECTED_POSTGRES_CATALOG_SHA256) {
     throw new Error(
       'PostgreSQL catalog differs from the pinned types, defaults, constraints, indexes, RLS, ' +
-      `policies, grants, roles, triggers or functions (expected ${EXPECTED_POSTGRES_CATALOG_SHA256}; ` +
-      `found ${catalogSha256}).`,
+        `policies, grants, roles, triggers or functions (expected ${EXPECTED_POSTGRES_CATALOG_SHA256}; ` +
+        `found ${catalogSha256}).`,
     );
   }
 
@@ -747,7 +750,7 @@ export async function assertPostgresTarget(client, targetDatabase) {
 }
 
 export async function countTargetRows(client, providedMetadata) {
-  const metadata = providedMetadata ?? await allTableMetadata();
+  const metadata = providedMetadata ?? (await allTableMetadata());
   const counts = {};
   for (const table of metadata) {
     const [row] = await client.unsafe(
@@ -764,7 +767,8 @@ function databaseRow(row, columns, label) {
     const value = row[field];
     if (value !== null && column.dataType === 'date') {
       const date = new Date(value);
-      if (Number.isNaN(date.getTime())) throw new Error(`${label}.${field} is not a valid timestamp.`);
+      if (Number.isNaN(date.getTime()))
+        throw new Error(`${label}.${field} is not a valid timestamp.`);
       converted[field] = date;
     } else {
       converted[field] = value;
@@ -779,7 +783,9 @@ async function insertTargetPlan(transaction, metadata, rowsByTableKey) {
     for (let offset = 0; offset < rows.length; offset += INSERT_BATCH_SIZE) {
       const batch = rows
         .slice(offset, offset + INSERT_BATCH_SIZE)
-        .map((row, index) => databaseRow(row, table.columns, `${table.tableName}[${offset + index}]`));
+        .map((row, index) =>
+          databaseRow(row, table.columns, `${table.tableName}[${offset + index}]`),
+        );
       const columns = Object.entries(table.columns);
       const values = [];
       const tuples = batch.map((row) => {
@@ -805,7 +811,7 @@ async function insertTargetPlan(transaction, metadata, rowsByTableKey) {
 }
 
 export async function readTargetRows(client, providedMetadata) {
-  const metadata = providedMetadata ?? await allTableMetadata();
+  const metadata = providedMetadata ?? (await allTableMetadata());
   const rowsByTableKey = {};
   for (const table of metadata) {
     const selectedColumns = Object.values(table.columns)
@@ -815,23 +821,33 @@ export async function readTargetRows(client, providedMetadata) {
       `SELECT ${selectedColumns} FROM ${publicTableReference(table.tableName)}`,
     );
     const fieldByColumn = new Map(
-      Object.entries(table.columns).map(([field, column]) => [sqlColumnName(column), { field, column }]),
+      Object.entries(table.columns).map(([field, column]) => [
+        sqlColumnName(column),
+        { field, column },
+      ]),
     );
-    rowsByTableKey[table.tableKey] = rows.map((row) => canonicalValue(Object.fromEntries(
-      Object.entries(row).map(([column, value]) => {
-        const binding = fieldByColumn.get(column);
-        if (binding === undefined) throw new Error(`Unexpected column '${column}' from '${table.tableName}'.`);
-        let canonicalValueFromDatabase = value;
-        if (binding.column.dataType === 'json' && typeof value === 'string') {
-          try {
-            canonicalValueFromDatabase = JSON.parse(value);
-          } catch {
-            throw new Error(`PostgreSQL returned invalid JSON for '${table.tableName}.${column}'.`);
-          }
-        }
-        return [binding.field, canonicalValueFromDatabase];
-      }),
-    )));
+    rowsByTableKey[table.tableKey] = rows.map((row) =>
+      canonicalValue(
+        Object.fromEntries(
+          Object.entries(row).map(([column, value]) => {
+            const binding = fieldByColumn.get(column);
+            if (binding === undefined)
+              throw new Error(`Unexpected column '${column}' from '${table.tableName}'.`);
+            let canonicalValueFromDatabase = value;
+            if (binding.column.dataType === 'json' && typeof value === 'string') {
+              try {
+                canonicalValueFromDatabase = JSON.parse(value);
+              } catch {
+                throw new Error(
+                  `PostgreSQL returned invalid JSON for '${table.tableName}.${column}'.`,
+                );
+              }
+            }
+            return [binding.field, canonicalValueFromDatabase];
+          }),
+        ),
+      ),
+    );
   }
   validateRelationships(rowsByTableKey);
   return rowsByTableKey;
@@ -842,10 +858,15 @@ function canonicalDifferenceSummary(sourceRows, targetRows, identity, label) {
   const target = evidenceForRows(targetRows, identity, `${label} target`).rows;
   if (source.length !== target.length) return 'row count';
   const changedFields = new Set();
-  const valueKind = (value) => value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
+  const valueKind = (value) =>
+    value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
   for (let index = 0; index < source.length; index += 1) {
-    const sourceIdentity = Object.fromEntries(identity.map((field) => [field, source[index][field]]));
-    const targetIdentity = Object.fromEntries(identity.map((field) => [field, target[index][field]]));
+    const sourceIdentity = Object.fromEntries(
+      identity.map((field) => [field, source[index][field]]),
+    );
+    const targetIdentity = Object.fromEntries(
+      identity.map((field) => [field, target[index][field]]),
+    );
     if (canonicalJson(sourceIdentity) !== canonicalJson(targetIdentity)) return 'identity set';
     const fields = new Set([...Object.keys(source[index]), ...Object.keys(target[index])]);
     for (const field of fields) {
@@ -859,13 +880,17 @@ function canonicalDifferenceSummary(sourceRows, targetRows, identity, label) {
           const sourceKind = valueKind(source[index][field]);
           const targetKind = valueKind(target[index][field]);
           changedFields.add(
-            sourceKind === targetKind ? `${field} (value)` : `${field} (${sourceKind}->${targetKind})`,
+            sourceKind === targetKind
+              ? `${field} (value)`
+              : `${field} (${sourceKind}->${targetKind})`,
           );
         }
       }
     }
   }
-  return changedFields.size === 0 ? 'unknown canonical bytes' : `fields ${[...changedFields].sort().join(', ')}`;
+  return changedFields.size === 0
+    ? 'unknown canonical bytes'
+    : `fields ${[...changedFields].sort().join(', ')}`;
 }
 
 export async function reconcileTarget(sourceBundle, rowsByTableKey, target) {
@@ -924,9 +949,10 @@ export async function reconcileTarget(sourceBundle, rowsByTableKey, target) {
   };
   const violations = finalManifestViolations(finalManifest);
   if (violations.length > 0) {
-    const summaries = differenceSummaries.length === 0
-      ? ''
-      : `\n  - Safe field-only diagnostics: ${differenceSummaries.join('; ')}`;
+    const summaries =
+      differenceSummaries.length === 0
+        ? ''
+        : `\n  - Safe field-only diagnostics: ${differenceSummaries.join('; ')}`;
     throw new Error(
       `PostgreSQL reconciliation refused:\n${violations.map((entry) => `  - ${entry}`).join('\n')}${summaries}`,
     );
@@ -977,14 +1003,18 @@ export async function importPostgres({
   try {
     const { metadata, journal, catalogSha256 } = await assertPostgresTarget(client, targetDatabase);
     await client.begin('isolation level serializable read write', async (transaction) => {
-      await transaction.unsafe(`SELECT pg_advisory_xact_lock($1::bigint)`, [CUTOVER_LOCK_ID.toString()]);
+      await transaction.unsafe(`SELECT pg_advisory_xact_lock($1::bigint)`, [
+        CUTOVER_LOCK_ID.toString(),
+      ]);
       const lockList = metadata.map((table) => publicTableReference(table.tableName)).join(', ');
       await transaction.unsafe(`LOCK TABLE ${lockList} IN ACCESS EXCLUSIVE MODE`);
       const counts = await countTargetRows(transaction, metadata);
       const targetHasRows = Object.values(counts).some((count) => count !== 0);
       if (targetHasRows) {
         if (receipt === undefined) {
-          throw new Error('Target is non-empty and has no matching prepared/committed import receipt.');
+          throw new Error(
+            'Target is non-empty and has no matching prepared/committed import receipt.',
+          );
         }
         const actualRows = await readTargetRows(transaction, metadata);
         await reconcileTarget(sourceBundle, actualRows, {
@@ -999,7 +1029,9 @@ export async function importPostgres({
       }
       assertTargetCountsEmpty(counts);
       if (receipt?.state === 'committed') {
-        throw new Error('A committed receipt exists but the target is empty; refusing silent re-import.');
+        throw new Error(
+          'A committed receipt exists but the target is empty; refusing silent re-import.',
+        );
       }
       const emptyCheckedAt = new Date().toISOString();
       receipt = {
@@ -1049,7 +1081,8 @@ export async function reexportPostgres({
   phase,
 }) {
   assertMigrationPhase(phase);
-  if (existsSync(outputManifestPath)) throw new Error(`Output manifest '${outputManifestPath}' exists.`);
+  if (existsSync(outputManifestPath))
+    throw new Error(`Output manifest '${outputManifestPath}' exists.`);
   const targetFingerprint = databaseFingerprint(connectionUrl, targetDatabase, 'postgresql');
   if (targetFingerprint !== expectedTargetFingerprint) {
     throw new Error('PostgreSQL endpoint does not match --expected-target-fingerprint.');
@@ -1057,7 +1090,8 @@ export async function reexportPostgres({
   const sourceBundle = await loadAndVerifySourceBundle(bundleDirectory);
   const expected = expectedReceiptFields(sourceBundle, targetDatabase, targetFingerprint);
   const receipt = readExistingReceipt(resolve(receiptPath), expected);
-  if (receipt?.state !== 'committed') throw new Error('A matching committed import receipt is required.');
+  if (receipt?.state !== 'committed')
+    throw new Error('A matching committed import receipt is required.');
   const receiptBytes = readFileSync(resolve(receiptPath), 'utf8');
   const client = postgresClient(connectionUrl);
   let manifest;

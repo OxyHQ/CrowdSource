@@ -51,7 +51,12 @@ export const COMMUNITY_NOTE_SUBJECTS_PER_LOOKUP_MAX = 50;
  * it can move again as ratings arrive — each move is an append-only revision.
  * `withdrawn` is the writer's own act, and final.
  */
-export const COMMUNITY_NOTE_STATUSES = ['needs_ratings', 'shown', 'not_shown', 'withdrawn'] as const;
+export const COMMUNITY_NOTE_STATUSES = [
+  'needs_ratings',
+  'shown',
+  'not_shown',
+  'withdrawn',
+] as const;
 export const CommunityNoteStatusSchema = z.enum(COMMUNITY_NOTE_STATUSES);
 export type CommunityNoteStatus = z.infer<typeof CommunityNoteStatusSchema>;
 
@@ -120,7 +125,12 @@ export type CommunityNoteWithdrawal = z.infer<typeof CommunityNoteWithdrawalSche
 export const CommunityNoteAssignmentRequestSchema = z.strictObject({
   raterPrincipalId: ExternalIdSchema,
   languages: z.array(LanguageTagSchema).min(1).max(COMMUNITY_NOTE_RATER_LANGUAGES_MAX),
-  limit: z.number().int().min(1).max(COMMUNITY_NOTE_ASSIGNMENT_BATCH_MAX).default(COMMUNITY_NOTE_ASSIGNMENT_BATCH_MAX),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(COMMUNITY_NOTE_ASSIGNMENT_BATCH_MAX)
+    .default(COMMUNITY_NOTE_ASSIGNMENT_BATCH_MAX),
 });
 export type CommunityNoteAssignmentRequest = z.input<typeof CommunityNoteAssignmentRequestSchema>;
 
@@ -134,12 +144,18 @@ export const CommunityNoteRatingSubmissionSchema = z.discriminatedUnion('rating'
   z.strictObject({
     raterPrincipalId: ExternalIdSchema,
     rating: z.literal('helpful'),
-    reasons: z.array(CommunityNoteHelpfulReasonSchema).min(1).max(COMMUNITY_NOTE_HELPFUL_REASONS.length),
+    reasons: z
+      .array(CommunityNoteHelpfulReasonSchema)
+      .min(1)
+      .max(COMMUNITY_NOTE_HELPFUL_REASONS.length),
   }),
   z.strictObject({
     raterPrincipalId: ExternalIdSchema,
     rating: z.literal('not_helpful'),
-    reasons: z.array(CommunityNoteNotHelpfulReasonSchema).min(1).max(COMMUNITY_NOTE_NOT_HELPFUL_REASONS.length),
+    reasons: z
+      .array(CommunityNoteNotHelpfulReasonSchema)
+      .min(1)
+      .max(COMMUNITY_NOTE_NOT_HELPFUL_REASONS.length),
   }),
 ]);
 export type CommunityNoteRatingSubmission = z.infer<typeof CommunityNoteRatingSubmissionSchema>;
@@ -175,7 +191,9 @@ export type CommunityNoteAssignment = Closed<z.infer<typeof CommunityNoteAssignm
 export const CommunityNoteAssignmentBatchSchema = z.looseObject({
   assignments: z.array(CommunityNoteAssignmentSchema).max(COMMUNITY_NOTE_ASSIGNMENT_BATCH_MAX),
 });
-export type CommunityNoteAssignmentBatch = Closed<z.infer<typeof CommunityNoteAssignmentBatchSchema>>;
+export type CommunityNoteAssignmentBatch = Closed<
+  z.infer<typeof CommunityNoteAssignmentBatchSchema>
+>;
 
 /** A rating, as returned to the rater who gave it. Final: there is no update. */
 export const CommunityNoteRatingSchema = z.looseObject({

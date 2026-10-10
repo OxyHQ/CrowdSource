@@ -57,9 +57,7 @@ export default function HistoryScreen() {
           {entries.map((entry, index) => (
             <View
               key={entry.reviewId}
-              className={
-                index < entries.length - 1 ? 'gap-1 border-b border-border pb-3' : 'gap-1'
-              }
+              className={index < entries.length - 1 ? 'gap-1 border-b border-border pb-3' : 'gap-1'}
             >
               {/* Plural: a case is the union of every report about the same
                   material (§7.3), and reporters do not all choose the same

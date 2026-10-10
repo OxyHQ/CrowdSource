@@ -52,7 +52,9 @@ export const ecosystemActivityMiddleware: RequestHandler = (request, response, n
   else next();
 };
 
-export function observeEcosystemSocket(socket: Parameters<ReturnType<typeof createEcosystemTraffic>['observeSocket']>[0]): void {
+export function observeEcosystemSocket(
+  socket: Parameters<ReturnType<typeof createEcosystemTraffic>['observeSocket']>[0],
+): void {
   activity?.observeSocket(socket);
 }
 

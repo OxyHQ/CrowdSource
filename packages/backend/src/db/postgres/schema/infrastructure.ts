@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { boolean, check, doublePrecision, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  check,
+  doublePrecision,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core';
 
 import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 

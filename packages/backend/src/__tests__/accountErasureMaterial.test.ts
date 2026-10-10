@@ -29,8 +29,16 @@ function envelopeNaming(reporter: Record<string, unknown>, author: Record<string
       { principalRef: 'reporter_1', ...reporter },
     ],
     allegations: [
-      { code: 'harassment.targeted_abuse', reporterPrincipalRef: 'reporter_1', details: 'the reporter’s own words' },
-      { code: 'harassment.targeted_abuse', reporterPrincipalRef: 'author_1', details: 'someone else’s words' },
+      {
+        code: 'harassment.targeted_abuse',
+        reporterPrincipalRef: 'reporter_1',
+        details: 'the reporter’s own words',
+      },
+      {
+        code: 'harassment.targeted_abuse',
+        reporterPrincipalRef: 'author_1',
+        details: 'someone else’s words',
+      },
       { code: 'harassment.targeted_abuse', reporterPrincipalRef: 'reporter_1' },
     ],
   };
@@ -49,7 +57,12 @@ describe('eraseFromEnvelope', () => {
     expect(erased.detailsCleared).toBe(1);
     const envelope = CaseEnvelopeSchema.parse(erased.envelope);
     expect(envelope.principalBindings).toEqual([
-      { principalRef: 'author_1', type: 'oxy_user', externalPrincipalId: OTHER, bindingProofId: OTHER },
+      {
+        principalRef: 'author_1',
+        type: 'oxy_user',
+        externalPrincipalId: OTHER,
+        bindingProofId: OTHER,
+      },
       {
         principalRef: 'reporter_1',
         type: 'oxy_user',
@@ -57,7 +70,10 @@ describe('eraseFromEnvelope', () => {
         bindingProofId: ERASED_ACCOUNT,
       },
     ]);
-    expect(envelope.allegations[0]).toEqual({ code: 'harassment.targeted_abuse', reporterPrincipalRef: 'reporter_1' });
+    expect(envelope.allegations[0]).toEqual({
+      code: 'harassment.targeted_abuse',
+      reporterPrincipalRef: 'reporter_1',
+    });
     expect(envelope.allegations[1].details).toBe('someone else’s words');
     // The material is evidence and is not touched.
     expect(envelope.resources).toEqual(stored.resources);
@@ -98,7 +114,11 @@ describe('eraseFromEnvelope', () => {
       { type: 'local_user', externalPrincipalId: OTHER },
       { type: 'local_user', externalPrincipalId: 'someone' },
     );
-    expect(eraseFromEnvelope(stored, PERSON)).toEqual({ envelope: null, bindingsErased: 0, detailsCleared: 0 });
+    expect(eraseFromEnvelope(stored, PERSON)).toEqual({
+      envelope: null,
+      bindingsErased: 0,
+      detailsCleared: 0,
+    });
     expect(eraseFromEnvelope(null, PERSON).envelope).toBeNull();
     expect(eraseFromEnvelope({ principalBindings: 'no' }, PERSON).envelope).toBeNull();
   });
@@ -118,7 +138,10 @@ describe('eraseFromEnvelope', () => {
       allegations: ['odd', { code: 'x', details: 'kept: no reporter ref' }],
     });
 
-    const noAllegations = eraseFromEnvelope({ principalBindings: [{ principalRef: 'p', externalPrincipalId: PERSON }] }, PERSON);
+    const noAllegations = eraseFromEnvelope(
+      { principalBindings: [{ principalRef: 'p', externalPrincipalId: PERSON }] },
+      PERSON,
+    );
     expect(noAllegations.envelope).toEqual({
       principalBindings: [{ principalRef: 'p', externalPrincipalId: ERASED_ACCOUNT }],
       allegations: undefined,
@@ -149,7 +172,10 @@ describe('eraseFromSnapshot', () => {
   });
 
   it('answers null when nothing names the person, or the snapshot is unreadable', () => {
-    expect(eraseFromSnapshot({ principals: [] }, PERSON)).toEqual({ snapshot: null, principalsErased: 0 });
+    expect(eraseFromSnapshot({ principals: [] }, PERSON)).toEqual({
+      snapshot: null,
+      principalsErased: 0,
+    });
     expect(eraseFromSnapshot([], PERSON).snapshot).toBeNull();
   });
 });
@@ -160,7 +186,10 @@ describe('replaceFingerprint', () => {
       fingerprints: ['a', 'stand-in', 'b'],
       replaced: 1,
     });
-    expect(replaceFingerprint(['a'], 'mine', 'stand-in')).toEqual({ fingerprints: ['a'], replaced: 0 });
+    expect(replaceFingerprint(['a'], 'mine', 'stand-in')).toEqual({
+      fingerprints: ['a'],
+      replaced: 0,
+    });
   });
 });
 
@@ -172,10 +201,14 @@ describe('the sentinels and the classifications', () => {
   });
 
   it('records a class for a failure, never its message', () => {
-    expect(errorClassification(Object.assign(new Error('secret row'), { code: '22021' }))).toBe('sqlstate_22021');
+    expect(errorClassification(Object.assign(new Error('secret row'), { code: '22021' }))).toBe(
+      'sqlstate_22021',
+    );
     expect(errorClassification(new TypeError('secret row'))).toBe('TypeError');
     // A Node error code is not a SQLSTATE.
-    expect(errorClassification(Object.assign(new TypeError('x'), { code: 'ERR_INVALID_ARG_TYPE' }))).toBe('TypeError');
+    expect(
+      errorClassification(Object.assign(new TypeError('x'), { code: 'ERR_INVALID_ARG_TYPE' })),
+    ).toBe('TypeError');
     expect(errorClassification('thrown string')).toBe('unknown');
   });
 

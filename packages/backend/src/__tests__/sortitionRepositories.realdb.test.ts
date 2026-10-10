@@ -4,7 +4,10 @@ import { isCheckViolation, isUniqueViolation } from '@oxy.so/db';
 
 import * as sortitionRepository from '../db/postgres/repositories/sortition';
 import { assignments, sortitionDraws } from '../db/postgres/schema/sortition';
-import { createPostgresTestDatabase, type PostgresTestDatabase } from './support/postgresTestDatabase';
+import {
+  createPostgresTestDatabase,
+  type PostgresTestDatabase,
+} from './support/postgresTestDatabase';
 
 /**
  * The jury repositories — `assignments` and `sortition_draws` — against a real
@@ -122,9 +125,7 @@ function drawRow(
 }
 
 /** Inserts fixtures directly, so a repository write is never its own fixture. */
-async function seedAssignments(
-  rows: readonly (typeof assignments.$inferInsert)[],
-): Promise<void> {
+async function seedAssignments(rows: readonly (typeof assignments.$inferInsert)[]): Promise<void> {
   await database.db.insert(assignments).values([...rows]);
 }
 
@@ -534,7 +535,9 @@ describe('recusal and expiry', () => {
   });
 
   it('refuses to recuse a seat that is no longer open', async () => {
-    await seedAssignments([assignmentRow({ assignmentId: 'asg_recuse_closed', status: 'submitted' })]);
+    await seedAssignments([
+      assignmentRow({ assignmentId: 'asg_recuse_closed', status: 'submitted' }),
+    ]);
 
     const recused = await database.db.transaction(async (tx) =>
       sortitionRepository.recuseAssignment(tx, 'asg_recuse_closed', 'conflict_of_interest'),
@@ -568,18 +571,11 @@ describe('recusal and expiry', () => {
 describe('seating a panel and recording its draw', () => {
   it('inserts a seat and points a vacated one at its replacement', async () => {
     await database.db.transaction(async (tx) => {
-      await sortitionRepository.insertAssignment(
-        tx,
-        assignmentRow({ assignmentId: 'asg_seated' }),
-      );
+      await sortitionRepository.insertAssignment(tx, assignmentRow({ assignmentId: 'asg_seated' }));
     });
 
     await seedAssignments([assignmentRow({ assignmentId: 'asg_vacated', status: 'recused' })]);
-    await sortitionRepository.setReplacementAssignment(
-      database.db,
-      'asg_vacated',
-      'asg_seated',
-    );
+    await sortitionRepository.setReplacementAssignment(database.db, 'asg_vacated', 'asg_seated');
 
     const seated = await sortitionRepository.findAssignmentById(database.db, 'asg_seated');
     expect(seated?.assignmentId).toBe('asg_seated');
@@ -700,9 +696,11 @@ describe('the restored closed value sets are enforced by the database', () => {
   });
 
   it('refuses a draw status, kind or pool outside its tuple', async () => {
-    await database.db.insert(sortitionDraws).values(
-      drawRow({ drawId: 'drw_sets_ok', status: 'refused', kind: 'expansion', pool: 'legal' }),
-    );
+    await database.db
+      .insert(sortitionDraws)
+      .values(
+        drawRow({ drawId: 'drw_sets_ok', status: 'refused', kind: 'expansion', pool: 'legal' }),
+      );
     const control = await sortitionRepository.findSortitionDrawById(database.db, 'drw_sets_ok');
     expect(control?.pool, 'the control member was itself rejected').toBe('legal');
 
@@ -761,9 +759,9 @@ describe('the restored closed value sets are enforced by the database', () => {
      * `array_length(col, 1) >= 1` spelling of the one below would not either.
      */
     const empty = await refusalOf(
-      database.db.insert(sortitionDraws).values(
-        drawRow({ drawId: 'drw_slots_empty', status: 'refused', requestedSlots: [] }),
-      ),
+      database.db
+        .insert(sortitionDraws)
+        .values(drawRow({ drawId: 'drw_slots_empty', status: 'refused', requestedSlots: [] })),
     );
     expect(empty, 'containment rejected the empty array, which it cannot do').toBeNull();
   });
@@ -847,7 +845,9 @@ describe('a person cannot be seated twice on one case revision', () => {
     );
 
     expect(again, 'a recused seat stopped reserving the person’s place').not.toBeNull();
-    expect(isUniqueViolation(again, 'assignments_case_id_reviewer_id_case_revision_key')).toBe(true);
+    expect(isUniqueViolation(again, 'assignments_case_id_reviewer_id_case_revision_key')).toBe(
+      true,
+    );
   });
 });
 

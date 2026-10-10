@@ -133,6 +133,12 @@ export function scoreNotes(ratings: readonly ScoringRating[]): NoteScore[] {
     const intercept = noteIntercept.get(noteId) as number;
     const factor = noteFactor.get(noteId) as number;
     const count = ratingCount.get(noteId) as number;
-    return { noteId, intercept, factor, ratingCount: count, status: statusFor(intercept, factor, count) };
+    return {
+      noteId,
+      intercept,
+      factor,
+      ratingCount: count,
+      status: statusFor(intercept, factor, count),
+    };
   });
 }

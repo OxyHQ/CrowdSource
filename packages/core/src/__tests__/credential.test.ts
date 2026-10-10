@@ -110,9 +110,8 @@ describe('the client surface', () => {
       ? false
       : true = true;
     // And the one function that does take one is not on the public surface.
-    const barrelKeys: 'composeCaseEnvelope' extends keyof typeof import('../index')
-      ? false
-      : true = true;
+    const barrelKeys: 'composeCaseEnvelope' extends keyof typeof import('../index') ? false : true =
+      true;
 
     expect([optionKeys, reportKeys, barrelKeys]).toEqual([true, true, true]);
   });

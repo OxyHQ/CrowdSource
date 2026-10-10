@@ -8,7 +8,10 @@ import * as reviewerRepository from '../db/postgres/repositories/reviewers';
 import { reviewerProfiles } from '../db/postgres/schema/reviewers';
 import type { CaseEligibilityCriteria } from '../modules/reviewer/eligibility';
 import { affinityPairKey } from '../modules/reviewer/reviewer.collection';
-import { createPostgresTestDatabase, type PostgresTestDatabase } from './support/postgresTestDatabase';
+import {
+  createPostgresTestDatabase,
+  type PostgresTestDatabase,
+} from './support/postgresTestDatabase';
 
 /**
  * The reviewer person-model repositories, against a real PostgreSQL server.
@@ -207,9 +210,7 @@ describe('reviewer profiles', () => {
       b.reviewerId,
       'rvw_absent',
     ]);
-    expect(found.map((row) => row.reviewerId).sort()).toEqual(
-      [a.reviewerId, b.reviewerId].sort(),
-    );
+    expect(found.map((row) => row.reviewerId).sort()).toEqual([a.reviewerId, b.reviewerId].sort());
 
     /** `inArray(column, [])` renders as `false`, agreeing with Mongo's `$in: []`. */
     expect(await reviewerRepository.findReviewerProfilesByIds(database.db, [])).toEqual([]);
@@ -238,7 +239,9 @@ describe('an empty allegation list draws nobody, as it did on Mongo', () => {
   });
 
   it('draws the reviewer when the case alleges something (the control)', async () => {
-    expect(await drawnReviewerIds(criteriaWith({ families: ['integrity'] }), now)).toEqual([reviewerId]);
+    expect(await drawnReviewerIds(criteriaWith({ families: ['integrity'] }), now)).toEqual([
+      reviewerId,
+    ]);
   });
 
   /**
@@ -256,7 +259,10 @@ describe('an empty allegation list draws nobody, as it did on Mongo', () => {
 
   it('draws the reviewer for a sensitive case that alleges something (the control)', async () => {
     expect(
-      await drawnReviewerIds(criteriaWith({ families: ['integrity'], sensitivity: 'sensitive' }), now),
+      await drawnReviewerIds(
+        criteriaWith({ families: ['integrity'], sensitivity: 'sensitive' }),
+        now,
+      ),
     ).toEqual([reviewerId]);
   });
 
@@ -284,9 +290,9 @@ describe('the eligibility predicate narrows on every dimension it claims to', ()
     expect(await drawnReviewerIds(criteriaWith({ families: ['integrity'] }), now)).toEqual([
       created.reviewerId,
     ]);
-    expect(await drawnReviewerIds(criteriaWith({ families: ['integrity', 'commerce'] }), now)).toEqual(
-      [],
-    );
+    expect(
+      await drawnReviewerIds(criteriaWith({ families: ['integrity', 'commerce'] }), now),
+    ).toEqual([]);
   });
 
   it('applies the language clause only when the case states one', async () => {
@@ -379,7 +385,10 @@ describe('the eligibility predicate narrows on every dimension it claims to', ()
       drawableProfile({ oxyUserId: 'oxy_consent', consentedSensitiveCategories: ['commerce'] }),
     );
     expect(
-      await drawnReviewerIds(criteriaWith({ families: ['integrity'], sensitivity: 'sensitive' }), now),
+      await drawnReviewerIds(
+        criteriaWith({ families: ['integrity'], sensitivity: 'sensitive' }),
+        now,
+      ),
     ).toEqual([]);
   });
 
@@ -422,9 +431,7 @@ describe('reviewer principal links', () => {
        WHERE table_schema = current_schema()
          AND table_name = 'reviewer_principal_links'
        ORDER BY ordinal_position`;
-    expect(columns.map((column) => column.column_name)).not.toContain(
-      'reviewer_principal_link_id',
-    );
+    expect(columns.map((column) => column.column_name)).not.toContain('reviewer_principal_link_id');
 
     const primaryKey = await database.asMigrator<{ column_name: string }[]>`
       SELECT key_usage.column_name
@@ -469,10 +476,7 @@ describe('reviewer principal links', () => {
       ]);
     });
 
-    const links = await reviewerRepository.findReviewerPrincipalLinks(
-      database.db,
-      mine.reviewerId,
-    );
+    const links = await reviewerRepository.findReviewerPrincipalLinks(database.db, mine.reviewerId);
     expect(links.map((link) => link.externalPrincipalId)).toEqual(['ext_three']);
 
     /** The control: a wholesale replace is scoped to ONE reviewer. */
@@ -686,10 +690,12 @@ describe('reviewer affinities', () => {
     });
 
     /** The control: the same pair IS found at a threshold it meets. */
-    expect(await reviewerRepository.findAffinitiesAboveThreshold(database.db, [A, B], 1)).toHaveLength(
-      1,
+    expect(
+      await reviewerRepository.findAffinitiesAboveThreshold(database.db, [A, B], 1),
+    ).toHaveLength(1);
+    expect(await reviewerRepository.findAffinitiesAboveThreshold(database.db, [A, B], 2)).toEqual(
+      [],
     );
-    expect(await reviewerRepository.findAffinitiesAboveThreshold(database.db, [A, B], 2)).toEqual([]);
   });
 
   it('requires BOTH reviewers to be in the sample, not merely one', async () => {
@@ -698,9 +704,9 @@ describe('reviewer affinities', () => {
       await reviewerRepository.recordCoService(tx, affinityPairKey(A, B), A, B, now);
     });
 
-    expect(await reviewerRepository.findAffinitiesAboveThreshold(database.db, [A, B], 1)).toHaveLength(
-      1,
-    );
+    expect(
+      await reviewerRepository.findAffinitiesAboveThreshold(database.db, [A, B], 1),
+    ).toHaveLength(1);
     expect(
       await reviewerRepository.findAffinitiesAboveThreshold(database.db, [A, 'rvw_stranger'], 1),
     ).toEqual([]);
@@ -756,10 +762,7 @@ describe('the restored closed value sets are enforced by the database', () => {
     expect(isCheckViolation(refused, 'reviewer_profiles_state_check')).toBe(true);
 
     /** And the refusal left the row alone rather than half-writing it. */
-    const after = await reviewerRepository.findReviewerProfileById(
-      database.db,
-      created.reviewerId,
-    );
+    const after = await reviewerRepository.findReviewerProfileById(database.db, created.reviewerId);
     expect(after?.state).toBe('specialist');
   });
 
@@ -810,9 +813,7 @@ describe('the fixtures reach the tables under test', () => {
       drawableProfile({ oxyUserId: 'oxy_floor' }),
     );
 
-    const result = await database.db.execute(
-      sql`SELECT count(*)::int AS n FROM reviewer_profiles`,
-    );
+    const result = await database.db.execute(sql`SELECT count(*)::int AS n FROM reviewer_profiles`);
     const [row] = result as unknown as { n: number }[];
     expect(Number(row.n)).toBe(1);
   });

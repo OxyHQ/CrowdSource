@@ -40,10 +40,18 @@
   },
   "typesVersions": {
     "*": {
-      "express": ["./dist/express/index.d.ts"],
-      "outbox": ["./dist/outbox/index.d.ts"],
-      "outbox/postgres": ["./dist/outbox/postgres/index.d.ts"],
-      "testing": ["./dist/testing/index.d.ts"]
+      "express": [
+        "./dist/express/index.d.ts"
+      ],
+      "outbox": [
+        "./dist/outbox/index.d.ts"
+      ],
+      "outbox/postgres": [
+        "./dist/outbox/postgres/index.d.ts"
+      ],
+      "testing": [
+        "./dist/testing/index.d.ts"
+      ]
     }
   },
   "scripts": {

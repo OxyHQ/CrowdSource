@@ -146,7 +146,6 @@ export class CrowdSource {
   }
 }
 
-
 /**
  * Asks CrowdSource which application this client is, once.
  *
@@ -168,7 +167,9 @@ function lazyApplicationId(transport: Transport): Promise<string> {
   // awaits it, so a client that only reads community notes — which never name
   // an application — makes no identity call at all. Awaiting it twice still
   // makes one.
-  return { then: (onFulfilled, onRejected) => resolve().then(onFulfilled, onRejected) } as Promise<string>;
+  return {
+    then: (onFulfilled, onRejected) => resolve().then(onFulfilled, onRejected),
+  } as Promise<string>;
 }
 
 function askApplicationId(transport: Transport): Promise<string> {

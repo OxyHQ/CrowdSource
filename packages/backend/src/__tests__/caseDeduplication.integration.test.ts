@@ -104,9 +104,9 @@ describe('two people report the same version of a post', () => {
     expect(first.body.status).toBe('received');
     expect(second.body.status).toBe('merged');
 
-    expect(await cases.countDocuments(tenant.tenant, { externalSubjectId: subjectExternalId })).toBe(
-      1,
-    );
+    expect(
+      await cases.countDocuments(tenant.tenant, { externalSubjectId: subjectExternalId }),
+    ).toBe(1);
   });
 
   it('keeps a single deduplication key, and counts two distinct reporters', async () => {
@@ -151,13 +151,11 @@ describe('two people report the same version of a post', () => {
   it('publishes case.ready_for_review — exactly once', async () => {
     await drainUntil(
       async () =>
-        (await postgresControl
-          .collection('outbox_events')
-          .countDocuments({
-            type: 'case.ready_for_review',
-            'payload.caseId': first.body.caseId,
-            status: 'dispatched',
-          })) === 1,
+        (await postgresControl.collection('outbox_events').countDocuments({
+          type: 'case.ready_for_review',
+          'payload.caseId': first.body.caseId,
+          status: 'dispatched',
+        })) === 1,
       'sortition consuming case.ready_for_review',
     );
 
@@ -215,9 +213,9 @@ describe('what must NOT merge', () => {
 
     expect(after.body.caseId).not.toBe(before.body.caseId);
     expect(after.body.merged).toBe(false);
-    expect(await cases.countDocuments(tenant.tenant, { externalSubjectId: subjectExternalId })).toBe(
-      2,
-    );
+    expect(
+      await cases.countDocuments(tenant.tenant, { externalSubjectId: subjectExternalId }),
+    ).toBe(2);
 
     const [one, two] = await cases.find(tenant.tenant, { externalSubjectId: subjectExternalId });
     expect(one.contentHash).not.toBe(two.contentHash);
@@ -400,7 +398,8 @@ describe('merging a report into a case that already exists', () => {
       deliveryBody(tenant, `sec-a-${Date.now()}`, { subjectExternalId }),
     );
     await drainUntil(
-      async () => (await cases.findOne(tenant.tenant, { caseId: opened.body.caseId }))?.triagedAt !== null,
+      async () =>
+        (await cases.findOne(tenant.tenant, { caseId: opened.body.caseId }))?.triagedAt !== null,
       'the first triage',
     );
     await deliver(
@@ -411,7 +410,8 @@ describe('merging a report into a case that already exists', () => {
       }),
     );
     await drainUntil(
-      async () => (await cases.findOne(tenant.tenant, { caseId: opened.body.caseId }))?.reportCount === 2,
+      async () =>
+        (await cases.findOne(tenant.tenant, { caseId: opened.body.caseId }))?.reportCount === 2,
       're-triage after the merge',
     );
 

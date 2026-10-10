@@ -93,9 +93,7 @@ describe('the staff check', () => {
     const tenant = await provisionTenant();
 
     for (const path of STAFF_READS) {
-      const refused = await request(app)
-        .get(path)
-        .set('authorization', `Bearer ${tenant.token}`);
+      const refused = await request(app).get(path).set('authorization', `Bearer ${tenant.token}`);
       expect(refused.status, path).toBe(401);
     }
   });
@@ -129,15 +127,15 @@ describe('the staff check', () => {
 
   it('stops at revocation', async () => {
     const operator = await staffWith('security');
-    expect(
-      (await request(app).get('/v1/trust-safety/metrics').set(asUser(operator))).status,
-    ).toBe(200);
+    expect((await request(app).get('/v1/trust-safety/metrics').set(asUser(operator))).status).toBe(
+      200,
+    );
 
     await revokeStaff(operator);
 
-    expect(
-      (await request(app).get('/v1/trust-safety/metrics').set(asUser(operator))).status,
-    ).toBe(403);
+    expect((await request(app).get('/v1/trust-safety/metrics').set(asUser(operator))).status).toBe(
+      403,
+    );
   });
 
   it('is not reachable through the developer console, and vice versa', async () => {
@@ -247,9 +245,7 @@ describe('standing changes', () => {
 
     expect(attempted.status).toBe(200);
     expect(attempted.body.globalReputationEffectsAllowed).toBe(false);
-    expect((await applicationTrustFor(tenant.tenant)).globalReputationEffectsAllowed).toBe(
-      false,
-    );
+    expect((await applicationTrustFor(tenant.tenant)).globalReputationEffectsAllowed).toBe(false);
   });
 
   it('refuses a reason outside the closed vocabulary', async () => {
@@ -281,8 +277,8 @@ describe('standing changes', () => {
       .set(asUser(security));
 
     expect(restricted.status).toBe(200);
-    const ids = restricted.body.applications.map((row: { applicationId: string }) =>
-      row.applicationId,
+    const ids = restricted.body.applications.map(
+      (row: { applicationId: string }) => row.applicationId,
     );
     expect(ids).toContain(first.applicationId);
     expect(ids).not.toContain(second.applicationId);
@@ -356,14 +352,23 @@ describe('standing changes', () => {
       await cases.updateOne(
         tenant.tenant,
         { caseId: delivered.body.caseId },
-        { set: { escalated: true, status: 'escalated', sensitivityClass: 'restricted', reviewPool: 'specialist' } },
+        {
+          set: {
+            escalated: true,
+            status: 'escalated',
+            sensitivityClass: 'restricted',
+            reviewPool: 'specialist',
+          },
+        },
       );
     }
 
     const queue = await request(app).get('/v1/trust-safety/escalated').set(asUser(operator));
     expect(queue.status).toBe(200);
 
-    const applicationIds = queue.body.cases.map((row: { applicationId: string }) => row.applicationId);
+    const applicationIds = queue.body.cases.map(
+      (row: { applicationId: string }) => row.applicationId,
+    );
     expect(applicationIds).toContain(first.applicationId);
     expect(applicationIds).toContain(second.applicationId);
 
@@ -461,7 +466,7 @@ describe('the standing gate on ingestion (§11.13, §13.1)', () => {
     expect(refused.body.error.message).toContain('restricted');
   });
 
-  it('answers 429 when the day\'s quota is spent, so the outbox retries tomorrow', async () => {
+  it("answers 429 when the day's quota is spent, so the outbox retries tomorrow", async () => {
     const tenant = await provisionTenant();
     const limit = quotaFor('sandbox').reportsPerDay;
 

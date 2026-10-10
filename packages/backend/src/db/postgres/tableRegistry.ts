@@ -92,7 +92,12 @@ export type UnscopedReason =
    * yields the tenant. A policy on these tables would leave the service unable to
    * authenticate anybody.
    */
-  | { kind: 'defines_the_tenant'; shape: TenantColumnShape; why: string; readers: readonly string[] }
+  | {
+      kind: 'defines_the_tenant';
+      shape: TenantColumnShape;
+      why: string;
+      readers: readonly string[];
+    }
   /**
    * The row has no tenant dimension at all. A reviewer is a person drawn across
    * every application; a staff member acts across every tenant; a co-service pair
@@ -116,7 +121,12 @@ export type UnscopedReason =
    * Shape pinned to a literal: a table filed here that does not carry both
    * columns `NOT NULL` cannot be expressed.
    */
-  | { kind: 'tenant_stamped_reached_through_parent'; shape: 'both_not_null'; why: string; readers: readonly string[] }
+  | {
+      kind: 'tenant_stamped_reached_through_parent';
+      shape: 'both_not_null';
+      why: string;
+      readers: readonly string[];
+    }
   /**
    * The row NAMES a tenant without BELONGING to one. The tenant is an attribute of
    * the fact recorded rather than its owner, so no predicate is right: filtering
@@ -131,7 +141,12 @@ export type UnscopedReason =
    * later, which is exactly the sort of statement nobody goes back to check. A
    * property of the ROW stays true either way.
    */
-  | { kind: 'tenant_attributed_not_tenant_owned'; shape: TenantColumnShape; why: string; readers: readonly string[] };
+  | {
+      kind: 'tenant_attributed_not_tenant_owned';
+      shape: TenantColumnShape;
+      why: string;
+      readers: readonly string[];
+    };
 
 /**
  * Exempt, each with the kind of exemption, the tenant columns it claims to carry,

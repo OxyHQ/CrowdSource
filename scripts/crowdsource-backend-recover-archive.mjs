@@ -56,10 +56,15 @@ function parseArguments(argv) {
   for (const token of argv) {
     const match = /^--(archive|output)=(.+)$/.exec(token);
     if (match === null) throw new Error(`Invalid archive recovery option '${token}'.`);
-    if (options[match[1]] !== undefined) throw new Error(`Option '--${match[1]}' was supplied twice.`);
+    if (options[match[1]] !== undefined)
+      throw new Error(`Option '--${match[1]}' was supplied twice.`);
     options[match[1]] = match[2];
   }
-  if (Object.keys(options).length !== 2 || options.archive === undefined || options.output === undefined) {
+  if (
+    Object.keys(options).length !== 2 ||
+    options.archive === undefined ||
+    options.output === undefined
+  ) {
     throw new Error('Archive recovery requires exactly --archive and --output.');
   }
   return options;
@@ -84,9 +89,14 @@ function assertLocalRecoveryDocker() {
     throw new Error('Archive recovery refuses Docker endpoint overrides.');
   }
   const context = runDocker(['context', 'show']).stdout.trim();
-  if (context !== 'default') throw new Error('Archive recovery requires the local default Docker context.');
+  if (context !== 'default')
+    throw new Error('Archive recovery requires the local default Docker context.');
   const endpoint = runDocker([
-    'context', 'inspect', 'default', '--format', '{{(index .Endpoints "docker").Host}}',
+    'context',
+    'inspect',
+    'default',
+    '--format',
+    '{{(index .Endpoints "docker").Host}}',
   ]).stdout.trim();
   if (endpoint !== 'unix:///var/run/docker.sock') {
     throw new Error('Archive recovery requires the local Docker Unix socket.');
@@ -100,9 +110,18 @@ function waitForMongo(containerName, uid, gid) {
     const probe = spawnSync(
       'docker',
       [
-        'exec', '--user', `${uid}:${gid}`, containerName,
-        'mongosh', '--host', '127.0.0.1', '--port', '27017', '--quiet',
-        '--eval', 'quit(db.adminCommand({ping:1}).ok === 1 ? 0 : 1)',
+        'exec',
+        '--user',
+        `${uid}:${gid}`,
+        containerName,
+        'mongosh',
+        '--host',
+        '127.0.0.1',
+        '--port',
+        '27017',
+        '--quiet',
+        '--eval',
+        'quit(db.adminCommand({ping:1}).ok === 1 ? 0 : 1)',
       ],
       { encoding: 'utf8', timeout: 2_000, env: dockerEnvironment() },
     );
@@ -154,13 +173,15 @@ async function recover(options) {
   try {
     archiveDescriptor = openSync(archive, constants.O_RDONLY | constants.O_NOFOLLOW);
     const archiveStat = fstatSync(archiveDescriptor);
-    if (!archiveStat.isFile()) throw new Error('Pinned archive input is absent or not a regular file.');
+    if (!archiveStat.isFile())
+      throw new Error('Pinned archive input is absent or not a regular file.');
     if ((archiveStat.mode & 0o077) !== 0) {
       throw new Error('Pinned archive input must be private (mode 0600 or stricter).');
     }
     archiveBytes = readFileSync(archiveDescriptor);
   } catch (error) {
-    if (error?.code === 'ELOOP') throw new Error('Pinned archive input must not be a symbolic link.');
+    if (error?.code === 'ELOOP')
+      throw new Error('Pinned archive input must not be a symbolic link.');
     throw error;
   } finally {
     if (archiveDescriptor !== undefined) closeSync(archiveDescriptor);
@@ -200,42 +221,91 @@ async function recover(options) {
   let cleanupFailed = false;
   try {
     runDocker([
-      'run', '--detach', '--pull=never', '--network=none', '--read-only',
-      '--cap-drop=ALL', '--security-opt=no-new-privileges', '--pids-limit=256',
-      '--memory=512m', '--cpus=1', '--user', `${uid}:${gid}`,
-      '--tmpfs', `/data/db:rw,noexec,nosuid,nodev,size=64m,uid=${uid},gid=${gid},mode=0700`,
-      '--tmpfs', `/tmp:rw,noexec,nosuid,nodev,size=16m,uid=${uid},gid=${gid},mode=0700`,
-      '--volume', `${rawDirectory}:/evidence:rw`,
-      '--volume', `${extractor}:/tool/recover.js:ro`,
-      '--name', containerName,
-      '--entrypoint', 'mongod',
+      'run',
+      '--detach',
+      '--pull=never',
+      '--network=none',
+      '--read-only',
+      '--cap-drop=ALL',
+      '--security-opt=no-new-privileges',
+      '--pids-limit=256',
+      '--memory=512m',
+      '--cpus=1',
+      '--user',
+      `${uid}:${gid}`,
+      '--tmpfs',
+      `/data/db:rw,noexec,nosuid,nodev,size=64m,uid=${uid},gid=${gid},mode=0700`,
+      '--tmpfs',
+      `/tmp:rw,noexec,nosuid,nodev,size=16m,uid=${uid},gid=${gid},mode=0700`,
+      '--volume',
+      `${rawDirectory}:/evidence:rw`,
+      '--volume',
+      `${extractor}:/tool/recover.js:ro`,
+      '--name',
+      containerName,
+      '--entrypoint',
+      'mongod',
       FINAL_BACKUP_RECOVERY_PROFILE.recoveryImage,
-      '--dbpath', '/data/db', '--bind_ip', '127.0.0.1', '--port', '27017',
-      '--nounixsocket', '--setParameter', 'diagnosticDataCollectionEnabled=false',
+      '--dbpath',
+      '/data/db',
+      '--bind_ip',
+      '127.0.0.1',
+      '--port',
+      '27017',
+      '--nounixsocket',
+      '--setParameter',
+      'diagnosticDataCollectionEnabled=false',
     ]);
     containerCreated = true;
     waitForMongo(containerName, uid, gid);
     runDocker(
       [
-        'exec', '--interactive', '--user', `${uid}:${gid}`, containerName,
-        'mongorestore', '--host', '127.0.0.1', '--port', '27017',
-        '--archive', '--gzip', '--quiet', '--stopOnError', '--noIndexRestore',
+        'exec',
+        '--interactive',
+        '--user',
+        `${uid}:${gid}`,
+        containerName,
+        'mongorestore',
+        '--host',
+        '127.0.0.1',
+        '--port',
+        '27017',
+        '--archive',
+        '--gzip',
+        '--quiet',
+        '--stopOnError',
+        '--noIndexRestore',
         '--numParallelCollections=1',
       ],
       { input: archiveEvidence.archiveBytes, timeout: 15 * 60_000 },
     );
     runDocker([
-      'exec', '--user', `${uid}:${gid}`,
-      '--env', `CROWDSOURCE_RECOVERY_DATABASE=${FINAL_BACKUP_RECOVERY_PROFILE.databaseName}`,
-      '--env', 'CROWDSOURCE_RECOVERY_RAW_DIRECTORY=/evidence',
-      '--env', `CROWDSOURCE_RECOVERY_DATASETS=${canonicalJson(BACKEND_DATASETS.map((dataset) => dataset.name))}`,
-      '--env', `CROWDSOURCE_RECOVERY_EXPECTED_COUNTS=${canonicalJson(FINAL_BACKUP_RECOVERY_PROFILE.expectedCounts)}`,
+      'exec',
+      '--user',
+      `${uid}:${gid}`,
+      '--env',
+      `CROWDSOURCE_RECOVERY_DATABASE=${FINAL_BACKUP_RECOVERY_PROFILE.databaseName}`,
+      '--env',
+      'CROWDSOURCE_RECOVERY_RAW_DIRECTORY=/evidence',
+      '--env',
+      `CROWDSOURCE_RECOVERY_DATASETS=${canonicalJson(BACKEND_DATASETS.map((dataset) => dataset.name))}`,
+      '--env',
+      `CROWDSOURCE_RECOVERY_EXPECTED_COUNTS=${canonicalJson(FINAL_BACKUP_RECOVERY_PROFILE.expectedCounts)}`,
       containerName,
-      'mongosh', '--host', '127.0.0.1', '--port', '27017', '--quiet',
-      '--file', '/tool/recover.js',
+      'mongosh',
+      '--host',
+      '127.0.0.1',
+      '--port',
+      '27017',
+      '--quiet',
+      '--file',
+      '/tool/recover.js',
     ]);
 
-    const census = readJsonFile(join(rawDirectory, 'archive-census.json'), 'Archive recovery census');
+    const census = readJsonFile(
+      join(rawDirectory, 'archive-census.json'),
+      'Archive recovery census',
+    );
     validateArchiveRecoveryEvidence({
       archiveBytes: archiveEvidence.archiveBytes,
       census,
@@ -251,7 +321,9 @@ async function recover(options) {
       profile: FINAL_BACKUP_RECOVERY_PROFILE,
     });
   } catch (error) {
-    process.stderr.write(`Private recovery evidence remains at '${rawDirectory}' with mode 0700.\n`);
+    process.stderr.write(
+      `Private recovery evidence remains at '${rawDirectory}' with mode 0700.\n`,
+    );
     recoveryError = error;
   } finally {
     if (containerCreated) {
@@ -263,7 +335,8 @@ async function recover(options) {
       cleanupFailed = cleanup.error !== undefined || cleanup.status !== 0;
     }
   }
-  if (cleanupFailed) throw new Error('Archive recovery could not remove its exact isolated container.');
+  if (cleanupFailed)
+    throw new Error('Archive recovery could not remove its exact isolated container.');
   if (recoveryError !== undefined) throw recoveryError;
   process.stdout.write(`Verified final-backup source bundle created at '${output}'.\n`);
 }

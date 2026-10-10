@@ -1,25 +1,24 @@
-const pkg = require('./package.json')
+const pkg = require('./package.json');
 
-module.exports = function(_config) {
-
+module.exports = function (_config) {
   /**
    * App version number. Should be incremented as part of a release cycle.
    */
-  const VERSION = pkg.version
+  const VERSION = pkg.version;
 
-  const APP_ENV = process.env.EXPO_PUBLIC_ENV ?? 'development'
-  const VALID_APP_ENVS = ['development', 'testflight', 'production']
+  const APP_ENV = process.env.EXPO_PUBLIC_ENV ?? 'development';
+  const VALID_APP_ENVS = ['development', 'testflight', 'production'];
   if (!VALID_APP_ENVS.includes(APP_ENV)) {
     throw new Error(
       `Invalid EXPO_PUBLIC_ENV "${APP_ENV}". Expected one of: ${VALID_APP_ENVS.join(', ')}`,
-    )
+    );
   }
-  const IS_DEV = APP_ENV === 'development'
-  const DEV_HOST = process.env.EXPO_PUBLIC_DEV_HOST?.trim()
+  const IS_DEV = APP_ENV === 'development';
+  const DEV_HOST = process.env.EXPO_PUBLIC_DEV_HOST?.trim();
   if (DEV_HOST && !/^[a-zA-Z0-9.-]+$/.test(DEV_HOST)) {
     throw new Error(
       'Invalid EXPO_PUBLIC_DEV_HOST. Provide a hostname or IP without a scheme or port.',
-    )
+    );
   }
 
   /**
@@ -27,9 +26,9 @@ module.exports = function(_config) {
    * SAME device by giving it a distinct applicationId/bundleId + name. Build the
    * dev variant with `APP_VARIANT=development`; production is the default.
    */
-  const IS_DEV_VARIANT = process.env.APP_VARIANT === 'development'
-  const APP_ID = IS_DEV_VARIANT ? 'so.oxy.crowdsource.dev' : 'so.oxy.crowdsource'
-  const APP_NAME = IS_DEV_VARIANT ? 'CrowdSource (Dev)' : 'CrowdSource'
+  const IS_DEV_VARIANT = process.env.APP_VARIANT === 'development';
+  const APP_ID = IS_DEV_VARIANT ? 'so.oxy.crowdsource.dev' : 'so.oxy.crowdsource';
+  const APP_NAME = IS_DEV_VARIANT ? 'CrowdSource (Dev)' : 'CrowdSource';
 
   return {
     expo: {
@@ -89,11 +88,12 @@ module.exports = function(_config) {
                 host: 'localhost',
                 port: '8081',
               },
-              IS_DEV && DEV_HOST && {
-                scheme: 'http',
-                host: DEV_HOST,
-                port: '8081',
-              },
+              IS_DEV &&
+                DEV_HOST && {
+                  scheme: 'http',
+                  host: DEV_HOST,
+                  port: '8081',
+                },
             ].filter(Boolean),
             category: ['BROWSABLE', 'DEFAULT'],
           },
@@ -160,9 +160,7 @@ module.exports = function(_config) {
             ios: {
               deploymentTarget: '16.4',
               entitlements: {
-                'keychain-access-groups': [
-                  '$(AppIdentifierPrefix)group.so.oxy.shared',
-                ],
+                'keychain-access-groups': ['$(AppIdentifierPrefix)group.so.oxy.shared'],
               },
             },
             android: {
@@ -192,5 +190,5 @@ module.exports = function(_config) {
       },
       owner: 'oxyhq',
     },
-  }
-}
+  };
+};

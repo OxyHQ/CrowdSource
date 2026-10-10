@@ -54,9 +54,7 @@ describe('config', () => {
       DATABASE_URL: 'postgres://crowdsource_app:secret@db.internal/crowdsource',
     });
 
-    expect(config.databaseUrl).toBe(
-      'postgres://crowdsource_app:secret@db.internal/crowdsource',
-    );
+    expect(config.databaseUrl).toBe('postgres://crowdsource_app:secret@db.internal/crowdsource');
   });
 
   /**
@@ -73,8 +71,8 @@ describe('config', () => {
    * catchable, which is what this refusal buys.
    */
   it('refuses to boot without DATABASE_URL', async () => {
-    await expect(
-      loadConfigModule({ NODE_ENV: 'test', DATABASE_URL: '' }),
-    ).rejects.toThrow(/Invalid environment configuration.*DATABASE_URL/s);
+    await expect(loadConfigModule({ NODE_ENV: 'test', DATABASE_URL: '' })).rejects.toThrow(
+      /Invalid environment configuration.*DATABASE_URL/s,
+    );
   });
 });

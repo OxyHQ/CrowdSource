@@ -35,7 +35,6 @@ import { startWebhookApp, type RunningWebhookApp } from './support/webhookApp.js
  * visible, and the mutation script matches on the leaf.
  */
 describe.each(BACKENDS)('$name', (backend) => {
-
   let wired: ReviewOnlyHarness | null = null;
   let app: RunningWebhookApp | null = null;
 
@@ -194,9 +193,7 @@ describe.each(BACKENDS)('$name', (backend) => {
       if (caseId === undefined) throw new Error('the report was never given a case id');
 
       const simulator = new WebhookSimulator({ secret: REVIEW_ONLY_WEBHOOK_SECRET, url: app.url });
-      const event = built.sandbox.eventFor(
-        built.sandbox.decide(caseId, { outcome: 'violation' }),
-      );
+      const event = built.sandbox.eventFor(built.sandbox.decide(caseId, { outcome: 'violation' }));
       await simulator.deliver(event);
       await simulator.deliver(event);
 
@@ -215,5 +212,4 @@ describe.each(BACKENDS)('$name', (backend) => {
       expect(await built.events.count()).toBe(1);
     });
   });
-
 });

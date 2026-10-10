@@ -50,9 +50,7 @@ describe('§8.6’s escalation ladder', () => {
   });
 
   it('runs out rather than inventing a round beyond the ladder', () => {
-    expect(() => panelSpecFor('community', MAX_PANEL_ROUND + 1)).toThrow(
-      /No panel specification/,
-    );
+    expect(() => panelSpecFor('community', MAX_PANEL_ROUND + 1)).toThrow(/No panel specification/);
     expect(() => panelSpecFor('community', 0)).toThrow(/No panel specification/);
   });
 
@@ -105,9 +103,9 @@ describe('§8.3’s slot requirements reject as well as accept', () => {
   });
 
   it('holds the state floor', () => {
-    expect(
-      satisfiesSlot('reliable_general', { ...capable, state: 'calibrating' }, null),
-    ).toBe(false);
+    expect(satisfiesSlot('reliable_general', { ...capable, state: 'calibrating' }, null)).toBe(
+      false,
+    );
     expect(
       satisfiesSlot('category_specialist', { ...capable, state: 'trusted' }, 'harassment'),
     ).toBe(false);

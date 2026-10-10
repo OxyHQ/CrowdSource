@@ -32,7 +32,10 @@ export default function ConsoleLayout() {
 
   return (
     <View
-      className={cn('w-full flex-1 bg-background', isRailFixed ? 'flex-row justify-center' : 'flex-col')}
+      className={cn(
+        'w-full flex-1 bg-background',
+        isRailFixed ? 'flex-row justify-center' : 'flex-col',
+      )}
     >
       <SideBar />
       {/* The panel, never wider than 1440px however wide the window gets, so a

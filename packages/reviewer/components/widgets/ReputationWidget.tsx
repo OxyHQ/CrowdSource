@@ -108,9 +108,7 @@ export function ReputationWidget({ divider }: { divider?: boolean }) {
         {hasEarned ? (
           <View className="flex-row items-baseline gap-2">
             <Text className="text-2xl font-bold text-foreground">{balance.total}</Text>
-            <Text className="text-sm text-muted-foreground">
-              {t('rightBar.reputation.points')}
-            </Text>
+            <Text className="text-sm text-muted-foreground">{t('rightBar.reputation.points')}</Text>
           </View>
         ) : (
           <View className="flex-row items-center gap-2">

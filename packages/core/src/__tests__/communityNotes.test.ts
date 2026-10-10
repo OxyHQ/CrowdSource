@@ -44,7 +44,11 @@ function client(responses: readonly Response[]): { crowdsource: CrowdSource; cal
     return next;
   };
   return {
-    crowdsource: new CrowdSource({ serviceKey: SERVICE_KEY, baseUrl: 'https://api.crowdsource.oxy.so', fetch: fetchImpl }),
+    crowdsource: new CrowdSource({
+      serviceKey: SERVICE_KEY,
+      baseUrl: 'https://api.crowdsource.oxy.so',
+      fetch: fetchImpl,
+    }),
     calls,
   };
 }
@@ -77,14 +81,21 @@ describe('writing and withdrawing', () => {
     expect(await crowdsource.communityNotes.write(SUBMISSION)).toEqual(NOTE);
     await crowdsource.communityNotes.write({ ...SUBMISSION, text: 'Retry of the same note' });
 
-    expect(calls[0]).toMatchObject({ url: 'https://api.crowdsource.oxy.so/v1/community-notes', method: 'POST', body: SUBMISSION });
+    expect(calls[0]).toMatchObject({
+      url: 'https://api.crowdsource.oxy.so/v1/community-notes',
+      method: 'POST',
+      body: SUBMISSION,
+    });
     expect(calls[0]?.idempotencyKey).toMatch(/^community-note\.[0-9a-f]{64}$/);
     expect(calls[0]?.idempotencyKey).not.toContain('user_writer');
     expect(calls[1]?.idempotencyKey).toBe(calls[0]?.idempotencyKey);
   });
 
   it('honours an explicit key, and withdraws by note', async () => {
-    const { crowdsource, calls } = client([json(201, NOTE), json(200, { ...NOTE, status: 'withdrawn' })]);
+    const { crowdsource, calls } = client([
+      json(201, NOTE),
+      json(200, { ...NOTE, status: 'withdrawn' }),
+    ]);
     await crowdsource.communityNotes.write(SUBMISSION, { idempotencyKey: 'mine' });
     const withdrawn = await crowdsource.communityNotes.withdraw(NOTE.id, 'user_writer');
 
@@ -101,19 +112,37 @@ describe('writing and withdrawing', () => {
 describe('rating', () => {
   it('draws with the caller key and rates under a key derived from note and rater', async () => {
     const assignment = { id: 'cna_1', note: NOTE, expiresAt: '2026-09-02T10:00:00.000Z' };
-    const rating = { id: 'cnr_1', noteId: NOTE.id, rating: 'helpful', reasons: ['relevant'], ratedAt: '2026-09-01T11:00:00.000Z' };
-    const { crowdsource, calls } = client([json(200, { assignments: [assignment] }), json(201, rating)]);
+    const rating = {
+      id: 'cnr_1',
+      noteId: NOTE.id,
+      rating: 'helpful',
+      reasons: ['relevant'],
+      ratedAt: '2026-09-01T11:00:00.000Z',
+    };
+    const { crowdsource, calls } = client([
+      json(200, { assignments: [assignment] }),
+      json(201, rating),
+    ]);
 
     const drawn = await crowdsource.communityNotes.drawToRate(
       { raterPrincipalId: 'user_rater', languages: ['es'] },
       { idempotencyKey: 'draw-1' },
     );
     expect(drawn).toEqual([assignment]);
-    expect(calls[0]).toMatchObject({ url: 'https://api.crowdsource.oxy.so/v1/community-notes/assignments', idempotencyKey: 'draw-1' });
+    expect(calls[0]).toMatchObject({
+      url: 'https://api.crowdsource.oxy.so/v1/community-notes/assignments',
+      idempotencyKey: 'draw-1',
+    });
 
-    const rated = await crowdsource.communityNotes.rate(NOTE.id, { raterPrincipalId: 'user_rater', rating: 'helpful', reasons: ['relevant'] });
+    const rated = await crowdsource.communityNotes.rate(NOTE.id, {
+      raterPrincipalId: 'user_rater',
+      rating: 'helpful',
+      reasons: ['relevant'],
+    });
     expect(rated).toEqual(rating);
-    expect(calls[1]?.url).toBe(`https://api.crowdsource.oxy.so/v1/community-notes/${NOTE.id}/ratings`);
+    expect(calls[1]?.url).toBe(
+      `https://api.crowdsource.oxy.so/v1/community-notes/${NOTE.id}/ratings`,
+    );
     expect(calls[1]?.idempotencyKey).toMatch(/^community-note-rating\.[0-9a-f]{64}$/);
   });
 });
@@ -125,14 +154,28 @@ describe('reads', () => {
     const shown = await crowdsource.communityNotes.shown(['post_1', 'post 2', 'post_1']);
     expect(shown).toHaveLength(1);
     expect(calls).toHaveLength(1);
-    expect(calls[0]).toMatchObject({ method: 'GET', url: 'https://api.crowdsource.oxy.so/v1/community-notes/shown?subjects=post_1,post%202' });
+    expect(calls[0]).toMatchObject({
+      method: 'GET',
+      url: 'https://api.crowdsource.oxy.so/v1/community-notes/shown?subjects=post_1,post%202',
+    });
   });
 
   it("reads a principal's own notes and ratings", async () => {
-    const rating = { id: 'cnr_1', noteId: NOTE.id, rating: 'not_helpful', reasons: ['incorrect'], ratedAt: '2026-09-01T11:00:00.000Z' };
-    const { crowdsource, calls } = client([json(200, { notes: [NOTE] }), json(200, { ratings: [{ rating, note: NOTE }] })]);
+    const rating = {
+      id: 'cnr_1',
+      noteId: NOTE.id,
+      rating: 'not_helpful',
+      reasons: ['incorrect'],
+      ratedAt: '2026-09-01T11:00:00.000Z',
+    };
+    const { crowdsource, calls } = client([
+      json(200, { notes: [NOTE] }),
+      json(200, { ratings: [{ rating, note: NOTE }] }),
+    ]);
     expect(await crowdsource.communityNotes.writtenBy('user_writer')).toEqual([NOTE]);
-    expect(await crowdsource.communityNotes.ratedBy('user_rater')).toEqual([{ rating, note: NOTE }]);
+    expect(await crowdsource.communityNotes.ratedBy('user_rater')).toEqual([
+      { rating, note: NOTE },
+    ]);
     expect(calls.map((call) => call.url)).toEqual([
       'https://api.crowdsource.oxy.so/v1/community-notes/principals/user_writer/notes',
       'https://api.crowdsource.oxy.so/v1/community-notes/principals/user_rater/ratings',
@@ -141,6 +184,8 @@ describe('reads', () => {
 
   it('refuses a response it does not recognise', async () => {
     const { crowdsource } = client([json(200, { notes: [{ id: 'x' }] })]);
-    await expect(crowdsource.communityNotes.writtenBy('user_writer')).rejects.toBeInstanceOf(CrowdSourceTransportError);
+    await expect(crowdsource.communityNotes.writtenBy('user_writer')).rejects.toBeInstanceOf(
+      CrowdSourceTransportError,
+    );
   });
 });

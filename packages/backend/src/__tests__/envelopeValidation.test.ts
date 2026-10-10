@@ -174,8 +174,6 @@ describe('assertNoUnsafeUrls', () => {
    * to the validated address.
    */
   it('does not claim to resolve hostnames; safeFetch does that at fetch time', () => {
-    expect(() =>
-      assertNoUnsafeUrls(withLink('https://internal.example.com/admin')),
-    ).not.toThrow();
+    expect(() => assertNoUnsafeUrls(withLink('https://internal.example.com/admin'))).not.toThrow();
   });
 });

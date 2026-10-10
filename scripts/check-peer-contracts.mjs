@@ -30,11 +30,11 @@
  * which is how `test-check-peer-contracts.mjs` mutation-tests it.
  */
 
-import { readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const CONTRACTS = "@crowdsource.you/contracts";
+const CONTRACTS = '@crowdsource.you/contracts';
 /**
  * Every published package that consumes the contracts package.
  *
@@ -43,20 +43,20 @@ const CONTRACTS = "@crowdsource.you/contracts";
  * there is one manifest that can get this wrong instead of four that had to
  * agree with each other.
  */
-const CONSUMERS = ["core"];
+const CONSUMERS = ['core'];
 
 const repositoryRoot =
   process.argv[2] === undefined
-    ? resolve(dirname(fileURLToPath(import.meta.url)), "..")
+    ? resolve(dirname(fileURLToPath(import.meta.url)), '..')
     : resolve(process.argv[2]);
 
 const failures = [];
 
-const contracts = await readManifest("contracts");
+const contracts = await readManifest('contracts');
 const contractsVersion = contracts?.version;
 
-if (typeof contractsVersion !== "string" || contractsVersion.length === 0) {
-  failures.push("packages/contracts/package.json declares no version.");
+if (typeof contractsVersion !== 'string' || contractsVersion.length === 0) {
+  failures.push('packages/contracts/package.json declares no version.');
 }
 
 for (const name of CONSUMERS) {
@@ -74,47 +74,50 @@ for (const name of CONSUMERS) {
   if (asDependency !== undefined) {
     failures.push(
       `${label} declares ${CONTRACTS} in dependencies ("${asDependency}"). ` +
-        "It must be a peerDependency, or an adopter who bumps contracts gets a second nested copy " +
-        "and every webhook delivery starts answering 400 with no type error anywhere.",
+        'It must be a peerDependency, or an adopter who bumps contracts gets a second nested copy ' +
+        'and every webhook delivery starts answering 400 with no type error anywhere.',
     );
   }
 
   if (range === undefined) {
     failures.push(
       `${label} declares no peerDependency on ${CONTRACTS}. ` +
-        "The types it returns come from that package; an adopter must own its version.",
+        'The types it returns come from that package; an adopter must own its version.',
     );
-  } else if (typeof contractsVersion === "string" && !Bun.semver.satisfies(contractsVersion, range)) {
+  } else if (
+    typeof contractsVersion === 'string' &&
+    !Bun.semver.satisfies(contractsVersion, range)
+  ) {
     failures.push(
       `${label} peer-depends on ${CONTRACTS}@"${range}", which does NOT admit ` +
         `${contractsVersion} — the version in this workspace. An adopter following that range ` +
-        "installs a copy this package was never built against.",
+        'installs a copy this package was never built against.',
     );
   }
 
   if (asDevDependency === undefined) {
     failures.push(
       `${label} must also declare ${CONTRACTS} in devDependencies ` +
-        "(a peer is not installed for you, so this workspace could not build or test itself).",
+        '(a peer is not installed for you, so this workspace could not build or test itself).',
     );
   }
 }
 
 if (failures.length > 0) {
-  console.error("Contracts peer-dependency check failed:\n");
+  console.error('Contracts peer-dependency check failed:\n');
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
 
 console.log(
   `${CONTRACTS}@${contractsVersion} is admitted by the peer range of all ${CONSUMERS.length} consumer(s), ` +
-    "and none of them bundles it as a normal dependency.",
+    'and none of them bundles it as a normal dependency.',
 );
 
 async function readManifest(packageDirectory) {
   try {
     return JSON.parse(
-      await readFile(resolve(repositoryRoot, "packages", packageDirectory, "package.json"), "utf8"),
+      await readFile(resolve(repositoryRoot, 'packages', packageDirectory, 'package.json'), 'utf8'),
     );
   } catch {
     return null;

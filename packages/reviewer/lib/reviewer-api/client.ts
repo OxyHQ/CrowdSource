@@ -222,10 +222,7 @@ export function getAssignment(assignmentId: string): Promise<unknown> {
   });
 }
 
-export function postReview(
-  assignmentId: string,
-  body: ReviewSubmission,
-): Promise<unknown> {
+export function postReview(assignmentId: string, body: ReviewSubmission): Promise<unknown> {
   return request({
     method: 'POST',
     path: `/v1/reviewer/assignments/${encodeURIComponent(assignmentId)}/reviews`,
@@ -236,10 +233,7 @@ export function postReview(
   });
 }
 
-export function postRecusal(
-  assignmentId: string,
-  body: RecusalSubmission,
-): Promise<unknown> {
+export function postRecusal(assignmentId: string, body: RecusalSubmission): Promise<unknown> {
   return request({
     method: 'POST',
     path: `/v1/reviewer/assignments/${encodeURIComponent(assignmentId)}/recuse`,

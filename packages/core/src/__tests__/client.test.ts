@@ -133,9 +133,13 @@ describe('reports.create', () => {
 
   it('retries a 503 and returns the eventual acceptance', async () => {
     const { fetch, calls } = stubTransport([
-      json(503, { error: { code: 'service_unavailable', message: 'try again' } }, {
-        'retry-after': '0',
-      }),
+      json(
+        503,
+        { error: { code: 'service_unavailable', message: 'try again' } },
+        {
+          'retry-after': '0',
+        },
+      ),
       json(202, ACCEPTED),
     ]);
 
@@ -149,8 +153,16 @@ describe('reports.create', () => {
 
   it('gives up after the configured attempts but still says the work is retryable', async () => {
     const { fetch, calls } = stubTransport([
-      json(503, { error: { code: 'service_unavailable', message: 'down' } }, { 'retry-after': '0' }),
-      json(503, { error: { code: 'service_unavailable', message: 'down' } }, { 'retry-after': '0' }),
+      json(
+        503,
+        { error: { code: 'service_unavailable', message: 'down' } },
+        { 'retry-after': '0' },
+      ),
+      json(
+        503,
+        { error: { code: 'service_unavailable', message: 'down' } },
+        { 'retry-after': '0' },
+      ),
     ]);
 
     const failure = await client(fetch, { maxAttempts: 2 })
@@ -204,9 +216,9 @@ describe('reports.create', () => {
   it('never sends a report the contract would reject', async () => {
     const { fetch, calls } = stubTransport([json(202, ACCEPTED)]);
 
-    await expect(
-      client(fetch).reports.create({ ...REPORT, allegations: [] }),
-    ).rejects.toThrow(/allegations/);
+    await expect(client(fetch).reports.create({ ...REPORT, allegations: [] })).rejects.toThrow(
+      /allegations/,
+    );
     expect(calls).toHaveLength(0);
   });
 });
@@ -257,9 +269,7 @@ describe('read paths', () => {
   it('reports a decision body it cannot recognise rather than returning a half-parsed one', async () => {
     const { fetch } = stubTransport([json(200, { id: 'dec_1' })]);
 
-    await expect(client(fetch).decisions.get('dec_1')).rejects.toThrow(
-      CrowdSourceTransportError,
-    );
+    await expect(client(fetch).decisions.get('dec_1')).rejects.toThrow(CrowdSourceTransportError);
   });
 });
 
@@ -279,7 +289,11 @@ describe('authenticating with an Oxy service token', () => {
 
   it('needs no service key at all', () => {
     expect(
-      () => new CrowdSource({ oxyToken: () => 'header.payload.signature', fetch: async () => new Response('{}') }),
+      () =>
+        new CrowdSource({
+          oxyToken: () => 'header.payload.signature',
+          fetch: async () => new Response('{}'),
+        }),
     ).not.toThrow();
   });
 
@@ -320,7 +334,10 @@ describe('authenticating with an Oxy service token', () => {
       });
     }) as unknown as typeof fetch;
 
-    const crowdsource = new CrowdSource({ oxyToken: () => 'header.payload.signature', fetch: fetchImpl });
+    const crowdsource = new CrowdSource({
+      oxyToken: () => 'header.payload.signature',
+      fetch: fetchImpl,
+    });
 
     await crowdsource.communityNotes.shown(['p1']);
     // Nobody has asked who we are yet, so nobody has been asked.

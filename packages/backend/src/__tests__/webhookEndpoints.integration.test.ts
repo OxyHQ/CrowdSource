@@ -9,8 +9,17 @@ import {
   DEFAULT_SECRET_OVERLAP_SECONDS,
   MAX_SECRET_OVERLAP_SECONDS,
 } from '../modules/webhooks/endpoint.service';
-import { signWebhookPayload, verifyWebhookSignature, webhookTimestamp } from '../modules/webhooks/signature';
-import { provisionTenant, startDatabase, stopDatabase, type ProvisionedTenant } from './support/tenants';
+import {
+  signWebhookPayload,
+  verifyWebhookSignature,
+  webhookTimestamp,
+} from '../modules/webhooks/signature';
+import {
+  provisionTenant,
+  startDatabase,
+  stopDatabase,
+  type ProvisionedTenant,
+} from './support/tenants';
 
 /**
  * `POST /v1/webhook-endpoints` and `.../rotate-secret` (§10.2), and the rotation
@@ -53,10 +62,7 @@ function freshUrl(): string {
   return `https://hooks.example.com/crowdsource/${Date.now()}-${urlCounter}`;
 }
 
-function register(
-  who: ProvisionedTenant,
-  body: Record<string, unknown>,
-): request.Test {
+function register(who: ProvisionedTenant, body: Record<string, unknown>): request.Test {
   return request(app)
     .post('/v1/webhook-endpoints')
     .set('Authorization', `Bearer ${who.token}`)
@@ -92,7 +98,10 @@ async function registerEndpoint(
 describe('registration', () => {
   it('creates an endpoint and shows its secret exactly once', async () => {
     const url = freshUrl();
-    const created = await register(tenant, { url, eventTypes: ['report.received', 'case.decided'] });
+    const created = await register(tenant, {
+      url,
+      eventTypes: ['report.received', 'case.decided'],
+    });
 
     expect(created.status).toBe(201);
     expect(created.body.url).toBe(url);

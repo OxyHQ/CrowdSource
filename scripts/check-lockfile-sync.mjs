@@ -41,19 +41,19 @@
 // touches it next. If churn ever does surface, the failure output below names
 // every changed line, which is enough to recognise it.
 
-import { readdir, readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readdir, readFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // LOCKFILE_SYNC_ROOT exists so this check can be exercised against fixture
 // repositories (see test-check-lockfile-sync.mjs). Nothing in CI sets it, so a
 // real run always measures this repository.
 const repositoryRoot = resolve(
-  process.env.LOCKFILE_SYNC_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), ".."),
+  process.env.LOCKFILE_SYNC_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '..'),
 );
-const LOCKFILE = "bun.lock";
+const LOCKFILE = 'bun.lock';
 const lockfilePath = join(repositoryRoot, LOCKFILE);
-const ROOT_WORKSPACE = "";
+const ROOT_WORKSPACE = '';
 const MAX_REPORTED_DIFF_LINES = 200;
 const decoder = new TextDecoder();
 
@@ -65,26 +65,28 @@ function die(summary, details = []) {
 
 function git(args, { allowFailure = false } = {}) {
   const result = Bun.spawnSync({
-    cmd: ["git", ...args],
+    cmd: ['git', ...args],
     cwd: repositoryRoot,
-    stdout: "pipe",
-    stderr: "pipe",
+    stdout: 'pipe',
+    stderr: 'pipe',
   });
   if (!allowFailure && result.exitCode !== 0) {
-    die(`git ${args.join(" ")} failed: ${decoder.decode(result.stderr).trim()}`);
+    die(`git ${args.join(' ')} failed: ${decoder.decode(result.stderr).trim()}`);
   }
   return { exitCode: result.exitCode, stdout: decoder.decode(result.stdout) };
 }
 
 function lockfileIsDirty() {
-  return git(["diff", "--quiet", "--", LOCKFILE], { allowFailure: true }).exitCode !== 0;
+  return git(['diff', '--quiet', '--', LOCKFILE], { allowFailure: true }).exitCode !== 0;
 }
 
 async function readJson(path) {
   try {
-    return JSON.parse(await readFile(path, "utf8"));
+    return JSON.parse(await readFile(path, 'utf8'));
   } catch (error) {
-    die(`Could not read ${path} as JSON: ${error instanceof Error ? error.message : String(error)}`);
+    die(
+      `Could not read ${path} as JSON: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
@@ -95,7 +97,7 @@ async function readJson(path) {
 // vacuity floor below, never as a check that quietly compares nothing.
 function parseLockfile(text) {
   try {
-    return JSON.parse(text.replace(/,(?=\s*[}\]])/g, ""));
+    return JSON.parse(text.replace(/,(?=\s*[}\]])/g, ''));
   } catch (error) {
     die(
       `${LOCKFILE} could not be parsed, so what it records per workspace cannot be compared: ${error instanceof Error ? error.message : String(error)}`,
@@ -103,7 +105,7 @@ function parseLockfile(text) {
   }
 }
 
-if (git(["rev-parse", "--is-inside-work-tree"], { allowFailure: true }).exitCode !== 0) {
+if (git(['rev-parse', '--is-inside-work-tree'], { allowFailure: true }).exitCode !== 0) {
   die(
     `${repositoryRoot} is not a git work tree, so a regenerated ${LOCKFILE} cannot be compared against the committed one.`,
   );
@@ -116,14 +118,14 @@ if (lockfileIsDirty()) {
   );
 }
 
-const rootManifest = await readJson(join(repositoryRoot, "package.json"));
+const rootManifest = await readJson(join(repositoryRoot, 'package.json'));
 
 // A lockfile written by a different bun can differ on formatting alone, so a
 // difference this runtime caused must never be reported as the commit's.
-const pinnedBunVersion = String(rootManifest.packageManager ?? "").replace(/^bun@/, "");
+const pinnedBunVersion = String(rootManifest.packageManager ?? '').replace(/^bun@/, '');
 if (!pinnedBunVersion) {
   die(
-    "package.json must declare packageManager as bun@<version>; without that pin a lockfile difference cannot be told apart from one the running bun introduced.",
+    'package.json must declare packageManager as bun@<version>; without that pin a lockfile difference cannot be told apart from one the running bun introduced.',
   );
 }
 if (Bun.version !== pinnedBunVersion) {
@@ -137,15 +139,19 @@ if (Bun.version !== pinnedBunVersion) {
 // A plain install does not repair any of this, so nothing else can catch it.
 // ---------------------------------------------------------------------------
 
-const lockfile = parseLockfile(await readFile(lockfilePath, "utf8"));
+const lockfile = parseLockfile(await readFile(lockfilePath, 'utf8'));
 const recordedWorkspaces = lockfile.workspaces;
-if (typeof recordedWorkspaces !== "object" || recordedWorkspaces === null) {
-  die(`${LOCKFILE} records no workspaces object, so there is nothing to compare against the manifests.`);
+if (typeof recordedWorkspaces !== 'object' || recordedWorkspaces === null) {
+  die(
+    `${LOCKFILE} records no workspaces object, so there is nothing to compare against the manifests.`,
+  );
 }
 
 const declaredPatterns = Array.isArray(rootManifest.workspaces) ? rootManifest.workspaces : [];
 if (declaredPatterns.length === 0) {
-  die("package.json declares no workspaces array, so the packages bun.lock should describe cannot be enumerated.");
+  die(
+    'package.json declares no workspaces array, so the packages bun.lock should describe cannot be enumerated.',
+  );
 }
 
 const manifestWorkspacePaths = [ROOT_WORKSPACE];
@@ -157,10 +163,12 @@ for (const pattern of declaredPatterns) {
     );
   }
   const [, workspaceDirectory] = patternMatch;
-  for (const entry of await readdir(join(repositoryRoot, workspaceDirectory), { withFileTypes: true })) {
+  for (const entry of await readdir(join(repositoryRoot, workspaceDirectory), {
+    withFileTypes: true,
+  })) {
     if (!entry.isDirectory()) continue;
     const workspacePath = `${workspaceDirectory}/${entry.name}`;
-    if (!(await Bun.file(join(repositoryRoot, workspacePath, "package.json")).exists())) continue;
+    if (!(await Bun.file(join(repositoryRoot, workspacePath, 'package.json')).exists())) continue;
     manifestWorkspacePaths.push(workspacePath);
   }
 }
@@ -177,7 +185,9 @@ if (manifestWorkspacePaths.length < 2 || Object.keys(recordedWorkspaces).length 
 const staleRecords = [];
 for (const workspacePath of manifestWorkspacePaths) {
   if (!(workspacePath in recordedWorkspaces)) {
-    staleRecords.push(`${workspacePath || "the repository root"} has a package.json that ${LOCKFILE} does not record.`);
+    staleRecords.push(
+      `${workspacePath || 'the repository root'} has a package.json that ${LOCKFILE} does not record.`,
+    );
   }
 }
 for (const workspacePath of Object.keys(recordedWorkspaces)) {
@@ -188,9 +198,9 @@ for (const workspacePath of Object.keys(recordedWorkspaces)) {
 
 for (const workspacePath of manifestWorkspacePaths) {
   const recorded = recordedWorkspaces[workspacePath];
-  if (typeof recorded !== "object" || recorded === null) continue;
-  const label = workspacePath || "the repository root";
-  const manifest = await readJson(join(repositoryRoot, workspacePath, "package.json"));
+  if (typeof recorded !== 'object' || recorded === null) continue;
+  const label = workspacePath || 'the repository root';
+  const manifest = await readJson(join(repositoryRoot, workspacePath, 'package.json'));
 
   if (manifest.name !== recorded.name) {
     staleRecords.push(
@@ -217,11 +227,15 @@ for (const workspacePath of manifestWorkspacePaths) {
 // spelling, and comparing only `overrides` while a manifest declared
 // `resolutions` would report a difference that is not one.
 if (rootManifest.resolutions !== undefined) {
-  die("package.json declares resolutions, which this check does not model alongside overrides. Extend it before adopting that spelling.");
+  die(
+    'package.json declares resolutions, which this check does not model alongside overrides. Extend it before adopting that spelling.',
+  );
 }
 const declaredOverrides = rootManifest.overrides ?? {};
 const recordedOverrides = lockfile.overrides ?? {};
-for (const name of [...new Set([...Object.keys(declaredOverrides), ...Object.keys(recordedOverrides)])].sort()) {
+for (const name of [
+  ...new Set([...Object.keys(declaredOverrides), ...Object.keys(recordedOverrides)]),
+].sort()) {
   if (declaredOverrides[name] !== recordedOverrides[name]) {
     staleRecords.push(
       `override ${name} is ${JSON.stringify(declaredOverrides[name] ?? null)} in package.json but ${JSON.stringify(recordedOverrides[name] ?? null)} in ${LOCKFILE}.`,
@@ -232,7 +246,7 @@ for (const name of [...new Set([...Object.keys(declaredOverrides), ...Object.key
 if (staleRecords.length > 0) {
   die(`${LOCKFILE} does not match the manifests it describes:`, [
     ...staleRecords.map((record) => `  - ${record}`),
-    "",
+    '',
     `Fix: run \`bun install\` and commit ${LOCKFILE} in the SAME commit as the manifest change.`,
   ]);
 }
@@ -245,23 +259,27 @@ if (staleRecords.length > 0) {
 // --ignore-scripts matches how CI installs and keeps the root postinstall from
 // building packages; it has no effect on resolution or on what bun writes.
 const install = Bun.spawnSync({
-  cmd: [process.execPath, "install", "--ignore-scripts"],
+  cmd: [process.execPath, 'install', '--ignore-scripts'],
   cwd: repositoryRoot,
-  stdout: "pipe",
-  stderr: "pipe",
+  stdout: 'pipe',
+  stderr: 'pipe',
 });
 const installOutput = `${decoder.decode(install.stdout)}${decoder.decode(install.stderr)}`;
 if (install.exitCode !== 0) {
-  die(`\`bun install\` exited ${install.exitCode}, so the lockfile it would have produced cannot be compared.`, [
-    installOutput,
-  ]);
+  die(
+    `\`bun install\` exited ${install.exitCode}, so the lockfile it would have produced cannot be compared.`,
+    [installOutput],
+  );
 }
 // bun has reported `error: Fail extracting tarball for "<package>"` and still
 // exited 0, leaving that package absent from the tree. A gate that trusts the
 // exit code measures an install that never completed.
-const reportedErrors = installOutput.split("\n").filter((line) => /^\s*error:/.test(line));
+const reportedErrors = installOutput.split('\n').filter((line) => /^\s*error:/.test(line));
 if (reportedErrors.length > 0) {
-  die("`bun install` reported an error while exiting 0, so its lockfile cannot be trusted.", reportedErrors);
+  die(
+    '`bun install` reported an error while exiting 0, so its lockfile cannot be trusted.',
+    reportedErrors,
+  );
 }
 
 if (!lockfileIsDirty()) {
@@ -278,10 +296,10 @@ if (!lockfileIsDirty()) {
 // belongs to. #734 scans only for a 4-space `"key": {`, which a change inside the
 // `"packages"` section — whose entries are `"key": [` — would misattribute to a
 // workspace far above it, so the section is resolved too.
-const lines = (await readFile(lockfilePath, "utf8")).split("\n");
+const lines = (await readFile(lockfilePath, 'utf8')).split('\n');
 
 function changedBlocks() {
-  const diff = git(["diff", "--unified=0", "--", LOCKFILE]).stdout;
+  const diff = git(['diff', '--unified=0', '--', LOCKFILE]).stdout;
   const blocks = new Set();
 
   for (const header of diff.matchAll(/^@@ -\S+ \+(\d+)(?:,(\d+))? @@/gm)) {
@@ -291,11 +309,11 @@ function changedBlocks() {
       let entry = null;
       let section = null;
       for (let cursor = line - 1; cursor >= 0 && section === null; cursor -= 1) {
-        const text = lines[cursor] ?? "";
+        const text = lines[cursor] ?? '';
         if (entry === null) {
           const entryMatch = /^ {4}"([^"]*)": [{[]/.exec(text);
           if (entryMatch) {
-            entry = entryMatch[1] === "" ? "the repository root" : entryMatch[1];
+            entry = entryMatch[1] === '' ? 'the repository root' : entryMatch[1];
             continue;
           }
         }
@@ -303,11 +321,7 @@ function changedBlocks() {
         if (sectionMatch) [, section] = sectionMatch;
       }
       blocks.add(
-        section === null
-          ? "lockfile metadata"
-          : entry === null
-            ? section
-            : `${section} → ${entry}`,
+        section === null ? 'lockfile metadata' : entry === null ? section : `${section} → ${entry}`,
       );
     }
   }
@@ -315,7 +329,7 @@ function changedBlocks() {
 }
 
 const blocks = changedBlocks();
-const diffLines = git(["--no-pager", "diff", "--", LOCKFILE]).stdout.split("\n");
+const diffLines = git(['--no-pager', 'diff', '--', LOCKFILE]).stdout.split('\n');
 const shownDiff =
   diffLines.length > MAX_REPORTED_DIFF_LINES
     ? [
@@ -327,17 +341,19 @@ const shownDiff =
 // Restore what was committed, so the check is idempotent: leaving the regenerated
 // lockfile behind would make the next run refuse with "already has uncommitted
 // changes" instead of reporting the desync again.
-git(["checkout", "--", LOCKFILE]);
+git(['checkout', '--', LOCKFILE]);
 
 die(`${LOCKFILE} is OUT OF SYNC with the package.json files.`, [
-  "",
-  "A plain `bun install` rewrote it, so the committed lockfile does not reflect the",
-  "current manifests. Affected block(s):",
-  ...(blocks.length > 0 ? blocks.map((block) => `  - ${block}`) : ["  (none identified — see the diff below)"]),
-  "",
+  '',
+  'A plain `bun install` rewrote it, so the committed lockfile does not reflect the',
+  'current manifests. Affected block(s):',
+  ...(blocks.length > 0
+    ? blocks.map((block) => `  - ${block}`)
+    : ['  (none identified — see the diff below)']),
+  '',
   `Fix: run \`bun install\` and commit ${LOCKFILE} in the SAME commit as the manifest`,
-  "change. A dependency or version bump without its lockfile is how a release gets",
+  'change. A dependency or version bump without its lockfile is how a release gets',
   `published from a state that was never committed. ${LOCKFILE} has been restored here.`,
-  "",
+  '',
   ...shownDiff,
 ]);

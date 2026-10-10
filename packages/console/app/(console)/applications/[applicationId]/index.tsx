@@ -123,7 +123,10 @@ export default function ApplicationOverviewScreen() {
                 },
                 {
                   label: t('overview.trust.evidenceIntegrity'),
-                  value: formatOptionalNumber(application.data.trust.evidenceIntegrity, formatRatio),
+                  value: formatOptionalNumber(
+                    application.data.trust.evidenceIntegrity,
+                    formatRatio,
+                  ),
                 },
                 {
                   label: t('overview.trust.identityBinding'),
@@ -216,7 +219,10 @@ function UsagePanel({ usage }: { usage: UsageSummary }) {
           },
           {
             label: t('overview.usage.window'),
-            value: t('overview.usage.windowValue', { from: usage.window.from, to: usage.window.to }),
+            value: t('overview.usage.windowValue', {
+              from: usage.window.from,
+              to: usage.window.to,
+            }),
           },
         ]}
       />

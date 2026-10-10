@@ -224,11 +224,7 @@ function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlo
       </Text>
 
       {formState.step === 'descriptive' ? (
-        <DescriptiveStep
-          state={formState}
-          dispatch={dispatch}
-          resources={assignment.resources}
-        />
+        <DescriptiveStep state={formState} dispatch={dispatch} resources={assignment.resources} />
       ) : (
         <PolicyStep
           state={formState}
