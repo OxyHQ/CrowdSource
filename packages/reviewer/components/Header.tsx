@@ -64,6 +64,7 @@ export const Header: React.FC<Props> = ({
           </Pressable>
         )}
         {options?.leftComponents?.map((component, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: caller-supplied nodes with no identity; a screen's list is fixed
           <React.Fragment key={index}>{component}</React.Fragment>
         ))}
         {titlePosition === 'left' && (
@@ -107,6 +108,7 @@ export const Header: React.FC<Props> = ({
       )}
       <View style={styles.rightContainer}>
         {options?.rightComponents?.map((component, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: caller-supplied nodes with no identity; a screen's list is fixed
           <React.Fragment key={index}>{component}</React.Fragment>
         ))}
       </View>
