@@ -76,7 +76,6 @@ const OXY_API_URL_DEFAULT = 'https://api.oxy.so';
  */
 function resolutionAnchors(): string[] {
   const anchors = [join(process.cwd(), 'package.json')];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (typeof __filename === 'string') anchors.push(__filename);
   return anchors;
 }

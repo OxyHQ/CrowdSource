@@ -88,6 +88,8 @@ bun run build              # contracts, backend, SDKs
 bun run build:reviewer / build:console
 bun run check              # doctor + workflows + security audit + build + typecheck + lint
 bun run test               # contracts + backend (vitest) + reviewer and console (jest)
+bun run lint               # Biome (whole tree) + per-package tsc + Expo env-var ESLint
+bun run format             # Biome formatter; `lint:fix` also applies safe lint fixes
 bun run validate:agents-md
 ```
 

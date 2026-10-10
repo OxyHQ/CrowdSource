@@ -296,6 +296,7 @@ export function planEnforcement<TAction extends string>(
       ];
     }
 
+    // biome-ignore format: Biome 2.5.15 is not idempotent on a comment between a case label and its block (it moves the colon after the comment on a second pass).
     case 'no_violation':
       /**
        * A restore, always planned — even when nothing was restricted. The
