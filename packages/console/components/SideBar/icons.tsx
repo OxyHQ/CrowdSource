@@ -14,7 +14,6 @@ import { RiHomeLine } from '@oxy.so/bloom/icons/RiHomeLine';
 import { RiKey2Line } from '@oxy.so/bloom/icons/RiKey2Line';
 import { RiSendPlaneLine } from '@oxy.so/bloom/icons/RiSendPlaneLine';
 import { RiShieldLine } from '@oxy.so/bloom/icons/RiShieldLine';
-import React from 'react';
 
 import type { NavIconId } from '@/lib/navigation';
 

@@ -15,7 +15,6 @@
  * reaches for one of the absent fields, this fails rather than production.
  */
 
-import React from 'react';
 import { Text } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 

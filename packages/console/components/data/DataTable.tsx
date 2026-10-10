@@ -28,7 +28,7 @@
  * sticky chrome, three tiers deep, with rows sliding between them.
  */
 
-import React, { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';

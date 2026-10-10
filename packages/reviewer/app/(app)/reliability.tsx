@@ -9,7 +9,6 @@
  */
 
 import { RiSeedlingLine } from '@oxy.so/bloom/icons/RiSeedlingLine';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 

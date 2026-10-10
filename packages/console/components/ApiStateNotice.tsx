@@ -20,7 +20,6 @@
  */
 
 import * as Skeleton from '@oxy.so/bloom/skeleton';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 

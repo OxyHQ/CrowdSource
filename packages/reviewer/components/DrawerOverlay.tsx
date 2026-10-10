@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   interpolate,

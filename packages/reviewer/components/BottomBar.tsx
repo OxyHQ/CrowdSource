@@ -5,7 +5,7 @@ import { RiSeedlingLine } from '@oxy.so/bloom/icons/RiSeedlingLine';
 import { RiHeartLine } from '@oxy.so/bloom/icons/RiHeartLine';
 import { RiHomeLine } from '@oxy.so/bloom/icons/RiHomeLine';
 import { useRouter, usePathname } from 'expo-router';
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { useHaptics } from '@oxy.so/bloom/hooks';
 import { TabBar, TabBarButton, useTabBarFootprint, type TabBarItem } from '@oxy.so/bloom/tab-bar';

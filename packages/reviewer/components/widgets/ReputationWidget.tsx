@@ -28,7 +28,6 @@ import { RiSeedlingLine } from '@oxy.so/bloom/icons/RiSeedlingLine';
 import * as Skeleton from '@oxy.so/bloom/skeleton';
 import { useAuth } from '@oxy.so/services/ui/client';
 import { useQuery } from '@tanstack/react-query';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 

@@ -5,7 +5,6 @@ import { PortalOutlet, PortalProvider } from '@oxy.so/bloom/portal';
 import { BloomProvider } from '@oxy.so/bloom/provider';
 import { useAuth } from '@oxy.so/services/ui/client';
 import { Redirect, Slot, useSegments } from 'expo-router';
-import React from 'react';
 
 import { AppProviders } from '@/components/providers/AppProviders';
 import { registerChunkErrorRecovery } from '@/lib/chunkReload';
