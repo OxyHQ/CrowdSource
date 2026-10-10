@@ -5,10 +5,17 @@
 # (it cannot update it), and the `bun` one regenerates `bun.lock` in the PR.
 #
 # ONE pull request per ecosystem per week:
-#   * every update (majors included) lands in the single `all` group, and
+#   * every update not ignored below lands in the single `all` group, and
 #   * `directories:` (plural) makes the root and every package one PR, not one
 #     per directory.
-# Expo, React and the native toolchain remain manually coordinated (`ignore`).
+# Expo, React, the native toolchain, the root-`overrides` pins and the majors
+# the stack cannot take yet stay manually coordinated (`ignore`, with reasons).
+#
+# Known noise, harmless: the job logs `"<pkg>" is not a dependency of this
+# workspace` for packages only a workspace member declares (pino, supertest,
+# react-i18next, ...). Dependabot runs `bun update <pkg>` from the repo root
+# first, Bun refuses, and Dependabot then updates the owning manifest anyway.
+# No configuration avoids it short of ignoring those packages.
 version: 2
 
 updates:
@@ -60,6 +67,36 @@ updates:
       - dependency-name: "lightningcss-*"
       # AI SDK — intentionally pinned (breaking changes between minors).
       - dependency-name: "ai"
+      # Expo SDK 56 ships react-native-safe-area-context ~5.7.0 and
+      # react-native-gesture-handler ~2.31; @oxy.so/services 11.1 also peers
+      # gesture-handler <3. They move with the Expo SDK, not on their own.
+      - dependency-name: "react-native-safe-area-context"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "react-native-gesture-handler"
+        update-types: ["version-update:semver-major"]
+      # Babel 8 plugins peer @babel/core ^8; Expo SDK 56 runs Babel 7.
+      - dependency-name: "@babel/plugin-transform-export-namespace-from"
+        update-types: ["version-update:semver-major"]
+      # TypeScript 7 — reverted in #221 and still blocked. TS 7 ships no JS API,
+      # so @typescript-eslint/parser (the Expo apps' ESLint parser; peer
+      # typescript <6.1.0 as of 8.71) crashes on load, and tsc 7 rejects
+      # `moduleResolution: "node"` (node10) and `baseUrl` (TS5108), which the
+      # backend, core and contracts tsconfigs still use. 5.x updates still flow.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # Pinned EXACTLY by a root `overrides` entry, which Dependabot never
+      # edits. Bumping only the workspace range either changes nothing
+      # (async-storage: the job fails with NoChangeError) or leaves the
+      # manifest disagreeing with the override and lockfile. Take these by hand,
+      # override first:
+      #   * async-storage 2.2.0 is what Expo SDK 56 ships; @oxy.so/core peers <3.
+      #   * Bloom must also move `expectedBloomVersion` in scripts/doctor.mjs
+      #     and stay inside @oxy.so/services' Bloom peer window.
+      - dependency-name: "@react-native-async-storage/async-storage"
+      - dependency-name: "@oxy.so/bloom"
+      - dependency-name: "@oxy.so/core"
+      - dependency-name: "@oxy.so/services"
+      - dependency-name: "@oxy.so/telemetry"
 
   # ---------------------------------------------------------------------------
   # GitHub Actions — keep workflow action versions current.
