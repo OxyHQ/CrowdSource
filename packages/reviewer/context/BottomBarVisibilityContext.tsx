@@ -78,6 +78,7 @@ export function BottomBarVisibilityProvider({ children }: { children: React.Reac
   // Every screen opens with its chrome shown, and the bar at full size — without
   // this, leaving a scrolled screen opens the next one with a shrunken pill and
   // a header already half gone.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `pathname` is the trigger (reset on every navigation), not a value the effect reads
   useEffect(() => {
     hideAmount.value = 0;
     hidden.value = 0;

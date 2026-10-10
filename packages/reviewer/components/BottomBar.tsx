@@ -42,20 +42,20 @@ export function useBottomBarReservedSpace(): number {
   return useTabBarFootprint() + BOTTOM_BAR_CLEARANCE;
 }
 
+// The glyphs need their own copy of the tint decision because the theme
+// cannot reach them: Bloom tints a glyph by CLONING it with a `fill` prop,
+// and these are handed `fill="currentColor"` so they paint from their
+// className instead (react-native-svg's `color` prop on native, the CSS
+// cascade on web). `activeTint`/`inactiveTint` are therefore a silent no-op
+// on them and the className is the only channel that works.
+const activeGlyphClass = 'text-primary';
+const inactiveGlyphClass = 'text-muted-foreground';
+
 export const BottomBar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const haptic = useHaptics();
   const { t } = useTranslation();
-
-  // The glyphs need their own copy of the tint decision because the theme
-  // cannot reach them: Bloom tints a glyph by CLONING it with a `fill` prop,
-  // and these are handed `fill="currentColor"` so they paint from their
-  // className instead (react-native-svg's `color` prop on native, the CSS
-  // cascade on web). `activeTint`/`inactiveTint` are therefore a silent no-op
-  // on them and the className is the only channel that works.
-  const activeGlyphClass = 'text-primary';
-  const inactiveGlyphClass = 'text-muted-foreground';
 
   // -1 on the case viewer, recusal and onboarding: they are not destinations,
   // so no tab is theirs. Bloom fades the highlight out rather than leaving it
@@ -176,7 +176,7 @@ export const BottomBar = () => {
         ),
       },
     ],
-    [activeGlyphClass, inactiveGlyphClass, t],
+    [t],
   );
 
   const handleIndexChange = useCallback(
