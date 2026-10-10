@@ -779,7 +779,7 @@ async function recordRefusal(record: RefusalRecord): Promise<void> {
  */
 export async function replayDraw(drawId: string): Promise<readonly string[] | null> {
   const record = await sortitionDraws.findOne({ drawId });
-  if (!record || record.status !== 'drawn') return null;
+  if (record?.status !== 'drawn') return null;
 
   const panel = await assignments.find({
     caseId: record.caseId,

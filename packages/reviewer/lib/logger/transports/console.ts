@@ -18,7 +18,7 @@ function makeColorizer([x, y]: [number, number]) {
 
   return (txt: string) => {
     if (txt == null) return txt;
-    return open + (~('' + txt).indexOf(close) ? txt.replace(rgx, close + open) : txt) + close;
+    return open + (~`${txt}`.indexOf(close) ? txt.replace(rgx, close + open) : txt) + close;
   };
 }
 
