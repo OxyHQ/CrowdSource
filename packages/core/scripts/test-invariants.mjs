@@ -89,8 +89,7 @@ const MUTATIONS = [
       {
         find: `            at: outcomes.some(
               (outcome) =>
-                effectiveAction(outcome) === enforcedAction &&
-                outcome.result === 'applied',
+                effectiveAction(outcome) === enforcedAction && outcome.result === 'applied',
             )
               ? new Date()
               : null,`,
