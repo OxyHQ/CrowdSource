@@ -112,7 +112,8 @@ runtime-cut document and backend README.
   production without a terraform declaration until oxy-infra #44; that was an
   infrastructure gap, not a documentation one, and no claim in this repo needs
   changing. Noted so the next person auditing it does not "fix" prose that is
-  right.
+  right. (Since 2026-10-10 there is no `SSM_SECRET_ALLOWLIST`: the deploy writes
+  no SSM, and the parameter is set directly in SSM, oxy-infra runbook 46.)
 - **`applicationId` comes from the credential, never the request body**, and the
   tenant key is the composite `{organizationId, applicationId}`
   (`db/tenantScope.ts`'s `TENANT_KEYS`). Both survive the cutover unchanged. The
