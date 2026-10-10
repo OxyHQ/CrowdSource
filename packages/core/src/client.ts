@@ -109,9 +109,16 @@ export class CrowdSource {
      * than the secret it still happens to hold. Removing the key is then the
      * cleanup, not the cutover.
      */
-    const credential: ServiceCredential | null = options.oxyToken
-      ? null
-      : parseServiceKey(options.serviceKey ?? process.env[SERVICE_KEY_ENV_VAR] ?? '');
+    const oxyToken = options.oxyToken;
+    let credential: ServiceCredential | null = null;
+    let bearerToken: () => string | Promise<string>;
+    if (oxyToken) {
+      bearerToken = () => oxyToken();
+    } else {
+      const parsed = parseServiceKey(options.serviceKey ?? process.env[SERVICE_KEY_ENV_VAR] ?? '');
+      credential = parsed;
+      bearerToken = () => parsed.bearerToken;
+    }
 
     const baseUrl = normalisedBaseUrl(
       options.baseUrl ?? process.env[BASE_URL_ENV_VAR] ?? DEFAULT_BASE_URL,
@@ -124,10 +131,9 @@ export class CrowdSource {
       );
     }
 
-    const oxyToken = options.oxyToken;
     const transport = new Transport({
       baseUrl,
-      bearerToken: credential ? () => credential.bearerToken : () => oxyToken!(),
+      bearerToken,
       timeoutMs,
       maxAttempts: options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
       fetch: fetchImpl,
