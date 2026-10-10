@@ -283,6 +283,7 @@ describe('the migration interlock', () => {
     // Positive control on the stripper: it must not have eaten the directives
     // along with the prose, or both assertions below pass over an empty string.
     expect(ciConcurrency).toMatch(/^\s*group:/m);
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, matched literally
     expect(ciConcurrency).toContain("cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}");
     // The bare form is what this replaced, and what a future "optimisation"
     // would restore. Asserted over directives only — the comment above it quotes

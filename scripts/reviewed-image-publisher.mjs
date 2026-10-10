@@ -30,6 +30,7 @@ export function isReviewedImagePublisher(name, workflow, read) {
         job['runs-on'] === 'ubuntu-24.04-arm' &&
         job.if.includes("github.event_name == 'workflow_dispatch'") &&
         job.if.includes("github.ref == 'refs/heads/main'") &&
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, matched literally
         job.env?.EXPECTED_SOURCE_SHA === '${{ inputs.expected_source_sha }}' &&
         runs.length === 3 &&
         ['guard', 'vacancy', 'verify'].every((phase, i) =>
