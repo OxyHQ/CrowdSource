@@ -62,7 +62,7 @@
     "@biomejs/biome": "2.5.15",
     "@oxy.so/doctor": "1.1.0",
     "@types/node": "^26.6.4",
-    "typescript": "~5.9.3",
+    "typescript": "~7.0.2",
     "yaml": "^2.9.1"
   },
   "overrides": {
