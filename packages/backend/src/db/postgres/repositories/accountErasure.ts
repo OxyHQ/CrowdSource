@@ -73,12 +73,20 @@ export async function recordAccountErasure(
 
   const existing = await findAccountErasure(db, request.eventId);
   /* v8 ignore next -- a conflict on the primary key means the row exists; nothing deletes one. */
-  if (!existing) throw new Error('An account erasure conflicted on its event id and cannot be read back.');
+  if (!existing)
+    throw new Error('An account erasure conflicted on its event id and cannot be read back.');
   return { inserted: false, row: existing };
 }
 
-export async function findAccountErasure(db: PgHandle, eventId: string): Promise<AccountErasureRow | null> {
-  const [row] = await db.select().from(accountErasures).where(eq(accountErasures.eventId, eventId)).limit(1);
+export async function findAccountErasure(
+  db: PgHandle,
+  eventId: string,
+): Promise<AccountErasureRow | null> {
+  const [row] = await db
+    .select()
+    .from(accountErasures)
+    .where(eq(accountErasures.eventId, eventId))
+    .limit(1);
   return row ?? null;
 }
 
@@ -123,7 +131,11 @@ export async function completeAccountErasure(
     .where(eq(accountErasures.eventId, eventId));
 }
 
-export async function failAccountErasure(db: PgHandle, eventId: string, classification: string): Promise<void> {
+export async function failAccountErasure(
+  db: PgHandle,
+  eventId: string,
+  classification: string,
+): Promise<void> {
   await db
     .update(accountErasures)
     .set({ status: 'failed', leaseUntil: null, lastError: classification })
@@ -134,7 +146,11 @@ export async function failAccountErasure(db: PgHandle, eventId: string, classifi
  * Unfinished erasures whose lease is free: never run (the in-process start was
  * lost to a restart), failed, or held by a task that died mid-run.
  */
-export async function findRetryableAccountErasures(db: PgHandle, now: Date, limit: number): Promise<string[]> {
+export async function findRetryableAccountErasures(
+  db: PgHandle,
+  now: Date,
+  limit: number,
+): Promise<string[]> {
   const rows = await db
     .select({ eventId: accountErasures.eventId })
     .from(accountErasures)
@@ -202,7 +218,11 @@ export async function advanceAccountEventCursor(
   return rows.length > 0;
 }
 
-export async function releaseAccountEventFeed(db: PgHandle, feed: string, owner: string): Promise<void> {
+export async function releaseAccountEventFeed(
+  db: PgHandle,
+  feed: string,
+  owner: string,
+): Promise<void> {
   await db
     .update(accountEventCursors)
     .set({ leaseOwner: null, leaseUntil: null })
@@ -216,12 +236,18 @@ export async function listApplicationTenants(
   db: PgHandle,
 ): Promise<{ organizationId: string; applicationId: string }[]> {
   return await db
-    .select({ organizationId: applications.organizationId, applicationId: applications.applicationId })
+    .select({
+      organizationId: applications.organizationId,
+      applicationId: applications.applicationId,
+    })
     .from(applications)
     .orderBy(asc(applications.applicationId));
 }
 
-export async function findReviewerIdByOxyUserId(db: PgHandle, oxyUserId: string): Promise<string | null> {
+export async function findReviewerIdByOxyUserId(
+  db: PgHandle,
+  oxyUserId: string,
+): Promise<string | null> {
   const [row] = await db
     .select({ reviewerId: reviewerProfiles.reviewerId })
     .from(reviewerProfiles)
@@ -284,7 +310,12 @@ export async function eraseReviewer(
     .returning({ id: reviewerRelations.reviewerRelationId });
   const affinities = await tx
     .delete(reviewerAffinities)
-    .where(or(eq(reviewerAffinities.reviewerIdA, reviewerId), eq(reviewerAffinities.reviewerIdB, reviewerId)))
+    .where(
+      or(
+        eq(reviewerAffinities.reviewerIdA, reviewerId),
+        eq(reviewerAffinities.reviewerIdB, reviewerId),
+      ),
+    )
     .returning({ id: reviewerAffinities.pairKey });
   const notes = await tx
     .update(reviews)

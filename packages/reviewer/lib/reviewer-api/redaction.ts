@@ -147,9 +147,7 @@ function parseOrThrow<T>(schema: z.ZodType<T>, payload: unknown, subject: string
 
   const issue = parsed.error.issues[0];
   const path =
-    issue === undefined || issue.path.length === 0
-      ? subject
-      : `${subject}.${issue.path.join('.')}`;
+    issue === undefined || issue.path.length === 0 ? subject : `${subject}.${issue.path.join('.')}`;
   throw new MalformedPayloadError(path, issue?.message ?? 'a value the contract allows');
 }
 

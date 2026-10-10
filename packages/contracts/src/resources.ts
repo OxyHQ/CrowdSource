@@ -279,7 +279,10 @@ export const LinkResourceDataSchema = z.strictObject({
   resolvedHost: z
     .string()
     .max(253)
-    .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/, 'must be a hostname')
+    .regex(
+      /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/,
+      'must be a hostname',
+    )
     .optional(),
   snapshot: z.string().max(CONTRACT_LIMITS.EXTRACTED_TEXT_MAX_LENGTH).optional(),
 });
@@ -291,16 +294,16 @@ const LinkResourceSchema = z.strictObject({
 });
 
 export const ProfileResourceDataSchema = z.strictObject({
-    /**
-     * Every field is optional on purpose. A federated or unresolved actor
-     * routinely has no display name, and requiring one would push applications
-     * into synthesising a name — the opposite of what the profile-identity rule
-     * in the ecosystem instructions asks for.
-     */
-    displayName: z.string().max(CONTRACT_LIMITS.SHORT_TEXT_MAX_LENGTH).optional(),
-    bio: z.string().max(CONTRACT_LIMITS.LONG_TEXT_MAX_LENGTH).optional(),
-    /** An `image` resource in the same envelope. */
-    avatarRef: ResourceIdSchema.optional(),
+  /**
+   * Every field is optional on purpose. A federated or unresolved actor
+   * routinely has no display name, and requiring one would push applications
+   * into synthesising a name — the opposite of what the profile-identity rule
+   * in the ecosystem instructions asks for.
+   */
+  displayName: z.string().max(CONTRACT_LIMITS.SHORT_TEXT_MAX_LENGTH).optional(),
+  bio: z.string().max(CONTRACT_LIMITS.LONG_TEXT_MAX_LENGTH).optional(),
+  /** An `image` resource in the same envelope. */
+  avatarRef: ResourceIdSchema.optional(),
   claims: MetadataBagSchema.optional(),
 });
 
@@ -311,11 +314,11 @@ const ProfileResourceSchema = z.strictObject({
 });
 
 export const ConversationResourceDataSchema = z.strictObject({
-    /**
-     * Ordered (§5.3). §13.5 asks for five messages around the incident rather
-     * than the whole thread, which is why this is a bounded list of ids the
-     * application chose, not a pointer to a conversation.
-     */
+  /**
+   * Ordered (§5.3). §13.5 asks for five messages around the incident rather
+   * than the whole thread, which is why this is a bounded list of ids the
+   * application chose, not a pointer to a conversation.
+   */
   messageResourceIds: z
     .array(ResourceIdSchema)
     .min(1)

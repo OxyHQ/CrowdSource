@@ -122,10 +122,7 @@ export async function authenticateOxyServiceToken(
  * valid Oxy service token" living in this repo, which is exactly the divergence
  * `oxySession.ts` refuses to allow for sessions.
  */
-async function verifyWithOxy(
-  token: string,
-  request: Request,
-): Promise<{ appId: string } | null> {
+async function verifyWithOxy(token: string, request: Request): Promise<{ appId: string } | null> {
   // `middleware.auth({ optional: true })`, not `middleware.service()`: the latter WRITES a 403
   // response when the token is not a service token, and this is a resolution
   // step, not a route. Optional auth resolves what it can and calls next, which

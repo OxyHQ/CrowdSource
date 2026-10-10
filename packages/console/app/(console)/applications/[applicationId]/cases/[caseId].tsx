@@ -54,11 +54,7 @@ import {
   outcomeTone,
 } from '@/lib/console-api/presentation';
 import { useCaseDetail } from '@/lib/console-api/queries';
-import type {
-  CaseDecision,
-  CaseReportLink,
-  CaseResourceMetadata,
-} from '@/lib/console-api/types';
+import type { CaseDecision, CaseReportLink, CaseResourceMetadata } from '@/lib/console-api/types';
 
 export default function CaseDetailScreen() {
   const { t } = useTranslation();
@@ -132,7 +128,9 @@ export default function CaseDetailScreen() {
       width: 110,
       // A hundred reports about the same material produce one case. `merged` says
       // which of them joined an existing case rather than creating this one.
-      render: (row) => <Cell muted={!row.merged}>{row.merged ? t('common.yes') : t('common.no')}</Cell>,
+      render: (row) => (
+        <Cell muted={!row.merged}>{row.merged ? t('common.yes') : t('common.no')}</Cell>
+      ),
     },
     {
       id: 'linkedAt',

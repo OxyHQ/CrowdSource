@@ -34,10 +34,7 @@ import {
   type ReviewFormAction,
   type ReviewFormState,
 } from '@/lib/review-form';
-import type {
-  AssignmentPackage,
-  ContextSufficiency,
-} from '@crowdsource.you/contracts';
+import type { AssignmentPackage, ContextSufficiency } from '@crowdsource.you/contracts';
 
 const CONTEXT_SUFFICIENCY: readonly ContextSufficiency[] = ['sufficient', 'insufficient'];
 

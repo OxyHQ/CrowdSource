@@ -52,9 +52,11 @@ describe('ApiError', () => {
     expect(new ApiError('conflict', 'Reused.').toResponseBody()).toEqual({
       error: { code: 'conflict', message: 'Reused.' },
     });
-    expect(new ApiError('conflict', 'Reused.', { field: 'externalReportId' }).toResponseBody()).toEqual(
-      { error: { code: 'conflict', message: 'Reused.', details: { field: 'externalReportId' } } },
-    );
+    expect(
+      new ApiError('conflict', 'Reused.', { field: 'externalReportId' }).toResponseBody(),
+    ).toEqual({
+      error: { code: 'conflict', message: 'Reused.', details: { field: 'externalReportId' } },
+    });
   });
 
   it('recognises its own instances and nothing else', () => {
@@ -135,7 +137,9 @@ describe('errorHandler', () => {
     // test is the classification, and body-parser's own trigger for it varies
     // with the platform's zlib.
     const response = await request(
-      appThrowing(Object.assign(new Error('unsupported encoding'), { type: 'encoding.unsupported' })),
+      appThrowing(
+        Object.assign(new Error('unsupported encoding'), { type: 'encoding.unsupported' }),
+      ),
     ).get('/boom');
 
     expect(response.status).toBe(400);

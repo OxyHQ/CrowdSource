@@ -66,11 +66,5 @@
     { "path": "./packages/backend" },
     { "path": "./packages/core" }
   ],
-  "exclude": [
-    "node_modules",
-    "**/node_modules",
-    "**/dist",
-    "**/build",
-    "**/.expo"
-  ]
+  "exclude": ["node_modules", "**/node_modules", "**/dist", "**/build", "**/.expo"]
 }

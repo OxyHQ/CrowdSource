@@ -309,10 +309,7 @@ export async function grantMembership(input: {
  * Refusing here is the difference between a mistake and a support ticket that ends
  * in a database write.
  */
-export async function revokeMembership(
-  organizationId: string,
-  oxyUserId: string,
-): Promise<void> {
+export async function revokeMembership(organizationId: string, oxyUserId: string): Promise<void> {
   const member = await organizationMembers.findOne({
     organizationId,
     oxyUserId,

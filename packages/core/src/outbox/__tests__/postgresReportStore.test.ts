@@ -71,12 +71,14 @@ function runner(): ModerationTransactionRunner<ModerationPgHandle> {
 }
 
 /** Store a report the way intake does: inside a transaction, through the store. */
-async function insertReport(overrides: {
-  reporter?: string;
-  reportedId?: string;
-  localStatus?: ModerationReportFields['localStatus'];
-  extra?: Readonly<Record<string, unknown>>;
-} = {}): Promise<TestPostgresReport> {
+async function insertReport(
+  overrides: {
+    reporter?: string;
+    reportedId?: string;
+    localStatus?: ModerationReportFields['localStatus'];
+    extra?: Readonly<Record<string, unknown>>;
+  } = {},
+): Promise<TestPostgresReport> {
   return await runner().run(
     async (tx) =>
       await reportStore().insert(
@@ -204,12 +206,12 @@ describe('the revision guard', () => {
      * flight together. */
     const report = await insertReport();
 
-    expect(
-      await reportStore().applyDecision(report.id, decisionUpdate(2, 'violation'), 2),
-    ).toBe(true);
-    expect(
-      await reportStore().applyDecision(report.id, decisionUpdate(1, 'no_violation'), 1),
-    ).toBe(false);
+    expect(await reportStore().applyDecision(report.id, decisionUpdate(2, 'violation'), 2)).toBe(
+      true,
+    );
+    expect(await reportStore().applyDecision(report.id, decisionUpdate(1, 'no_violation'), 1)).toBe(
+      false,
+    );
 
     const row = await readRow(report.id);
     expect(row?.decisionRevision).toBe(2);
@@ -224,9 +226,9 @@ describe('the revision guard', () => {
     const report = await insertReport();
     expect(await readRow(report.id)).toMatchObject({ decisionRevision: null });
 
-    expect(
-      await reportStore().applyDecision(report.id, decisionUpdate(3, 'violation'), 3),
-    ).toBe(true);
+    expect(await reportStore().applyDecision(report.id, decisionUpdate(3, 'violation'), 3)).toBe(
+      true,
+    );
     expect((await readRow(report.id))?.decisionRevision).toBe(3);
   });
 
@@ -235,12 +237,12 @@ describe('the revision guard', () => {
      * revision arriving twice is ordinary — and a partially-applied decision needs
      * the second delivery to converge rather than be refused. */
     const report = await insertReport();
-    expect(
-      await reportStore().applyDecision(report.id, decisionUpdate(2, 'violation'), 2),
-    ).toBe(true);
-    expect(
-      await reportStore().applyDecision(report.id, decisionUpdate(2, 'violation'), 2),
-    ).toBe(true);
+    expect(await reportStore().applyDecision(report.id, decisionUpdate(2, 'violation'), 2)).toBe(
+      true,
+    );
+    expect(await reportStore().applyDecision(report.id, decisionUpdate(2, 'violation'), 2)).toBe(
+      true,
+    );
   });
 
   it('answers false for a report that does not exist', async () => {
@@ -369,9 +371,7 @@ describe('what reconciliation reads', () => {
       .where(eq(reports.id, fresh.id));
 
     expect(await reportStore().countLocalOnly()).toBe(2);
-    expect(
-      await reportStore().countAwaitingDecision(new Date('2026-08-02T00:00:00.000Z')),
-    ).toBe(1);
+    expect(await reportStore().countAwaitingDecision(new Date('2026-08-02T00:00:00.000Z'))).toBe(1);
   });
 
   it('counts as a number rather than as a bigint string', async () => {

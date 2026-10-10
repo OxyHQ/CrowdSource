@@ -43,10 +43,7 @@ export async function findReportById(db: TenantScopedHandle, reportId: string) {
  * distinguish a true replay from a key reused with different content, which are
  * different answers (200 versus 409) and must not be collapsed.
  */
-export async function findReportByIdempotencyKey(
-  db: TenantScopedHandle,
-  idempotencyKey: string,
-) {
+export async function findReportByIdempotencyKey(db: TenantScopedHandle, idempotencyKey: string) {
   const [row] = await db
     .select()
     .from(reports)
@@ -81,10 +78,7 @@ export interface NewCaseReport {
   readonly linkedAt: Date;
 }
 
-export async function insertCaseReport(
-  db: TenantScopedHandle,
-  link: NewCaseReport,
-): Promise<void> {
+export async function insertCaseReport(db: TenantScopedHandle, link: NewCaseReport): Promise<void> {
   await db.insert(caseReports).values({ ...link, allegationCodes: [...link.allegationCodes] });
 }
 

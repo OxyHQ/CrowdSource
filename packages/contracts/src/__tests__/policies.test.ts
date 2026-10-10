@@ -31,7 +31,7 @@ describe('policy identifiers', () => {
 });
 
 describe('the three policy versions (§6.4)', () => {
-  it('keeps Appendix B\'s spelling on a decision and §11.6\'s on a reputation event', () => {
+  it("keeps Appendix B's spelling on a decision and §11.6's on a reputation event", () => {
     /**
      * The plan names the same field three ways: `universalTaxonomyVersion` in
      * §6.4's prose, `taxonomy` in Appendix B, `universal` in §11.6. Appendix B
@@ -41,13 +41,16 @@ describe('the three policy versions (§6.4)', () => {
      * purpose.
      */
     const versions = { application: 'mention.2026.07', oxyConduct: 'oxy.2026.1' };
-    expect(accepted(DecisionPolicyVersionsSchema, { ...versions, taxonomy: '2026.1' }).taxonomy)
-      .toBe('2026.1');
-    expect(accepted(ReputationPolicyVersionsSchema, { ...versions, universal: '2026.1' }).universal)
-      .toBe('2026.1');
+    expect(
+      accepted(DecisionPolicyVersionsSchema, { ...versions, taxonomy: '2026.1' }).taxonomy,
+    ).toBe('2026.1');
+    expect(
+      accepted(ReputationPolicyVersionsSchema, { ...versions, universal: '2026.1' }).universal,
+    ).toBe('2026.1');
 
-    expect(rejectionPaths(ReputationPolicyVersionsSchema, { ...versions, taxonomy: '2026.1' }))
-      .toContain('universal');
+    expect(
+      rejectionPaths(ReputationPolicyVersionsSchema, { ...versions, taxonomy: '2026.1' }),
+    ).toContain('universal');
   });
 
   it('requires all three, so no decision can be read without knowing its policies', () => {

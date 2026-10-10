@@ -780,7 +780,9 @@ consoleRouter.get(
       pathApplicationId(request.params.applicationId),
     );
 
-    response.status(200).json(await usageSummary(tenant, parseWindowDays(request.query.windowDays)));
+    response
+      .status(200)
+      .json(await usageSummary(tenant, parseWindowDays(request.query.windowDays)));
   },
 );
 

@@ -62,7 +62,12 @@ describe('the universal taxonomy', () => {
   });
 
   it('rejects a code a tenant invented, however plausible', () => {
-    for (const code of ['harassment.rude', 'mention.custom_rule', 'harassment', 'HARASSMENT.INSULT']) {
+    for (const code of [
+      'harassment.rude',
+      'mention.custom_rule',
+      'harassment',
+      'HARASSMENT.INSULT',
+    ]) {
       expect(rejectionIssues(TaxonomyCodeSchema, code)).toHaveLength(1);
     }
   });

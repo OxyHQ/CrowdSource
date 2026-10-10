@@ -2,7 +2,12 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../app';
-import { provisionApplication, provisionTenant, startDatabase, stopDatabase } from './support/tenants';
+import {
+  provisionApplication,
+  provisionTenant,
+  startDatabase,
+  stopDatabase,
+} from './support/tenants';
 
 /**
  * `GET /v1/applications/me` — the one route that authenticates without asking

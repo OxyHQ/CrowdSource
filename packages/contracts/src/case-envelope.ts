@@ -262,137 +262,135 @@ const caseEnvelopeShape = {
  * not a case. `source`, `urgency` and `metadata` are optional — §5.8 omits all
  * three, Appendix A carries all three.
  */
-export const CaseEnvelopeSchema = z
-  .strictObject(caseEnvelopeShape)
-  .superRefine((envelope, ctx) => {
-    const resourceIds = new Set<string>();
-    envelope.resources.forEach((resource, index) => {
-      if (resourceIds.has(resource.id)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['resources', index, 'id'],
-          message: `duplicate resource id "${resource.id}"`,
-        });
-      }
-      resourceIds.add(resource.id);
-    });
-
-    const principalRefs = new Set<string>();
-    envelope.principalBindings.forEach((binding, index) => {
-      if (principalRefs.has(binding.principalRef)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['principalBindings', index, 'principalRef'],
-          message: `duplicate principalRef "${binding.principalRef}"`,
-        });
-      }
-      principalRefs.add(binding.principalRef);
-    });
-
-    const requireResource = (id: string, path: (string | number)[]): void => {
-      if (!resourceIds.has(id)) {
-        ctx.addIssue({
-          code: 'custom',
-          path,
-          message: `no resource in this envelope has id "${id}"`,
-        });
-      }
-    };
-    const requirePrincipal = (ref: string, path: (string | number)[]): void => {
-      if (!principalRefs.has(ref)) {
-        ctx.addIssue({
-          code: 'custom',
-          path,
-          message: `no principal binding in this envelope has principalRef "${ref}"`,
-        });
-      }
-    };
-
-    requireResource(envelope.subject.primaryResourceId, ['subject', 'primaryResourceId']);
-    const primary = envelope.resources.find(
-      (resource) => resource.id === envelope.subject.primaryResourceId,
-    );
-    if (primary !== undefined && primary.role !== 'subject') {
+export const CaseEnvelopeSchema = z.strictObject(caseEnvelopeShape).superRefine((envelope, ctx) => {
+  const resourceIds = new Set<string>();
+  envelope.resources.forEach((resource, index) => {
+    if (resourceIds.has(resource.id)) {
       ctx.addIssue({
         code: 'custom',
-        path: ['subject', 'primaryResourceId'],
-        message: `the primary resource must have role "subject", not "${primary.role}"`,
+        path: ['resources', index, 'id'],
+        message: `duplicate resource id "${resource.id}"`,
       });
     }
+    resourceIds.add(resource.id);
+  });
 
-    envelope.resources.forEach((resource, index) => {
-      if (resource.authorPrincipalRef !== undefined) {
-        requirePrincipal(resource.authorPrincipalRef, ['resources', index, 'authorPrincipalRef']);
-      }
-      switch (resource.type) {
-        case 'profile':
-          if (resource.data.avatarRef !== undefined) {
-            requireResource(resource.data.avatarRef, ['resources', index, 'data', 'avatarRef']);
-          }
-          break;
-        case 'conversation':
-          resource.data.messageResourceIds.forEach((messageId, messageIndex) => {
-            requireResource(messageId, [
-              'resources',
-              index,
-              'data',
-              'messageResourceIds',
-              messageIndex,
-            ]);
-          });
-          break;
-        case 'listing':
-          if (resource.data.sellerRef !== undefined) {
-            requirePrincipal(resource.data.sellerRef, ['resources', index, 'data', 'sellerRef']);
-          }
-          resource.data.mediaRefs?.forEach((mediaId, mediaIndex) => {
-            requireResource(mediaId, ['resources', index, 'data', 'mediaRefs', mediaIndex]);
-          });
-          break;
-        default:
-          break;
-      }
+  const principalRefs = new Set<string>();
+  envelope.principalBindings.forEach((binding, index) => {
+    if (principalRefs.has(binding.principalRef)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['principalBindings', index, 'principalRef'],
+        message: `duplicate principalRef "${binding.principalRef}"`,
+      });
+    }
+    principalRefs.add(binding.principalRef);
+  });
+
+  const requireResource = (id: string, path: (string | number)[]): void => {
+    if (!resourceIds.has(id)) {
+      ctx.addIssue({
+        code: 'custom',
+        path,
+        message: `no resource in this envelope has id "${id}"`,
+      });
+    }
+  };
+  const requirePrincipal = (ref: string, path: (string | number)[]): void => {
+    if (!principalRefs.has(ref)) {
+      ctx.addIssue({
+        code: 'custom',
+        path,
+        message: `no principal binding in this envelope has principalRef "${ref}"`,
+      });
+    }
+  };
+
+  requireResource(envelope.subject.primaryResourceId, ['subject', 'primaryResourceId']);
+  const primary = envelope.resources.find(
+    (resource) => resource.id === envelope.subject.primaryResourceId,
+  );
+  if (primary !== undefined && primary.role !== 'subject') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['subject', 'primaryResourceId'],
+      message: `the primary resource must have role "subject", not "${primary.role}"`,
     });
+  }
 
-    const seenRelations = new Set<string>();
-    envelope.relations.forEach((relation, index) => {
-      requireResource(relation.from, ['relations', index, 'from']);
-      if (PRINCIPAL_TARGETED_RELATION_TYPES.some((type) => type === relation.type)) {
-        requirePrincipal(relation.to, ['relations', index, 'to']);
-      } else {
-        requireResource(relation.to, ['relations', index, 'to']);
-        if (relation.from === relation.to) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['relations', index, 'to'],
-            message: 'a resource cannot relate to itself',
-          });
+  envelope.resources.forEach((resource, index) => {
+    if (resource.authorPrincipalRef !== undefined) {
+      requirePrincipal(resource.authorPrincipalRef, ['resources', index, 'authorPrincipalRef']);
+    }
+    switch (resource.type) {
+      case 'profile':
+        if (resource.data.avatarRef !== undefined) {
+          requireResource(resource.data.avatarRef, ['resources', index, 'data', 'avatarRef']);
         }
-      }
-      const key = `${relation.from}\u0000${relation.type}\u0000${relation.to}`;
-      if (seenRelations.has(key)) {
+        break;
+      case 'conversation':
+        resource.data.messageResourceIds.forEach((messageId, messageIndex) => {
+          requireResource(messageId, [
+            'resources',
+            index,
+            'data',
+            'messageResourceIds',
+            messageIndex,
+          ]);
+        });
+        break;
+      case 'listing':
+        if (resource.data.sellerRef !== undefined) {
+          requirePrincipal(resource.data.sellerRef, ['resources', index, 'data', 'sellerRef']);
+        }
+        resource.data.mediaRefs?.forEach((mediaId, mediaIndex) => {
+          requireResource(mediaId, ['resources', index, 'data', 'mediaRefs', mediaIndex]);
+        });
+        break;
+      default:
+        break;
+    }
+  });
+
+  const seenRelations = new Set<string>();
+  envelope.relations.forEach((relation, index) => {
+    requireResource(relation.from, ['relations', index, 'from']);
+    if (PRINCIPAL_TARGETED_RELATION_TYPES.some((type) => type === relation.type)) {
+      requirePrincipal(relation.to, ['relations', index, 'to']);
+    } else {
+      requireResource(relation.to, ['relations', index, 'to']);
+      if (relation.from === relation.to) {
         ctx.addIssue({
           code: 'custom',
-          path: ['relations', index],
-          message: 'duplicate relation',
+          path: ['relations', index, 'to'],
+          message: 'a resource cannot relate to itself',
         });
       }
-      seenRelations.add(key);
-    });
-
-    envelope.allegations.forEach((allegation, index) => {
-      allegation.resourceIds?.forEach((resourceId, resourceIndex) => {
-        requireResource(resourceId, ['allegations', index, 'resourceIds', resourceIndex]);
+    }
+    const key = `${relation.from}\u0000${relation.type}\u0000${relation.to}`;
+    if (seenRelations.has(key)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['relations', index],
+        message: 'duplicate relation',
       });
-      if (allegation.reporterPrincipalRef !== undefined) {
-        requirePrincipal(allegation.reporterPrincipalRef, [
-          'allegations',
-          index,
-          'reporterPrincipalRef',
-        ]);
-      }
-    });
+    }
+    seenRelations.add(key);
   });
+
+  envelope.allegations.forEach((allegation, index) => {
+    allegation.resourceIds?.forEach((resourceId, resourceIndex) => {
+      requireResource(resourceId, ['allegations', index, 'resourceIds', resourceIndex]);
+    });
+    if (allegation.reporterPrincipalRef !== undefined) {
+      requirePrincipal(allegation.reporterPrincipalRef, [
+        'allegations',
+        index,
+        'reporterPrincipalRef',
+      ]);
+    }
+  });
+});
 export type CaseEnvelope = z.infer<typeof CaseEnvelopeSchema>;
 
 /** §3.2 report states. */

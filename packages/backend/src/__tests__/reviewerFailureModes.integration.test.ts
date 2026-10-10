@@ -427,9 +427,7 @@ describe('the review ledger refuses a second ballot', () => {
       }),
     ).rejects.toMatchObject({ code: 'conflict' });
 
-    expect(
-      await reviews.countDocuments({ caseId, reviewerId: seat.reviewerId }),
-    ).toBe(1);
+    expect(await reviews.countDocuments({ caseId, reviewerId: seat.reviewerId })).toBe(1);
   });
 });
 
@@ -546,10 +544,7 @@ describe('the workers tolerate being called twice', () => {
      * would be opening somebody's earlier case instead of this one.
      */
     for (const existing of await reviewerProfiles.find({ categories: FAMILY })) {
-      await reviewerProfiles.updateOne(
-        { reviewerId: existing.reviewerId },
-        { available: false },
-      );
+      await reviewerProfiles.updateOne({ reviewerId: existing.reviewerId }, { available: false });
     }
 
     for (let index = 0; index < 6; index += 1) {
@@ -619,7 +614,12 @@ describe('the workers tolerate being called twice', () => {
       .post(`/v1/reviewer/assignments/${opened.body.assignmentId}/reviews`)
       .set(asReviewer(profile.oxyUserId))
       .set('x-assignment-token', opened.body.token)
-      .send({ outcome: 'violation', contextSufficiency: 'sufficient', findings: [], recommendedActions: [] });
+      .send({
+        outcome: 'violation',
+        contextSufficiency: 'sufficient',
+        findings: [],
+        recommendedActions: [],
+      });
 
     // §9.3: a violation with no finding says nothing anybody can act on.
     expect(badReview.status).toBe(400);
@@ -760,9 +760,9 @@ describe('a case that lost its triage output', () => {
 
     await cases.updateOne(tenant.tenant, { caseId }, { set: { sensitivityClass: null } });
 
-    await expect(
-      openPanel({ context: tenant.tenant, caseId, kind: 'initial' }),
-    ).rejects.toThrow(/no sensitivity class/);
+    await expect(openPanel({ context: tenant.tenant, caseId, kind: 'initial' })).rejects.toThrow(
+      /no sensitivity class/,
+    );
   });
 });
 

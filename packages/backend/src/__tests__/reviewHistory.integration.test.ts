@@ -274,7 +274,11 @@ describe('§4.1 against §9.1: what a decided case tells its juror', () => {
     expect(first.published).toBe(true);
 
     // The appeal's revision, which this reviewer did not sit on.
-    await cases.updateOne(seeded.tenant.tenant, { caseId: seeded.caseId }, { set: { currentRevision: 2 } });
+    await cases.updateOne(
+      seeded.tenant.tenant,
+      { caseId: seeded.caseId },
+      { set: { currentRevision: 2 } },
+    );
     const second = await publishDecision({
       context: seeded.tenant.tenant,
       caseId: seeded.caseId,

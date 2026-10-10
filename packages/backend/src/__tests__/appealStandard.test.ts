@@ -11,7 +11,11 @@ import {
   redactAuthorContext,
   redactAuthorText,
 } from '../modules/appeals/appealContext';
-import { evaluateConsensus, requiredAgreeingVotes, type Ballot } from '../modules/consensus/consensus';
+import {
+  evaluateConsensus,
+  requiredAgreeingVotes,
+  type Ballot,
+} from '../modules/consensus/consensus';
 import type { CaseDocument } from '../modules/cases/case.collection';
 import type { DecisionDocument } from '../modules/decision/decision.collection';
 import {
@@ -90,9 +94,7 @@ describe('§9.4: what counts as a severe action', () => {
   it('is severe when a finding is high or critical, whatever was recommended', () => {
     for (const severity of ['high', 'critical'] as const) {
       expect(
-        severeConsequence(
-          decisionWith([{ action: 'label' }], [{ ...localFinding, severity }]),
-        ),
+        severeConsequence(decisionWith([{ action: 'label' }], [{ ...localFinding, severity }])),
         severity,
       ).toBe(true);
     }
@@ -111,9 +113,7 @@ describe('§9.4: what counts as a severe action', () => {
       ).toBe(true);
     }
 
-    expect(
-      severeConsequence(decisionWith([{ action: 'label' }], [localFinding])),
-    ).toBe(false);
+    expect(severeConsequence(decisionWith([{ action: 'label' }], [localFinding]))).toBe(false);
   });
 
   it('is not severe for a decision that recommended nothing at all', () => {
@@ -227,7 +227,13 @@ describe('§9.4: the standard recorded on an appeal when it is filed', () => {
   }
 
   function juryOf(size: number): DecisionDocument['jury'] {
-    return { size, decisiveVotes: size, winningVotes: size, agreement: 1, specialistPresent: false };
+    return {
+      size,
+      decisiveVotes: size,
+      winningVotes: size,
+      agreement: 1,
+      specialistPresent: false,
+    };
   }
 
   it('derives the previous bar from the jury that decided, and raises it', () => {
@@ -569,7 +575,9 @@ describe('§9.8: the author’s context is validated and redacted', () => {
      * to fire: a rule that never matches is a rule that reads as protection while
      * providing none. This value is stored for as long as the case is (§13.4).
      */
-    expect(redactAuthorText('the app sent Bearer abcdef1234567890')).toBe('the app sent [redacted]');
+    expect(redactAuthorText('the app sent Bearer abcdef1234567890')).toBe(
+      'the app sent [redacted]',
+    );
     expect(redactAuthorText('password="hunter2hunter2"')).toBe('[redacted]');
     expect(
       redactAuthorText('token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVP'),
@@ -578,9 +586,7 @@ describe('§9.8: the author’s context is validated and redacted', () => {
   });
 
   it('masks contact details and identifier-shaped numbers', () => {
-    expect(redactAuthorText('write to me at author@example.com')).toBe(
-      'write to me at [redacted]',
-    );
+    expect(redactAuthorText('write to me at author@example.com')).toBe('write to me at [redacted]');
     expect(redactAuthorText('call +34 600 123 456')).toBe('call [redacted]');
     expect(redactAuthorText('my id is 12345678Z and my card 4111 1111 1111 1111')).toContain(
       '[redacted]',

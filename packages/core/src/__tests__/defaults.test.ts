@@ -71,12 +71,19 @@ describe('DEFAULT_POLICY', () => {
   it.each([
     [
       'the version being bumped',
-      (source: string) => source.replace("BASELINE_POLICY_VERSION = '2026.07'", "BASELINE_POLICY_VERSION = '2026.11'"),
+      (source: string) =>
+        source.replace(
+          "BASELINE_POLICY_VERSION = '2026.07'",
+          "BASELINE_POLICY_VERSION = '2026.11'",
+        ),
     ],
     [
       'the policy set being renamed',
       (source: string) =>
-        source.replace("BASELINE_POLICY_SET_ID = 'crowdsource.baseline'", "BASELINE_POLICY_SET_ID = 'crowdsource.universal'"),
+        source.replace(
+          "BASELINE_POLICY_SET_ID = 'crowdsource.baseline'",
+          "BASELINE_POLICY_SET_ID = 'crowdsource.universal'",
+        ),
     ],
     [
       'the version declaration being removed',
@@ -112,13 +119,10 @@ describe('default privacy', () => {
    * §7.5. An integrator who never read it still gets it: material this list
    * covers is never composed with community review allowed.
    */
-  it.each(COMMUNITY_REVIEW_FORBIDDEN_ALLEGATIONS)(
-    'keeps %s away from a community jury',
-    (code) => {
-      expect(defaultPrivacy([code]).allowCommunityReview).toBe(false);
-      expect(allegationsForbiddingCommunityReview([code])).toEqual([code]);
-    },
-  );
+  it.each(COMMUNITY_REVIEW_FORBIDDEN_ALLEGATIONS)('keeps %s away from a community jury', (code) => {
+    expect(defaultPrivacy([code]).allowCommunityReview).toBe(false);
+    expect(allegationsForbiddingCommunityReview([code])).toEqual([code]);
+  });
 
   it('applies the restriction when a forbidden code travels alongside an ordinary one', () => {
     expect(

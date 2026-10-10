@@ -548,9 +548,7 @@ export interface ModerationReportFields {
  * Two status fields maintained by two call sites is how they drift, so an
  * application that has one derives it HERE, from the decision, and nowhere else.
  */
-export type ReportDecisionExtraFields = Readonly<
-  Record<string, string | number | boolean | Date>
->;
+export type ReportDecisionExtraFields = Readonly<Record<string, string | number | boolean | Date>>;
 
 /* ------------------------------------------------------------------------- */
 /* Host services                                                             */
@@ -682,11 +680,7 @@ export interface ModerationIntegrationConfig<
 
 export type ModerationOutboxKind = 'report.submit' | 'decision.apply';
 
-export type ModerationOutboxStatus =
-  | 'pending'
-  | 'processing'
-  | 'processed'
-  | 'dead_letter';
+export type ModerationOutboxStatus = 'pending' | 'processing' | 'processed' | 'dead_letter';
 
 export interface ModerationOutboxPayload {
   /** The local report id, for `report.submit`. */

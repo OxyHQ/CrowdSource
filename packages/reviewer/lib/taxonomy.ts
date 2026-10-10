@@ -50,17 +50,16 @@ const PRESENTATION: Readonly<Record<TaxonomyFamily, Omit<FamilyPresentation, 'id
     other: { specialistOnly: false, routinelySensitive: false },
   });
 
-export const FAMILY_PRESENTATIONS: readonly FamilyPresentation[] = TAXONOMY_FAMILIES.map(
-  (id) => ({ id, ...PRESENTATION[id] }),
-);
+export const FAMILY_PRESENTATIONS: readonly FamilyPresentation[] = TAXONOMY_FAMILIES.map((id) => ({
+  id,
+  ...PRESENTATION[id],
+}));
 
 /** Families a reviewer may opt into without a specialist path. */
 export const OPT_IN_FAMILIES = FAMILY_PRESENTATIONS.filter((family) => !family.specialistOnly);
 
 /** Families for which sensitive-material consent is a meaningful question. */
-export const CONSENTABLE_FAMILIES = OPT_IN_FAMILIES.filter(
-  (family) => family.routinelySensitive,
-);
+export const CONSENTABLE_FAMILIES = OPT_IN_FAMILIES.filter((family) => family.routinelySensitive);
 
 /** A family a reviewer can actually tick — the type the onboarding form holds. */
 export type ConsentableFamily = TaxonomyFamily;

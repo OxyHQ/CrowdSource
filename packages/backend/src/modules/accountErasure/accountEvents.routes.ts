@@ -5,7 +5,11 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 import { logger } from '../../utils/logger';
 import { acceptAccountEvent } from './accountErasure.service';
-import { accountEventClient, isAccountEventRefusal, type OxyAccountEvent } from './oxyAccountEvents';
+import {
+  accountEventClient,
+  isAccountEventRefusal,
+  type OxyAccountEvent,
+} from './oxyAccountEvents';
 
 /**
  * `POST /webhooks/oxy/account-events`: Oxy telling CrowdSource a person deleted
@@ -71,14 +75,19 @@ export async function handleAccountEvent(request: Request, response: Response): 
       response.status(401).json({ error: 'Invalid account event token.' });
       return;
     }
-    logger.error({ classification: 'account_event_unverifiable' }, 'Account event token could not be verified');
+    logger.error(
+      { classification: 'account_event_unverifiable' },
+      'Account event token could not be verified',
+    );
     response.status(503).json({ error: 'The account event could not be verified; retry.' });
     return;
   }
 
   try {
     const intake = await acceptAccountEvent(event, 'webhook');
-    response.status(202).json({ received: true, eventId: event.eventId, duplicate: !intake.inserted });
+    response
+      .status(202)
+      .json({ received: true, eventId: event.eventId, duplicate: !intake.inserted });
   } catch (_caught: unknown) {
     logger.error(
       { eventId: event.eventId, classification: 'account_event_record_failed' },

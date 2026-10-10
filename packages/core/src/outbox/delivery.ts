@@ -72,9 +72,7 @@ export function createDeliveryWorker<TReport extends ModerationReportFields, TTx
   return async (event) => {
     const reportId = event.payload.reportId;
     if (reportId === undefined) {
-      throw new ModerationDeliveryRejectedError(
-        'A report.submit event carried no reportId.',
-      );
+      throw new ModerationDeliveryRejectedError('A report.submit event carried no reportId.');
     }
 
     const report = await input.reports.findById(reportId);

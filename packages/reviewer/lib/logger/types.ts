@@ -11,18 +11,18 @@ export enum LogLevel {
 }
 
 export type TransportEntry = {
-  level: LogLevel
-  context: string | undefined
-  message: string | Error
-  metadata: Metadata
-  timestamp: number
-}
+  level: LogLevel;
+  context: string | undefined;
+  message: string | Error;
+  metadata: Metadata;
+  timestamp: number;
+};
 
-export type Transport = (entry: TransportEntry) => void
+export type Transport = (entry: TransportEntry) => void;
 
 export type Metadata = {
-  __context__?: undefined
-  __metadata__?: Record<string, unknown>
+  __context__?: undefined;
+  __metadata__?: Record<string, unknown>;
   type?:
     | 'default'
     | 'debug'
@@ -33,12 +33,12 @@ export type Metadata = {
     | 'query'
     | 'transaction'
     | 'ui'
-    | 'user'
+    | 'user';
   tags?: {
-    [key: string]: number | string | boolean | null | undefined
-  }
-  [key: string]: Serializable | Error | unknown
-}
+    [key: string]: number | string | boolean | null | undefined;
+  };
+  [key: string]: Serializable | Error | unknown;
+};
 
 export type Serializable =
   | string
@@ -48,5 +48,5 @@ export type Serializable =
   | undefined
   | Serializable[]
   | {
-      [key: string]: Serializable
-    }
+      [key: string]: Serializable;
+    };

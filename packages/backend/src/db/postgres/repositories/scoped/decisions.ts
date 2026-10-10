@@ -140,10 +140,7 @@ export async function findAppealForRevision(
 }
 
 /** The idempotency read for appeal filing — see the reports repository for why. */
-export async function findAppealByIdempotencyKey(
-  db: TenantScopedHandle,
-  idempotencyKey: string,
-) {
+export async function findAppealByIdempotencyKey(db: TenantScopedHandle, idempotencyKey: string) {
   const [row] = await db
     .select()
     .from(appeals)

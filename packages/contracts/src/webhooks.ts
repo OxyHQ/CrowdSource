@@ -113,10 +113,9 @@ const DecisionCorrectedEventSchema = z.looseObject({
   type: z.literal('decision.corrected'),
   data: z.looseObject({
     caseId: IdentifierSchema,
-    decision: DecisionSchema.refine(
-      (decision) => decision.supersedesDecisionId !== undefined,
-      { message: 'a corrected decision must supersede the decision it replaces' },
-    ),
+    decision: DecisionSchema.refine((decision) => decision.supersedesDecisionId !== undefined, {
+      message: 'a corrected decision must supersede the decision it replaces',
+    }),
   }),
 });
 
@@ -231,10 +230,5 @@ export function buildWebhookSignedPayload(timestamp: string, rawBody: string): s
  * `dead_letter`, the tenant is alerted, and replay is manual.
  */
 export const WEBHOOK_RETRY_SCHEDULE_SECONDS: readonly number[] = Object.freeze([
-  30,
-  120,
-  900,
-  3_600,
-  21_600,
-  86_400,
+  30, 120, 900, 3_600, 21_600, 86_400,
 ]);

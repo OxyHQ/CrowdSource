@@ -97,7 +97,6 @@ export type { ReportReceipt, ReportRequestOptions } from './reports.js';
 export { Cases, Decisions } from './cases.js';
 export type { CaseView, ReadOptions } from './cases.js';
 
-
 export { CommunityNotes } from './communityNotes.js';
 export type { CommunityNoteReadOptions, CommunityNoteRequestOptions } from './communityNotes.js';
 

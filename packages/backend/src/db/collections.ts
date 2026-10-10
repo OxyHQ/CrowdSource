@@ -72,18 +72,19 @@ const identityCodec: DocumentCodec = {
 
 const omitNullCodec: DocumentCodec = {
   encode: (value) => ({ ...value }),
-  decode: async (value) => Object.fromEntries(
-    Object.entries(value).filter(([, fieldValue]) => fieldValue !== null),
-  ),
+  decode: async (value) =>
+    Object.fromEntries(Object.entries(value).filter(([, fieldValue]) => fieldValue !== null)),
 };
 
 const organizationMemberCodec: DocumentCodec = {
   encode(value) {
     const { role, ...document } = value;
-    return role === undefined ? document : {
-      ...document,
-      roles: [role],
-    };
+    return role === undefined
+      ? document
+      : {
+          ...document,
+          roles: [role],
+        };
   },
   encodeInsert(value) {
     return {
@@ -234,7 +235,9 @@ function columnFor(table: AnyPgTable, key: string): AnyPgColumn {
 }
 
 function isOperatorObject(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !(value instanceof Date) && !Array.isArray(value);
+  return (
+    typeof value === 'object' && value !== null && !(value instanceof Date) && !Array.isArray(value)
+  );
 }
 
 function comparison(column: AnyPgColumn | SQL, expected: unknown): SQL {
@@ -261,23 +264,44 @@ function comparison(column: AnyPgColumn | SQL, expected: unknown): SQL {
   for (const [operator, operand] of Object.entries(expected)) {
     switch (operator) {
       case '$in':
-        parts.push(Array.isArray(operand) && operand.length > 0 ? inArray(expression, operand) : sql`false`);
+        parts.push(
+          Array.isArray(operand) && operand.length > 0 ? inArray(expression, operand) : sql`false`,
+        );
         break;
       case '$nin':
-        parts.push(Array.isArray(operand) && operand.length > 0 ? notInArray(expression, operand) : sql`true`);
+        parts.push(
+          Array.isArray(operand) && operand.length > 0
+            ? notInArray(expression, operand)
+            : sql`true`,
+        );
         break;
       case '$ne':
         parts.push(operand === null ? isNotNull(expression) : ne(expression, operand));
         break;
-      case '$gt': parts.push(gt(expression, operand)); break;
-      case '$gte': parts.push(gte(expression, operand)); break;
-      case '$lt': parts.push(lt(expression, operand)); break;
-      case '$lte': parts.push(lte(expression, operand)); break;
-      case '$all':
-        parts.push(Array.isArray(operand) && operand.length > 0 ? arrayContains(expression, operand) : sql`false`);
+      case '$gt':
+        parts.push(gt(expression, operand));
         break;
-      case '$not': parts.push(not(comparison(column, operand))); break;
-      default: throw new Error(`Unsupported PostgreSQL filter operator '${operator}'.`);
+      case '$gte':
+        parts.push(gte(expression, operand));
+        break;
+      case '$lt':
+        parts.push(lt(expression, operand));
+        break;
+      case '$lte':
+        parts.push(lte(expression, operand));
+        break;
+      case '$all':
+        parts.push(
+          Array.isArray(operand) && operand.length > 0
+            ? arrayContains(expression, operand)
+            : sql`false`,
+        );
+        break;
+      case '$not':
+        parts.push(not(comparison(column, operand)));
+        break;
+      default:
+        throw new Error(`Unsupported PostgreSQL filter operator '${operator}'.`);
     }
   }
   return and(...parts) ?? sql`true`;
@@ -321,11 +345,18 @@ function orderFor(table: AnyPgTable, sort: Readonly<Record<string, SortOrder>> |
   );
 }
 
-async function decodeMany<TStored>(codec: DocumentCodec, rows: readonly Readonly<Record<string, unknown>>[], db: PgHandle): Promise<TStored[]> {
+async function decodeMany<TStored>(
+  codec: DocumentCodec,
+  rows: readonly Readonly<Record<string, unknown>>[],
+  db: PgHandle,
+): Promise<TStored[]> {
   return await Promise.all(rows.map(async (row) => (await codec.decode(row, db)) as TStored));
 }
 
-function encodeUpdate(codec: DocumentCodec, update: Readonly<Record<string, unknown>>): Record<string, unknown> {
+function encodeUpdate(
+  codec: DocumentCodec,
+  update: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
   const encoded = codec.encode(update);
   if (Object.keys(encoded).length === 0) throw new Error('A PostgreSQL update cannot be empty.');
   return encoded;
@@ -340,33 +371,56 @@ export class TenantCollection<TStored extends TenantContext> {
     this.#binding = bindingFor(name);
   }
 
-  async #run<T>(context: TenantContext, session: TransactionSession | undefined, operation: (db: PgHandle) => Promise<T>): Promise<T> {
+  async #run<T>(
+    context: TenantContext,
+    session: TransactionSession | undefined,
+    operation: (db: PgHandle) => Promise<T>,
+  ): Promise<T> {
     return session
       ? withTenantTransaction(session, context, operation)
       : withTenant(getPostgresDatabase(), context, operation);
   }
 
-  async insertOne(context: TenantContext, document: Omit<TStored, keyof TenantContext>, session?: TransactionSession): Promise<TenantScoped<Omit<TStored, keyof TenantContext>>> {
+  async insertOne(
+    context: TenantContext,
+    document: Omit<TStored, keyof TenantContext>,
+    session?: TransactionSession,
+  ): Promise<TenantScoped<Omit<TStored, keyof TenantContext>>> {
     const scoped = tenantScopedDocument(context, document);
     await this.#run(context, session, async (db) => {
-      await db.insert(this.#binding.table).values(
-        this.#binding.codec.encodeInsert?.(scoped) ?? this.#binding.codec.encode(scoped),
-      );
+      await db
+        .insert(this.#binding.table)
+        .values(this.#binding.codec.encodeInsert?.(scoped) ?? this.#binding.codec.encode(scoped));
     });
     return scoped;
   }
 
-  async findOne(context: TenantContext, filter: Readonly<Record<string, unknown>> = {}): Promise<TStored | null> {
+  async findOne(
+    context: TenantContext,
+    filter: Readonly<Record<string, unknown>> = {},
+  ): Promise<TStored | null> {
     return this.#run(context, undefined, async (db) => {
-      const rows = await db.select().from(this.#binding.table).where(whereFor(this.#binding.table, filter)).limit(1);
+      const rows = await db
+        .select()
+        .from(this.#binding.table)
+        .where(whereFor(this.#binding.table, filter))
+        .limit(1);
       const decoded = await decodeMany<TStored>(this.#binding.codec, rows, db);
       return decoded[0] ?? null;
     });
   }
 
-  async find(context: TenantContext, filter: Readonly<Record<string, unknown>> = {}, options: FindOptions = {}): Promise<TStored[]> {
+  async find(
+    context: TenantContext,
+    filter: Readonly<Record<string, unknown>> = {},
+    options: FindOptions = {},
+  ): Promise<TStored[]> {
     return this.#run(context, undefined, async (db) => {
-      const query = db.select().from(this.#binding.table).where(whereFor(this.#binding.table, filter)).$dynamic();
+      const query = db
+        .select()
+        .from(this.#binding.table)
+        .where(whereFor(this.#binding.table, filter))
+        .$dynamic();
       const ordering = orderFor(this.#binding.table, options.sort);
       if (ordering.length > 0) query.orderBy(...ordering);
       if (options.limit !== undefined) query.limit(options.limit);
@@ -374,22 +428,42 @@ export class TenantCollection<TStored extends TenantContext> {
     });
   }
 
-  async countDocuments(context: TenantContext, filter: Readonly<Record<string, unknown>> = {}): Promise<number> {
+  async countDocuments(
+    context: TenantContext,
+    filter: Readonly<Record<string, unknown>> = {},
+  ): Promise<number> {
     return this.#run(context, undefined, async (db) => {
-      const [row] = await db.select({ count: sql<number>`count(*)::integer` }).from(this.#binding.table).where(whereFor(this.#binding.table, filter));
+      const [row] = await db
+        .select({ count: sql<number>`count(*)::integer` })
+        .from(this.#binding.table)
+        .where(whereFor(this.#binding.table, filter));
       return row?.count ?? 0;
     });
   }
 
-  async updateOne(context: TenantContext, filter: Readonly<Record<string, unknown>>, update: TenantScopedUpdate<TStored>, session?: TransactionSession): Promise<number> {
+  async updateOne(
+    context: TenantContext,
+    filter: Readonly<Record<string, unknown>>,
+    update: TenantScopedUpdate<TStored>,
+    session?: TransactionSession,
+  ): Promise<number> {
     const { set = {}, inc = {}, max = {}, addToSet = {}, setOnInsert } = update;
-    if (setOnInsert !== undefined) throw new Error(`'${this.name}' requires its dedicated PostgreSQL upsert repository.`);
+    if (setOnInsert !== undefined)
+      throw new Error(`'${this.name}' requires its dedicated PostgreSQL upsert repository.`);
     const patch: Record<string, unknown> = { ...set };
-    for (const [field, amount] of Object.entries(inc)) patch[field] = sql`${columnFor(this.#binding.table, field)} + ${amount}`;
-    for (const [field, value] of Object.entries(max)) patch[field] = sql`greatest(${columnFor(this.#binding.table, field)}, ${value})`;
-    for (const [field, values] of Object.entries(addToSet)) patch[field] = sql`array(select distinct unnest(${columnFor(this.#binding.table, field)} || ${[...values]}))`;
+    for (const [field, amount] of Object.entries(inc))
+      patch[field] = sql`${columnFor(this.#binding.table, field)} + ${amount}`;
+    for (const [field, value] of Object.entries(max))
+      patch[field] = sql`greatest(${columnFor(this.#binding.table, field)}, ${value})`;
+    for (const [field, values] of Object.entries(addToSet))
+      patch[field] =
+        sql`array(select distinct unnest(${columnFor(this.#binding.table, field)} || ${[...values]}))`;
     return this.#run(context, session, async (db) => {
-      const rows = await db.update(this.#binding.table).set(encodeUpdate(this.#binding.codec, patch)).where(whereFor(this.#binding.table, filter)).returning({ marker: sql<number>`1` });
+      const rows = await db
+        .update(this.#binding.table)
+        .set(encodeUpdate(this.#binding.codec, patch))
+        .where(whereFor(this.#binding.table, filter))
+        .returning({ marker: sql<number>`1` });
       return rows.length;
     });
   }
@@ -415,14 +489,16 @@ export class UnscopedCollection<TStored> {
     this.#binding = bindingFor(name);
   }
 
-  #db(session?: TransactionSession): PgHandle { return session ?? getPostgresDatabase(); }
+  #db(session?: TransactionSession): PgHandle {
+    return session ?? getPostgresDatabase();
+  }
 
   async insertOne(document: TStored, session?: TransactionSession): Promise<TStored> {
     const raw = document as Readonly<Record<string, unknown>>;
     const insert = async (db: PgHandle): Promise<void> => {
-      await db.insert(this.#binding.table).values(
-        this.#binding.codec.encodeInsert?.(raw) ?? this.#binding.codec.encode(raw),
-      );
+      await db
+        .insert(this.#binding.table)
+        .values(this.#binding.codec.encodeInsert?.(raw) ?? this.#binding.codec.encode(raw));
       if (this.name === 'ReviewerProfile') {
         const reviewerId = String(raw.reviewerId);
         const links = raw.principalLinks;
@@ -450,14 +526,25 @@ export class UnscopedCollection<TStored> {
 
   async findOne(filter: Readonly<Record<string, unknown>>): Promise<TStored | null> {
     const db = this.#db();
-    const rows = await db.select().from(this.#binding.table).where(whereFor(this.#binding.table, filter)).limit(1);
+    const rows = await db
+      .select()
+      .from(this.#binding.table)
+      .where(whereFor(this.#binding.table, filter))
+      .limit(1);
     const decoded = await decodeMany<TStored>(this.#binding.codec, rows, db);
     return decoded[0] ?? null;
   }
 
-  async find(filter: Readonly<Record<string, unknown>>, options: FindOptions = {}): Promise<TStored[]> {
+  async find(
+    filter: Readonly<Record<string, unknown>>,
+    options: FindOptions = {},
+  ): Promise<TStored[]> {
     const db = this.#db();
-    const query = db.select().from(this.#binding.table).where(whereFor(this.#binding.table, filter)).$dynamic();
+    const query = db
+      .select()
+      .from(this.#binding.table)
+      .where(whereFor(this.#binding.table, filter))
+      .$dynamic();
     const ordering = orderFor(this.#binding.table, options.sort);
     if (ordering.length > 0) query.orderBy(...ordering);
     if (options.limit !== undefined) query.limit(options.limit);
@@ -465,12 +552,23 @@ export class UnscopedCollection<TStored> {
   }
 
   async countDocuments(filter: Readonly<Record<string, unknown>> = {}): Promise<number> {
-    const [row] = await this.#db().select({ count: sql<number>`count(*)::integer` }).from(this.#binding.table).where(whereFor(this.#binding.table, filter));
+    const [row] = await this.#db()
+      .select({ count: sql<number>`count(*)::integer` })
+      .from(this.#binding.table)
+      .where(whereFor(this.#binding.table, filter));
     return row?.count ?? 0;
   }
 
-  async updateOne(filter: Readonly<Record<string, unknown>>, update: Readonly<Record<string, unknown>>, session?: TransactionSession): Promise<number> {
-    const rows = await this.#db(session).update(this.#binding.table).set(encodeUpdate(this.#binding.codec, update)).where(whereFor(this.#binding.table, filter)).returning({ marker: sql<number>`1` });
+  async updateOne(
+    filter: Readonly<Record<string, unknown>>,
+    update: Readonly<Record<string, unknown>>,
+    session?: TransactionSession,
+  ): Promise<number> {
+    const rows = await this.#db(session)
+      .update(this.#binding.table)
+      .set(encodeUpdate(this.#binding.codec, update))
+      .where(whereFor(this.#binding.table, filter))
+      .returning({ marker: sql<number>`1` });
     return rows.length;
   }
 
@@ -484,18 +582,27 @@ export class UnscopedCollection<TStored> {
   }
 }
 
-export function defineTenantCollection<TStored extends TenantContext>(name: string): TenantCollection<TStored> {
+export function defineTenantCollection<TStored extends TenantContext>(
+  name: string,
+): TenantCollection<TStored> {
   const collection = new TenantCollection<TStored>(name);
   registered.push(name);
   return collection;
 }
 
-export function defineUnscopedCollection<TStored>(name: string, rationale: UnscopedRationale): UnscopedCollection<TStored> {
+export function defineUnscopedCollection<TStored>(
+  name: string,
+  rationale: UnscopedRationale,
+): UnscopedCollection<TStored> {
   const collection = new UnscopedCollection<TStored>(name, rationale);
   registered.push(name);
   unscopedRationales.set(name, rationale.why);
   return collection;
 }
 
-export function registeredCollectionNames(): readonly string[] { return [...registered]; }
-export function unscopedCollectionReasons(): ReadonlyMap<string, string> { return new Map(unscopedRationales); }
+export function registeredCollectionNames(): readonly string[] {
+  return [...registered];
+}
+export function unscopedCollectionReasons(): ReadonlyMap<string, string> {
+  return new Map(unscopedRationales);
+}

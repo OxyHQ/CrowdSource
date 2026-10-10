@@ -86,11 +86,7 @@ export interface InboundService {
    * kept, because "did CrowdSource tell us about this case, and when" is the
    * first question asked when a report looks stuck, and it has to be answerable.
    */
-  recordIgnoredEvent(input: {
-    eventId: string;
-    type: string;
-    caseId?: string;
-  }): Promise<void>;
+  recordIgnoredEvent(input: { eventId: string; type: string; caseId?: string }): Promise<void>;
 }
 
 export function createInboundService<TTx>(input: {

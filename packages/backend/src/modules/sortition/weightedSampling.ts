@@ -245,10 +245,7 @@ export function drawPanel(input: PanelDrawInput): PanelDrawOutcome {
     });
     taken.add(chosen.reviewerId);
     if (chosen.riskClusterId !== null) {
-      clusterCounts.set(
-        chosen.riskClusterId,
-        (clusterCounts.get(chosen.riskClusterId) ?? 0) + 1,
-      );
+      clusterCounts.set(chosen.riskClusterId, (clusterCounts.get(chosen.riskClusterId) ?? 0) + 1);
     }
   }
 
@@ -260,7 +257,9 @@ export function drawPanel(input: PanelDrawInput): PanelDrawOutcome {
    * ever wrong, this turns a silent weak panel into a refusal, which is the
    * direction the whole module leans.
    */
-  if (seats.filter((seat) => isReliable(seat.reliability)).length < spec.constraints.minReliableCount) {
+  if (
+    seats.filter((seat) => isReliable(seat.reliability)).length < spec.constraints.minReliableCount
+  ) {
     return { ok: false, reason: 'reliability_minimum' };
   }
 

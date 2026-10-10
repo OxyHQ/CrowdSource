@@ -55,10 +55,7 @@ function newOxyUserId(): string {
  * through the invitation route, because the tests that USE this are about what a seat
  * lets you reach. The invitation route is exercised on its own below.
  */
-async function memberOf(
-  tenant: ProvisionedTenant,
-  role: ConsoleRole = 'admin',
-): Promise<string> {
+async function memberOf(tenant: ProvisionedTenant, role: ConsoleRole = 'admin'): Promise<string> {
   const oxyUserId = newOxyUserId();
   await grantMembership({
     organizationId: tenant.organizationId,
@@ -100,9 +97,7 @@ afterAll(async () => {
 
 describe('a verified Oxy session, by itself', () => {
   it('is a valid console session with nothing in it', async () => {
-    const response = await request(app)
-      .get('/v1/console/session')
-      .set(asUser(newOxyUserId()));
+    const response = await request(app).get('/v1/console/session').set(asUser(newOxyUserId()));
 
     expect(response.status).toBe(200);
     // The session is real; the authority is empty. Those are different things, and
@@ -294,9 +289,7 @@ describe('the tenant boundary', () => {
     expect(before.status).toBe(200);
 
     const revoked = await request(app)
-      .post(
-        `/v1/console/organizations/${tenant.organizationId}/members/${oxyUserId}/revoke`,
-      )
+      .post(`/v1/console/organizations/${tenant.organizationId}/members/${oxyUserId}/revoke`)
       .set(asUser(secondOwner));
     expect(revoked.status).toBe(200);
 
@@ -540,8 +533,11 @@ describe('credentials through the console', () => {
     // Not even the digest. A console that re-served it would hand every admin seat an
     // offline target.
     expect(serialised).not.toContain('secretHash');
-    expect(listed.body.credentials.some((row: { credentialId: string }) =>
-      row.credentialId === issued.body.credentialId)).toBe(true);
+    expect(
+      listed.body.credentials.some(
+        (row: { credentialId: string }) => row.credentialId === issued.body.credentialId,
+      ),
+    ).toBe(true);
   });
 
   it('cannot mint a privileged scope (§13.2)', async () => {

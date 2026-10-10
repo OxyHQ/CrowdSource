@@ -39,8 +39,8 @@ function assertField(table: TableName, field: string): readonly [string, string?
     throw new Error(`Unsafe PostgreSQL JSON field '${field}'.`);
   }
   return [
-    FIELD_OVERRIDES[table]?.[column]
-      ?? column.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`),
+    FIELD_OVERRIDES[table]?.[column] ??
+      column.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`),
     nested,
   ];
 }
@@ -111,7 +111,8 @@ class ControlCursor {
       const where = predicate(this.table, this.filter);
       const ordering = Object.entries(this.#sort ?? {}).map(([field, direction]) => {
         const [column, nested] = assertField(this.table, field);
-        if (nested !== undefined) throw new Error('Nested JSON sorting is not supported by the control.');
+        if (nested !== undefined)
+          throw new Error('Nested JSON sorting is not supported by the control.');
         return `"${column}" ${direction === -1 ? 'desc' : 'asc'}`;
       });
       const orderBy = ordering.length === 0 ? '' : ` order by ${ordering.join(', ')}`;

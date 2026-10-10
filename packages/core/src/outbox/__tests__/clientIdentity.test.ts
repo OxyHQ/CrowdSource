@@ -40,10 +40,7 @@ import { formatServiceKey } from '../../credential.js';
 import { resetCrowdSourceForOxyService } from '../../index.js';
 import { createClientProvider } from '../client.js';
 import { createModerationIntegration } from '../integration.js';
-import {
-  moderationReportColumns,
-  moderationReportTableExtras,
-} from '../postgres/reportColumns.js';
+import { moderationReportColumns, moderationReportTableExtras } from '../postgres/reportColumns.js';
 import { postgresModerationStore } from '../postgres/store/index.js';
 import { moderationTables } from '../postgres/tables.js';
 import type { CrowdSourceConnectionConfig, ModerationLogger } from '../types.js';
@@ -111,9 +108,7 @@ const namesTheTenant = (): Response =>
     headers: { 'content-type': 'application/json' },
   });
 
-function connection(
-  overrides: Partial<CrowdSourceConnectionConfig>,
-): CrowdSourceConnectionConfig {
+function connection(overrides: Partial<CrowdSourceConnectionConfig>): CrowdSourceConnectionConfig {
   return { enabled: true, enforcementMode: 'observe', baseUrl: BASE_URL, ...overrides };
 }
 
@@ -265,9 +260,12 @@ describe('an Oxy service, which configures no key at all', () => {
     provider.get();
 
     expect(logger.warn).toHaveBeenCalledTimes(1);
-    expect(logger.warn).toHaveBeenCalledWith('[CrowdSource] the configured service key is not used', {
-      auth: 'oxy-service',
-    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      '[CrowdSource] the configured service key is not used',
+      {
+        auth: 'oxy-service',
+      },
+    );
   });
 
   it('is built once, not once per delivery', () => {
@@ -344,8 +342,7 @@ describe('a deployment that configured neither', () => {
     expect(logger.error).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalledWith('[CrowdSource] enabled but not configured', {
       auth: 'service-key',
-      reason:
-        "no CrowdSource service key is configured, and crowdSource.auth is not 'oxy-service'",
+      reason: "no CrowdSource service key is configured, and crowdSource.auth is not 'oxy-service'",
     });
   });
 

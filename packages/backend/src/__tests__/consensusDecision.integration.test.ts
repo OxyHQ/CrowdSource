@@ -190,9 +190,7 @@ async function seatsOf(caseId: string): Promise<string[]> {
 
 /** The seats that have not yet voted. */
 async function unvotedSeatsOf(caseId: string): Promise<string[]> {
-  const voted = new Set(
-    (await reviews.find({ caseId })).map((review) => review.reviewerId),
-  );
+  const voted = new Set((await reviews.find({ caseId })).map((review) => review.reviewerId));
   return (await seatsOf(caseId)).filter((reviewerId) => !voted.has(reviewerId));
 }
 
@@ -381,8 +379,8 @@ describe('§15.5: three unanimous reviews publish a decision, exactly once', () 
   it('§15.6: the decision reaches the application as a signed webhook delivery', async () => {
     await drainUntil(
       async () =>
-        (await webhookDeliveries.find({ eventType: 'case.decided' })).some(
-          (delivery) => JSON.stringify(delivery.body).includes(caseId),
+        (await webhookDeliveries.find({ eventType: 'case.decided' })).some((delivery) =>
+          JSON.stringify(delivery.body).includes(caseId),
         ),
       'a case.decided delivery for this case',
     );
@@ -515,7 +513,12 @@ describe('§15.5: a disagreement expands the panel, and a final tie stays inconc
     expect(decision.outcome).not.toBe('no_violation');
     expect(decision.outcome).not.toBe('violation');
 
-    expect(decision.jury).toMatchObject({ size: 7, decisiveVotes: 7, winningVotes: 0, agreement: 0 });
+    expect(decision.jury).toMatchObject({
+      size: 7,
+      decisiveVotes: 7,
+      winningVotes: 0,
+      agreement: 0,
+    });
     // §9.6: the jury reviewed the case and reached no consensus. It found
     // nothing, because nothing was agreed.
     expect(decision.findings).toEqual([]);

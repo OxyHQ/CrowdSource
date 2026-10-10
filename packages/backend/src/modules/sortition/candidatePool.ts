@@ -1,8 +1,5 @@
 import { config } from '../../config';
-import {
-  eligibilityFilter,
-  type CaseEligibilityCriteria,
-} from '../reviewer/eligibility';
+import { eligibilityFilter, type CaseEligibilityCriteria } from '../reviewer/eligibility';
 import { reviewerProfiles, type ReviewerProfileDocument } from '../reviewer/reviewer.collection';
 
 /**

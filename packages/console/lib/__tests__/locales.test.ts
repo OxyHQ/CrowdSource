@@ -57,8 +57,7 @@ describe('locales', () => {
     it(`${locale} interpolates the same placeholders as en-US`, () => {
       const mismatches = baseKeys.filter(
         (key) =>
-          placeholders(valueAt(BASE, key)).join(',') !==
-          placeholders(valueAt(tree, key)).join(','),
+          placeholders(valueAt(BASE, key)).join(',') !== placeholders(valueAt(tree, key)).join(','),
       );
       expect(mismatches).toEqual([]);
     });

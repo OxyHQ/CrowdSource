@@ -274,10 +274,7 @@ async function call<T>(
  * what makes each call provably well-typed, and it means adding an event to the
  * contract stops this file compiling until it is handled.
  */
-async function invoke(
-  handlers: WebhookEventHandlers,
-  event: KnownWebhookEvent,
-): Promise<boolean> {
+async function invoke(handlers: WebhookEventHandlers, event: KnownWebhookEvent): Promise<boolean> {
   switch (event.type) {
     case 'report.received':
       return await call(handlers['report.received'], event);
@@ -305,7 +302,9 @@ async function invoke(
 function configuredSecrets(options: CrowdSourceWebhooksOptions): readonly string[] {
   const active = options.secret ?? process.env[WEBHOOK_SECRET_ENV_VAR];
   const previous = options.previousSecret ?? process.env[WEBHOOK_PREVIOUS_SECRET_ENV_VAR];
-  return [active, previous].filter((secret): secret is string => typeof secret === 'string' && secret.length > 0);
+  return [active, previous].filter(
+    (secret): secret is string => typeof secret === 'string' && secret.length > 0,
+  );
 }
 
 function parseJson(rawBody: Buffer): unknown {

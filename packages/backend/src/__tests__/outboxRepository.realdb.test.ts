@@ -4,10 +4,7 @@ import * as outboxRepository from '../db/postgres/repositories/outbox';
 import { OUTBOX_STATUSES, outboxEvents } from '../db/postgres/schema/infrastructure';
 import { createTenantContext, type TenantContext } from '../db/tenantScope';
 import { withTenant, type PgTransactionHandle } from '../db/postgres/withTenant';
-import {
-  OUTBOX_EVENT_TYPES,
-  type OutboxEventType,
-} from '../modules/outbox/outbox.collection';
+import { OUTBOX_EVENT_TYPES, type OutboxEventType } from '../modules/outbox/outbox.collection';
 import {
   createPostgresTestDatabase,
   type PostgresTestDatabase,
@@ -281,11 +278,10 @@ describe('the guard that makes a pool unusable here', () => {
    */
   it('refuses a pool handle that was cast to a transaction', async () => {
     await expect(
-      outboxRepository.appendOutboxEvent(
-        database.db as unknown as PgTransactionHandle,
-        tenant,
-        { type: OUTBOX_EVENT_TYPES.reportReceived, payload: { reportId: 'rpt_pool' } },
-      ),
+      outboxRepository.appendOutboxEvent(database.db as unknown as PgTransactionHandle, tenant, {
+        type: OUTBOX_EVENT_TYPES.reportReceived,
+        payload: { reportId: 'rpt_pool' },
+      }),
     ).rejects.toThrow(/must run inside a transaction/);
   });
 
@@ -466,9 +462,7 @@ describe('claiming a due row', () => {
       type: OUTBOX_EVENT_TYPES.appealCreated,
     });
 
-    expect(
-      await outboxRepository.claimNextOutboxEvent(database.db, claimOf([])),
-    ).toBeNull();
+    expect(await outboxRepository.claimNextOutboxEvent(database.db, claimOf([]))).toBeNull();
 
     /**
      * Untouched, not merely unclaimed.
@@ -576,9 +570,7 @@ describe('two dispatchers racing for the same rows', () => {
    * held lock at every moment and the wait would pass by never measuring
    * anything.
    */
-  async function whileFirstClaimIsOpen(
-    types: readonly OutboxEventType[],
-  ): Promise<{
+  async function whileFirstClaimIsOpen(types: readonly OutboxEventType[]): Promise<{
     first: outboxRepository.OutboxEventRow | null;
     second: outboxRepository.OutboxEventRow | null;
   }> {
@@ -641,9 +633,7 @@ describe('two dispatchers racing for the same rows', () => {
       availableAt: offset(-150 * MINUTE),
     });
 
-    const { first, second } = await whileFirstClaimIsOpen([
-      OUTBOX_EVENT_TYPES.caseReadyForReview,
-    ]);
+    const { first, second } = await whileFirstClaimIsOpen([OUTBOX_EVENT_TYPES.caseReadyForReview]);
 
     expect(first?.eventId).toBe('evt_race_a');
     expect(second?.eventId).toBe('evt_race_b');
@@ -745,9 +735,9 @@ describe('completing a claimed row', () => {
    * with the three above is what separates the two spellings.
    */
   it('answers zero for an id that matches nothing, and finds no such row', async () => {
-    expect(
-      await outboxRepository.markOutboxEventDispatched(database.db, 'evt_absent', NOW),
-    ).toBe(0);
+    expect(await outboxRepository.markOutboxEventDispatched(database.db, 'evt_absent', NOW)).toBe(
+      0,
+    );
     expect(
       await outboxRepository.markOutboxEventFailed(database.db, 'evt_absent', {
         status: 'pending',

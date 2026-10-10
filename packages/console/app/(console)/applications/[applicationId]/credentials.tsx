@@ -72,7 +72,12 @@ export default function CredentialsScreen() {
       }
       actions={
         mayAdminister ? (
-          <Button appearance="solid" tone="accent" size="sm" onPress={() => setIsIssuing((open) => !open)}>
+          <Button
+            appearance="solid"
+            tone="accent"
+            size="sm"
+            onPress={() => setIsIssuing((open) => !open)}
+          >
             {t('credentials.issue.action')}
           </Button>
         ) : null
@@ -116,7 +121,10 @@ export default function CredentialsScreen() {
         />
       ) : null}
 
-      <Panel title={t('credentials.privileged.title')} description={t('credentials.privileged.body')} />
+      <Panel
+        title={t('credentials.privileged.title')}
+        description={t('credentials.privileged.body')}
+      />
     </Screen>
   );
 }
@@ -245,10 +253,9 @@ function IssueCredentialForm({
   const handleSubmit = useCallback(() => {
     // The field is OMITTED rather than sent as null when there is no expiry: the
     // request schema is strict, and an explicit null is not the same as absent.
-    issue.mutate(
-      expiresInDays === null ? { scopes } : { scopes, expiresInDays },
-      { onSuccess: onIssued },
-    );
+    issue.mutate(expiresInDays === null ? { scopes } : { scopes, expiresInDays }, {
+      onSuccess: onIssued,
+    });
   }, [expiresInDays, issue, onIssued, scopes]);
 
   return (
@@ -277,7 +284,12 @@ function IssueCredentialForm({
             );
           })}
         </View>
-        <Text className={cn('text-xs leading-4', scopes.length === 0 ? 'text-muted-foreground' : 'text-foreground')}>
+        <Text
+          className={cn(
+            'text-xs leading-4',
+            scopes.length === 0 ? 'text-muted-foreground' : 'text-foreground',
+          )}
+        >
           {t('credentials.issue.scopesHint')}
         </Text>
 

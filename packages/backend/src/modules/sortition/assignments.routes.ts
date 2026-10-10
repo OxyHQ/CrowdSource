@@ -89,12 +89,7 @@ async function reviewPackage(assignment: AssignmentDocument): Promise<Assignment
     version: policyVersionOfToken(stored.policyVersion, stored.policySetId),
   });
 
-  return buildReviewPackage(
-    assignment,
-    stored,
-    policy,
-    await appealAuthorContext(assignment),
-  );
+  return buildReviewPackage(assignment, stored, policy, await appealAuthorContext(assignment));
 }
 
 /**

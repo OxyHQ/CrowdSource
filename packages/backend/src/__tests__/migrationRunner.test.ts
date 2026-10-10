@@ -3,12 +3,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  MIGRATIONS_FOLDER,
-  isDryRun,
-  readMigratorDatabaseUrl,
-  readPhase,
-} from '../db/migrate';
+import { MIGRATIONS_FOLDER, isDryRun, readMigratorDatabaseUrl, readPhase } from '../db/migrate';
 
 /**
  * The migration runner's decisions, without a process around them.
@@ -26,15 +21,15 @@ import {
 
 describe('the migrator credential', () => {
   it('reads MIGRATOR_DATABASE_URL', () => {
-    expect(
-      readMigratorDatabaseUrl({ MIGRATOR_DATABASE_URL: 'postgres://m@host/db' }),
-    ).toBe('postgres://m@host/db');
+    expect(readMigratorDatabaseUrl({ MIGRATOR_DATABASE_URL: 'postgres://m@host/db' })).toBe(
+      'postgres://m@host/db',
+    );
   });
 
   it('trims it, so a copy-pasted secret with a trailing newline still works', () => {
-    expect(
-      readMigratorDatabaseUrl({ MIGRATOR_DATABASE_URL: '  postgres://m@host/db\n' }),
-    ).toBe('postgres://m@host/db');
+    expect(readMigratorDatabaseUrl({ MIGRATOR_DATABASE_URL: '  postgres://m@host/db\n' })).toBe(
+      'postgres://m@host/db',
+    );
   });
 
   /**
@@ -145,10 +140,7 @@ describe('the migrations folder', () => {
   });
 
   it('refuses populated partial case tables before changing their old index', () => {
-    const migration = readFileSync(
-      path.join(MIGRATIONS_FOLDER, '0008_dear_microchip.sql'),
-      'utf8',
-    );
+    const migration = readFileSync(path.join(MIGRATIONS_FOLDER, '0008_dear_microchip.sql'), 'utf8');
     const emptyTargetGuard = migration.indexOf('IF EXISTS (SELECT 1 FROM "cases" LIMIT 1)');
     const firstChange = migration.indexOf('DROP INDEX "cases_application_subject_key"');
 
@@ -168,12 +160,8 @@ describe('the migrations folder', () => {
     );
 
     expect(expand).toContain('-- oxy:deploy-phase=pre');
-    expect(expand).toContain(
-      'ALTER COLUMN "reviewer_principal_link_id" DROP NOT NULL',
-    );
-    expect(expand).toContain(
-      'PRIMARY KEY("reviewer_id","application_id","external_principal_id")',
-    );
+    expect(expand).toContain('ALTER COLUMN "reviewer_principal_link_id" DROP NOT NULL');
+    expect(expand).toContain('PRIMARY KEY("reviewer_id","application_id","external_principal_id")');
     expect(expand).not.toContain('DROP COLUMN "reviewer_principal_link_id"');
 
     expect(contract).toContain('-- oxy:deploy-phase=post');
@@ -181,10 +169,7 @@ describe('the migrations folder', () => {
   });
 
   it('contracts every remaining closed-value gap after the runtime cut', () => {
-    const migration = readFileSync(
-      path.join(MIGRATIONS_FOLDER, '0014_living_wasp.sql'),
-      'utf8',
-    );
+    const migration = readFileSync(path.join(MIGRATIONS_FOLDER, '0014_living_wasp.sql'), 'utf8');
 
     expect(migration).toContain('-- oxy:deploy-phase=post');
     expect(migration.match(/ ADD CONSTRAINT /g)).toHaveLength(19);

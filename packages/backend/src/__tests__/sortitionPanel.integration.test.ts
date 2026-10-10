@@ -254,7 +254,9 @@ describe('§15.4: a user who was not selected cannot open or vote', () => {
      * application API, which requires a service credential; an Oxy session does
      * not satisfy it, and a reviewer has no credential.
      */
-    const response = await request(app).get(`/v1/cases/${caseId}`).set(asReviewer(outsider.oxyUserId));
+    const response = await request(app)
+      .get(`/v1/cases/${caseId}`)
+      .set(asReviewer(outsider.oxyUserId));
     expect(response.status).toBe(401);
     expect(JSON.stringify(response.body)).not.toContain('commerce');
   });
@@ -288,9 +290,7 @@ describe('§15.4: a user who was not selected cannot open or vote', () => {
       .send({
         outcome: 'violation',
         contextSufficiency: 'sufficient',
-        findings: [
-          { code: CODE, resourceIds: ['res_post'], severity: 'medium', confidence: 0.9 },
-        ],
+        findings: [{ code: CODE, resourceIds: ['res_post'], severity: 'medium', confidence: 0.9 }],
         recommendedActions: [],
       });
 
@@ -336,7 +336,12 @@ describe('§8.7: one assignment authorises exactly one vote', () => {
     outcome: 'violation' as const,
     contextSufficiency: 'sufficient' as const,
     findings: [
-      { code: VOTING_CODE, resourceIds: ['res_post'], severity: 'medium' as const, confidence: 0.9 },
+      {
+        code: VOTING_CODE,
+        resourceIds: ['res_post'],
+        severity: 'medium' as const,
+        confidence: 0.9,
+      },
     ],
     recommendedActions: [],
   };
@@ -529,9 +534,9 @@ describe('§8.7: a recusal is not a vote, and it creates a replacement', () => {
   });
 
   it('records a recusal, not a review', async () => {
-    expect(await reviews.countDocuments({ caseId: recusedCaseId, reviewerId: recusedReviewerId })).toBe(
-      0,
-    );
+    expect(
+      await reviews.countDocuments({ caseId: recusedCaseId, reviewerId: recusedReviewerId }),
+    ).toBe(0);
 
     const seat = await assignments.findOne({
       caseId: recusedCaseId,
@@ -569,10 +574,7 @@ describe('§8.7: a recusal is not a vote, and it creates a replacement', () => {
   });
 
   it('records the replacement as its own draw, with its own seed', async () => {
-    const draws = await sortitionDraws.find(
-      { caseId: recusedCaseId },
-      { sort: { drawnAt: 1 } },
-    );
+    const draws = await sortitionDraws.find({ caseId: recusedCaseId }, { sort: { drawnAt: 1 } });
 
     expect(draws).toHaveLength(2);
     expect(draws[0].kind).toBe('initial');
@@ -643,17 +645,13 @@ describe('§8.5: the exclusions bite in a real draw', () => {
       family: PARTY_FAMILY,
       reliability: 0.9,
       completedReviewCount: 40,
-      principalLinks: [
-        { applicationId: tenant.applicationId, externalPrincipalId: 'user_author' },
-      ],
+      principalLinks: [{ applicationId: tenant.applicationId, externalPrincipalId: 'user_author' }],
     });
     await createReviewer({
       family: PARTY_FAMILY,
       reliability: 0.9,
       completedReviewCount: 40,
-      principalLinks: [
-        { applicationId: tenant.applicationId, externalPrincipalId: 'reporter_1' },
-      ],
+      principalLinks: [{ applicationId: tenant.applicationId, externalPrincipalId: 'reporter_1' }],
     });
 
     partyCaseId = await openCaseFor(PARTY_CODE, `post_parties_${Date.now()}`);
@@ -874,9 +872,7 @@ describe('§8.7: an expired assignment is replaced', () => {
 
   it('is idempotent: a second sweep finds nothing more to expire here', async () => {
     await expireDueAssignments();
-    expect(
-      await assignments.countDocuments({ caseId: expiryCaseId, status: 'expired' }),
-    ).toBe(1);
+    expect(await assignments.countDocuments({ caseId: expiryCaseId, status: 'expired' })).toBe(1);
   });
 });
 
@@ -921,13 +917,14 @@ describe('§8.6: expanding a panel from three to five', () => {
   });
 
   it('records the expansion as its own draw, at round 2', async () => {
-    const draws = await sortitionDraws.find(
-      { caseId: expandedCaseId },
-      { sort: { drawnAt: 1 } },
-    );
+    const draws = await sortitionDraws.find({ caseId: expandedCaseId }, { sort: { drawnAt: 1 } });
 
     expect(draws).toHaveLength(2);
-    expect(draws[1]).toMatchObject({ kind: 'expansion', round: 2, panelSpecId: 'community.round2' });
+    expect(draws[1]).toMatchObject({
+      kind: 'expansion',
+      round: 2,
+      panelSpecId: 'community.round2',
+    });
     expect(draws[1].seed).not.toBe(draws[0].seed);
     // Only the seats round 1 did not already fill.
     expect(draws[1].requestedSlots).toHaveLength(2);
@@ -955,10 +952,7 @@ describe('§8.6: expanding a panel from three to five', () => {
   });
 
   it('replays the expansion draw with its incumbents in place (§16.3)', async () => {
-    const draws = await sortitionDraws.find(
-      { caseId: expandedCaseId },
-      { sort: { drawnAt: 1 } },
-    );
+    const draws = await sortitionDraws.find({ caseId: expandedCaseId }, { sort: { drawnAt: 1 } });
 
     const replayed = await replayDraw(draws[1].drawId);
     expect(replayed?.slice().sort()).toEqual(

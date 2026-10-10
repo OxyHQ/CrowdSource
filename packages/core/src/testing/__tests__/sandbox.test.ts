@@ -147,7 +147,11 @@ describe('the sandbox, driven by the real client', () => {
     const response = await sandbox.fetch(`${sandbox.baseUrl}/v1/uploads`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${bearerToken}` },
-      body: JSON.stringify({ mimeType: 'image/png', sizeBytes: 1, sha256: `sha256:${'0'.repeat(64)}` }),
+      body: JSON.stringify({
+        mimeType: 'image/png',
+        sizeBytes: 1,
+        sha256: `sha256:${'0'.repeat(64)}`,
+      }),
     });
 
     expect(response.status).toBe(404);

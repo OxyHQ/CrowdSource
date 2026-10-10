@@ -59,9 +59,7 @@ function actionForRecommendation<TAction extends string>(
 ): TAction {
   const mapped = config.recommendationToAction?.[recommended];
   if (mapped !== undefined) return mapped;
-  return NO_EFFECT_RECOMMENDATIONS.has(recommended)
-    ? config.noneAction
-    : config.reviewAction;
+  return NO_EFFECT_RECOMMENDATIONS.has(recommended) ? config.noneAction : config.reviewAction;
 }
 
 function highestSeverity(decision: Decision): Severity | undefined {
@@ -224,12 +222,8 @@ export class ModerationRestoreDirectionError extends Error {
 export function assertRestoreDirection<TAction extends string>(
   config: ModerationEnforcementConfig<TAction>,
 ): void {
-  const reverses: Partial<Record<TAction, TAction | readonly TAction[]>> =
-    config.reverses ?? {};
-  const entries = Object.entries(reverses) as [
-    TAction,
-    TAction | readonly TAction[] | undefined,
-  ][];
+  const reverses: Partial<Record<TAction, TAction | readonly TAction[]>> = config.reverses ?? {};
+  const entries = Object.entries(reverses) as [TAction, TAction | readonly TAction[] | undefined][];
   const actors = new Set<string>(entries.map(([actor]) => actor));
   const targets = new Set<string>();
   for (const [, undone] of entries) {

@@ -88,9 +88,7 @@ export async function applicationTrustFor(
     applicationId: context.applicationId,
     organizationId: context.organizationId,
   });
-  return (
-    stored ?? sandboxDefault(context.organizationId, context.applicationId, new Date())
-  );
+  return stored ?? sandboxDefault(context.organizationId, context.applicationId, new Date());
 }
 
 /** The quota this application is currently entitled to. */
@@ -221,10 +219,10 @@ export async function listApplicationTrust(
   filter: { readonly standing?: ApplicationStanding } = {},
   limit = 200,
 ): Promise<readonly ApplicationTrustDocument[]> {
-  return applicationTrust.find(
-    filter.standing === undefined ? {} : { standing: filter.standing },
-    { sort: { updatedAt: -1 }, limit },
-  );
+  return applicationTrust.find(filter.standing === undefined ? {} : { standing: filter.standing }, {
+    sort: { updatedAt: -1 },
+    limit,
+  });
 }
 
 /** How many applications sit in each standing. The T&S dashboard's headline. */

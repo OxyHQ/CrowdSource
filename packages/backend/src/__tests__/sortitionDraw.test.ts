@@ -28,10 +28,7 @@ import {
 
 const COMMUNITY_ROUND_1 = panelSpecFor('community', 1);
 
-function candidate(
-  index: number,
-  overrides: Partial<WeightedCandidate> = {},
-): WeightedCandidate {
+function candidate(index: number, overrides: Partial<WeightedCandidate> = {}): WeightedCandidate {
   return {
     // Zero-padded so lexicographic order is numeric order, which makes a failing
     // assertion readable rather than a puzzle about string sorting.
@@ -286,9 +283,9 @@ describe('the minimum-pool guard (§8.3, §8.8)', () => {
     const mutated = drawPanel(input({ spec: weakSpec, candidates }));
     expect(mutated.ok).toBe(true);
     if (!mutated.ok) throw new Error('unreachable');
-    expect(
-      mutated.seats.filter((seat) => seat.reliability >= 0.7).length,
-    ).toBeLessThan(COMMUNITY_ROUND_1.constraints.minReliableCount);
+    expect(mutated.seats.filter((seat) => seat.reliability >= 0.7).length).toBeLessThan(
+      COMMUNITY_ROUND_1.constraints.minReliableCount,
+    );
   });
 
   it('mutation: dropping the pool-size check would seat a panel of one', () => {
@@ -433,9 +430,7 @@ describe('incumbents (§8.7 replacement)', () => {
   };
 
   it('fills only the vacated slot and leaves the rest alone', () => {
-    const outcome = drawPanel(
-      input({ incumbents: [incumbent], slots: ['calibrated_newcomer'] }),
-    );
+    const outcome = drawPanel(input({ incumbents: [incumbent], slots: ['calibrated_newcomer'] }));
     if (!outcome.ok) throw new Error('expected a panel');
 
     expect(outcome.seats).toHaveLength(2);
@@ -454,10 +449,7 @@ describe('incumbents (§8.7 replacement)', () => {
       eligibleSlots: ['calibrated_newcomer'],
     }));
 
-    const twoReliableIncumbents = [
-      incumbent,
-      { ...incumbent, reviewerId: 'rvw_incumbent_2' },
-    ];
+    const twoReliableIncumbents = [incumbent, { ...incumbent, reviewerId: 'rvw_incumbent_2' }];
 
     const outcome = drawPanel(
       input({

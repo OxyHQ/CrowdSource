@@ -24,13 +24,13 @@
  *      URL would silently delete the rest of the line.
  */
 
-import { spawnSync } from "node:child_process";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const checker = resolve(dirname(fileURLToPath(import.meta.url)), "check-injection-sinks.mjs");
+const checker = resolve(dirname(fileURLToPath(import.meta.url)), 'check-injection-sinks.mjs');
 
 /**
  * A tree that must pass: one benign file per expected package, plus the two
@@ -38,119 +38,119 @@ const checker = resolve(dirname(fileURLToPath(import.meta.url)), "check-injectio
  */
 function healthyTree() {
   return {
-    "packages/contracts/src/index.ts": "export const CONTRACT = 1;\n",
-    "packages/backend/src/app.ts": "export function createApp() { return {}; }\n",
-    "packages/reviewer/components/ResourceView.tsx":
-      "export function ResourceView({ text }: { text: string }) {\n" +
-      "  return <Text selectable={false}>{text}</Text>;\n" +
-      "}\n",
-    "packages/core/src/client.ts": "export const client = {};\n",
-    "packages/core/src/express/middleware.ts": "export const middleware = () => {};\n",
-    "packages/core/src/testing/fixtures.ts": "export const fixture = {};\n",
+    'packages/contracts/src/index.ts': 'export const CONTRACT = 1;\n',
+    'packages/backend/src/app.ts': 'export function createApp() { return {}; }\n',
+    'packages/reviewer/components/ResourceView.tsx':
+      'export function ResourceView({ text }: { text: string }) {\n' +
+      '  return <Text selectable={false}>{text}</Text>;\n' +
+      '}\n',
+    'packages/core/src/client.ts': 'export const client = {};\n',
+    'packages/core/src/express/middleware.ts': 'export const middleware = () => {};\n',
+    'packages/core/src/testing/fixtures.ts': 'export const fixture = {};\n',
   };
 }
 
 const cases = [
   {
-    name: "the healthy tree passes",
+    name: 'the healthy tree passes',
     expectFailure: false,
     mutate: (tree) => tree,
   },
 
   // --- every sink, planted ---------------------------------------------------
   {
-    name: "dangerouslySetInnerHTML is caught",
+    name: 'dangerouslySetInnerHTML is caught',
     expectFailure: true,
-    mustMention: ["packages/reviewer/components/ResourceView.tsx", "dangerouslySetInnerHTML"],
+    mustMention: ['packages/reviewer/components/ResourceView.tsx', 'dangerouslySetInnerHTML'],
     mutate: (tree) => ({
       ...tree,
-      "packages/reviewer/components/ResourceView.tsx":
-        "export function ResourceView({ text }: { text: string }) {\n" +
-        "  return <div dangerouslySetInnerHTML={{ __html: text }} />;\n" +
-        "}\n",
+      'packages/reviewer/components/ResourceView.tsx':
+        'export function ResourceView({ text }: { text: string }) {\n' +
+        '  return <div dangerouslySetInnerHTML={{ __html: text }} />;\n' +
+        '}\n',
     }),
   },
   {
-    name: "innerHTML is caught",
+    name: 'innerHTML is caught',
     expectFailure: true,
-    mustMention: ["packages/reviewer/components/ResourceView.tsx", "innerHTML"],
+    mustMention: ['packages/reviewer/components/ResourceView.tsx', 'innerHTML'],
     mutate: (tree) => ({
       ...tree,
-      "packages/reviewer/components/ResourceView.tsx":
-        "export function render(node: HTMLElement, text: string) {\n" +
-        "  node.innerHTML = text;\n" +
-        "}\n",
+      'packages/reviewer/components/ResourceView.tsx':
+        'export function render(node: HTMLElement, text: string) {\n' +
+        '  node.innerHTML = text;\n' +
+        '}\n',
     }),
   },
   {
-    name: "outerHTML is caught",
+    name: 'outerHTML is caught',
     expectFailure: true,
-    mustMention: ["outerHTML"],
+    mustMention: ['outerHTML'],
     mutate: (tree) => ({
       ...tree,
-      "packages/reviewer/components/ResourceView.tsx":
-        "export function swap(node: HTMLElement, text: string) { node.outerHTML = text; }\n",
+      'packages/reviewer/components/ResourceView.tsx':
+        'export function swap(node: HTMLElement, text: string) { node.outerHTML = text; }\n',
     }),
   },
   {
-    name: "insertAdjacentHTML is caught",
+    name: 'insertAdjacentHTML is caught',
     expectFailure: true,
-    mustMention: ["insertAdjacentHTML"],
+    mustMention: ['insertAdjacentHTML'],
     mutate: (tree) => ({
       ...tree,
-      "packages/reviewer/components/ResourceView.tsx":
-        "export function add(node: HTMLElement, text: string) {\n" +
+      'packages/reviewer/components/ResourceView.tsx':
+        'export function add(node: HTMLElement, text: string) {\n' +
         "  node.insertAdjacentHTML('beforeend', text);\n" +
-        "}\n",
+        '}\n',
     }),
   },
   {
-    name: "document.write is caught",
+    name: 'document.write is caught',
     expectFailure: true,
-    mustMention: ["document.write"],
+    mustMention: ['document.write'],
     mutate: (tree) => ({
       ...tree,
-      "packages/reviewer/components/ResourceView.tsx":
-        "export function emit(text: string) { document.write(text); }\n",
+      'packages/reviewer/components/ResourceView.tsx':
+        'export function emit(text: string) { document.write(text); }\n',
     }),
   },
   {
-    name: "a WebView component is caught",
+    name: 'a WebView component is caught',
     expectFailure: true,
-    mustMention: ["WebView"],
+    mustMention: ['WebView'],
     mutate: (tree) => ({
       ...tree,
-      "packages/reviewer/components/ResourceView.tsx":
+      'packages/reviewer/components/ResourceView.tsx':
         "import { WebView } from 'react-native-webview';\n" +
-        "export const Show = ({ html }: { html: string }) => <WebView source={{ html }} />;\n",
+        'export const Show = ({ html }: { html: string }) => <WebView source={{ html }} />;\n',
     }),
   },
   {
-    name: "eval is caught",
+    name: 'eval is caught',
     expectFailure: true,
-    mustMention: ["eval"],
+    mustMention: ['eval'],
     mutate: (tree) => ({
       ...tree,
-      "packages/backend/src/app.ts": "export function run(code: string) { return eval(code); }\n",
+      'packages/backend/src/app.ts': 'export function run(code: string) { return eval(code); }\n',
     }),
   },
   {
-    name: "new Function is caught",
+    name: 'new Function is caught',
     expectFailure: true,
-    mustMention: ["new Function"],
+    mustMention: ['new Function'],
     mutate: (tree) => ({
       ...tree,
-      "packages/backend/src/app.ts":
-        "export function compile(body: string) { return new Function(body); }\n",
+      'packages/backend/src/app.ts':
+        'export function compile(body: string) { return new Function(body); }\n',
     }),
   },
   {
-    name: "setTimeout with a string body is caught",
+    name: 'setTimeout with a string body is caught',
     expectFailure: true,
-    mustMention: ["setTimeout"],
+    mustMention: ['setTimeout'],
     mutate: (tree) => ({
       ...tree,
-      "packages/backend/src/app.ts": "export function later() { setTimeout('doThing()', 10); }\n",
+      'packages/backend/src/app.ts': "export function later() { setTimeout('doThing()', 10); }\n",
     }),
   },
 
@@ -161,40 +161,40 @@ const cases = [
      * `packages/reviewer/types/webStyles.ts`. It is not the WebView component, and
      * a scan that flags it would be disabled within a day.
      */
-    name: "WebViewStyle is NOT mistaken for a WebView",
+    name: 'WebViewStyle is NOT mistaken for a WebView',
     expectFailure: false,
     mutate: (tree) => ({
       ...tree,
-      "packages/reviewer/types/webStyles.ts":
+      'packages/reviewer/types/webStyles.ts':
         "import type { ViewStyle } from 'react-native';\n" +
         "export type WebViewStyle = Omit<ViewStyle, 'position'>;\n" +
-        "export interface WebViewProps { style: WebViewStyle }\n" +
-        "export const asViewStyle = (style: WebViewStyle): ViewStyle => style as ViewStyle;\n",
+        'export interface WebViewProps { style: WebViewStyle }\n' +
+        'export const asViewStyle = (style: WebViewStyle): ViewStyle => style as ViewStyle;\n',
     }),
   },
   {
-    name: "evaluateConsensus is NOT mistaken for eval",
+    name: 'evaluateConsensus is NOT mistaken for eval',
     expectFailure: false,
     mutate: (tree) => ({
       ...tree,
-      "packages/backend/src/consensus.ts":
-        "export function evaluateConsensus(input: unknown) { return input; }\n" +
-        "export const verdict = evaluateConsensus({});\n" +
-        "export const revaluate = (x: number) => x;\n",
+      'packages/backend/src/consensus.ts':
+        'export function evaluateConsensus(input: unknown) { return input; }\n' +
+        'export const verdict = evaluateConsensus({});\n' +
+        'export const revaluate = (x: number) => x;\n',
     }),
   },
   {
-    name: "a comment ABOUT a sink is not a use of one",
+    name: 'a comment ABOUT a sink is not a use of one',
     expectFailure: false,
     mutate: (tree) => ({
       ...tree,
-      "packages/reviewer/components/ResourceView.tsx":
-        "/**\n" +
-        " * Never use dangerouslySetInnerHTML here, and never node.innerHTML either.\n" +
-        " * A WebView would hand the reported site our origin. Do not eval(anything).\n" +
-        " */\n" +
-        "// document.write is also forbidden; so is new Function(body).\n" +
-        "export const Safe = () => null;\n",
+      'packages/reviewer/components/ResourceView.tsx':
+        '/**\n' +
+        ' * Never use dangerouslySetInnerHTML here, and never node.innerHTML either.\n' +
+        ' * A WebView would hand the reported site our origin. Do not eval(anything).\n' +
+        ' */\n' +
+        '// document.write is also forbidden; so is new Function(body).\n' +
+        'export const Safe = () => null;\n',
     }),
   },
 
@@ -205,22 +205,22 @@ const cases = [
      * deleting the rest of the line — so a sink after a URL would go UNDETECTED.
      * For a security gate a false negative is the unacceptable direction.
      */
-    name: "a sink AFTER a URL on the same line is still caught",
+    name: 'a sink AFTER a URL on the same line is still caught',
     expectFailure: true,
-    mustMention: ["innerHTML"],
+    mustMention: ['innerHTML'],
     mutate: (tree) => ({
       ...tree,
-      "packages/reviewer/components/ResourceView.tsx":
-        "export function go(node: HTMLElement) {\n" +
+      'packages/reviewer/components/ResourceView.tsx':
+        'export function go(node: HTMLElement) {\n' +
         "  const docs = 'https://example.com/a//b'; node.innerHTML = docs;\n" +
-        "}\n",
+        '}\n',
     }),
   },
   {
-    name: "the file-count floor fires rather than reporting a clean scan",
+    name: 'the file-count floor fires rather than reporting a clean scan',
     expectFailure: true,
     minFiles: 999,
-    mustMention: ["floor of 999", "broken traversal"],
+    mustMention: ['floor of 999', 'broken traversal'],
     mutate: (tree) => tree,
   },
   {
@@ -229,20 +229,20 @@ const cases = [
      * churn would be cleared by a traversal that walked only one package, so a
      * package present on disk contributing nothing has to fail on its own.
      */
-    name: "a package that exists but yields no files fails on its own",
+    name: 'a package that exists but yields no files fails on its own',
     expectFailure: true,
-    mustMention: ["packages/backend exists on disk but contributed no scanned files"],
+    mustMention: ['packages/backend exists on disk but contributed no scanned files'],
     mutate: (tree) => {
       const mutated = { ...tree };
-      delete mutated["packages/backend/src/app.ts"];
-      mutated["packages/backend/README.md"] = "# backend\n";
+      delete mutated['packages/backend/src/app.ts'];
+      mutated['packages/backend/README.md'] = '# backend\n';
       return mutated;
     },
   },
   {
-    name: "the allowlist is empty, so the first entry is a visible edit",
+    name: 'the allowlist is empty, so the first entry is a visible edit',
     expectFailure: false,
-    mustMention: ["0 allowlisted"],
+    mustMention: ['0 allowlisted'],
     mutate: (tree) => tree,
   },
 ];
@@ -250,29 +250,27 @@ const cases = [
 let failed = 0;
 
 for (const testCase of cases) {
-  const root = await mkdtemp(join(tmpdir(), "crowdsource-sink-"));
+  const root = await mkdtemp(join(tmpdir(), 'crowdsource-sink-'));
   try {
     const tree = testCase.mutate(healthyTree());
     for (const [path, contents] of Object.entries(tree)) {
       const absolute = join(root, path);
       await mkdir(dirname(absolute), { recursive: true });
-      await writeFile(absolute, contents, "utf8");
+      await writeFile(absolute, contents, 'utf8');
     }
 
-    const result = spawnSync(
-      "bun",
-      [checker, root, `--min-files=${testCase.minFiles ?? 1}`],
-      { encoding: "utf8" },
-    );
-    const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+    const result = spawnSync('bun', [checker, root, `--min-files=${testCase.minFiles ?? 1}`], {
+      encoding: 'utf8',
+    });
+    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     const didFail = result.status !== 0;
 
     if (didFail !== testCase.expectFailure) {
       failed += 1;
       console.error(
         `FAIL  ${testCase.name}\n      expected ${
-          testCase.expectFailure ? "a failure" : "a pass"
-        }, got exit ${result.status}\n${output.replace(/^/gm, "      ")}`,
+          testCase.expectFailure ? 'a failure' : 'a pass'
+        }, got exit ${result.status}\n${output.replace(/^/gm, '      ')}`,
       );
       continue;
     }
@@ -282,8 +280,8 @@ for (const testCase of cases) {
       failed += 1;
       console.error(
         `FAIL  ${testCase.name}\n      exited correctly but never mentioned: ${missing.join(
-          ", ",
-        )}\n${output.replace(/^/gm, "      ")}`,
+          ', ',
+        )}\n${output.replace(/^/gm, '      ')}`,
       );
       continue;
     }

@@ -5,7 +5,10 @@ import { isUniqueViolation } from '@oxy.so/db';
 
 import * as deliveryRepository from '../db/postgres/repositories/webhookDeliveries';
 import { webhookDeliveries } from '../db/postgres/schema/webhooks';
-import { createPostgresTestDatabase, type PostgresTestDatabase } from './support/postgresTestDatabase';
+import {
+  createPostgresTestDatabase,
+  type PostgresTestDatabase,
+} from './support/postgresTestDatabase';
 
 /**
  * The webhook delivery queue, against a real PostgreSQL server.
@@ -284,11 +287,7 @@ describe('two delivery workers racing', () => {
       );
     }
 
-    const second = await deliveryRepository.claimDueDelivery(
-      database.db,
-      now,
-      offset(5 * MINUTE),
-    );
+    const second = await deliveryRepository.claimDueDelivery(database.db, now, offset(5 * MINUTE));
     release();
 
     return { first: await firstPromise, second };
@@ -414,7 +413,11 @@ describe('the tenant-scoped reads', () => {
     await seed([
       deliveryRow({ deliveryId: 'dlv_l_old', createdAt: offset(-30 * MINUTE) }),
       deliveryRow({ deliveryId: 'dlv_l_new', createdAt: offset(-1 * MINUTE) }),
-      deliveryRow({ deliveryId: 'dlv_l_dead', status: 'dead_letter', createdAt: offset(-2 * MINUTE) }),
+      deliveryRow({
+        deliveryId: 'dlv_l_dead',
+        status: 'dead_letter',
+        createdAt: offset(-2 * MINUTE),
+      }),
       deliveryRow({ deliveryId: 'dlv_l_theirs', applicationId: 'app_somebody_else' }),
     ]);
 
@@ -515,7 +518,11 @@ describe('delivery health counts', () => {
     await seed([
       deliveryRow({ deliveryId: 'dlv_h_a', status: 'pending' }),
       deliveryRow({ deliveryId: 'dlv_h_b', status: 'dead_letter' }),
-      deliveryRow({ deliveryId: 'dlv_h_other_ep', webhookEndpointId: 'whe_other', status: 'pending' }),
+      deliveryRow({
+        deliveryId: 'dlv_h_other_ep',
+        webhookEndpointId: 'whe_other',
+        status: 'pending',
+      }),
       deliveryRow({
         deliveryId: 'dlv_h_other_tenant',
         applicationId: 'app_somebody_else',

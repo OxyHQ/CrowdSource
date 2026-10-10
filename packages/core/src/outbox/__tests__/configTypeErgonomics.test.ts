@@ -29,16 +29,11 @@ import {
   planEnforcement,
 } from '../enforcement/planner.js';
 import { createModerationIntegration } from '../integration.js';
-import {
-  moderationReportColumns,
-  moderationReportTableExtras,
-} from '../postgres/reportColumns.js';
+import { moderationReportColumns, moderationReportTableExtras } from '../postgres/reportColumns.js';
 import { postgresModerationStore } from '../postgres/store/index.js';
 import { moderationTables } from '../postgres/tables.js';
 import { decision } from './support/decisions.js';
-import type {
-  ModerationEnforcementConfig,
-} from '../types.js';
+import type { ModerationEnforcementConfig } from '../types.js';
 
 type CommerceAction = 'delist' | 'relist' | 'flag' | 'unflag' | 'review' | 'none';
 
@@ -118,9 +113,9 @@ describe('an inverted restoreAction is refused at construction', () => {
   };
 
   it('throws when restoreAction names the actions being undone', () => {
-    expect(() =>
-      assertRestoreDirection({ ...base, restoreAction: ['delist', 'flag'] }),
-    ).toThrow(ModerationRestoreDirectionError);
+    expect(() => assertRestoreDirection({ ...base, restoreAction: ['delist', 'flag'] })).toThrow(
+      ModerationRestoreDirectionError,
+    );
   });
 
   it('names the offending actions and the direction, not just "invalid"', () => {

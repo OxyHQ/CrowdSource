@@ -108,7 +108,10 @@ export async function authenticateServiceCredential(
 
   // One condition, because an unknown credential id and a wrong secret must be
   // indistinguishable — including in how long they take to reject.
-  if (!verifySecret(presentedHash, credential?.secretHash ?? ABSENT_CREDENTIAL_HASH) || !credential) {
+  if (
+    !verifySecret(presentedHash, credential?.secretHash ?? ABSENT_CREDENTIAL_HASH) ||
+    !credential
+  ) {
     throw unauthorized;
   }
   if (credential.status !== 'active') {

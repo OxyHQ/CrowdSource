@@ -82,12 +82,8 @@ export class ModerationOutboxDispatcher {
     const work = this.options.outbox
       .dispatch({
         handler: this.options.handler,
-        ...(this.options.batchSize === undefined
-          ? {}
-          : { batchSize: this.options.batchSize }),
-        ...(this.abortController === null
-          ? {}
-          : { signal: this.abortController.signal }),
+        ...(this.options.batchSize === undefined ? {} : { batchSize: this.options.batchSize }),
+        ...(this.abortController === null ? {} : { signal: this.abortController.signal }),
       })
       .then(({ processed, failed, deadLettered }) => {
         if (processed > 0 || failed > 0) {

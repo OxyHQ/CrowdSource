@@ -5,10 +5,7 @@ import {
   markOutboxEventDispatched,
   markOutboxEventFailed,
 } from '../../db/postgres/repositories/outbox';
-import {
-  type OutboxEventDocument,
-  type OutboxEventType,
-} from './outbox.collection';
+import { type OutboxEventDocument, type OutboxEventType } from './outbox.collection';
 
 /**
  * The outbox dispatcher (§12.5).
@@ -142,10 +139,7 @@ async function markDispatched(event: OutboxEventDocument, now: Date): Promise<vo
   await markOutboxEventDispatched(getPostgresDatabase(), event.eventId, now);
 }
 
-async function markFailed(
-  event: OutboxEventDocument,
-  now: Date,
-): Promise<void> {
+async function markFailed(event: OutboxEventDocument, now: Date): Promise<void> {
   const deadLettered = event.attempts >= OUTBOX_MAX_ATTEMPTS;
   /**
    * A handler or driver message can quote the document it choked on, so neither
@@ -252,7 +246,10 @@ export function startOutboxDispatcher(intervalMs = 1_000): void {
 
   timer = setInterval(() => {
     void runOnce().catch((_error: unknown) => {
-      logger.error({ classification: 'outbox_dispatcher_pass_failed' }, 'Outbox dispatcher pass failed');
+      logger.error(
+        { classification: 'outbox_dispatcher_pass_failed' },
+        'Outbox dispatcher pass failed',
+      );
     });
   }, intervalMs);
   timer.unref?.();

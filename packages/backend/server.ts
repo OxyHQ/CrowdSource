@@ -146,7 +146,10 @@ function shutdown(signal: NodeJS.Signals): void {
 
   server.close((error) => {
     if (error) {
-      logger.error({ classification: 'http_server_close_failed' }, 'HTTP server did not close cleanly');
+      logger.error(
+        { classification: 'http_server_close_failed' },
+        'HTTP server did not close cleanly',
+      );
       process.exit(1);
       return;
     }

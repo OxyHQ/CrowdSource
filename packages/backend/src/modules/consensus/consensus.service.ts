@@ -85,8 +85,7 @@ export type CaseEvaluation =
 /** The seats that count toward a panel: nobody who left it. */
 function servingSeats(panel: readonly AssignmentDocument[]): readonly AssignmentDocument[] {
   return panel.filter(
-    (seat) =>
-      OPEN_ASSIGNMENT_STATUSES.includes(seat.status) || seat.status === 'submitted',
+    (seat) => OPEN_ASSIGNMENT_STATUSES.includes(seat.status) || seat.status === 'submitted',
   );
 }
 
@@ -109,9 +108,7 @@ function servingSeats(panel: readonly AssignmentDocument[]): readonly Assignment
  * cannot be filled, and for the same reason: seating nobody is better than
  * deciding with a panel below its own threshold.
  */
-function outstandingVacancies(
-  panel: readonly AssignmentDocument[],
-): readonly AssignmentDocument[] {
+function outstandingVacancies(panel: readonly AssignmentDocument[]): readonly AssignmentDocument[] {
   return panel.filter(
     (seat) =>
       (seat.status === 'recused' || seat.status === 'expired') &&
@@ -408,17 +405,14 @@ async function publish(
   now: Date,
 ): Promise<CaseEvaluation> {
   const agreed = verdict.status === 'consensus' ? verdict.position : null;
-  const agreeingReviewerIds =
-    verdict.status === 'consensus' ? verdict.agreeingReviewerIds : [];
+  const agreeingReviewerIds = verdict.status === 'consensus' ? verdict.agreeingReviewerIds : [];
   const agreedKey = agreed === null ? null : positionKey(agreed);
   const agreeing = ballots.filter(
     (ballot) => agreedKey !== null && positionKey(positionOf(ballot)) === agreedKey,
   );
 
   const outcome: DecisionOutcome =
-    verdict.status === 'consensus'
-      ? decisionOutcomeOf(verdict.position.outcome)
-      : verdict.outcome;
+    verdict.status === 'consensus' ? decisionOutcomeOf(verdict.position.outcome) : verdict.outcome;
 
   /**
    * A non-consensus decision reports the context sufficiency the panel could
@@ -435,10 +429,8 @@ async function publish(
   const winningVotes = verdict.status === 'consensus' ? verdict.winningVotes : 0;
   const decisiveVotes = verdict.decisiveVotes;
 
-  const findings =
-    agreed === null ? [] : decisionFindings(agreeing, agreed.family, outcome);
-  const recommendedActions =
-    agreed === null ? [] : decisionActions(agreeing, agreed.resourceIds);
+  const findings = agreed === null ? [] : decisionFindings(agreeing, agreed.family, outcome);
+  const recommendedActions = agreed === null ? [] : decisionActions(agreeing, agreed.resourceIds);
 
   const published: PublishOutcome = await publishDecision({
     context,
@@ -511,9 +503,7 @@ async function supersededDecision(
   context: TenantContext,
   stored: CaseDocument,
   appeal: AppealDocument | null,
-): Promise<
-  { decisionId: string; outcome: DecisionOutcome; appealId: string | null } | null
-> {
+): Promise<{ decisionId: string; outcome: DecisionOutcome; appealId: string | null } | null> {
   if (stored.currentRevision <= 1) return null;
 
   const [previous] = await decisions.find(

@@ -38,10 +38,12 @@ describe('the envelope root', () => {
   });
 
   it('rejects an envelope with nothing to review and one with nothing alleged', () => {
-    expect(rejectionPaths(CaseEnvelopeSchema, { ...caseEnvelopeExample(), resources: [] }).length)
-      .toBeGreaterThan(0);
-    expect(rejectionPaths(CaseEnvelopeSchema, { ...caseEnvelopeExample(), allegations: [] }))
-      .toEqual(['allegations']);
+    expect(
+      rejectionPaths(CaseEnvelopeSchema, { ...caseEnvelopeExample(), resources: [] }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      rejectionPaths(CaseEnvelopeSchema, { ...caseEnvelopeExample(), allegations: [] }),
+    ).toEqual(['allegations']);
   });
 
   it('rejects a source environment the ecosystem does not run', () => {
@@ -65,7 +67,11 @@ describe('subject', () => {
     expect(
       accepted(CaseEnvelopeSchema, {
         ...envelope,
-        subject: { externalId: 'offer_1', type: 'custom.mercaria.offer', primaryResourceId: 'res_post' },
+        subject: {
+          externalId: 'offer_1',
+          type: 'custom.mercaria.offer',
+          primaryResourceId: 'res_post',
+        },
       }).subject.type,
     ).toBe('custom.mercaria.offer');
   });
@@ -208,7 +214,9 @@ describe('reference resolution (§5.5)', () => {
     expect(
       rejectionPaths(CaseEnvelopeSchema, {
         ...caseEnvelopeExample(),
-        allegations: [{ code: 'harassment.targeted_abuse', reporterPrincipalRef: 'reporter_ghost' }],
+        allegations: [
+          { code: 'harassment.targeted_abuse', reporterPrincipalRef: 'reporter_ghost' },
+        ],
       }),
     ).toEqual(['allegations.0.reporterPrincipalRef']);
   });

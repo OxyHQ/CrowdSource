@@ -111,7 +111,9 @@ describe('webhookEndpoints.register', () => {
     // 200 and no `secret`: the endpoint already existed. The running process is
     // still verifying with the secret it has, and this must not look like a
     // secret it can store.
-    const { crowdsource } = client([json(200, { ...ENDPOINT, updatedAt: '2026-07-31T00:00:00.000Z' })]);
+    const { crowdsource } = client([
+      json(200, { ...ENDPOINT, updatedAt: '2026-07-31T00:00:00.000Z' }),
+    ]);
 
     const registered = await crowdsource.webhookEndpoints.register({
       url: 'https://example.com/webhooks/crowdsource',
@@ -135,7 +137,9 @@ describe('webhookEndpoints.register', () => {
   });
 
   it('keeps a status this version of the client has never heard of', async () => {
-    const { crowdsource } = client([json(200, { ...ENDPOINT, status: 'quarantined_by_a_newer_server' })]);
+    const { crowdsource } = client([
+      json(200, { ...ENDPOINT, status: 'quarantined_by_a_newer_server' }),
+    ]);
 
     const registered = await crowdsource.webhookEndpoints.register({
       url: ENDPOINT.url,

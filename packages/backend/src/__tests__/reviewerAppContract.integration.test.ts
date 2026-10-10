@@ -9,10 +9,7 @@ import { stubOxySession } from './support/reviewers';
  * app in ahead of the session stub. The VALUES all come through the dynamic
  * imports below, like every other module this suite touches.
  */
-import type {
-  ReviewFormAction,
-  ReviewFormState,
-} from '../../../reviewer/lib/review-form';
+import type { ReviewFormAction, ReviewFormState } from '../../../reviewer/lib/review-form';
 
 /**
  * The backend↔app payload contract, driven end to end.

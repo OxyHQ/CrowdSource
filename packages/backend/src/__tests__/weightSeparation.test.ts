@@ -86,9 +86,7 @@ describe('the selection weight reaches the draw and nothing else', () => {
     // The vacuity floor: a traversal that returned nothing would make every
     // assertion below pass while checking no files at all.
     expect(sources.length).toBeGreaterThanOrEqual(30);
-    expect(sources.map((file) => file.path)).toContain(
-      'src/modules/sortition/weightedSampling.ts',
-    );
+    expect(sources.map((file) => file.path)).toContain('src/modules/sortition/weightedSampling.ts');
     expect(sources.map((file) => file.path)).toContain('src/modules/review/review.service.ts');
   });
 
@@ -115,7 +113,8 @@ describe('the selection weight reaches the draw and nothing else', () => {
  * `karma`. A consensus engine cannot weight a vote by a number that is not on
  * the row it reads.
  */
-const VOTE_WEIGHT_FIELD = /\b(selectionWeight|voteWeight|weight|stake|multiplier|trustTier|reputation|karma)\b/i;
+const VOTE_WEIGHT_FIELD =
+  /\b(selectionWeight|voteWeight|weight|stake|multiplier|trustTier|reputation|karma)\b/i;
 
 function declaredFields(source: string): string[] {
   /**

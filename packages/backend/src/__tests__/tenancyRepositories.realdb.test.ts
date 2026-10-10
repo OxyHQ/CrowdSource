@@ -85,16 +85,10 @@ describe('the tenant-defining tables are reachable with NO tenant context', () =
   it('inserts and reads an organization and an application', async () => {
     await seedOrganizationAndApplication();
 
-    const organization = await tenancyRepository.findOrganizationById(
-      database.db,
-      ORGANIZATION_ID,
-    );
+    const organization = await tenancyRepository.findOrganizationById(database.db, ORGANIZATION_ID);
     expect(organization?.name).toBe('Repository Fixture');
 
-    const application = await tenancyRepository.findApplicationById(
-      database.db,
-      APPLICATION_ID,
-    );
+    const application = await tenancyRepository.findApplicationById(database.db, APPLICATION_ID);
     expect(application?.organizationId).toBe(ORGANIZATION_ID);
   });
 

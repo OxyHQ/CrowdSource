@@ -232,7 +232,9 @@ describe('the tenant', () => {
     expect(logger.error.mock.calls[0][0]).toBe(
       '[CrowdSource] client built but the tenant did not resolve',
     );
-    expect(String(logger.error.mock.calls[0][1].reason)).toContain('bound to no CrowdSource tenant');
+    expect(String(logger.error.mock.calls[0][1].reason)).toContain(
+      'bound to no CrowdSource tenant',
+    );
     expect(logger.info).not.toHaveBeenCalled();
   });
 

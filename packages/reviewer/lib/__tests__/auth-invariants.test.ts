@@ -112,7 +112,9 @@ describe('the app owns no part of the session', () => {
   });
 
   it('mounts exactly one OxyProvider', () => {
-    const mounts = FILES.filter((file) => /<OxyProvider\b/.test(file.code)).map((file) => file.path);
+    const mounts = FILES.filter((file) => /<OxyProvider\b/.test(file.code)).map(
+      (file) => file.path,
+    );
     expect(mounts).toEqual(['components/providers/AppProviders.tsx']);
   });
 });

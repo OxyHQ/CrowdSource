@@ -62,7 +62,8 @@ const sources = collectSources(sourceRoot);
 const DECISION_WRITERS: readonly string[] = ['src/modules/decision/decision.service.ts'];
 
 /** Any mutating call against the `decisions` collection. */
-const DECISION_MUTATION = /\bdecisions\s*\.\s*(updateOne|findOneAndUpdate|upsertOne|insertOne)\s*\(/;
+const DECISION_MUTATION =
+  /\bdecisions\s*\.\s*(updateOne|findOneAndUpdate|upsertOne|insertOne)\s*\(/;
 
 function decisionWriters(files: readonly SourceFile[]): string[] {
   return files
@@ -89,7 +90,8 @@ describe('only one module writes to a decision', () => {
   it('mutation: another module rewriting an outcome would be caught, by name', () => {
     const offender: SourceFile = {
       path: 'src/modules/consensus/correction.ts',
-      source: "await decisions.updateOne(context, { caseId }, { set: { outcome: 'no_violation' } });",
+      source:
+        "await decisions.updateOne(context, { caseId }, { set: { outcome: 'no_violation' } });",
     };
 
     const found = decisionWriters([...sources, offender]);
@@ -231,8 +233,7 @@ describe('the compare-and-swap is where publication is serialised', () => {
 
   it('has a second lock that does not depend on remembering the first', () => {
     const schema =
-      sources.find((file) => file.path === 'src/db/postgres/schema/decisions.ts')?.source ??
-      '';
+      sources.find((file) => file.path === 'src/db/postgres/schema/decisions.ts')?.source ?? '';
 
     expect(schema).toMatch(
       /uniqueIndex\('decisions_case_revision_key'\)\.on\(\s*table\.caseId,\s*table\.revision\s*\)/,

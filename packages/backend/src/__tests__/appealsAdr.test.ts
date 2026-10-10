@@ -4,11 +4,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { APPEALABLE_OUTCOMES, SEVERE_ACTIONS } from '../modules/appeals/appeal.service';
-import {
-  APPEAL_MIN_ROUND,
-  panelSpecFor,
-  SLOT_FALLBACKS,
-} from '../modules/sortition/panelSpec';
+import { APPEAL_MIN_ROUND, panelSpecFor, SLOT_FALLBACKS } from '../modules/sortition/panelSpec';
 
 /**
  * The appeals ADR, gated.
@@ -29,7 +25,16 @@ import {
  * actually caught and named.
  */
 
-const adrPath = path.resolve(__dirname, '..', '..', '..', '..', 'docs', 'architecture', 'appeals.md');
+const adrPath = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  '..',
+  'docs',
+  'architecture',
+  'appeals.md',
+);
 const adr = readFileSync(adrPath, 'utf8');
 
 /** The `key: value` lines of the fenced `adr-claims` block. */
@@ -102,9 +107,9 @@ describe('the appeals ADR states what the code does', () => {
     expect([...panelSpecFor('community', APPEAL_MIN_ROUND, true).slots]).toEqual(
       claim('community-appeal-slots'),
     );
-    expect([
-      ...new Set(panelSpecFor('specialist', APPEAL_MIN_ROUND, true).slots),
-    ]).toEqual(claim('specialist-appeal-slots'));
+    expect([...new Set(panelSpecFor('specialist', APPEAL_MIN_ROUND, true).slots)]).toEqual(
+      claim('specialist-appeal-slots'),
+    );
     expect(SLOT_FALLBACKS.appeals_reviewer).toEqual(claim('appeals-reviewer-fallback'));
   });
 
@@ -139,9 +144,7 @@ describe('the appeals ADR states what the code does', () => {
     expect(() => parseClaims(adr.replace('```adr-claims', '```text'))).toThrow(
       /no fenced `adr-claims` block/,
     );
-    expect(() => parseClaims('```adr-claims\nnot a claim line\n```')).toThrow(
-      /not 'key: value'/,
-    );
+    expect(() => parseClaims('```adr-claims\nnot a claim line\n```')).toThrow(/not 'key: value'/);
   });
 });
 

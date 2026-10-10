@@ -216,7 +216,9 @@ function EndpointPanel({
           />
           {endpointNeedsAttention(endpoint.health) ? (
             <StatusPill
-              label={t('webhooks.health.deadLetterFlag', { deadLetter: endpoint.health.deadLetter })}
+              label={t('webhooks.health.deadLetterFlag', {
+                deadLetter: endpoint.health.deadLetter,
+              })}
               tone="danger"
             />
           ) : null}

@@ -1,8 +1,5 @@
 import { reportSubmitEventId, type OutboxService } from './outbox/service.js';
-import type {
-  ModerationReportStore,
-  ModerationTransactionRunner,
-} from './store/types.js';
+import type { ModerationReportStore, ModerationTransactionRunner } from './store/types.js';
 import type {
   ModerationLogger,
   ModerationReconciliationResult,
@@ -107,10 +104,7 @@ export function createReconciliation<TReport extends ModerationReportFields, TTx
        * through, and the runner is what makes taking one here cost a line.
        */
       await input.transaction.run(async (tx) => {
-        await input.outbox.enqueue(
-          { eventId, kind: 'report.submit', payload: { reportId } },
-          tx,
-        );
+        await input.outbox.enqueue({ eventId, kind: 'report.submit', payload: { reportId } }, tx);
       });
       result.requeued += 1;
     }

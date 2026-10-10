@@ -8,7 +8,6 @@
  * cleared it succeeded.
  */
 
-
 import { describe, expect, it } from 'vitest';
 import { planEnforcement, primaryAction } from '../enforcement/planner.js';
 import type { ModerationEnforcementConfig } from '../types.js';
@@ -46,10 +45,7 @@ const CONFIG: ModerationEnforcementConfig<TestAction> = {
 
 describe('recommendations decide the plan', () => {
   it('maps each recommendation through the application table', () => {
-    const plan = planEnforcement(
-      decision({ recommendedActions: [{ action: 'label' }] }),
-      CONFIG,
-    );
+    const plan = planEnforcement(decision({ recommendedActions: [{ action: 'label' }] }), CONFIG);
     expect(plan.map((entry) => entry.action)).toEqual(['flag']);
     expect(plan[0].recommendedAction).toBe('label');
   });

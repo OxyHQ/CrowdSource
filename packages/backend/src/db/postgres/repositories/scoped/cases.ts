@@ -5,7 +5,10 @@ import type { TenantScopedHandle } from '../../withTenant';
 
 function textArray(values: readonly string[]) {
   if (values.length === 0) return sql`array[]::text[]`;
-  return sql`array[${sql.join(values.map((value) => sql`${value}`), sql`, `)}]::text[]`;
+  return sql`array[${sql.join(
+    values.map((value) => sql`${value}`),
+    sql`, `,
+  )}]::text[]`;
 }
 
 function uniqueTextValues(values: readonly string[]) {
@@ -91,10 +94,7 @@ export async function insertCase(db: TenantScopedHandle, next: NewCase): Promise
  * Creates the case for a report or atomically merges the report's signals into
  * the existing case selected by the four-part §7.3 identity.
  */
-export async function upsertCaseForReport(
-  db: TenantScopedHandle,
-  next: NewCase,
-) {
+export async function upsertCaseForReport(db: TenantScopedHandle, next: NewCase) {
   const allegationCodes = uniqueTextValues(next.allegationCodes);
   const reporterFingerprints = uniqueTextValues(next.reporterFingerprints);
   const [row] = await db
@@ -152,7 +152,10 @@ export async function findCaseById(db: TenantScopedHandle, caseId: string) {
 /** Several cases by id — the review-history hydrate, one statement rather than N. */
 export async function findCasesByIds(db: TenantScopedHandle, caseIds: readonly string[]) {
   if (caseIds.length === 0) return [];
-  return await db.select().from(cases).where(inArray(cases.caseId, [...caseIds]));
+  return await db
+    .select()
+    .from(cases)
+    .where(inArray(cases.caseId, [...caseIds]));
 }
 
 /**

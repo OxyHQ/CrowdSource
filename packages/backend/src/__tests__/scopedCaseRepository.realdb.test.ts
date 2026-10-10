@@ -355,10 +355,7 @@ describe('the four-part case identity is the concurrency arbiter', () => {
       'harassment.insult',
       'integrity.spam',
     ]);
-    expect([...(stored?.reporterFingerprints ?? [])].sort()).toEqual([
-      'reporter_a',
-      'reporter_b',
-    ]);
+    expect([...(stored?.reporterFingerprints ?? [])].sort()).toEqual(['reporter_a', 'reporter_b']);
   });
 
   it('opens a different case when content or policy changes', async () => {
@@ -369,9 +366,7 @@ describe('the four-part case identity is the concurrency arbiter', () => {
     };
 
     const [first, second] = await Promise.all([
-      withTenant(database.db, mergeTenant, (tx) =>
-        caseRepository.upsertCaseForReport(tx, base),
-      ),
+      withTenant(database.db, mergeTenant, (tx) => caseRepository.upsertCaseForReport(tx, base)),
       withTenant(database.db, mergeTenant, (tx) =>
         caseRepository.upsertCaseForReport(tx, changedContent),
       ),

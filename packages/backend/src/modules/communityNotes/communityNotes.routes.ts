@@ -62,7 +62,11 @@ function readNoteId(request: Request): string {
 }
 
 function readPrincipalId(request: Request): string {
-  return parseOrThrow(ExternalIdSchema, request.params.principalId, 'The principal id is not valid.');
+  return parseOrThrow(
+    ExternalIdSchema,
+    request.params.principalId,
+    'The principal id is not valid.',
+  );
 }
 
 communityNotesRouter.post(
@@ -70,7 +74,11 @@ communityNotesRouter.post(
   requireServiceCredential('crowdsource:community-notes:write'),
   async (request, response) => {
     const tenant = requestTenant(request);
-    const submission = parseOrThrow(CommunityNoteSubmissionSchema, request.body, 'The community note is not valid.');
+    const submission = parseOrThrow(
+      CommunityNoteSubmissionSchema,
+      request.body,
+      'The community note is not valid.',
+    );
     const written = await writeCommunityNote(tenant, submission, {
       idempotencyKey: readIdempotencyKey(request),
       credentialId: requestCredentialId(request),
@@ -109,7 +117,12 @@ communityNotesRouter.post(
       'The withdrawal is not valid.',
     );
     readIdempotencyKey(request);
-    const note = await withdrawCommunityNote(tenant, noteId, authorPrincipalId, requestCredentialId(request));
+    const note = await withdrawCommunityNote(
+      tenant,
+      noteId,
+      authorPrincipalId,
+      requestCredentialId(request),
+    );
     response.status(200).json(communityNoteView(note));
   },
 );
@@ -120,7 +133,11 @@ communityNotesRouter.post(
   async (request, response) => {
     const tenant = requestTenant(request);
     const noteId = readNoteId(request);
-    const submission = parseOrThrow(CommunityNoteRatingSubmissionSchema, request.body, 'The rating is not valid.');
+    const submission = parseOrThrow(
+      CommunityNoteRatingSubmissionSchema,
+      request.body,
+      'The rating is not valid.',
+    );
     const rated = await rateCommunityNote(tenant, noteId, submission, {
       idempotencyKey: readIdempotencyKey(request),
       credentialId: requestCredentialId(request),
@@ -140,14 +157,22 @@ communityNotesRouter.get(
   async (request, response) => {
     const tenant = requestTenant(request);
     const raw = typeof request.query.subjects === 'string' ? request.query.subjects : '';
-    const subjects = [...new Set(raw.split(',').map((value) => value.trim()).filter(Boolean))];
+    const subjects = [
+      ...new Set(
+        raw
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean),
+      ),
+    ];
     if (subjects.length === 0 || subjects.length > COMMUNITY_NOTE_SUBJECTS_PER_LOOKUP_MAX) {
       throw new ApiError(
         'invalid_request',
         `Name between 1 and ${COMMUNITY_NOTE_SUBJECTS_PER_LOOKUP_MAX} subjects in the subjects query parameter.`,
       );
     }
-    for (const subject of subjects) parseOrThrow(ExternalIdSchema, subject, 'A subject id is not valid.');
+    for (const subject of subjects)
+      parseOrThrow(ExternalIdSchema, subject, 'A subject id is not valid.');
     response.status(200).json({ notes: await shownCommunityNotes(tenant, subjects) });
   },
 );
@@ -157,7 +182,9 @@ communityNotesRouter.get(
   requireServiceCredential('crowdsource:community-notes:read'),
   async (request, response) => {
     const tenant = requestTenant(request);
-    response.status(200).json({ notes: await communityNotesWrittenBy(tenant, readPrincipalId(request)) });
+    response
+      .status(200)
+      .json({ notes: await communityNotesWrittenBy(tenant, readPrincipalId(request)) });
   },
 );
 
@@ -166,6 +193,8 @@ communityNotesRouter.get(
   requireServiceCredential('crowdsource:community-notes:read'),
   async (request, response) => {
     const tenant = requestTenant(request);
-    response.status(200).json({ ratings: await communityNoteRatingsBy(tenant, readPrincipalId(request)) });
+    response
+      .status(200)
+      .json({ ratings: await communityNoteRatingsBy(tenant, readPrincipalId(request)) });
   },
 );

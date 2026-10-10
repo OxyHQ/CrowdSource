@@ -66,9 +66,7 @@ export async function usageSummary(
     daily: daily.map((row) => ({ day: row.day, reportsReceived: row.reportsReceived })),
     quota,
     atDailyLimit:
-      today !== undefined &&
-      today.day === todayKey &&
-      today.reportsReceived >= quota.reportsPerDay,
+      today !== undefined && today.day === todayKey && today.reportsReceived >= quota.reportsPerDay,
   };
 }
 
@@ -119,9 +117,8 @@ export async function auditTrail(
   context: TenantContext,
   filter: { readonly caseId?: string; readonly limit?: number } = {},
 ): Promise<readonly AuditEventDocument[]> {
-  return auditEvents.find(
-    context,
-    filter.caseId === undefined ? {} : { caseId: filter.caseId },
-    { sort: { occurredAt: -1 }, limit: filter.limit ?? 100 },
-  );
+  return auditEvents.find(context, filter.caseId === undefined ? {} : { caseId: filter.caseId }, {
+    sort: { occurredAt: -1 },
+    limit: filter.limit ?? 100,
+  });
 }

@@ -48,7 +48,6 @@ const { buildReviewPackage, assignmentWatermark } = await import(
 );
 const { policyVersionOfToken } = await import('../modules/cases/caseDedupKey');
 
-
 type AssignmentDocument = Parameters<typeof buildReviewPackage>[0];
 const { deliveryBody, provisionTenant, startDatabase, stopDatabase } = await import(
   './support/tenants'
@@ -77,7 +76,13 @@ const APPLICATION_HOST_URL = 'https://mention.earth/media/original.png';
  * the second.
  */
 const EVERY_RESOURCE_TYPE: readonly Resource[] = [
-  { id: 'res_link', type: 'link', role: 'context', data: { url: 'https://example.test/a' }, sha256: digestOf('link') },
+  {
+    id: 'res_link',
+    type: 'link',
+    role: 'context',
+    data: { url: 'https://example.test/a' },
+    sha256: digestOf('link'),
+  },
   {
     id: 'res_profile',
     type: 'profile',
@@ -106,7 +111,13 @@ const EVERY_RESOURCE_TYPE: readonly Resource[] = [
     data: { latitude: 41.39, longitude: 2.16 },
     sha256: digestOf('location'),
   },
-  { id: 'res_metadata', type: 'metadata', role: 'context', data: { views: 12 }, sha256: digestOf('metadata') },
+  {
+    id: 'res_metadata',
+    type: 'metadata',
+    role: 'context',
+    data: { views: 12 },
+    sha256: digestOf('metadata'),
+  },
   {
     id: 'res_custom',
     type: 'custom',
@@ -119,7 +130,12 @@ const EVERY_RESOURCE_TYPE: readonly Resource[] = [
     id: 'res_image',
     type: 'image',
     role: 'evidence',
-    asset: { fileId: FILE_ID, url: APPLICATION_HOST_URL, mimeType: 'image/png', sha256: digestOf('image') },
+    asset: {
+      fileId: FILE_ID,
+      url: APPLICATION_HOST_URL,
+      mimeType: 'image/png',
+      sha256: digestOf('image'),
+    },
   },
   {
     id: 'res_video',
@@ -150,7 +166,12 @@ const EVERY_RESOURCE_TYPE: readonly Resource[] = [
     type: 'document',
     role: 'evidence',
     data: { title: 'a.pdf' },
-    asset: { fileId: FILE_ID, url: APPLICATION_HOST_URL, mimeType: 'application/pdf', sha256: digestOf('doc') },
+    asset: {
+      fileId: FILE_ID,
+      url: APPLICATION_HOST_URL,
+      mimeType: 'application/pdf',
+      sha256: digestOf('doc'),
+    },
   },
 ];
 

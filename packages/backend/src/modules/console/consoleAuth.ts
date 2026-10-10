@@ -3,7 +3,11 @@ import type { Request, RequestHandler } from 'express';
 
 import { ApiError } from '../../http/apiError';
 import { verifyOxySession } from '../identity/oxySession';
-import { trustSafetyStaff, type StaffRole, type TrustSafetyStaffDocument } from './console.collections';
+import {
+  trustSafetyStaff,
+  type StaffRole,
+  type TrustSafetyStaffDocument,
+} from './console.collections';
 
 /**
  * The console authentication and authorization boundary.

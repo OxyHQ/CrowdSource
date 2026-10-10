@@ -199,11 +199,7 @@ export async function createPostgresTestDatabase(): Promise<PostgresTestDatabase
         argv: [`--target-database=${databaseName}`, '--phase=all'],
         env: {
           ...process.env,
-          MIGRATOR_DATABASE_URL: withCredentials(
-            databaseUrl,
-            MIGRATOR_ROLE,
-            MIGRATOR_PASSWORD,
-          ),
+          MIGRATOR_DATABASE_URL: withCredentials(databaseUrl, MIGRATOR_ROLE, MIGRATOR_PASSWORD),
           DRY_RUN: '',
         },
         logger: { info: () => undefined, debug: () => undefined },

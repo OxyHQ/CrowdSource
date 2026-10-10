@@ -32,7 +32,6 @@ import { BACKENDS } from './support/backends.js';
  * visible, and the mutation script matches on the leaf.
  */
 describe.each(BACKENDS)('$name', (backend) => {
-
   let harness: Harness | null = null;
 
   afterEach(async () => {

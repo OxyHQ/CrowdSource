@@ -1,7 +1,7 @@
-import { Platform } from 'react-native'
+import { Platform } from 'react-native';
 
-import { LogLevel, type Transport } from '../types'
-import { prepareMetadata, formatTime } from '../util'
+import { LogLevel, type Transport } from '../types';
+import { prepareMetadata, formatTime } from '../util';
 
 const ANSI_CODES: Record<string, [number, number]> = {
   blue: [36, 39],
@@ -9,21 +9,17 @@ const ANSI_CODES: Record<string, [number, number]> = {
   magenta: [35, 39],
   red: [31, 39],
   yellow: [33, 39],
-}
+};
 
 function makeColorizer([x, y]: [number, number]) {
-  const rgx = new RegExp(`\\x1b\\[${y}m`, 'g')
-  const open = `\x1b[${x}m`
-  const close = `\x1b[${y}m`
+  const rgx = new RegExp(`\\x1b\\[${y}m`, 'g');
+  const open = `\x1b[${x}m`;
+  const close = `\x1b[${y}m`;
 
   return function (txt: string) {
-    if (txt == null) return txt
-    return (
-      open +
-      (~('' + txt).indexOf(close) ? txt.replace(rgx, close + open) : txt) +
-      close
-    )
-  }
+    if (txt == null) return txt;
+    return open + (~('' + txt).indexOf(close) ? txt.replace(rgx, close + open) : txt) + close;
+  };
 }
 
 const nativeColorizers: Record<LogLevel, (txt: string) => string> = {
@@ -32,7 +28,7 @@ const nativeColorizers: Record<LogLevel, (txt: string) => string> = {
   [LogLevel.Log]: makeColorizer(ANSI_CODES.green),
   [LogLevel.Warn]: makeColorizer(ANSI_CODES.yellow),
   [LogLevel.Error]: makeColorizer(ANSI_CODES.red),
-}
+};
 
 const WEB_CSS_COLORS: Record<LogLevel, string> = {
   [LogLevel.Debug]: 'magenta',
@@ -40,52 +36,46 @@ const WEB_CSS_COLORS: Record<LogLevel, string> = {
   [LogLevel.Log]: 'green',
   [LogLevel.Warn]: 'orange',
   [LogLevel.Error]: 'red',
-}
+};
 
-export const consoleTransport: Transport = ({
-  level,
-  context,
-  message,
-  metadata,
-  timestamp,
-}) => {
-  const hasMetadata = Object.keys(metadata).length > 0
+export const consoleTransport: Transport = ({ level, context, message, metadata, timestamp }) => {
+  const hasMetadata = Object.keys(metadata).length > 0;
 
   if (Platform.OS === 'web') {
-    const cssColor = WEB_CSS_COLORS[level]
-    const timestampStr = formatTime(timestamp)
-    const contextStr = context ? ` (${context})` : ''
-    const messageStr = message ? ` ${message.toString()}` : ''
+    const cssColor = WEB_CSS_COLORS[level];
+    const timestampStr = formatTime(timestamp);
+    const contextStr = context ? ` (${context})` : '';
+    const messageStr = message ? ` ${message.toString()}` : '';
 
-    const styledPart = `%c${timestampStr}${contextStr}%c${messageStr}`
-    const styles = [`color: ${cssColor}; font-weight: bold`, 'color: inherit']
+    const styledPart = `%c${timestampStr}${contextStr}%c${messageStr}`;
+    const styles = [`color: ${cssColor}; font-weight: bold`, 'color: inherit'];
 
     if (hasMetadata) {
-      console.groupCollapsed(styledPart, ...styles)
-      console.log(prepareMetadata(metadata))
-      console.groupEnd()
+      console.groupCollapsed(styledPart, ...styles);
+      console.log(prepareMetadata(metadata));
+      console.groupEnd();
     } else {
-      console.log(styledPart, ...styles)
+      console.log(styledPart, ...styles);
     }
     if (message instanceof Error) {
-      console.error(message)
+      console.error(message);
     }
   } else {
-    const colorize = nativeColorizers[level]
+    const colorize = nativeColorizers[level];
 
-    let msg = colorize(formatTime(timestamp))
+    let msg = colorize(formatTime(timestamp));
     if (context) {
-      msg += ` ${colorize(`(${context})`)}`
+      msg += ` ${colorize(`(${context})`)}`;
     }
     if (message) {
-      msg += ` ${message.toString()}`
+      msg += ` ${message.toString()}`;
     }
     if (hasMetadata) {
-      msg += ` ${JSON.stringify(prepareMetadata(metadata), null, 2)}`
+      msg += ` ${JSON.stringify(prepareMetadata(metadata), null, 2)}`;
     }
-    console.log(msg)
+    console.log(msg);
     if (message instanceof Error) {
-      console.error(message)
+      console.error(message);
     }
   }
-}
+};

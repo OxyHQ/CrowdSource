@@ -12,7 +12,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
  */
 
 vi.mock('../db/postgres/repositories/scoped/communityNotes', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../db/postgres/repositories/scoped/communityNotes')>();
+  const actual =
+    await importOriginal<typeof import('../db/postgres/repositories/scoped/communityNotes')>();
   return {
     ...actual,
     findCommunityNoteByIdempotencyKey: vi.fn(actual.findCommunityNoteByIdempotencyKey),
@@ -61,21 +62,34 @@ async function refusal(promise: Promise<unknown>): Promise<InstanceType<typeof A
 
 beforeAll(async () => {
   await startDatabase();
-  tenant = await provisionTenant(['crowdsource:community-notes:write', 'crowdsource:community-notes:read']);
+  tenant = await provisionTenant([
+    'crowdsource:community-notes:write',
+    'crowdsource:community-notes:read',
+  ]);
 });
 
 afterEach(async () => {
-  const actual = await vi.importActual<typeof import('../db/postgres/repositories/scoped/communityNotes')>(
-    '../db/postgres/repositories/scoped/communityNotes',
-  );
-  vi.mocked(repository.findCommunityNoteByIdempotencyKey).mockReset().mockImplementation(actual.findCommunityNoteByIdempotencyKey);
+  const actual = await vi.importActual<
+    typeof import('../db/postgres/repositories/scoped/communityNotes')
+  >('../db/postgres/repositories/scoped/communityNotes');
+  vi.mocked(repository.findCommunityNoteByIdempotencyKey)
+    .mockReset()
+    .mockImplementation(actual.findCommunityNoteByIdempotencyKey);
   vi.mocked(repository.findCommunityNoteRatingByIdempotencyKey)
     .mockReset()
     .mockImplementation(actual.findCommunityNoteRatingByIdempotencyKey);
-  vi.mocked(repository.transitionCommunityNoteStatus).mockReset().mockImplementation(actual.transitionCommunityNoteStatus);
-  vi.mocked(repository.consumeCommunityNoteAssignment).mockReset().mockImplementation(actual.consumeCommunityNoteAssignment);
-  vi.mocked(repository.drawCommunityNotesToRate).mockReset().mockImplementation(actual.drawCommunityNotesToRate);
-  vi.mocked(repository.findCommunityNoteStatuses).mockReset().mockImplementation(actual.findCommunityNoteStatuses);
+  vi.mocked(repository.transitionCommunityNoteStatus)
+    .mockReset()
+    .mockImplementation(actual.transitionCommunityNoteStatus);
+  vi.mocked(repository.consumeCommunityNoteAssignment)
+    .mockReset()
+    .mockImplementation(actual.consumeCommunityNoteAssignment);
+  vi.mocked(repository.drawCommunityNotesToRate)
+    .mockReset()
+    .mockImplementation(actual.drawCommunityNotesToRate);
+  vi.mocked(repository.findCommunityNoteStatuses)
+    .mockReset()
+    .mockImplementation(actual.findCommunityNoteStatuses);
 });
 
 describe('a write racing its own retry', () => {
@@ -107,7 +121,12 @@ describe('a withdrawal losing to another transition', () => {
     vi.mocked(repository.transitionCommunityNoteStatus).mockResolvedValueOnce(false);
 
     const error = await refusal(
-      service.withdrawCommunityNote(tenant.tenant, written.note.noteId, written.note.authorPrincipalId, 'csk_test'),
+      service.withdrawCommunityNote(
+        tenant.tenant,
+        written.note.noteId,
+        written.note.authorPrincipalId,
+        'csk_test',
+      ),
     );
     expect(error.code).toBe('conflict');
   });
@@ -116,23 +135,41 @@ describe('a withdrawal losing to another transition', () => {
 describe('ratings racing', () => {
   async function assignedNote(rater: string) {
     const written = await service.writeCommunityNote(tenant.tenant, note(), write('note'));
-    await service.issueCommunityNoteAssignments(tenant.tenant, { raterPrincipalId: rater, languages: ['fi'] }, write('draw'));
+    await service.issueCommunityNoteAssignments(
+      tenant.tenant,
+      { raterPrincipalId: rater, languages: ['fi'] },
+      write('draw'),
+    );
     return written.note.noteId;
   }
 
   it('answers a retried rating with the stored one, or asks for a retry when it cannot be read', async () => {
     const noteId = await assignedNote('race_rater_1');
     const idempotency = write('rate');
-    const first = await service.rateCommunityNote(tenant.tenant, noteId, helpful('race_rater_1'), idempotency);
+    const first = await service.rateCommunityNote(
+      tenant.tenant,
+      noteId,
+      helpful('race_rater_1'),
+      idempotency,
+    );
 
-    vi.mocked(repository.findCommunityNoteRatingByIdempotencyKey).mockResolvedValueOnce(null as never);
+    vi.mocked(repository.findCommunityNoteRatingByIdempotencyKey).mockResolvedValueOnce(
+      null as never,
+    );
     vi.mocked(repository.consumeCommunityNoteAssignment).mockResolvedValueOnce(1);
-    const retried = await service.rateCommunityNote(tenant.tenant, noteId, helpful('race_rater_1'), idempotency);
+    const retried = await service.rateCommunityNote(
+      tenant.tenant,
+      noteId,
+      helpful('race_rater_1'),
+      idempotency,
+    );
     expect(retried).toMatchObject({ replayed: true, rating: { ratingId: first.rating.ratingId } });
 
     vi.mocked(repository.findCommunityNoteRatingByIdempotencyKey).mockResolvedValue(null as never);
     vi.mocked(repository.consumeCommunityNoteAssignment).mockResolvedValueOnce(1);
-    const error = await refusal(service.rateCommunityNote(tenant.tenant, noteId, helpful('race_rater_1'), idempotency));
+    const error = await refusal(
+      service.rateCommunityNote(tenant.tenant, noteId, helpful('race_rater_1'), idempotency),
+    );
     expect(error.code).toBe('service_unavailable');
   });
 
@@ -141,7 +178,9 @@ describe('ratings racing', () => {
     await service.rateCommunityNote(tenant.tenant, noteId, helpful('race_rater_2'), write('rate'));
 
     vi.mocked(repository.consumeCommunityNoteAssignment).mockResolvedValueOnce(1);
-    const error = await refusal(service.rateCommunityNote(tenant.tenant, noteId, helpful('race_rater_2'), write('rate')));
+    const error = await refusal(
+      service.rateCommunityNote(tenant.tenant, noteId, helpful('race_rater_2'), write('rate')),
+    );
     expect(error.code).toBe('conflict');
   });
 });
@@ -171,10 +210,23 @@ describe('draws and rescores that lose', () => {
     expect(await service.shownCommunityNotes(fresh.tenant, [])).toEqual([]);
 
     const raters = Array.from({ length: 6 }, (_, index) => `race_scorer_${index}`);
-    const written = await service.writeCommunityNote(fresh.tenant, note({ language: 'et' }), write('note'));
+    const written = await service.writeCommunityNote(
+      fresh.tenant,
+      note({ language: 'et' }),
+      write('note'),
+    );
     for (const rater of raters) {
-      await service.issueCommunityNoteAssignments(fresh.tenant, { raterPrincipalId: rater, languages: ['et'] }, write('draw'));
-      await service.rateCommunityNote(fresh.tenant, written.note.noteId, helpful(rater), write('rate'));
+      await service.issueCommunityNoteAssignments(
+        fresh.tenant,
+        { raterPrincipalId: rater, languages: ['et'] },
+        write('draw'),
+      );
+      await service.rateCommunityNote(
+        fresh.tenant,
+        written.note.noteId,
+        helpful(rater),
+        write('rate'),
+      );
     }
 
     // A status the scorer will disagree with, so it tries the transition — and loses it.
@@ -188,7 +240,12 @@ describe('draws and rescores that lose', () => {
     vi.mocked(repository.findCommunityNoteStatuses).mockResolvedValueOnce([]);
     expect(await service.rescoreCommunityNotes(fresh.tenant)).toBe(0);
 
-    await service.withdrawCommunityNote(fresh.tenant, written.note.noteId, written.note.authorPrincipalId, 'csk_test');
+    await service.withdrawCommunityNote(
+      fresh.tenant,
+      written.note.noteId,
+      written.note.authorPrincipalId,
+      'csk_test',
+    );
     vi.mocked(repository.findCommunityNoteStatuses).mockResolvedValueOnce([
       { noteId: written.note.noteId, status: 'withdrawn', statusRevision: 2 },
     ]);
@@ -200,12 +257,20 @@ describe('two shown notes on one subject', () => {
   it('keeps the note shown first, and a stale revision cannot move a note', async () => {
     const { withTransaction } = await import('../db/transaction');
     const { withTenantTransaction } = await import('../db/postgres/withTenant');
-    const actual = await vi.importActual<typeof import('../db/postgres/repositories/scoped/communityNotes')>(
-      '../db/postgres/repositories/scoped/communityNotes',
-    );
+    const actual = await vi.importActual<
+      typeof import('../db/postgres/repositories/scoped/communityNotes')
+    >('../db/postgres/repositories/scoped/communityNotes');
     const externalSubjectId = `post_twice_${Date.now()}`;
-    const first = await service.writeCommunityNote(tenant.tenant, note({ externalSubjectId }), write('note'));
-    const second = await service.writeCommunityNote(tenant.tenant, note({ externalSubjectId }), write('note'));
+    const first = await service.writeCommunityNote(
+      tenant.tenant,
+      note({ externalSubjectId }),
+      write('note'),
+    );
+    const second = await service.writeCommunityNote(
+      tenant.tenant,
+      note({ externalSubjectId }),
+      write('note'),
+    );
 
     const show = (noteId: string, fromRevision: number, at: Date) =>
       withTransaction((session) =>
@@ -236,4 +301,3 @@ describe('two shown notes on one subject', () => {
     expect(shown.map((row) => row.id)).toEqual([first.note.noteId]);
   });
 });
-

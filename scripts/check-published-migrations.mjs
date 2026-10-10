@@ -36,36 +36,36 @@
  * which is how `test-check-published-migrations.mjs` mutation-tests it.
  */
 
-import { readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /** The packages whose tarball an adopter installs. */
-const PUBLISHED = ["contracts", "core"];
+const PUBLISHED = ['contracts', 'core'];
 
 /** Any path segment naming a migration. Case-insensitive: `Migrations/` ships too. */
 const MIGRATION = /(^|\/)migrations?(\/|$)|\.sql$/i;
 
 const repositoryRoot =
   process.argv[2] === undefined
-    ? resolve(dirname(fileURLToPath(import.meta.url)), "..")
+    ? resolve(dirname(fileURLToPath(import.meta.url)), '..')
     : resolve(process.argv[2]);
 
 const failures = [];
 let packagesChecked = 0;
 
 for (const name of PUBLISHED) {
-  const packageDir = resolve(repositoryRoot, "packages", name);
+  const packageDir = resolve(repositoryRoot, 'packages', name);
   let manifest;
   try {
-    manifest = JSON.parse(await readFile(resolve(packageDir, "package.json"), "utf8"));
+    manifest = JSON.parse(await readFile(resolve(packageDir, 'package.json'), 'utf8'));
   } catch {
     failures.push(`packages/${name}/package.json is missing or unreadable.`);
     continue;
   }
 
   const packed = Bun.spawnSync({
-    cmd: ["bun", "pm", "pack", "--dry-run"],
+    cmd: ['bun', 'pm', 'pack', '--dry-run'],
     cwd: packageDir,
   });
   const output = `${new TextDecoder().decode(packed.stdout)}${new TextDecoder().decode(packed.stderr)}`;
@@ -76,7 +76,7 @@ for (const name of PUBLISHED) {
 
   /** `packed <size> <path>` per line; anything else is a banner. */
   const files = output
-    .split("\n")
+    .split('\n')
     .map((line) => /^packed\s+\S+\s+(.+)$/.exec(line.trim()))
     .filter((match) => match !== null)
     .map((match) => match[1]);
@@ -93,12 +93,12 @@ for (const name of PUBLISHED) {
    * trap cost a bisect in `drizzle.config.ts`, where nothing type-checked the file;
    * here the mutation test caught it in one run.)
    */
-  const shipped = files.filter((file) => file !== "package.json");
+  const shipped = files.filter((file) => file !== 'package.json');
   if (shipped.length === 0) {
     failures.push(
       `packages/${name} packed nothing but its manifest, so this check examined ` +
-        "nothing. That is a broken `files` array or a changed pack output format, " +
-        "not a clean package.",
+        'nothing. That is a broken `files` array or a changed pack output format, ' +
+        'not a clean package.',
     );
     continue;
   }
@@ -108,10 +108,10 @@ for (const name of PUBLISHED) {
   if (offenders.length > 0) {
     failures.push(
       `${manifest.name ?? `packages/${name}`} ships ${offenders.length} migration file(s): ` +
-        `${offenders.slice(0, 5).join(", ")}${offenders.length > 5 ? ", …" : ""}. ` +
+        `${offenders.slice(0, 5).join(', ')}${offenders.length > 5 ? ', …' : ''}. ` +
         "A library's migrations interleave with the adopter's in one ledger table, and " +
-        "the loser is skipped silently with exit 0 — keep them under a __tests__ directory beneath src/, " +
-        "which `files` excludes.",
+        'the loser is skipped silently with exit 0 — keep them under a __tests__ directory beneath src/, ' +
+        'which `files` excludes.',
     );
   }
 }
@@ -120,16 +120,14 @@ for (const name of PUBLISHED) {
 if (packagesChecked < PUBLISHED.length) {
   failures.push(
     `only ${packagesChecked} of ${PUBLISHED.length} published packages were packed; ` +
-      "the rest failed before their file list could be read.",
+      'the rest failed before their file list could be read.',
   );
 }
 
 if (failures.length > 0) {
-  console.error("The published-migrations check failed:\n");
+  console.error('The published-migrations check failed:\n');
   for (const failure of failures) console.error(`- ${failure}\n`);
   process.exit(1);
 }
 
-console.log(
-  `None of the ${packagesChecked} published package(s) ship a migration file.`,
-);
+console.log(`None of the ${packagesChecked} published package(s) ship a migration file.`);

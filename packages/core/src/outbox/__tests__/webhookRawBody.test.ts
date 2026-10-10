@@ -27,7 +27,6 @@ import { BACKENDS } from './support/backends.js';
  * visible, and the mutation script matches on the leaf.
  */
 describe.each(BACKENDS)('$name', (backend) => {
-
   const WEBHOOK_SECRET = 'whsec_test_0123456789abcdef0123456789abcdef';
 
   let harness: Harness | null = null;
@@ -77,9 +76,7 @@ describe.each(BACKENDS)('$name', (backend) => {
       // And the consequence: the signature verified, so the event was accepted.
       expect(result.status).toBeGreaterThanOrEqual(200);
       expect(result.status).toBeLessThan(300);
-      expect(await harness.events.count({ state: 'queued' })).toBe(
-        1,
-      );
+      expect(await harness.events.count({ state: 'queued' })).toBe(1);
     });
 
     it('refuses the delivery when a JSON parser ran first, and records nothing', async () => {
@@ -149,10 +146,7 @@ describe.each(BACKENDS)('$name', (backend) => {
       expect(first.status).toBeLessThan(300);
       expect(second.status).toBeLessThan(300);
       expect(await harness.events.count()).toBe(1);
-      expect(
-        await harness.outbox.count({ kind: 'decision.apply' }),
-      ).toBe(1);
+      expect(await harness.outbox.count({ kind: 'decision.apply' })).toBe(1);
     });
   });
-
 });

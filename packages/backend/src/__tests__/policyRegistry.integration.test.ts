@@ -81,9 +81,7 @@ describe('the baseline policy set (§6.3)', () => {
   });
 
   it('has one rule per family, which is what makes §9.4 family agreement checkable', () => {
-    expect(BASELINE_POLICY_SET.rules).toHaveLength(
-      Object.keys(TAXONOMY_CODES_BY_FAMILY).length,
-    );
+    expect(BASELINE_POLICY_SET.rules).toHaveLength(Object.keys(TAXONOMY_CODES_BY_FAMILY).length);
   });
 
   it('resolves for any tenant without being stored per tenant', async () => {
@@ -129,9 +127,9 @@ describe('registering and publishing a tenant policy version', () => {
     await registerPolicyVersion(tenant.tenant, draft(policySetId, '2026.09'));
     await publishPolicyVersion(tenant.tenant, policySetId, '2026.09');
 
-    await expect(
-      publishPolicyVersion(tenant.tenant, policySetId, '2026.09'),
-    ).rejects.toMatchObject({ code: 'conflict' });
+    await expect(publishPolicyVersion(tenant.tenant, policySetId, '2026.09')).rejects.toMatchObject(
+      { code: 'conflict' },
+    );
   });
 
   it('will not let the same version be registered again with different rules', async () => {

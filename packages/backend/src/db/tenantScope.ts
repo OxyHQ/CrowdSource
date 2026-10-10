@@ -54,10 +54,7 @@ const TENANT_KEYS = ['organizationId', 'applicationId'] as const;
  * caller influence this?". Never construct the two keys as an object literal elsewhere:
  * the value would satisfy the type and skip the only checks that make it meaningful.
  */
-export function createTenantContext(
-  organizationId: string,
-  applicationId: string,
-): TenantContext {
+export function createTenantContext(organizationId: string, applicationId: string): TenantContext {
   if (!organizationId.trim()) {
     throw new Error('A tenant context requires a non-empty organizationId.');
   }
@@ -119,7 +116,5 @@ export function tenantScopedDocument<TDocument extends object>(
 
 /** True when `value` carries both tenant keys of `context`. */
 export function isScopedToTenant(context: TenantContext, value: object): boolean {
-  return TENANT_KEYS.every(
-    (key) => (value as Record<string, unknown>)[key] === context[key],
-  );
+  return TENANT_KEYS.every((key) => (value as Record<string, unknown>)[key] === context[key]);
 }

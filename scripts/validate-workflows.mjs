@@ -1,21 +1,21 @@
 #!/usr/bin/env bun
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { parseDocument } from "yaml";
-import { isReviewedImagePublisher } from "./reviewed-image-publisher.mjs";
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseDocument } from 'yaml';
+import { isReviewedImagePublisher } from './reviewed-image-publisher.mjs';
 
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const workflowsDirectory = resolve(repositoryRoot, ".github/workflows");
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const workflowsDirectory = resolve(repositoryRoot, '.github/workflows');
 const workflowNames = (await readdir(workflowsDirectory))
   .filter((name) => /\.ya?ml$/i.test(name))
   .sort();
 
 const failures = [];
 for (const workflowName of workflowNames) {
-  const source = await readFile(resolve(workflowsDirectory, workflowName), "utf8");
+  const source = await readFile(resolve(workflowsDirectory, workflowName), 'utf8');
   const document = parseDocument(source, {
     prettyErrors: true,
     strict: true,
@@ -33,9 +33,8 @@ for (const workflowName of workflowNames) {
     // away from redeploying a different product. Pin the identifiers that
     // select the blast radius: APP names the ECS service, the ECR repository
     // and the /oxy/<app>/ parameter namespace all at once.
-    for (const parameterNamespace of source.match(/\/oxy\/[A-Za-z0-9_.-]+\//g) ||
-      []) {
-      if (parameterNamespace !== "/oxy/crowdsource/") {
+    for (const parameterNamespace of source.match(/\/oxy\/[A-Za-z0-9_.-]+\//g) || []) {
+      if (parameterNamespace !== '/oxy/crowdsource/') {
         failures.push(
           `${workflowName}: ${parameterNamespace} is outside this app's /oxy/crowdsource/ namespace; a release must never read or write another Oxy app's parameters`,
         );
@@ -61,10 +60,7 @@ for (const workflowName of workflowNames) {
     // substring match on the source.
     for (const [jobName, job] of Object.entries(workflow?.jobs || {})) {
       for (const step of job?.steps || []) {
-        if (
-          typeof step?.uses === "string" &&
-          step.uses.startsWith("cloudflare/wrangler-action")
-        ) {
+        if (typeof step?.uses === 'string' && step.uses.startsWith('cloudflare/wrangler-action')) {
           failures.push(
             `${workflowName}: job '${jobName}' uses ${step.uses}. The action resolves its package manager from a lockfile beside the app directory, finds none in this monorepo and falls back to npm, which cannot resolve workspace:* — run 'bunx wrangler@4 <command>' directly instead`,
           );
@@ -79,12 +75,10 @@ for (const workflowName of workflowNames) {
     // which is why this assertion belongs here: `bun run check` runs in a
     // DIFFERENT job, so deleting the gate is caught by a job the deletion did not
     // touch.
-    if (workflowName === "ci.yml") {
+    if (workflowName === 'ci.yml') {
       const jobs = Object.entries(workflow?.jobs || {});
       const runsScript = (job, pattern) =>
-        (job?.steps || []).some(
-          (step) => typeof step?.run === "string" && pattern.test(step.run),
-        );
+        (job?.steps || []).some((step) => typeof step?.run === 'string' && pattern.test(step.run));
       // The lookbehind is load-bearing: test-check-lockfile-sync.mjs contains
       // check-lockfile-sync.mjs, so a substring match accepts the gate's tests as
       // the gate itself and passes with the gate deleted.
@@ -100,10 +94,7 @@ for (const workflowName of workflowNames) {
       // the wiring from file to matrix is asserted below: a tests job that stopped
       // reading `changes`' list would run whatever it names instead, and a
       // `changes` job that stopped reading the file would hand it nothing.
-      const suitesSource = readFileSync(
-        resolve(repositoryRoot, ".github/test-suites.yml"),
-        "utf8",
-      );
+      const suitesSource = readFileSync(resolve(repositoryRoot, '.github/test-suites.yml'), 'utf8');
       const suitesDocument = parseDocument(suitesSource, {
         prettyErrors: true,
         strict: true,
@@ -115,16 +106,14 @@ for (const workflowName of workflowNames) {
       const suites = suitesDocument.toJS()?.suites;
       const matrixEntries = Array.isArray(suites) ? suites : [];
       const matrixPackages = new Set(
-        matrixEntries.map((entry) => entry?.package).filter((name) => typeof name === "string"),
+        matrixEntries.map((entry) => entry?.package).filter((name) => typeof name === 'string'),
       );
       if (matrixPackages.size !== matrixEntries.length) {
-        failures.push(
-          `.github/test-suites.yml: every suite needs a unique string package name`,
-        );
+        failures.push(`.github/test-suites.yml: every suite needs a unique string package name`);
       }
       const testsInclude = workflow?.jobs?.tests?.strategy?.matrix?.include;
       if (
-        typeof testsInclude !== "string" ||
+        typeof testsInclude !== 'string' ||
         !/^\$\{\{\s*fromJSON\(needs\.changes\.outputs\.test-suites\)\s*\}\}$/.test(testsInclude)
       ) {
         failures.push(
@@ -133,7 +122,7 @@ for (const workflowName of workflowNames) {
       }
       const readsSuites = (workflow?.jobs?.changes?.steps || []).some(
         (step) =>
-          typeof step?.run === "string" &&
+          typeof step?.run === 'string' &&
           /yq\b[^\n]*'\.suites'[^\n]*\.github\/test-suites\.yml/.test(step.run),
       );
       if (!readsSuites) {
@@ -146,7 +135,7 @@ for (const workflowName of workflowNames) {
       // the count were checked while the job still passes on an empty run.
       const declaresFloor = matrixEntries.filter((entry) => entry?.minimum_tests !== undefined);
       const assertsFloor = (workflow?.jobs?.tests?.steps || []).some(
-        (step) => typeof step?.run === "string" && step.run.includes("assert-test-floor.mjs"),
+        (step) => typeof step?.run === 'string' && step.run.includes('assert-test-floor.mjs'),
       );
       if (declaresFloor.length > 0 && !assertsFloor) {
         failures.push(
@@ -165,13 +154,13 @@ for (const workflowName of workflowNames) {
           `${workflowName}: the tests job declares no matrix packages, so no package suite runs on a pull request`,
         );
       }
-      for (const entry of readdirSync(resolve(repositoryRoot, "packages"), {
+      for (const entry of readdirSync(resolve(repositoryRoot, 'packages'), {
         withFileTypes: true,
       })) {
         if (!entry.isDirectory()) continue;
-        const manifestPath = resolve(repositoryRoot, "packages", entry.name, "package.json");
+        const manifestPath = resolve(repositoryRoot, 'packages', entry.name, 'package.json');
         if (!existsSync(manifestPath)) continue;
-        const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+        const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
         if (!manifest.scripts?.test) continue;
         if (!matrixPackages.has(entry.name)) {
           failures.push(
@@ -183,13 +172,13 @@ for (const workflowName of workflowNames) {
       for (const [pattern, script, reason] of [
         [
           /(?<![\w-])check-lockfile-sync\.mjs/,
-          "check-lockfile-sync.mjs",
-          "nothing else enforces that a package.json change and its bun.lock update land in one commit",
+          'check-lockfile-sync.mjs',
+          'nothing else enforces that a package.json change and its bun.lock update land in one commit',
         ],
         [
           /(?<![\w-])test-check-lockfile-sync\.mjs/,
-          "test-check-lockfile-sync.mjs",
-          "without its own tests the lockfile gate can stop discriminating without anything noticing",
+          'test-check-lockfile-sync.mjs',
+          'without its own tests the lockfile gate can stop discriminating without anything noticing',
         ],
       ]) {
         if (!jobs.some(([, job]) => runsScript(job, pattern))) {
@@ -198,17 +187,19 @@ for (const workflowName of workflowNames) {
       }
     }
 
-    const imagePublication = isReviewedImagePublisher(
-      workflowName, workflow, (file) => readFileSync(resolve(repositoryRoot, file)),
+    const imagePublication = isReviewedImagePublisher(workflowName, workflow, (file) =>
+      readFileSync(resolve(repositoryRoot, file)),
     );
-    if (workflowName === "publish-reviewed-images.yml" && !imagePublication) {
-      failures.push(`${workflowName}: ECR-only publisher differs from its reviewed source/recipe/main/ARM contract`);
+    if (workflowName === 'publish-reviewed-images.yml' && !imagePublication) {
+      failures.push(
+        `${workflowName}: ECR-only publisher differs from its reviewed source/recipe/main/ARM contract`,
+      );
     }
-    if (source.includes("configure-aws-credentials") && !imagePublication) {
+    if (source.includes('configure-aws-credentials') && !imagePublication) {
       for (const [pinnedName, expectedValue] of [
-        ["APP", "crowdsource"],
-        ["CONTAINER_NAME", "crowdsource"],
-        ["CLUSTER", "oxy-cluster"],
+        ['APP', 'crowdsource'],
+        ['CONTAINER_NAME', 'crowdsource'],
+        ['CLUSTER', 'oxy-cluster'],
       ]) {
         if (workflow?.env?.[pinnedName] !== expectedValue) {
           failures.push(
@@ -223,29 +214,25 @@ for (const workflowName of workflowNames) {
           );
         }
       }
-      const currentMainGuardCount = source
-        .split("require-current-main.sh")
-        .length - 1;
+      const currentMainGuardCount = source.split('require-current-main.sh').length - 1;
       if (currentMainGuardCount < 2) {
         failures.push(
           `${workflowName}: AWS production workflows must verify current origin/main before build and execution`,
         );
       }
-      if (source.includes("aws ecr describe-images")) {
+      if (source.includes('aws ecr describe-images')) {
         failures.push(
           `${workflowName}: deploy role lacks ecr:DescribeImages; consume the immutable build action digest instead`,
         );
       }
-      if (source.includes("aws ecs stop-task")) {
+      if (source.includes('aws ecs stop-task')) {
         failures.push(
           `${workflowName}: deploy role lacks ecs:StopTask; workflow must not depend on it`,
         );
       }
       if (
-        workflowName === "run-federated-text-backfill.yml" &&
-        (!source.includes(
-          '"busybox","timeout","-s","TERM","-k","30","3300"',
-        ) ||
+        workflowName === 'run-federated-text-backfill.yml' &&
+        (!source.includes('"busybox","timeout","-s","TERM","-k","30","3300"') ||
           !source.includes("EXPECTED_RUNTIME_COMMANDS: 'bun,busybox'"))
       ) {
         failures.push(
@@ -253,19 +240,14 @@ for (const workflowName of workflowNames) {
         );
       }
     }
-    if (workflow?.on?.workflow_run && workflowName.startsWith("deploy-")) {
-      const currentMainGuardCount = source
-        .split("require-current-main.sh")
-        .length - 1;
+    if (workflow?.on?.workflow_run && workflowName.startsWith('deploy-')) {
+      const currentMainGuardCount = source.split('require-current-main.sh').length - 1;
       if (currentMainGuardCount < 2) {
         failures.push(
           `${workflowName}: production workflow_run releases must verify origin/main before both build and deploy`,
         );
       }
-      if (
-        source.includes("steps.changes.outputs.deploy") ||
-        source.includes("git diff --quiet")
-      ) {
+      if (source.includes('steps.changes.outputs.deploy') || source.includes('git diff --quiet')) {
         failures.push(
           `${workflowName}: production workflow_run releases must not skip artifacts from a single-commit path diff`,
         );
@@ -277,12 +259,10 @@ for (const workflowName of workflowNames) {
       // and a green rollout must move the marker forward.
       const jobs = Object.entries(workflow?.jobs || {});
       const stepRuns = (job) =>
-        (job?.steps || []).map((step) =>
-          typeof step?.run === "string" ? step.run : "",
-        );
+        (job?.steps || []).map((step) => (typeof step?.run === 'string' ? step.run : ''));
 
       const scopeJob = jobs.find(([, job]) =>
-        stepRuns(job).some((run) => run.includes("deployment-scope.sh")),
+        stepRuns(job).some((run) => run.includes('deployment-scope.sh')),
       );
       if (!scopeJob) {
         failures.push(
@@ -291,14 +271,9 @@ for (const workflowName of workflowNames) {
       } else {
         const [scopeName, job] = scopeJob;
         const checkout = (job?.steps || []).find(
-          (step) =>
-            typeof step?.uses === "string" &&
-            step.uses.startsWith("actions/checkout@"),
+          (step) => typeof step?.uses === 'string' && step.uses.startsWith('actions/checkout@'),
         );
-        if (
-          checkout?.with?.["fetch-depth"] !== 0 ||
-          checkout?.with?.["fetch-tags"] !== true
-        ) {
+        if (checkout?.with?.['fetch-depth'] !== 0 || checkout?.with?.['fetch-tags'] !== true) {
           failures.push(
             `${workflowName}: ${scopeName} must check out with fetch-depth: 0 and fetch-tags: true, otherwise the deployed/<target> marker is missing and the scope silently narrows to one commit`,
           );
@@ -306,7 +281,7 @@ for (const workflowName of workflowNames) {
       }
 
       const recordJob = jobs.find(([, job]) =>
-        stepRuns(job).some((run) => run.includes("record-deployment.sh")),
+        stepRuns(job).some((run) => run.includes('record-deployment.sh')),
       );
       if (!recordJob) {
         failures.push(
@@ -314,54 +289,46 @@ for (const workflowName of workflowNames) {
         );
       } else {
         const [recordName, job] = recordJob;
-        if (job?.permissions?.contents !== "write") {
+        if (job?.permissions?.contents !== 'write') {
           failures.push(
             `${workflowName}: ${recordName} must request job-level contents: write to move the marker`,
           );
         }
-        const needs = Array.isArray(job?.needs)
-          ? job.needs
-          : job?.needs
-            ? [job.needs]
-            : [];
+        const needs = Array.isArray(job?.needs) ? job.needs : job?.needs ? [job.needs] : [];
         if (needs.length === 0) {
           failures.push(
             `${workflowName}: ${recordName} must depend on the deploy job so the marker only moves after a green rollout`,
           );
         }
-        if (/\b(always|failure|cancelled)\s*\(/.test(String(job?.if ?? ""))) {
+        if (/\b(always|failure|cancelled)\s*\(/.test(String(job?.if ?? ''))) {
           failures.push(
             `${workflowName}: ${recordName} must not run on a failed or cancelled rollout; a marker moved past an undeployed change orphans it permanently`,
           );
         }
       }
 
-      if (workflow?.permissions?.contents === "write") {
+      if (workflow?.permissions?.contents === 'write') {
         failures.push(
           `${workflowName}: workflow-level contents: write would hand a push-capable token to the build job; scope it to the marker job instead`,
         );
       }
 
-      if (workflowName === "deploy-aws.yml") {
-        const buildIndex = source.indexOf("Build and push immutable");
-        const auditIndex = source.indexOf("audit-runtime-image.sh");
+      if (workflowName === 'deploy-aws.yml') {
+        const buildIndex = source.indexOf('Build and push immutable');
+        const auditIndex = source.indexOf('audit-runtime-image.sh');
         const productionChangesIndex = source.indexOf(
-          "Verify current main before production changes",
+          'Verify current main before production changes',
         );
-        if (
-          buildIndex < 0 ||
-          auditIndex < buildIndex ||
-          productionChangesIndex < auditIndex
-        ) {
+        if (buildIndex < 0 || auditIndex < buildIndex || productionChangesIndex < auditIndex) {
           failures.push(
             `${workflowName}: final runtime image audit must run after the immutable build and before production changes`,
           );
         }
         for (const unsupportedElbSetting of [
-          "HEALTH_CHECK_PATH:",
-          "EXPECTED_PRE_ROLLOUT_HEALTH_CHECK_PATH:",
-          "ENABLE_TARGET_STICKINESS:",
-          "TARGET_STICKINESS_SECONDS:",
+          'HEALTH_CHECK_PATH:',
+          'EXPECTED_PRE_ROLLOUT_HEALTH_CHECK_PATH:',
+          'ENABLE_TARGET_STICKINESS:',
+          'TARGET_STICKINESS_SECONDS:',
         ]) {
           if (source.includes(unsupportedElbSetting)) {
             failures.push(
@@ -371,13 +338,11 @@ for (const workflowName of workflowNames) {
         }
       }
 
-      if (workflowName === "deploy-frontends.yml") {
-        const buildIndex = source.indexOf("Build reviewer");
-        const staticValidationIndex = source.indexOf(
-          "validate-frontend-static-output.mjs",
-        );
+      if (workflowName === 'deploy-frontends.yml') {
+        const buildIndex = source.indexOf('Build reviewer');
+        const staticValidationIndex = source.indexOf('validate-frontend-static-output.mjs');
         const productionChangesIndex = source.indexOf(
-          "Verify current main before production changes",
+          'Verify current main before production changes',
         );
         if (
           buildIndex < 0 ||
@@ -389,18 +354,16 @@ for (const workflowName of workflowNames) {
           );
         }
 
-        const productionSmokeIndex = source.indexOf("id: production_smoke");
+        const productionSmokeIndex = source.indexOf('id: production_smoke');
         const rollbackIndex = source.indexOf(
-          "Roll back the Worker after a failed production smoke",
+          'Roll back the Worker after a failed production smoke',
         );
         if (productionSmokeIndex < 0 || rollbackIndex < productionSmokeIndex) {
           failures.push(
             `${workflowName}: the public-hostname smoke and its rollback must remain separate and ordered`,
           );
         }
-        if (
-          !source.includes("steps.production_smoke.outcome == 'failure'")
-        ) {
+        if (!source.includes("steps.production_smoke.outcome == 'failure'")) {
           failures.push(
             `${workflowName}: only a failed production smoke may roll back a Worker deployment`,
           );
@@ -413,9 +376,7 @@ for (const workflowName of workflowNames) {
         // comment — the gate would pass with nothing deploying. Mention hit
         // exactly that false pass on a mutation test.
         const runBodies = Object.values(workflow?.jobs || {}).flatMap((job) =>
-          (job?.steps || [])
-            .map((step) => step?.run)
-            .filter((body) => typeof body === "string"),
+          (job?.steps || []).map((step) => step?.run).filter((body) => typeof body === 'string'),
         );
 
         // The Pages release wrote a proxied CNAME for each hostname into the
@@ -425,10 +386,10 @@ for (const workflowName of workflowNames) {
         // arrives as an opaque Cloudflare code at deploy time, on the one run
         // where the hostname is unclaimed.
         for (const pagesOnlyStep of [
-          "pages deploy",
-          "ensure-dns-record",
-          "attach-domain",
-          "ensure-project",
+          'pages deploy',
+          'ensure-dns-record',
+          'attach-domain',
+          'ensure-project',
         ]) {
           if (runBodies.some((body) => body.includes(pagesOnlyStep))) {
             failures.push(
@@ -441,8 +402,8 @@ for (const workflowName of workflowNames) {
         // <project>.pages.dev, and only `workers_dev = false` in each app's
         // wrangler.toml leaves the real hostname as the single way in.
         for (const [appDirectory, hostname] of [
-          ["packages/reviewer", "crowdsource.oxy.so"],
-          ["packages/console", "console.crowdsource.oxy.so"],
+          ['packages/reviewer', 'crowdsource.oxy.so'],
+          ['packages/console', 'console.crowdsource.oxy.so'],
         ]) {
           const deployCommand = `cd ${appDirectory} && bunx wrangler@4 deploy`;
           if (!runBodies.some((body) => body.includes(deployCommand))) {
@@ -451,18 +412,14 @@ for (const workflowName of workflowNames) {
             );
             continue;
           }
-          const configurationPath = resolve(
-            repositoryRoot,
-            appDirectory,
-            "wrangler.toml",
-          );
+          const configurationPath = resolve(repositoryRoot, appDirectory, 'wrangler.toml');
           if (!existsSync(configurationPath)) {
             failures.push(
               `${workflowName}: deploys ${appDirectory} as a Worker but ${appDirectory}/wrangler.toml does not exist`,
             );
             continue;
           }
-          const configuration = readFileSync(configurationPath, "utf8");
+          const configuration = readFileSync(configurationPath, 'utf8');
           if (!/^\s*workers_dev\s*=\s*false\s*$/m.test(configuration)) {
             failures.push(
               `${appDirectory}/wrangler.toml: workers_dev must be false, or this deployment gets a second public hostname on workers.dev — the exact defect that moved it off Pages`,
@@ -480,7 +437,7 @@ for (const workflowName of workflowNames) {
 }
 
 if (failures.length > 0) {
-  console.error("GitHub Actions YAML validation failed:\n");
+  console.error('GitHub Actions YAML validation failed:\n');
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
@@ -488,4 +445,4 @@ if (failures.length > 0) {
 console.log(`Validated ${workflowNames.length} GitHub Actions workflow file(s).`);
 
 // Keep the closed publisher classification mutation controls in the CI gate.
-await import("./test-reviewed-image-publisher.mjs");
+await import('./test-reviewed-image-publisher.mjs');

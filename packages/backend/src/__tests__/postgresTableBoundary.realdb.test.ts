@@ -15,10 +15,7 @@ import {
   UNSCOPED_TABLES,
   declaredTableNames,
 } from '../db/postgres/tableRegistry';
-import {
-  describeTenantColumns,
-  tenantColumnShapeOf,
-} from '../db/postgres/tenantColumnShape';
+import { describeTenantColumns, tenantColumnShapeOf } from '../db/postgres/tenantColumnShape';
 import {
   createPostgresTestDatabase,
   type PostgresTestDatabase,
@@ -108,10 +105,9 @@ describe('every table is an explicit decision', () => {
 
   it('makes every exemption state a reason', () => {
     for (const [table, reason] of Object.entries(UNSCOPED_TABLES)) {
-      expect(
-        reason.why.trim().length,
-        `${table} must say why it is exempt`,
-      ).toBeGreaterThanOrEqual(30);
+      expect(reason.why.trim().length, `${table} must say why it is exempt`).toBeGreaterThanOrEqual(
+        30,
+      );
     }
   });
 
@@ -201,10 +197,7 @@ describe('every exemption declares the tenant columns it really carries', () => 
    */
   it('never files a table with no tenant columns under a kind that claims some', () => {
     const contradictions = Object.entries(UNSCOPED_TABLES)
-      .filter(
-        ([, reason]) =>
-          reason.shape === 'neither' && reason.kind !== 'no_tenant_dimension',
-      )
+      .filter(([, reason]) => reason.shape === 'neither' && reason.kind !== 'no_tenant_dimension')
       .map(([table, reason]) => `${table} is ${reason.kind} but carries no tenant column`);
 
     expect(contradictions).toEqual([]);
@@ -232,7 +225,10 @@ describe('every tenant-scoped table is actually isolated by the server', () => {
 
     const unprotected = rows
       .filter((row) => !row.relrowsecurity || !row.relforcerowsecurity)
-      .map((row) => `${row.relname} (enabled=${row.relrowsecurity}, forced=${row.relforcerowsecurity})`);
+      .map(
+        (row) =>
+          `${row.relname} (enabled=${row.relrowsecurity}, forced=${row.relforcerowsecurity})`,
+      );
 
     expect(unprotected).toEqual([]);
   });

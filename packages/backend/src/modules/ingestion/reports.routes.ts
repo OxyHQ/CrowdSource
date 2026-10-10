@@ -76,7 +76,11 @@ reportsRouter.post(
     try {
       delivery = parseDelivery(request.body);
     } catch (error: unknown) {
-      await recordIngressRefusal(tenant, { externalReportId: null, credentialId }, 'schema_invalid');
+      await recordIngressRefusal(
+        tenant,
+        { externalReportId: null, credentialId },
+        'schema_invalid',
+      );
       throw error;
     }
 

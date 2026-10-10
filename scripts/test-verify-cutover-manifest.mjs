@@ -44,7 +44,9 @@ if (!cutoverManifestViolations(countMismatch).includes("dataset 'empty_control' 
 
 const digestMismatch = structuredClone(manifest);
 digestMismatch.datasets[0].targetSha256 = `sha256:${'3'.repeat(64)}`;
-if (!cutoverManifestViolations(digestMismatch).includes("dataset 'empty_control' digest mismatch")) {
+if (
+  !cutoverManifestViolations(digestMismatch).includes("dataset 'empty_control' digest mismatch")
+) {
   throw new Error('The manifest gate accepted a digest mismatch.');
 }
 
@@ -54,4 +56,6 @@ if (!cutoverManifestViolations(nonUtcTimestamp).includes('source timestamp is in
   throw new Error('The manifest gate accepted a non-UTC timestamp.');
 }
 
-process.stdout.write('The cutover manifest gate catches timestamp, empty-target and reconciliation mutations.\n');
+process.stdout.write(
+  'The cutover manifest gate catches timestamp, empty-target and reconciliation mutations.\n',
+);

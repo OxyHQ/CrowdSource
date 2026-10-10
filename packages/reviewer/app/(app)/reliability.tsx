@@ -104,7 +104,10 @@ export default function ReliabilityScreen() {
             ))}
           </Panel>
 
-          <Panel title={t('reliability.exposure.title')} description={t('reliability.exposure.help')}>
+          <Panel
+            title={t('reliability.exposure.title')}
+            description={t('reliability.exposure.help')}
+          >
             <Text className="text-sm text-muted-foreground">
               {t('home.state.exposure', {
                 reviewed: profileQuery.data.exposure.reviewedToday,

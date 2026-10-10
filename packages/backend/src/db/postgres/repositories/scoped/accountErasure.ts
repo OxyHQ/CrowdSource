@@ -43,7 +43,12 @@ export async function deleteCommunityNotesByAuthor(
     .where(eq(communityNotes.authorPrincipalId, authorPrincipalId));
   const noteIds = notes.map((note) => note.noteId);
   if (noteIds.length === 0) {
-    return { notesDeleted: 0, noteRatingsDeleted: 0, noteAssignmentsDeleted: 0, noteRevisionsDeleted: 0 };
+    return {
+      notesDeleted: 0,
+      noteRatingsDeleted: 0,
+      noteAssignmentsDeleted: 0,
+      noteRevisionsDeleted: 0,
+    };
   }
 
   const ratings = await db
@@ -151,7 +156,12 @@ export async function findReportsNamingPrincipal(
   return await db
     .select({ reportId: reports.reportId, envelope: reports.envelope })
     .from(reports)
-    .where(or(bindingNames(principalId, 'externalPrincipalId'), bindingNames(principalId, 'bindingProofId')))
+    .where(
+      or(
+        bindingNames(principalId, 'externalPrincipalId'),
+        bindingNames(principalId, 'bindingProofId'),
+      ),
+    )
     .orderBy(asc(reports.reportId))
     .limit(limit);
 }

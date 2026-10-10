@@ -36,7 +36,6 @@ import { BACKENDS } from './support/backends.js';
  * visible, and the mutation script matches on the leaf.
  */
 describe.each(BACKENDS)('$name', (backend) => {
-
   let harness: Harness | null = null;
 
   afterEach(async () => {
@@ -120,7 +119,6 @@ describe.each(BACKENDS)('$name', (backend) => {
        */
       expect((await harness.app.readWidget(widgetId))?.status).toBe('draft');
     });
-
   });
 
   describe('an action that could not apply to THIS object is labelled honestly', () => {
@@ -293,10 +291,7 @@ describe.each(BACKENDS)('$name', (backend) => {
         caseId: CASE_ID,
         subject,
       });
-      expect(outcomes.map((outcome) => outcome.action).sort()).toEqual([
-        'restore',
-        'unflag',
-      ]);
+      expect(outcomes.map((outcome) => outcome.action).sort()).toEqual(['restore', 'unflag']);
 
       /**
        * `flagged: false` is the assertion that bites. Planning only the first
@@ -353,15 +348,11 @@ describe.each(BACKENDS)('$name', (backend) => {
         subject,
       });
 
-      expect(outcomes.map((outcome) => outcome.action).sort()).toEqual([
-        'restore',
-        'unflag',
-      ]);
+      expect(outcomes.map((outcome) => outcome.action).sort()).toEqual(['restore', 'unflag']);
       expect(await harness.app.readWidget(widgetId)).toMatchObject({
         status: 'published',
         flagged: false,
       });
     });
   });
-
 });

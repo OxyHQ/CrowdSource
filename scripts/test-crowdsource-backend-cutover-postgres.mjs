@@ -34,23 +34,29 @@ if (
   canonicalPostgresLocaleName('es_ES.UTF8') !== 'es_ES.UTF-8' ||
   canonicalPostgresLocaleName('en_GB.UTF-8') === canonicalPostgresLocaleName('en_US.UTF-8')
 ) {
-  throw new Error('PostgreSQL locale canonicalization merged distinct locales or retained a UTF-8 alias.');
+  throw new Error(
+    'PostgreSQL locale canonicalization merged distinct locales or retained a UTF-8 alias.',
+  );
 }
 
-const dockerDatabaseEvidence = canonicalPostgresDatabaseEvidence([{
-  owner: 'crowdsource_migrator',
-  collate: 'en_US.utf8',
-  ctype: 'en_US.utf8',
-  collationVersion: '2.41',
-  actualCollationVersion: '2.41',
-}]);
-const rdsDatabaseEvidence = canonicalPostgresDatabaseEvidence([{
-  owner: 'crowdsource_migrator',
-  collate: 'en_US.UTF-8',
-  ctype: 'en_US.UTF-8',
-  collationVersion: '2.26-59.amzn2',
-  actualCollationVersion: '2.26-59.amzn2',
-}]);
+const dockerDatabaseEvidence = canonicalPostgresDatabaseEvidence([
+  {
+    owner: 'crowdsource_migrator',
+    collate: 'en_US.utf8',
+    ctype: 'en_US.utf8',
+    collationVersion: '2.41',
+    actualCollationVersion: '2.41',
+  },
+]);
+const rdsDatabaseEvidence = canonicalPostgresDatabaseEvidence([
+  {
+    owner: 'crowdsource_migrator',
+    collate: 'en_US.UTF-8',
+    ctype: 'en_US.UTF-8',
+    collationVersion: '2.26-59.amzn2',
+    actualCollationVersion: '2.26-59.amzn2',
+  },
+]);
 if (JSON.stringify(dockerDatabaseEvidence) !== JSON.stringify(rdsDatabaseEvidence)) {
   throw new Error('Healthy Docker and RDS database collation evidence is not portable.');
 }
@@ -62,20 +68,24 @@ for (const [recorded, actual] of [
 ]) {
   let staleCollationRefused = false;
   try {
-    canonicalPostgresDatabaseEvidence([{
-      owner: 'crowdsource_migrator',
-      collate: 'en_US.UTF-8',
-      ctype: 'en_US.UTF-8',
-      collationVersion: recorded,
-      actualCollationVersion: actual,
-    }]);
+    canonicalPostgresDatabaseEvidence([
+      {
+        owner: 'crowdsource_migrator',
+        collate: 'en_US.UTF-8',
+        ctype: 'en_US.UTF-8',
+        collationVersion: recorded,
+        actualCollationVersion: actual,
+      },
+    ]);
   } catch (error) {
     staleCollationRefused = /collation version is stale/.test(
       error instanceof Error ? error.message : String(error),
     );
   }
   if (!staleCollationRefused) {
-    throw new Error('A stale or ambiguously unversioned database collation passed canonicalization.');
+    throw new Error(
+      'A stale or ambiguously unversioned database collation passed canonicalization.',
+    );
   }
 }
 
@@ -90,66 +100,77 @@ const sourceFingerprint = databaseFingerprint(sourceUrl, sourceDatabase, 'mongod
 const { privateKey, publicKey } = generateKeyPairSync('ed25519');
 const privateKeyPem = privateKey.export({ type: 'pkcs8', format: 'pem' });
 const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' });
-const freeze = signFreezeAttestation({
-  format: FREEZE_FORMAT,
-  sourceDatabase,
-  sourceDatabaseFingerprint: sourceFingerprint,
-  changeId: 'CHG-REALDB-CUTOVER-TEST',
-  writesFrozen: true,
-  observedFrom: '2026-09-02T18:01:00.000Z',
-  observedUntil: '2026-09-02T18:02:00.000Z',
-  nonce: randomBytes(32).toString('base64'),
-  writers: [{
-    id: 'crowdsource-realdb-fixture',
-    stoppedAt: '2026-09-02T18:00:00.000Z',
-    verifiedAt: '2026-09-02T18:01:30.000Z',
-  }],
-}, privateKeyPem);
-const rawDocumentsByDataset = Object.fromEntries(BACKEND_DATASETS.map((dataset) => [dataset.name, []]));
-rawDocumentsByDataset.organizations = [{
-  _id: { $oid: '64b000000000000000000001' },
-  organizationId: 'org_cutover_realdb_01',
-  name: 'Cutover Real Database Fixture',
-  slug: 'cutover-real-database-fixture',
-  status: 'active',
-  createdAt: { $date: '2026-09-02T18:00:00.000Z' },
-  updatedAt: { $date: '2026-09-02T18:00:00.000Z' },
-  __v: { $numberInt: '0' },
-}];
-rawDocumentsByDataset.reviewer_profiles = [{
-  _id: { $oid: '64b000000000000000000099' },
-  reviewerId: 'reviewer_cutover_realdb_01',
-  oxyUserId: 'oxy_cutover_realdb_01',
-  state: 'applicant',
-  accountActive: true,
-  oxyAccountVerified: true,
-  isAdult: true,
-  suspectedSockPuppet: false,
-  riskClusterId: null,
-  languages: ['en'],
-  categories: ['general'],
-  specialistCategories: [],
-  maxSensitivityRank: 0,
-  consentedSensitiveCategories: [],
-  declaredConflictApplications: [],
-  // Deliberately omitted: nullable rulesAcceptedAt must canonicalize to SQL NULL.
-  available: true,
-  dailyReviewLimit: 10,
-  trainingCompletedModules: [],
-  trainingCompletedAt: null,
-  calibrationPassedAt: null,
-  calibrationScore: null,
-  calibrationAttempts: 0,
-  lastCalibrationAt: null,
-  reliabilityByCategory: { general: 0.75 },
-  completedReviewCount: 0,
-  personhoodConfidence: 1,
-  samplingKey: 0.5,
-  suspendedUntil: null,
-  createdAt: { $date: '2026-09-02T18:00:00.000Z' },
-  updatedAt: { $date: '2026-09-02T18:00:00.000Z' },
-  principalLinks: [],
-}];
+const freeze = signFreezeAttestation(
+  {
+    format: FREEZE_FORMAT,
+    sourceDatabase,
+    sourceDatabaseFingerprint: sourceFingerprint,
+    changeId: 'CHG-REALDB-CUTOVER-TEST',
+    writesFrozen: true,
+    observedFrom: '2026-09-02T18:01:00.000Z',
+    observedUntil: '2026-09-02T18:02:00.000Z',
+    nonce: randomBytes(32).toString('base64'),
+    writers: [
+      {
+        id: 'crowdsource-realdb-fixture',
+        stoppedAt: '2026-09-02T18:00:00.000Z',
+        verifiedAt: '2026-09-02T18:01:30.000Z',
+      },
+    ],
+  },
+  privateKeyPem,
+);
+const rawDocumentsByDataset = Object.fromEntries(
+  BACKEND_DATASETS.map((dataset) => [dataset.name, []]),
+);
+rawDocumentsByDataset.organizations = [
+  {
+    _id: { $oid: '64b000000000000000000001' },
+    organizationId: 'org_cutover_realdb_01',
+    name: 'Cutover Real Database Fixture',
+    slug: 'cutover-real-database-fixture',
+    status: 'active',
+    createdAt: { $date: '2026-09-02T18:00:00.000Z' },
+    updatedAt: { $date: '2026-09-02T18:00:00.000Z' },
+    __v: { $numberInt: '0' },
+  },
+];
+rawDocumentsByDataset.reviewer_profiles = [
+  {
+    _id: { $oid: '64b000000000000000000099' },
+    reviewerId: 'reviewer_cutover_realdb_01',
+    oxyUserId: 'oxy_cutover_realdb_01',
+    state: 'applicant',
+    accountActive: true,
+    oxyAccountVerified: true,
+    isAdult: true,
+    suspectedSockPuppet: false,
+    riskClusterId: null,
+    languages: ['en'],
+    categories: ['general'],
+    specialistCategories: [],
+    maxSensitivityRank: 0,
+    consentedSensitiveCategories: [],
+    declaredConflictApplications: [],
+    // Deliberately omitted: nullable rulesAcceptedAt must canonicalize to SQL NULL.
+    available: true,
+    dailyReviewLimit: 10,
+    trainingCompletedModules: [],
+    trainingCompletedAt: null,
+    calibrationPassedAt: null,
+    calibrationScore: null,
+    calibrationAttempts: 0,
+    lastCalibrationAt: null,
+    reliabilityByCategory: { general: 0.75 },
+    completedReviewCount: 0,
+    personhoodConfidence: 1,
+    samplingKey: 0.5,
+    suspendedUntil: null,
+    createdAt: { $date: '2026-09-02T18:00:00.000Z' },
+    updatedAt: { $date: '2026-09-02T18:00:00.000Z' },
+    principalLinks: [],
+  },
+];
 
 const evidenceDirectory = mkdtempSync(join(tmpdir(), 'crowdsource-cutover-realdb-'));
 const bundleDirectory = join(evidenceDirectory, 'bundle');
@@ -187,7 +208,9 @@ await createSourceBundle({
 const database = await createPostgresTestDatabase();
 let asAdmin;
 try {
-  const targetDatabase = decodeURIComponent(new URL(database.migratorUrl).pathname.replace(/^\//, ''));
+  const targetDatabase = decodeURIComponent(
+    new URL(database.migratorUrl).pathname.replace(/^\//, ''),
+  );
   const targetFingerprint = targetFingerprintForUrl(database.migratorUrl, targetDatabase);
   const adminTargetUrl = new URL(adminUrl);
   adminTargetUrl.pathname = `/${targetDatabase}`;
@@ -198,7 +221,9 @@ try {
     try {
       await assertPostgresTarget(database.asMigrator, targetDatabase);
     } catch (error) {
-      refused = /PostgreSQL catalog differs/.test(error instanceof Error ? error.message : String(error));
+      refused = /PostgreSQL catalog differs/.test(
+        error instanceof Error ? error.message : String(error),
+      );
     }
     if (!refused) throw new Error(`${label} passed the exact PostgreSQL catalog preflight.`);
   };
@@ -248,12 +273,12 @@ try {
   const foreignOwnedCatalog = await postgresCatalogEvidence(database.asMigrator);
   if (
     !foreignOwnedCatalog.namespaces.some((entry) => entry.name === 'unexpected_foreign_scope') ||
-    !foreignOwnedCatalog.objects.some((entry) => (
-      entry.schema === 'unexpected_foreign_scope' && entry.name === 'unrelated'
-    )) ||
-    !foreignOwnedCatalog.defaultPrivileges.some((entry) => (
-      entry.schema === 'unexpected_foreign_scope' && entry.grantee === 'crowdsource_app'
-    ))
+    !foreignOwnedCatalog.objects.some(
+      (entry) => entry.schema === 'unexpected_foreign_scope' && entry.name === 'unrelated',
+    ) ||
+    !foreignOwnedCatalog.defaultPrivileges.some(
+      (entry) => entry.schema === 'unexpected_foreign_scope' && entry.grantee === 'crowdsource_app',
+    )
   ) {
     throw new Error('A foreign-owned schema, object or default ACL escaped catalog evidence.');
   }
@@ -292,9 +317,11 @@ try {
     CREATE COLLATION public.unexpected_cutover_collation (provider = libc, locale = 'C')
   `;
   const customCollationCatalog = await postgresCatalogEvidence(database.asMigrator);
-  if (!customCollationCatalog.collations.some((entry) => (
-    entry.schema === 'public' && entry.name === 'unexpected_cutover_collation'
-  ))) {
+  if (
+    !customCollationCatalog.collations.some(
+      (entry) => entry.schema === 'public' && entry.name === 'unexpected_cutover_collation',
+    )
+  ) {
     throw new Error('A standalone custom collation escaped catalog evidence.');
   }
   await assertCatalogMutationRefused('A standalone custom collation');
@@ -333,30 +360,34 @@ try {
   `;
   const executableCatalog = await postgresCatalogEvidence(database.asMigrator);
   if (
-    !executableCatalog.sequences.some((entry) => (
-      entry.schema === 'public' &&
-      entry.name === 'unexpected_cutover_sequence' &&
-      entry.start === '7' &&
-      entry.increment === '3' &&
-      entry.cache === '5' &&
-      entry.cycle === true
-    )) ||
-    !executableCatalog.functions.some((entry) => (
-      entry.schema === 'public' &&
-      entry.name === 'unexpected_cutover_scalar' &&
-      entry.kind === 'f'
-    )) ||
-    !executableCatalog.triggers.some((entry) => (
-      entry.schema === 'public' &&
-      entry.tableName === 'unexpected_cutover_trigger_target' &&
-      entry.name === 'unexpected_cutover_trigger' &&
-      entry.functionName === 'unexpected_cutover_trigger'
-    )) ||
-    !executableCatalog.aggregates.some((entry) => (
-      entry.schema === 'public' &&
-      entry.name === 'unexpected_cutover_sum' &&
-      entry.arguments === 'integer'
-    ))
+    !executableCatalog.sequences.some(
+      (entry) =>
+        entry.schema === 'public' &&
+        entry.name === 'unexpected_cutover_sequence' &&
+        entry.start === '7' &&
+        entry.increment === '3' &&
+        entry.cache === '5' &&
+        entry.cycle === true,
+    ) ||
+    !executableCatalog.functions.some(
+      (entry) =>
+        entry.schema === 'public' &&
+        entry.name === 'unexpected_cutover_scalar' &&
+        entry.kind === 'f',
+    ) ||
+    !executableCatalog.triggers.some(
+      (entry) =>
+        entry.schema === 'public' &&
+        entry.tableName === 'unexpected_cutover_trigger_target' &&
+        entry.name === 'unexpected_cutover_trigger' &&
+        entry.functionName === 'unexpected_cutover_trigger',
+    ) ||
+    !executableCatalog.aggregates.some(
+      (entry) =>
+        entry.schema === 'public' &&
+        entry.name === 'unexpected_cutover_sum' &&
+        entry.arguments === 'integer',
+    )
   ) {
     throw new Error('A sequence, function, trigger or aggregate escaped catalog evidence.');
   }
@@ -369,18 +400,23 @@ try {
   await assertPostgresTarget(database.asMigrator, targetDatabase);
 
   if (!/^[a-z0-9_-]{1,63}$/.test(targetDatabase)) {
-    throw new Error('Disposable target database name cannot be safely quoted for the settings mutation.');
+    throw new Error(
+      'Disposable target database name cannot be safely quoted for the settings mutation.',
+    );
   }
   await database.asMigrator.unsafe(
     `ALTER ROLE "crowdsource_migrator" IN DATABASE "${targetDatabase}" ` +
-    `SET statement_timeout = '5s'`,
+      `SET statement_timeout = '5s'`,
   );
   const roleSettingsCatalog = await postgresCatalogEvidence(database.asMigrator);
-  if (!roleSettingsCatalog.roleSettings.some((entry) => (
-    entry.database === 'current_database' &&
-    entry.role === 'crowdsource_migrator' &&
-    entry.setting === 'statement_timeout=5s'
-  ))) {
+  if (
+    !roleSettingsCatalog.roleSettings.some(
+      (entry) =>
+        entry.database === 'current_database' &&
+        entry.role === 'crowdsource_migrator' &&
+        entry.setting === 'statement_timeout=5s',
+    )
+  ) {
     throw new Error('Database-specific CrowdSource role settings escaped catalog evidence.');
   }
   await assertCatalogMutationRefused('A database-specific migrator role setting');
@@ -398,7 +434,8 @@ try {
       error instanceof Error ? error.message : String(error),
     );
   }
-  if (!missingForceRlsRefused) throw new Error('A reports table without FORCE RLS passed preflight.');
+  if (!missingForceRlsRefused)
+    throw new Error('A reports table without FORCE RLS passed preflight.');
   await database.asMigrator`ALTER TABLE reports FORCE ROW LEVEL SECURITY`;
   await assertPostgresTarget(database.asMigrator, targetDatabase);
 
@@ -451,7 +488,9 @@ try {
     WHERE id = ${ledgerEntry.id}
   `;
   if (mutatedLedgerEntry?.createdAt !== ledgerEntry.createdAt) {
-    throw new Error('Ledger mutation test changed created_at and no longer models the reported drift.');
+    throw new Error(
+      'Ledger mutation test changed created_at and no longer models the reported drift.',
+    );
   }
   let corruptLedgerRefused = false;
   try {
@@ -509,11 +548,13 @@ try {
       error instanceof Error ? error.message : String(error),
     );
   }
-  if (!failedImportRefused) throw new Error('Invalid target row did not fail inside the import transaction.');
+  if (!failedImportRefused)
+    throw new Error('Invalid target row did not fail inside the import transaction.');
   const [afterFailure] = await database.asMigrator`
     SELECT count(*)::integer AS count FROM organizations
   `;
-  if (afterFailure?.count !== 0) throw new Error('Failed cutover import left a partial PostgreSQL row.');
+  if (afterFailure?.count !== 0)
+    throw new Error('Failed cutover import left a partial PostgreSQL row.');
 
   const first = await importPostgres({
     bundleDirectory,
@@ -523,7 +564,8 @@ try {
     expectedTargetFingerprint: targetFingerprint,
     phase: 'all',
   });
-  if (first.idempotent) throw new Error('First cutover import incorrectly reported an idempotent retry.');
+  if (first.idempotent)
+    throw new Error('First cutover import incorrectly reported an idempotent retry.');
   const [stored] = await database.asMigrator`
     SELECT organization_id AS "organizationId", name
     FROM organizations
@@ -555,7 +597,8 @@ try {
     phase: 'all',
   });
   const violations = finalManifestViolations(manifest);
-  if (violations.length > 0) throw new Error(`Real PostgreSQL manifest failed: ${violations.join('; ')}`);
+  if (violations.length > 0)
+    throw new Error(`Real PostgreSQL manifest failed: ${violations.join('; ')}`);
   await verifyFinalManifestEvidence({
     manifest,
     bundleDirectory,
@@ -582,7 +625,8 @@ try {
       error instanceof Error ? error.message : String(error),
     );
   }
-  if (!mutationRefused) throw new Error('A mutated non-empty target passed the idempotent retry guard.');
+  if (!mutationRefused)
+    throw new Error('A mutated non-empty target passed the idempotent retry guard.');
 } finally {
   if (asAdmin !== undefined) await asAdmin.end();
   await database.close();

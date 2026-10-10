@@ -36,12 +36,16 @@ import {
 function expectFailure(action, pattern) {
   return Promise.resolve()
     .then(action)
-    .then(() => {
-      throw new Error(`Expected refusal matching ${pattern}.`);
-    }, (error) => {
-      const message = error instanceof Error ? error.message : String(error);
-      if (!pattern.test(message)) throw new Error(`Wrong refusal '${message}', expected ${pattern}.`);
-    });
+    .then(
+      () => {
+        throw new Error(`Expected refusal matching ${pattern}.`);
+      },
+      (error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!pattern.test(message))
+          throw new Error(`Wrong refusal '${message}', expected ${pattern}.`);
+      },
+    );
 }
 
 const sourceDatabase = 'crowdsource-production';
@@ -73,7 +77,9 @@ verifyFreezeAttestation(freeze, publicKeyPem, {
   databaseFingerprint: sourceFingerprint,
 });
 
-const rawDocumentsByDataset = Object.fromEntries(BACKEND_DATASETS.map((dataset) => [dataset.name, []]));
+const rawDocumentsByDataset = Object.fromEntries(
+  BACKEND_DATASETS.map((dataset) => [dataset.name, []]),
+);
 rawDocumentsByDataset.organizations = [
   {
     _id: { $oid: '64b000000000000000000001' },
@@ -98,7 +104,8 @@ await createSourceBundle({
   freezePublicKeyPem: publicKeyPem,
 });
 const loaded = await loadAndVerifySourceBundle(bundle);
-if (loaded.manifest.datasets.length !== 26) throw new Error('Source bundle did not preserve 26 datasets.');
+if (loaded.manifest.datasets.length !== 26)
+  throw new Error('Source bundle did not preserve 26 datasets.');
 if (loaded.manifest.datasets.flatMap((dataset) => dataset.tables).length !== 27) {
   throw new Error('Source bundle did not preserve 27 explicit target tables.');
 }
@@ -183,7 +190,9 @@ for (const dataset of finalManifest.datasets) {
   }
 }
 if (finalManifestViolations(finalManifest).length !== 0) {
-  throw new Error(`Valid final manifest was refused: ${finalManifestViolations(finalManifest).join('; ')}`);
+  throw new Error(
+    `Valid final manifest was refused: ${finalManifestViolations(finalManifest).join('; ')}`,
+  );
 }
 
 const archiveFinalManifest = structuredClone(finalManifest);
@@ -191,12 +200,10 @@ archiveFinalManifest.schemaVersion = 2;
 const emptyEvidenceSha256 = sha256('');
 for (const dataset of archiveFinalManifest.datasets) {
   const recoveredCount = FINAL_BACKUP_RECOVERY_PROFILE.expectedCounts[dataset.name];
-  const recoveredSha256 = recoveredCount === 0
-    ? emptyEvidenceSha256
-    : sha256(`archive-${dataset.name}-canonical-rows`);
-  const recoveredIdentitySha256 = recoveredCount === 0
-    ? emptyEvidenceSha256
-    : sha256(`archive-${dataset.name}-identities`);
+  const recoveredSha256 =
+    recoveredCount === 0 ? emptyEvidenceSha256 : sha256(`archive-${dataset.name}-canonical-rows`);
+  const recoveredIdentitySha256 =
+    recoveredCount === 0 ? emptyEvidenceSha256 : sha256(`archive-${dataset.name}-identities`);
   dataset.sourceCount = recoveredCount;
   dataset.sourceSha256 = recoveredSha256;
   dataset.sourceIdentitySha256 = recoveredIdentitySha256;
@@ -204,13 +211,12 @@ for (const dataset of archiveFinalManifest.datasets) {
   dataset.targetSha256 = recoveredSha256;
   dataset.targetIdentitySha256 = recoveredIdentitySha256;
   for (const table of dataset.tables) {
-    const tableCount = dataset.name === 'reviewer_profiles' && table.name === 'reviewer_profiles' ? 2 : 0;
-    const tableSha256 = tableCount === 0
-      ? emptyEvidenceSha256
-      : sha256(`archive-${table.name}-canonical-rows`);
-    const tableIdentitySha256 = tableCount === 0
-      ? emptyEvidenceSha256
-      : sha256(`archive-${table.name}-identities`);
+    const tableCount =
+      dataset.name === 'reviewer_profiles' && table.name === 'reviewer_profiles' ? 2 : 0;
+    const tableSha256 =
+      tableCount === 0 ? emptyEvidenceSha256 : sha256(`archive-${table.name}-canonical-rows`);
+    const tableIdentitySha256 =
+      tableCount === 0 ? emptyEvidenceSha256 : sha256(`archive-${table.name}-identities`);
     table.sourceCount = tableCount;
     table.sourceSha256 = tableSha256;
     table.sourceIdentitySha256 = tableIdentitySha256;
@@ -251,7 +257,9 @@ if (!/pinned final backup profile/.test(finalManifestViolations(changedArchive).
 }
 const changedArchiveVersion = structuredClone(archiveFinalManifest);
 changedArchiveVersion.source.archiveObjectVersionId = 'similar-but-wrong-version';
-if (!/pinned final backup profile/.test(finalManifestViolations(changedArchiveVersion).join('\n'))) {
+if (
+  !/pinned final backup profile/.test(finalManifestViolations(changedArchiveVersion).join('\n'))
+) {
   throw new Error('Final manifest accepted a different S3 object version.');
 }
 await verifyFinalManifestEvidence({
@@ -264,82 +272,100 @@ function mustCatchManifest(mutator, pattern) {
   const changed = structuredClone(finalManifest);
   mutator(changed);
   const violations = finalManifestViolations(changed).join('\n');
-  if (!pattern.test(violations)) throw new Error(`Manifest mutation escaped: ${pattern}; got '${violations}'.`);
+  if (!pattern.test(violations))
+    throw new Error(`Manifest mutation escaped: ${pattern}; got '${violations}'.`);
 }
 
-mustCatchManifest((changed) => { changed.source.writesFrozen = false; }, /not frozen/);
-mustCatchManifest((changed) => { changed.target.emptyBeforeImport = false; }, /not proven empty/);
-mustCatchManifest(
-  (changed) => { changed.target.postgresCatalogSha256 = sha256('different-postgres-catalog'); },
-  /transaction\/schema\/ledger evidence is invalid/,
-);
-mustCatchManifest((changed) => { changed.datasets[10].targetCount += 1; }, /canonical evidence differs/);
-mustCatchManifest(
-  (changed) => { changed.datasets[10].targetSha256 = sha256('mutated-domain-bytes'); },
-  /canonical evidence differs/,
-);
-mustCatchManifest(
-  (changed) => { changed.datasets[10].tables[0].targetIdentitySha256 = sha256('mutated-id'); },
-  /Table 'organizations' evidence differs/,
-);
-mustCatchManifest(
-  (changed) => { changed.datasets[10].targetTables = ['applications']; },
-  /wrong target table binding/,
-);
-mustCatchManifest(
-  (changed) => { changed.target.databaseFingerprint = `sha256:${'a'.repeat(64)}`; },
-  /placeholder digest/,
-);
-mustCatchManifest((changed) => { changed.datasets.pop(); }, /exactly 26 datasets/);
+mustCatchManifest((changed) => {
+  changed.source.writesFrozen = false;
+}, /not frozen/);
+mustCatchManifest((changed) => {
+  changed.target.emptyBeforeImport = false;
+}, /not proven empty/);
+mustCatchManifest((changed) => {
+  changed.target.postgresCatalogSha256 = sha256('different-postgres-catalog');
+}, /transaction\/schema\/ledger evidence is invalid/);
+mustCatchManifest((changed) => {
+  changed.datasets[10].targetCount += 1;
+}, /canonical evidence differs/);
+mustCatchManifest((changed) => {
+  changed.datasets[10].targetSha256 = sha256('mutated-domain-bytes');
+}, /canonical evidence differs/);
+mustCatchManifest((changed) => {
+  changed.datasets[10].tables[0].targetIdentitySha256 = sha256('mutated-id');
+}, /Table 'organizations' evidence differs/);
+mustCatchManifest((changed) => {
+  changed.datasets[10].targetTables = ['applications'];
+}, /wrong target table binding/);
+mustCatchManifest((changed) => {
+  changed.target.databaseFingerprint = `sha256:${'a'.repeat(64)}`;
+}, /placeholder digest/);
+mustCatchManifest((changed) => {
+  changed.datasets.pop();
+}, /exactly 26 datasets/);
 
 const wrongReceiptManifest = structuredClone(finalManifest);
 wrongReceiptManifest.target.importReceiptSha256 = sha256('different-committed-receipt');
 await expectFailure(
-  () => verifyFinalManifestEvidence({
-    manifest: wrongReceiptManifest,
-    bundleDirectory: bundle,
-    receiptPath,
-  }),
+  () =>
+    verifyFinalManifestEvidence({
+      manifest: wrongReceiptManifest,
+      bundleDirectory: bundle,
+      receiptPath,
+    }),
   /receipt digest differs/,
 );
 const detachedSourceManifest = structuredClone(finalManifest);
 detachedSourceManifest.datasets[10].sourceSha256 = sha256('detached-source-evidence');
 detachedSourceManifest.datasets[10].targetSha256 = detachedSourceManifest.datasets[10].sourceSha256;
 await expectFailure(
-  () => verifyFinalManifestEvidence({
-    manifest: detachedSourceManifest,
-    bundleDirectory: bundle,
-    receiptPath,
-  }),
+  () =>
+    verifyFinalManifestEvidence({
+      manifest: detachedSourceManifest,
+      bundleDirectory: bundle,
+      receiptPath,
+    }),
   /source evidence differs from the signed source bundle/,
 );
 
 await expectFailure(
-  () => verifyFreezeAttestation({ ...freeze, writesFrozen: false }, publicKeyPem, {
-    databaseName: sourceDatabase,
-    databaseFingerprint: sourceFingerprint,
-  }),
+  () =>
+    verifyFreezeAttestation({ ...freeze, writesFrozen: false }, publicKeyPem, {
+      databaseName: sourceDatabase,
+      databaseFingerprint: sourceFingerprint,
+    }),
   /does not freeze writes/,
 );
 await expectFailure(
-  () => verifyFreezeAttestation({ ...freeze, signature: freeze.signature.slice(0, -4) + 'AAAA' }, publicKeyPem, {
-    databaseName: sourceDatabase,
-    databaseFingerprint: sourceFingerprint,
-  }),
+  () =>
+    verifyFreezeAttestation(
+      { ...freeze, signature: freeze.signature.slice(0, -4) + 'AAAA' },
+      publicKeyPem,
+      {
+        databaseName: sourceDatabase,
+        databaseFingerprint: sourceFingerprint,
+      },
+    ),
   /signature is invalid/,
 );
-const staleWriterFreeze = signFreezeAttestation({
-  ...unsignedFreeze,
-  writers: [{
-    ...unsignedFreeze.writers[0],
-    verifiedAt: '2026-09-02T23:59:59.000Z',
-  }],
-}, privateKeyPem);
+const staleWriterFreeze = signFreezeAttestation(
+  {
+    ...unsignedFreeze,
+    writers: [
+      {
+        ...unsignedFreeze.writers[0],
+        verifiedAt: '2026-09-02T23:59:59.000Z',
+      },
+    ],
+  },
+  privateKeyPem,
+);
 await expectFailure(
-  () => verifyFreezeAttestation(staleWriterFreeze, publicKeyPem, {
-    databaseName: sourceDatabase,
-    databaseFingerprint: sourceFingerprint,
-  }),
+  () =>
+    verifyFreezeAttestation(staleWriterFreeze, publicKeyPem, {
+      databaseName: sourceDatabase,
+      databaseFingerprint: sourceFingerprint,
+    }),
   /verified during the evidence window/,
 );
 await expectFailure(() => assertMigrationPhase('pre'), /requires --phase=all/);
@@ -351,34 +377,38 @@ await expectFailure(
   /organizations.*not empty/,
 );
 await expectFailure(
-  () => canonicalizeSourceDocument('organizations', {
-    ...rawDocumentsByDataset.organizations[0],
-    silentlyDropped: true,
-  }),
+  () =>
+    canonicalizeSourceDocument('organizations', {
+      ...rawDocumentsByDataset.organizations[0],
+      silentlyDropped: true,
+    }),
   /unknown field 'silentlyDropped'/,
 );
 await expectFailure(
-  () => canonicalizeSourceDocument('organizations', {
-    ...rawDocumentsByDataset.organizations[0],
-    organizationId: undefined,
-  }),
+  () =>
+    canonicalizeSourceDocument('organizations', {
+      ...rawDocumentsByDataset.organizations[0],
+      organizationId: undefined,
+    }),
   /no exact identity field 'organizationId'/,
 );
 
 const brokenReferences = structuredClone(loaded.canonicalRowsByDataset);
-brokenReferences.applications = [{
-  applicationId: 'app_fixture_01',
-  organizationId: 'org_absent',
-  name: 'Broken fixture',
-  status: 'active',
-  // A CANONICAL row, so it carries every nullable column explicitly — the
-  // round-trip check runs before the reference check and compares hashes, so a
-  // field omitted here fails as "cannot round-trip" and this case would stop
-  // testing what it is named for.
-  oxyApplicationId: null,
-  createdAt: '2026-09-03T00:00:00.000Z',
-  updatedAt: '2026-09-03T00:00:00.000Z',
-}];
+brokenReferences.applications = [
+  {
+    applicationId: 'app_fixture_01',
+    organizationId: 'org_absent',
+    name: 'Broken fixture',
+    status: 'active',
+    // A CANONICAL row, so it carries every nullable column explicitly — the
+    // round-trip check runs before the reference check and compares hashes, so a
+    // field omitted here fails as "cannot round-trip" and this case would stop
+    // testing what it is named for.
+    oxyApplicationId: null,
+    createdAt: '2026-09-03T00:00:00.000Z',
+    updatedAt: '2026-09-03T00:00:00.000Z',
+  },
+];
 await expectFailure(() => buildTargetPlan(brokenReferences), /references an absent identifier/);
 
 const relationshipPlan = structuredClone(plan);
@@ -441,19 +471,25 @@ await expectFailure(
 
 const emptyParent = mkdtempSync(join(tmpdir(), 'crowdsource-cutover-empty-'));
 await expectFailure(
-  () => createSourceBundle({
-    outputDirectory: join(emptyParent, 'bundle'),
-    rawDocumentsByDataset: Object.fromEntries(BACKEND_DATASETS.map((dataset) => [dataset.name, []])),
-    sourceDatabase,
-    sourceDatabaseFingerprint: sourceFingerprint,
-    capturedAt: '2026-09-03T00:03:00.000Z',
-    freezeAttestation: freeze,
-    freezePublicKeyPem: publicKeyPem,
-  }),
+  () =>
+    createSourceBundle({
+      outputDirectory: join(emptyParent, 'bundle'),
+      rawDocumentsByDataset: Object.fromEntries(
+        BACKEND_DATASETS.map((dataset) => [dataset.name, []]),
+      ),
+      sourceDatabase,
+      sourceDatabaseFingerprint: sourceFingerprint,
+      capturedAt: '2026-09-03T00:03:00.000Z',
+      freezeAttestation: freeze,
+      freezePublicKeyPem: publicKeyPem,
+    }),
   /Source export is empty/,
 );
 
-const packageManifest = readFileSync(new URL('../packages/backend/package.json', import.meta.url), 'utf8');
+const packageManifest = readFileSync(
+  new URL('../packages/backend/package.json', import.meta.url),
+  'utf8',
+);
 if (/"(?:mongodb|mongoose)"\s*:/.test(packageManifest)) {
   throw new Error('The production backend acquired a MongoDB driver dependency.');
 }
@@ -464,10 +500,14 @@ const cutoverLibrary = readFileSync(
 );
 const atomicWriteStart = cutoverLibrary.indexOf('export function atomicEvidenceWrite');
 const atomicWriteEnd = cutoverLibrary.indexOf('\nexport function readJsonFile', atomicWriteStart);
-const atomicWriteSource = atomicWriteStart < 0 || atomicWriteEnd < 0
-  ? ''
-  : cutoverLibrary.slice(atomicWriteStart, atomicWriteEnd);
-if (!/fsyncSync\(descriptor\)/.test(atomicWriteSource) || !/fsyncSync\(parentDescriptor\)/.test(atomicWriteSource)) {
+const atomicWriteSource =
+  atomicWriteStart < 0 || atomicWriteEnd < 0
+    ? ''
+    : cutoverLibrary.slice(atomicWriteStart, atomicWriteEnd);
+if (
+  !/fsyncSync\(descriptor\)/.test(atomicWriteSource) ||
+  !/fsyncSync\(parentDescriptor\)/.test(atomicWriteSource)
+) {
   throw new Error('Import receipt writes are atomic but not durable across a machine restart.');
 }
 
@@ -484,7 +524,8 @@ if (
 const credentialEnvironment = { ...process.env };
 delete credentialEnvironment.CROWDSOURCE_CUTOVER_SOURCE_URL;
 delete credentialEnvironment.CROWDSOURCE_CUTOVER_POSTGRES_URL;
-const targetConnectionUrl = 'postgresql://cutover_migrator:not-recorded@db.internal:5432/crowdsource?sslmode=require';
+const targetConnectionUrl =
+  'postgresql://cutover_migrator:not-recorded@db.internal:5432/crowdsource?sslmode=require';
 const targetCliFingerprint = databaseFingerprint(targetConnectionUrl, targetDatabase, 'postgresql');
 const fingerprintProcess = spawnSync(
   'bun',
@@ -508,10 +549,17 @@ const legacyEnvironmentProcess = spawnSync(
     env: { ...credentialEnvironment, CROWDSOURCE_CUTOVER_POSTGRES_URL: targetConnectionUrl },
   },
 );
-if (legacyEnvironmentProcess.status === 0 || !/never through environment variables/.test(legacyEnvironmentProcess.stderr)) {
+if (
+  legacyEnvironmentProcess.status === 0 ||
+  !/never through environment variables/.test(legacyEnvironmentProcess.stderr)
+) {
   throw new Error('The legacy source-credential environment path was not refused.');
 }
-if (`${legacyEnvironmentProcess.stdout}${legacyEnvironmentProcess.stderr}`.includes(targetConnectionUrl)) {
+if (
+  `${legacyEnvironmentProcess.stdout}${legacyEnvironmentProcess.stderr}`.includes(
+    targetConnectionUrl,
+  )
+) {
   throw new Error('A refused environment credential was emitted in process output.');
 }
 
@@ -525,16 +573,23 @@ const malformedInputProcess = spawnSync(
     env: credentialEnvironment,
   },
 );
-if (malformedInputProcess.status === 0 || !/exactly one database connection URL/.test(malformedInputProcess.stderr)) {
+if (
+  malformedInputProcess.status === 0 ||
+  !/exactly one database connection URL/.test(malformedInputProcess.stderr)
+) {
   throw new Error('A multiline source credential was not refused.');
 }
-if (`${malformedInputProcess.stdout}${malformedInputProcess.stderr}`.includes(targetConnectionUrl)) {
+if (
+  `${malformedInputProcess.stdout}${malformedInputProcess.stderr}`.includes(targetConnectionUrl)
+) {
   throw new Error('A malformed standard-input credential was emitted in process output.');
 }
 
 const dockerfile = readFileSync(new URL('../packages/backend/Dockerfile', import.meta.url), 'utf8');
 if (/COPY[^\n]*crowdsource-backend-export-mongo\.mongosh\.js/.test(dockerfile)) {
-  throw new Error('The migration-only Mongo exporter was copied into the production runtime image.');
+  throw new Error(
+    'The migration-only Mongo exporter was copied into the production runtime image.',
+  );
 }
 for (const filename of [
   'crowdsource-backend-cutover.mjs',

@@ -34,12 +34,9 @@ const { evaluateCase } = await import('../modules/consensus/consensus.service');
 const { handleReviewSubmitted } = await import('../modules/consensus/consensus.worker');
 const { confidenceScore } = await import('../modules/consensus/confidence');
 const { positionOf } = await import('../modules/consensus/consensus');
-const {
-  currentDecision,
-  decisionHistory,
-  markSuperseded,
-  publishDecision,
-} = await import('../modules/decision/decision.service');
+const { currentDecision, decisionHistory, markSuperseded, publishDecision } = await import(
+  '../modules/decision/decision.service'
+);
 const { openCaseRevision } = await import('../modules/decision/revision.service');
 const { decisions } = await import('../modules/decision/decision.collection');
 const { cases } = await import('../modules/cases/case.collection');
@@ -126,11 +123,7 @@ describe('cases no jury decides', () => {
   });
 
   it('a case whose pool could not be filled waits, rather than deciding on nobody', async () => {
-    const caseId = await ingest(
-      UNSERVED_CODE,
-      `post_unserved_${Date.now()}`,
-      UNSERVED_LANGUAGE,
-    );
+    const caseId = await ingest(UNSERVED_CODE, `post_unserved_${Date.now()}`, UNSERVED_LANGUAGE);
 
     const draw = await sortitionDraws.findOne({ caseId });
     expect(draw?.status).toBe('refused');

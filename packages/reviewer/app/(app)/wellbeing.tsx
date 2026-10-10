@@ -142,7 +142,10 @@ function WellbeingForm({ profile }: { profile: ReviewerProfileView }) {
 
   return (
     <>
-      <Panel title={t('wellbeing.availability.title')} description={t('wellbeing.availability.help')}>
+      <Panel
+        title={t('wellbeing.availability.title')}
+        description={t('wellbeing.availability.help')}
+      >
         <View className="flex-row items-center justify-between gap-4">
           <Text className="flex-1 text-base text-foreground">
             {draft.availableForAssignment
@@ -233,7 +236,12 @@ function WellbeingForm({ profile }: { profile: ReviewerProfileView }) {
 
       {updatePreferences.error ? <ApiStateNotice error={updatePreferences.error} /> : null}
 
-      <Button appearance="solid" tone="accent" onPress={handleSave} loading={updatePreferences.isPending}>
+      <Button
+        appearance="solid"
+        tone="accent"
+        onPress={handleSave}
+        loading={updatePreferences.isPending}
+      >
         {t('wellbeing.save')}
       </Button>
       {updatePreferences.isSuccess ? (

@@ -77,7 +77,11 @@ describe('isCurrentEntry', () => {
   it('matches exactly, so a nested route does not light its parent', () => {
     // A prefix match would highlight "Overview" while a case detail is open, and two
     // rows highlighted at once is worse than none.
-    const entry = { labelKey: 'nav.overview', href: '/applications/app_1', icon: 'overview' } as const;
+    const entry = {
+      labelKey: 'nav.overview',
+      href: '/applications/app_1',
+      icon: 'overview',
+    } as const;
     expect(isCurrentEntry(entry, '/applications/app_1')).toBe(true);
     expect(isCurrentEntry(entry, '/applications/app_1/cases')).toBe(false);
   });

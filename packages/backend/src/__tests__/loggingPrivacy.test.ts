@@ -46,10 +46,7 @@ function rawErrorReferences(node: import('typescript').Node): string[] {
     ) {
       violations.push(`property '${propertyName(candidate.name)}'`);
     }
-    if (
-      ts.isPropertyAccessExpression(candidate) &&
-      dangerousProperties.has(candidate.name.text)
-    ) {
+    if (ts.isPropertyAccessExpression(candidate) && dangerousProperties.has(candidate.name.text)) {
       violations.push(`member '.${candidate.name.text}'`);
     }
     if (ts.isIdentifier(candidate) && candidate.text === 'error') {

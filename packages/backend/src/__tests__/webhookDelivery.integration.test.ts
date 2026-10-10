@@ -770,9 +770,9 @@ describe('manual replay of a dead letter (§10.9)', () => {
     await fanOutFor(eventId);
     const delivery = await onlyDelivery(endpoint.webhookEndpointId);
 
-    await expect(
-      replayDeadLetteredDelivery(tenant.tenant, delivery.deliveryId),
-    ).rejects.toThrow(/pending/);
+    await expect(replayDeadLetteredDelivery(tenant.tenant, delivery.deliveryId)).rejects.toThrow(
+      /pending/,
+    );
   });
 
   it('will not replay another tenant’s delivery', async () => {
@@ -782,9 +782,9 @@ describe('manual replay of a dead letter (§10.9)', () => {
     const delivery = await onlyDelivery(endpoint.webhookEndpointId);
     const stranger = await provisionTenant(['crowdsource:webhooks:manage']);
 
-    await expect(
-      replayDeadLetteredDelivery(stranger.tenant, delivery.deliveryId),
-    ).rejects.toThrow('No such webhook delivery.');
+    await expect(replayDeadLetteredDelivery(stranger.tenant, delivery.deliveryId)).rejects.toThrow(
+      'No such webhook delivery.',
+    );
   });
 });
 
@@ -992,7 +992,6 @@ describe('recordDelivery directly', () => {
   });
 });
 
-
 /**
  * A delivery written directly, without going through ingestion.
  *
@@ -1134,9 +1133,9 @@ describe('signing when no version has activated yet', () => {
       { set: { activatesAt: new Date(Date.now() + 60_000) } },
     );
 
-    await expect(
-      signingSecretAt(tenant.tenant, webhookEndpointId, new Date()),
-    ).rejects.toThrow(/no active signing secret/);
+    await expect(signingSecretAt(tenant.tenant, webhookEndpointId, new Date())).rejects.toThrow(
+      /no active signing secret/,
+    );
   });
 });
 
@@ -1166,7 +1165,9 @@ describe('an attempt number that is already recorded', () => {
     // delivery still settles.
     await recordAttempt(claimed, result, new Date());
 
-    expect(await webhookAttempts.find(tenant.tenant, { deliveryId: delivery.deliveryId })).toHaveLength(1);
+    expect(
+      await webhookAttempts.find(tenant.tenant, { deliveryId: delivery.deliveryId }),
+    ).toHaveLength(1);
     const settled = await webhookDeliveries.findOne({ deliveryId: delivery.deliveryId });
     expect(settled?.status).toBe('succeeded');
   });
@@ -1221,7 +1222,9 @@ describe('a target that resolved somewhere it must never be contacted', () => {
     expect(settled?.status).toBe('dead_letter');
     expect(settled?.deadLetterReason).toBe('unsafe_target');
 
-    const [attempt] = await webhookAttempts.find(tenant.tenant, { deliveryId: delivery.deliveryId });
+    const [attempt] = await webhookAttempts.find(tenant.tenant, {
+      deliveryId: delivery.deliveryId,
+    });
     expect(attempt.failureKind).toBe('unsafe_target');
   });
 });
@@ -1269,7 +1272,9 @@ describe('the fan-out on an event it cannot translate', () => {
   it('throws when the report the row names is gone', async () => {
     await anEndpoint();
     await expect(
-      fanOutWebhookEvent(syntheticEvent({ payload: { reportId: 'rpt_00000000000000000000000000000000' } })),
+      fanOutWebhookEvent(
+        syntheticEvent({ payload: { reportId: 'rpt_00000000000000000000000000000000' } }),
+      ),
     ).rejects.toThrow(/could not be read/);
   });
 });

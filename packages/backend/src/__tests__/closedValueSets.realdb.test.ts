@@ -1,6 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createPostgresTestDatabase, type PostgresTestDatabase } from './support/postgresTestDatabase';
+import {
+  createPostgresTestDatabase,
+  type PostgresTestDatabase,
+} from './support/postgresTestDatabase';
 import { OUTBOX_STATUSES } from '../db/postgres/schema/infrastructure';
 
 /**
@@ -57,7 +60,6 @@ afterAll(async () => {
 
 /** `Model.path` — the key every bucket below is written in. */
 type EnumKey = string;
-
 
 /**
  * Enums whose Postgres column carries a CHECK, and the constraint that must
@@ -325,8 +327,7 @@ const NOT_APPLICABLE: Readonly<Record<EnumKey, string>> = {
   'SortitionDraw.selected.filledAs':
     'A path INSIDE `selected jsonb`, same as above — the draw persists its seat ' +
     'list as one document rather than as rows.',
-  'SortitionDraw.selected.slotType':
-    'A path INSIDE `selected jsonb`, same as above.',
+  'SortitionDraw.selected.slotType': 'A path INSIDE `selected jsonb`, same as above.',
 };
 
 /**
@@ -473,13 +474,12 @@ describe('the PostgreSQL port ledger can see what it claims to see', () => {
 describe('every closed value set is accounted for', () => {
   it('files no enum in two buckets at once', () => {
     const gaps = new Set(KNOWN_GAPS);
-    const overlapping = PORTED_VALUE_SET_KEYS
-      .filter(
-        (key) =>
-          [MAPPED[key] !== undefined, NOT_APPLICABLE[key] !== undefined, gaps.has(key)].filter(
-            Boolean,
-          ).length > 1,
-      );
+    const overlapping = PORTED_VALUE_SET_KEYS.filter(
+      (key) =>
+        [MAPPED[key] !== undefined, NOT_APPLICABLE[key] !== undefined, gaps.has(key)].filter(
+          Boolean,
+        ).length > 1,
+    );
 
     expect(
       overlapping,
@@ -576,9 +576,7 @@ describe('every mapped value set is enforced by the database', () => {
     const missing = Object.entries(MAPPED)
       .filter(
         ([, target]) =>
-          !rows.some(
-            (row) => row.table_name === target.table && row.column_name === target.column,
-          ),
+          !rows.some((row) => row.table_name === target.table && row.column_name === target.column),
       )
       .map(([key, target]) => `${key} -> ${target.table}.${target.column}`);
 

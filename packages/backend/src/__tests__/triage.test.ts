@@ -68,9 +68,7 @@ describe('order of review', () => {
 
   it('raises a case that has been waiting, so a quiet one is not starved forever', () => {
     const fresh = triageCase(input());
-    const old = triageCase(
-      input({ firstReportedAt: new Date('2026-07-25T12:00:00.000Z'), now }),
-    );
+    const old = triageCase(input({ firstReportedAt: new Date('2026-07-25T12:00:00.000Z'), now }));
 
     expect(old.components.staleCaseBoost).toBeGreaterThan(fresh.components.staleCaseBoost);
   });
@@ -177,9 +175,9 @@ describe('sensitive routes', () => {
   });
 
   it('marks personal data for redaction before anyone reviews it', () => {
-    expect(triageCase(input({ allegationCodes: ['privacy.personal_information'] })).requiresRedaction).toBe(
-      true,
-    );
+    expect(
+      triageCase(input({ allegationCodes: ['privacy.personal_information'] })).requiresRedaction,
+    ).toBe(true);
     expect(triageCase(input({ allegationCodes: ['harassment.doxxing'] })).requiresRedaction).toBe(
       true,
     );

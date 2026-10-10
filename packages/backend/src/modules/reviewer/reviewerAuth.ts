@@ -69,9 +69,7 @@ export function requireReviewerSession(): RequestHandler[] {
 export function requestReviewer(request: Request): ReviewerProfileDocument {
   const profile = authenticatedReviewers.get(request);
   if (!profile) {
-    throw new Error(
-      'This route read a reviewer but is not mounted behind requireReviewerSession.',
-    );
+    throw new Error('This route read a reviewer but is not mounted behind requireReviewerSession.');
   }
   return profile;
 }

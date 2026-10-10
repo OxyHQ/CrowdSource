@@ -278,9 +278,7 @@ describe('a handler that fails', () => {
      * replay after the cause is fixed. Discarding it would turn a handler bug
      * into permanently lost moderation work.
      */
-    expect(
-      await postgresControl.collection('outbox_events').countDocuments({ eventId }),
-    ).toBe(1);
+    expect(await postgresControl.collection('outbox_events').countDocuments({ eventId })).toBe(1);
   });
 
   it('does not put a handler failure message or stack into storage or logs', async () => {

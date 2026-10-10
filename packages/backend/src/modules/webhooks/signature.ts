@@ -103,9 +103,7 @@ export function verifyWebhookSignature(input: WebhookVerificationInput): Webhook
    * clock the sender does not control or an attacker choosing a timestamp to
    * keep a captured signature valid for longer.
    */
-  const skewSeconds = Math.abs(
-    Math.floor(input.now.getTime() / 1_000) - Number(input.timestamp),
-  );
+  const skewSeconds = Math.abs(Math.floor(input.now.getTime() / 1_000) - Number(input.timestamp));
   if (skewSeconds > WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS) {
     return { ok: false, reason: 'timestamp_out_of_tolerance' };
   }

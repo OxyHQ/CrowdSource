@@ -115,16 +115,16 @@ describe('a report and its outbox event commit together', () => {
     const externalReportId = `atomic-fail-${Date.now()}`;
     vi.mocked(appendOutboxEvent).mockRejectedValueOnce(new Error('outbox write failed'));
 
-    await expect(
-      deliverReport(tenant.tenant, delivery(externalReportId)),
-    ).rejects.toThrow(/outbox write failed/);
+    await expect(deliverReport(tenant.tenant, delivery(externalReportId))).rejects.toThrow(
+      /outbox write failed/,
+    );
 
     // The report must not exist. If it did, an application would hold a 202 for
     // a report nothing will ever triage.
     expect(await reports.findOne(tenant.tenant, { externalReportId })).toBeNull();
-    expect(
-      await postgresControl.collection('reports').countDocuments({ externalReportId }),
-    ).toBe(0);
+    expect(await postgresControl.collection('reports').countDocuments({ externalReportId })).toBe(
+      0,
+    );
 
     /**
      * And no case either. The case is written before the report in the same
@@ -186,9 +186,9 @@ describe('a report and its outbox event commit together', () => {
      */
     vi.mocked(appendAuditEvent).mockRejectedValue(new Error('audit write failed'));
 
-    await expect(
-      deliverReport(tenant.tenant, delivery(externalReportId)),
-    ).rejects.toThrow(/audit write failed/);
+    await expect(deliverReport(tenant.tenant, delivery(externalReportId))).rejects.toThrow(
+      /audit write failed/,
+    );
 
     // The events WERE written; the transaction they were written in did not
     // commit, so nothing of them may survive.
@@ -205,9 +205,7 @@ describe('a report and its outbox event commit together', () => {
     const externalReportId = `atomic-retry-${Date.now()}`;
     vi.mocked(appendOutboxEvent).mockRejectedValueOnce(new Error('outbox write failed'));
 
-    await expect(
-      deliverReport(tenant.tenant, delivery(externalReportId)),
-    ).rejects.toThrow();
+    await expect(deliverReport(tenant.tenant, delivery(externalReportId))).rejects.toThrow();
 
     // §7.1: the application retries from its own outbox. A rolled-back attempt
     // that left its unique keys behind would make every retry a permanent 409.

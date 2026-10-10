@@ -21,10 +21,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabase } from '@oxy.so/db';
 import { postgresEnforcementStore } from '../postgres/store/enforcement.js';
 import type { ModerationPgHandle } from '../postgres/store/transaction.js';
-import type {
-  ModerationEnforcementInsert,
-  ModerationEnforcementStore,
-} from '../store/types.js';
+import type { ModerationEnforcementInsert, ModerationEnforcementStore } from '../store/types.js';
 import {
   createPostgresTestDatabase,
   type PostgresTestDatabase,
@@ -192,9 +189,10 @@ describe('recording an outcome', () => {
     expect(row?.previousState).toEqual({ status: 'draft', flagged: false });
 
     // And through the store's own read, which is what a reversal actually uses.
-    expect(
-      await enforcementStore().latestApplied({ ...SUBJECT, actions: ['restrict'] }),
-    ).toEqual({ action: 'restrict', previousState: { status: 'draft', flagged: false } });
+    expect(await enforcementStore().latestApplied({ ...SUBJECT, actions: ['restrict'] })).toEqual({
+      action: 'restrict',
+      previousState: { status: 'draft', flagged: false },
+    });
   });
 
   it('leaves previousState and appliedAt NULL for an action that was only recorded', async () => {
@@ -231,7 +229,11 @@ describe('recording an outcome', () => {
      */
     const key = { decisionId: 'dec_2', decisionRevision: 1, action: 'flag' };
     await enforcementStore().claim(
-      insertInput({ action: 'flag', decisionId: 'dec_2', now: new Date('2026-08-01T10:00:00.000Z') }),
+      insertInput({
+        action: 'flag',
+        decisionId: 'dec_2',
+        now: new Date('2026-08-01T10:00:00.000Z'),
+      }),
     );
     await enforcementStore().markApplied(key, {
       appliedAt: new Date('2026-08-01T10:00:01.000Z'),
@@ -272,9 +274,10 @@ describe('the reversal lookup', () => {
       { skippedReason: 'the widget was already restricted', now: newer },
     );
 
-    expect(
-      await enforcementStore().latestApplied({ ...SUBJECT, actions: ['restrict'] }),
-    ).toEqual({ action: 'restrict', previousState: { status: 'draft' } });
+    expect(await enforcementStore().latestApplied({ ...SUBJECT, actions: ['restrict'] })).toEqual({
+      action: 'restrict',
+      previousState: { status: 'draft' },
+    });
   });
 
   it('reads the most recent applied row across the whole declared set', async () => {
@@ -326,9 +329,7 @@ describe('the reversal lookup', () => {
         actions: ['restrict'],
       }),
     ).toBeNull();
-    expect(
-      await enforcementStore().latestApplied({ ...SUBJECT, actions: ['unflag'] }),
-    ).toBeNull();
+    expect(await enforcementStore().latestApplied({ ...SUBJECT, actions: ['unflag'] })).toBeNull();
   });
 
   it('is answered from an index with no blocking sort', async () => {
@@ -385,10 +386,9 @@ describe('the reversal lookup', () => {
       if (sent === undefined) throw new Error('the store sent no query to capture');
 
       await observed.client.unsafe('set enable_seqscan = off');
-      const plan = await observed.client.unsafe(
-        `explain (costs off) ${sent.query}`,
-        [...sent.parameters] as postgres.ParameterOrJSON<never>[],
-      );
+      const plan = await observed.client.unsafe(`explain (costs off) ${sent.query}`, [
+        ...sent.parameters,
+      ] as postgres.ParameterOrJSON<never>[]);
       const text = plan.map((row) => String(Object.values(row)[0])).join('\n');
 
       expect(text).toContain('Index Scan');

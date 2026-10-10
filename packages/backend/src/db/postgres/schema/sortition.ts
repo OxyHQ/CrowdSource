@@ -211,9 +211,18 @@ export const assignments = pgTable(
      * would be a NEW restriction smuggled in under a port rather than a preserved
      * one. The asymmetry is recorded so a later reader does not "fix" it.
      */
-    check('assignments_status_check', sql`${table.status} in (${sql.raw(inList(ASSIGNMENT_STATUSES))})`),
-    check('assignments_slot_type_check', sql`${table.slotType} in (${sql.raw(inList(SLOT_TYPES))})`),
-    check('assignments_filled_as_check', sql`${table.filledAs} in (${sql.raw(inList(SLOT_TYPES))})`),
+    check(
+      'assignments_status_check',
+      sql`${table.status} in (${sql.raw(inList(ASSIGNMENT_STATUSES))})`,
+    ),
+    check(
+      'assignments_slot_type_check',
+      sql`${table.slotType} in (${sql.raw(inList(SLOT_TYPES))})`,
+    ),
+    check(
+      'assignments_filled_as_check',
+      sql`${table.filledAs} in (${sql.raw(inList(SLOT_TYPES))})`,
+    ),
   ],
 );
 
@@ -282,7 +291,10 @@ export const sortitionDraws = pgTable(
     index('sortition_draws_status_drawn_at_idx').on(table.status, table.drawnAt),
 
     /** The three scalar value sets, restored from their tuples. */
-    check('sortition_draws_status_check', sql`${table.status} in (${sql.raw(inList(DRAW_STATUSES))})`),
+    check(
+      'sortition_draws_status_check',
+      sql`${table.status} in (${sql.raw(inList(DRAW_STATUSES))})`,
+    ),
     check('sortition_draws_kind_check', sql`${table.kind} in (${sql.raw(inList(DRAW_KINDS))})`),
     check('sortition_draws_pool_check', sql`${table.pool} in (${sql.raw(inList(REVIEW_POOLS))})`),
 

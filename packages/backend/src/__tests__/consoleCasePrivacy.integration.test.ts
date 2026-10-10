@@ -206,7 +206,11 @@ describe('the case detail a developer sees', () => {
     // Resource METADATA and the digest, with no payload. This is the axis the console
     // adds over the application API's case view.
     expect(detail.body.resources).toHaveLength(1);
-    expect(detail.body.resources[0]).toMatchObject({ id: 'res_post', type: 'text', role: 'subject' });
+    expect(detail.body.resources[0]).toMatchObject({
+      id: 'res_post',
+      type: 'text',
+      role: 'subject',
+    });
     expect(detail.body.resources[0].sha256).toMatch(/^sha256:/);
     expect(detail.body.resources[0].data).toBeUndefined();
 

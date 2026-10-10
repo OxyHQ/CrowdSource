@@ -34,19 +34,13 @@ import { config } from '../config';
 import { API_ERROR_STATUS } from '../http/apiError';
 import { APPEALABLE_OUTCOMES } from '../modules/appeals/appeal.service';
 import { AUDIT_ACTIONS, AUDIT_REASONS } from '../modules/audit/audit.collection';
-import {
-  MINIMUM_AGREEING_VOTES,
-  ROUND_AGREEING_VOTES,
-} from '../modules/consensus/consensus';
+import { MINIMUM_AGREEING_VOTES, ROUND_AGREEING_VOTES } from '../modules/consensus/consensus';
 import { CONSOLE_ROLES, STAFF_ROLES } from '../modules/console/console.collections';
 import { STAFF_AUDIT_ACTIONS } from '../modules/console/staffAudit.collection';
 import { OUTBOX_STATUSES } from '../db/postgres/schema/infrastructure';
 import { WEBHOOK_DEAD_LETTER_REASONS } from '../db/postgres/schema/webhooks';
 import { OUTBOX_EVENT_TYPES } from '../modules/outbox/outbox.collection';
-import {
-  OUTBOX_LEASE_MS,
-  OUTBOX_MAX_ATTEMPTS,
-} from '../modules/outbox/outbox.dispatcher';
+import { OUTBOX_LEASE_MS, OUTBOX_MAX_ATTEMPTS } from '../modules/outbox/outbox.dispatcher';
 import {
   BASELINE_POLICY_SET,
   BASELINE_POLICY_SET_ID,
@@ -68,9 +62,7 @@ import {
   WEBHOOK_CLIENT_ERROR_MAX_ATTEMPTS,
   WEBHOOK_MAX_ATTEMPTS,
 } from '../modules/webhooks/retrySchedule';
-import {
-  WEBHOOK_FAILURE_KINDS,
-} from '../modules/webhooks/webhook.collections';
+import { WEBHOOK_FAILURE_KINDS } from '../modules/webhooks/webhook.collections';
 
 /**
  * The published documentation, gated.
@@ -141,7 +133,10 @@ class ClaimReader {
   private readonly claims: ReadonlyMap<string, readonly string[]>;
   private readonly asked = new Set<string>();
 
-  constructor(readonly name: string, document: string) {
+  constructor(
+    readonly name: string,
+    document: string,
+  ) {
     this.claims = parseClaims(document);
   }
 
@@ -179,7 +174,12 @@ function sorted(values: Iterable<string>): string[] {
 
 // --- the route tables -------------------------------------------------------
 
-const CALLER_CLASSES = ['service-credential', 'reviewer-session', 'console-session', 'staff-session'] as const;
+const CALLER_CLASSES = [
+  'service-credential',
+  'reviewer-session',
+  'console-session',
+  'staff-session',
+] as const;
 type CallerClass = (typeof CALLER_CLASSES)[number];
 
 interface ServedRoute {
@@ -286,7 +286,10 @@ export function documentedRoutes(document: string): readonly DocumentedRoute[] {
   const rows: DocumentedRoute[] = [];
   for (const line of document.split('\n')) {
     if (!line.startsWith('|')) continue;
-    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    const cells = line
+      .split('|')
+      .slice(1, -1)
+      .map((cell) => cell.trim());
     if (cells.length < 2) continue;
 
     const method = cells[0].toUpperCase();
@@ -429,9 +432,7 @@ describe('the route tables describe the routes that are served', () => {
   it('mutation: a route that stopped being served, or changed guard, is caught', () => {
     const documented = documentedRoutes(applicationApi);
 
-    const withoutOne = served.filter(
-      (route) => route.signature !== documented[0].signature,
-    );
+    const withoutOne = served.filter((route) => route.signature !== documented[0].signature);
     expect(sorted(withoutOne.map((route) => route.signature))).not.toEqual(
       sorted(served.map((route) => route.signature)),
     );
@@ -460,10 +461,7 @@ describe('docs/integration.md', () => {
   const claims = new ClaimReader('integration.md', integration);
 
   it('names the environment variables the published packages actually read', () => {
-    const sdk = readFileSync(
-      path.resolve(__dirname, '../../../core/src/client.ts'),
-      'utf8',
-    );
+    const sdk = readFileSync(path.resolve(__dirname, '../../../core/src/client.ts'), 'utf8');
     const express = readFileSync(
       path.resolve(__dirname, '../../../core/src/express/middleware.ts'),
       'utf8',
@@ -471,9 +469,7 @@ describe('docs/integration.md', () => {
 
     expect(sdk).toContain(`SERVICE_KEY_ENV_VAR = '${claims.one('service-key-env-var')}'`);
     expect(sdk).toContain(`BASE_URL_ENV_VAR = '${claims.one('base-url-env-var')}'`);
-    expect(express).toContain(
-      `WEBHOOK_SECRET_ENV_VAR = '${claims.one('webhook-secret-env-var')}'`,
-    );
+    expect(express).toContain(`WEBHOOK_SECRET_ENV_VAR = '${claims.one('webhook-secret-env-var')}'`);
     expect(express).toContain(
       `WEBHOOK_PREVIOUS_SECRET_ENV_VAR = '${claims.one('webhook-previous-secret-env-var')}'`,
     );
@@ -511,9 +507,7 @@ describe('docs/integration.md', () => {
         issuing,
       );
     expect(issued, 'the credential-issuing response moved').not.toBeNull();
-    const fields = [...(issued?.[1] ?? '').matchAll(/^\s*(\w+)[:,]/gm)].map(
-      (match) => match[1],
-    );
+    const fields = [...(issued?.[1] ?? '').matchAll(/^\s*(\w+)[:,]/gm)].map((match) => match[1]);
     expect(fields.length, 'no fields parsed from the issuing response').toBeGreaterThan(0);
     expect(sorted(fields)).toEqual(sorted(claims.list('console-issued-credential-fields')));
     expect(fields, 'the console now returns an applicationId — update the guide').not.toContain(
@@ -731,9 +725,7 @@ describe('docs/runbooks/webhook-dead-letters.md', () => {
   const claims = new ClaimReader('runbooks/webhook-dead-letters.md', deadLetters);
 
   it('names every reason an operator will read off a row', () => {
-    expect(sorted(claims.list('dead-letter-reasons'))).toEqual(
-      sorted(WEBHOOK_DEAD_LETTER_REASONS),
-    );
+    expect(sorted(claims.list('dead-letter-reasons'))).toEqual(sorted(WEBHOOK_DEAD_LETTER_REASONS));
     expect(sorted(claims.list('failure-kinds'))).toEqual(sorted(WEBHOOK_FAILURE_KINDS));
     expect(claims.number('delivery-lease-ms')).toBe(WEBHOOK_DELIVERY_LEASE_MS);
   });
@@ -748,9 +740,9 @@ describe('docs/runbooks/webhook-dead-letters.md', () => {
         source,
       );
     expect(guard, 'the dead-letter route moved').not.toBeNull();
-    expect(
-      [...(guard?.[1] ?? '').matchAll(/'([^']+)'/g)].map((match) => match[1]),
-    ).toEqual([claims.one('staff-dead-letter-role')]);
+    expect([...(guard?.[1] ?? '').matchAll(/'([^']+)'/g)].map((match) => match[1])).toEqual([
+      claims.one('staff-dead-letter-role'),
+    ]);
   });
 
   it('leaves no claim unchecked', () => claims.assertEveryClaimWasChecked());
@@ -781,7 +773,10 @@ describe('docs/runbooks/outbox-backlog.md', () => {
       readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8'),
     );
     const dependencies = Object.keys(manifest.dependencies ?? {});
-    expect(dependencies.length, 'the manifest has no dependencies — the read is wrong').toBeGreaterThan(0);
+    expect(
+      dependencies.length,
+      'the manifest has no dependencies — the read is wrong',
+    ).toBeGreaterThan(0);
     for (const queue of ['bullmq', 'ioredis', 'redis', 'amqplib', '@aws-sdk/client-sqs']) {
       expect(dependencies, `a queue arrived: ${queue}`).not.toContain(queue);
     }
@@ -868,8 +863,11 @@ describe('docs/runbooks/audit-trails.md', () => {
       '../modules/console/staffAudit.collection.ts',
     ]) {
       const source = readFileSync(path.resolve(__dirname, file), 'utf8');
-      const writes = [...source.matchAll(/\.(insertOne|updateOne|updateMany|deleteOne|deleteMany|findOneAndUpdate)\(/g)]
-        .map((match) => match[1]);
+      const writes = [
+        ...source.matchAll(
+          /\.(insertOne|updateOne|updateMany|deleteOne|deleteMany|findOneAndUpdate)\(/g,
+        ),
+      ].map((match) => match[1]);
 
       expect(writes.length, `${file}: no writes found — the scan is wrong`).toBeGreaterThan(0);
       expect(sorted(new Set(writes)), file).toEqual(['insertOne']);
@@ -901,10 +899,7 @@ describe('the claims parser itself', () => {
   });
 
   it('mutation: an unread claim fails the vacuity floor', () => {
-    const reader = new ClaimReader(
-      'synthetic',
-      '```docs-claims\nchecked: a\nforgotten: b\n```',
-    );
+    const reader = new ClaimReader('synthetic', '```docs-claims\nchecked: a\nforgotten: b\n```');
     reader.list('checked');
     expect(() => reader.assertEveryClaimWasChecked()).toThrow();
   });

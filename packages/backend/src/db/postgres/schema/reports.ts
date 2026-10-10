@@ -53,18 +53,12 @@ export const reports = pgTable(
      * off `error.keyPattern`; on Postgres the equivalent is the constraint name in
      * `23505`, so these names are part of the contract rather than decoration.
      */
-    uniqueIndex('reports_application_external_key').on(
-      table.applicationId,
-      table.externalReportId,
-    ),
+    uniqueIndex('reports_application_external_key').on(table.applicationId, table.externalReportId),
     uniqueIndex('reports_application_idempotency_key').on(
       table.applicationId,
       table.idempotencyKey,
     ),
-    check(
-      'reports_status_check',
-      sql`${table.status} in (${sql.raw(inList(REPORT_STATUSES))})`,
-    ),
+    check('reports_status_check', sql`${table.status} in (${sql.raw(inList(REPORT_STATUSES))})`),
   ],
 );
 

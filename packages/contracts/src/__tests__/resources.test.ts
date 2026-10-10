@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  RelationSchema,
-  ResourceSchema,
-  ResourceSchemaRegistrationSchema,
-} from '../resources.js';
+import { RelationSchema, ResourceSchema, ResourceSchemaRegistrationSchema } from '../resources.js';
 import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
 import { DIGEST, imageResourceExample, textResourceExample } from './support/examples.js';
 
@@ -47,8 +43,9 @@ describe('text resources', () => {
   });
 
   it('rejects an unknown resource type outright', () => {
-    expect(rejectionIssues(ResourceSchema, { ...textResourceExample(), type: 'embed' }).length)
-      .toBeGreaterThan(0);
+    expect(
+      rejectionIssues(ResourceSchema, { ...textResourceExample(), type: 'embed' }).length,
+    ).toBeGreaterThan(0);
   });
 });
 
@@ -243,9 +240,9 @@ describe('location resources', () => {
   });
 
   it('rejects coordinates precise enough to locate a person (§5.3, §13.5)', () => {
-    expect(rejectionPaths(ResourceSchema, location({ latitude: 41.38765, longitude: 2.16 }))).toEqual(
-      ['data.latitude'],
-    );
+    expect(
+      rejectionPaths(ResourceSchema, location({ latitude: 41.38765, longitude: 2.16 })),
+    ).toEqual(['data.latitude']);
   });
 
   it('rejects half a coordinate pair, and a location that says nothing at all', () => {
@@ -281,8 +278,9 @@ describe('listing resources', () => {
   });
 
   it('rejects a currency that is not an ISO 4217 alphabetic code', () => {
-    expect(rejectionPaths(ResourceSchema, listing({ title: 'Bike', price: 1, currency: 'eur' })))
-      .toEqual(['data.currency']);
+    expect(
+      rejectionPaths(ResourceSchema, listing({ title: 'Bike', price: 1, currency: 'eur' })),
+    ).toEqual(['data.currency']);
   });
 });
 
@@ -323,12 +321,15 @@ describe('custom resources (§5.7)', () => {
   });
 
   it('accepts a validated data payload', () => {
-    expect(accepted(ResourceSchema, custom({ offerCode: 'X1', quantity: 4 })).id).toBe('res_custom');
+    expect(accepted(ResourceSchema, custom({ offerCode: 'X1', quantity: 4 })).id).toBe(
+      'res_custom',
+    );
   });
 
   it('rejects a payload that carries a reference mechanism', () => {
-    expect(rejectionIssues(ResourceSchema, custom({ $ref: 'https://evil.test/x' })).length)
-      .toBeGreaterThan(0);
+    expect(
+      rejectionIssues(ResourceSchema, custom({ $ref: 'https://evil.test/x' })).length,
+    ).toBeGreaterThan(0);
   });
 
   it('rejects a payload that is an array rather than an object', () => {

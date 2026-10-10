@@ -77,17 +77,23 @@ export const PANEL_CHROME_TOP_INSET = PANEL_HEADER_HEIGHT + PANEL_TABBAR_HEIGHT;
  */
 const PanelChromeTopInsetContext = createContext<number>(0);
 
-export function PanelChromeTopInsetProvider({ value, children }: { value: number; children: React.ReactNode }) {
-    return (
-        <PanelChromeTopInsetContext.Provider value={value}>
-            {children}
-        </PanelChromeTopInsetContext.Provider>
-    );
+export function PanelChromeTopInsetProvider({
+  value,
+  children,
+}: {
+  value: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <PanelChromeTopInsetContext.Provider value={value}>
+      {children}
+    </PanelChromeTopInsetContext.Provider>
+  );
 }
 
 /** The fixed top inset a feed must reserve for the overlay chrome above it (native). 0 when not under an auto-hiding chrome. */
 export function usePanelChromeTopInset(): number {
-    return useContext(PanelChromeTopInsetContext);
+  return useContext(PanelChromeTopInsetContext);
 }
 
 /** z-index the sticky chrome paints at — above feed (0) and bleed mask (30), below the border frame (120). */
@@ -111,8 +117,8 @@ const CHROME_Z_INDEX = 101;
  * band. Empty on native, where those layers are absolute overlays.
  */
 export function usePanelStickyTopInset(): ViewStyle {
-    const framed = useIsScreenNotMobile();
-    return IS_WEB ? { top: framed ? PANEL_TOP_INSET : 0 } : {};
+  const framed = useIsScreenNotMobile();
+  return IS_WEB ? { top: framed ? PANEL_TOP_INSET : 0 } : {};
 }
 
 /**
@@ -130,44 +136,44 @@ export function usePanelStickyTopInset(): ViewStyle {
  * tab bar pins via `stickyHeaderIndices`.
  */
 export function usePanelStickyTabsTopInset(): ViewStyle {
-    const framed = useIsScreenNotMobile();
-    return IS_WEB
-        ? { top: framed ? PANEL_TOP_INSET + PANEL_HEADER_HEIGHT : PANEL_HEADER_HEIGHT }
-        : {};
+  const framed = useIsScreenNotMobile();
+  return IS_WEB
+    ? { top: framed ? PANEL_TOP_INSET + PANEL_HEADER_HEIGHT : PANEL_HEADER_HEIGHT }
+    : {};
 }
 
 type ChromeLevel = 0 | 1;
 
 interface PanelStickyHeaderProps {
-    children: React.ReactNode;
-    /**
-     * 0 = top header (pins at `PANEL_TOP_INSET`). 1 = a row stacked directly
-     * below a `level={0}` header (pins at `PANEL_TOP_INSET + PANEL_HEADER_HEIGHT`).
-     */
-    level?: ChromeLevel;
-    /** z-index override (web). Defaults to the chrome layer (101). */
-    zIndex?: number;
-    /** Paint the opaque panel surface (`bg-card`) so the feed never shows through. Default true. */
-    opaque?: boolean;
-    /** Mask the panel's top rounded corners (`rounded-t-[28px]`). Default true. */
-    rounded?: boolean;
-    /**
-     * Make the sticky wrapper itself ignore pointer events (web). Used by the
-     * profile chrome, where a full-width 0-flow-height anchor hosts an absolute,
-     * pointer-events-auto child so it never blocks the feed underneath.
-     */
-    pointerEventsNone?: boolean;
-    /**
-     * Reanimated OR plain style. Typed as `StyleProp<AnimatedStyle<ViewStyle>>`
-     * — the exact `style` type of the underlying `Animated.View` — so callers
-     * can hand it either a plain `ViewStyle` (`panelStickyTopInset`) or the
-     * `AnimatedStyleHandle` returned by `useAnimatedStyle` (the home/explore
-     * auto-hide translate) without a cast. `ViewStyle` is assignable to
-     * `AnimatedStyle<ViewStyle>`, so plain-style callers keep working.
-     */
-    style?: StyleProp<AnimatedStyle<ViewStyle>>;
-    /** Extra classes appended after the centralized chrome classes. */
-    className?: string;
+  children: React.ReactNode;
+  /**
+   * 0 = top header (pins at `PANEL_TOP_INSET`). 1 = a row stacked directly
+   * below a `level={0}` header (pins at `PANEL_TOP_INSET + PANEL_HEADER_HEIGHT`).
+   */
+  level?: ChromeLevel;
+  /** z-index override (web). Defaults to the chrome layer (101). */
+  zIndex?: number;
+  /** Paint the opaque panel surface (`bg-card`) so the feed never shows through. Default true. */
+  opaque?: boolean;
+  /** Mask the panel's top rounded corners (`rounded-t-[28px]`). Default true. */
+  rounded?: boolean;
+  /**
+   * Make the sticky wrapper itself ignore pointer events (web). Used by the
+   * profile chrome, where a full-width 0-flow-height anchor hosts an absolute,
+   * pointer-events-auto child so it never blocks the feed underneath.
+   */
+  pointerEventsNone?: boolean;
+  /**
+   * Reanimated OR plain style. Typed as `StyleProp<AnimatedStyle<ViewStyle>>`
+   * — the exact `style` type of the underlying `Animated.View` — so callers
+   * can hand it either a plain `ViewStyle` (`panelStickyTopInset`) or the
+   * `AnimatedStyleHandle` returned by `useAnimatedStyle` (the home/explore
+   * auto-hide translate) without a cast. `ViewStyle` is assignable to
+   * `AnimatedStyle<ViewStyle>`, so plain-style callers keep working.
+   */
+  style?: StyleProp<AnimatedStyle<ViewStyle>>;
+  /** Extra classes appended after the centralized chrome classes. */
+  className?: string;
 }
 
 /**
@@ -183,8 +189,8 @@ interface PanelStickyHeaderProps {
  * collapses to 0 in lockstep with the frame at full-bleed.
  */
 const STICKY_TOP_CLASS: Record<'framed' | 'bleed', Record<ChromeLevel, string>> = {
-    framed: { 0: 'web:top-2', 1: 'web:top-[56px]' },
-    bleed: { 0: 'web:top-0', 1: 'web:top-[48px]' },
+  framed: { 0: 'web:top-2', 1: 'web:top-[56px]' },
+  bleed: { 0: 'web:top-0', 1: 'web:top-[48px]' },
 };
 
 /**
@@ -192,62 +198,62 @@ const STICKY_TOP_CLASS: Record<'framed' | 'bleed', Record<ChromeLevel, string>> 
  * positioned overlay anchor on native.
  */
 export function PanelStickyHeader({
-    children,
-    level = 0,
-    zIndex = CHROME_Z_INDEX,
-    opaque = true,
-    rounded = true,
-    pointerEventsNone = false,
-    style,
-    className,
+  children,
+  level = 0,
+  zIndex = CHROME_Z_INDEX,
+  opaque = true,
+  rounded = true,
+  pointerEventsNone = false,
+  style,
+  className,
 }: PanelStickyHeaderProps) {
-    // The rounded shell frame (gutter inset + rounded corners) is shown only at
-    // the same >=500px breakpoint as the left sidebar. Below it the shell is
-    // full-bleed, so the chrome pins flush (`web:top-0`) with no rounded top
-    // corners instead of leaving a stray gutter band — the same `framed` signal
-    // drives the layout frame in `app/(app)/_layout.tsx`.
-    const framed = useIsScreenNotMobile();
-    return (
-        <Animated.View
-            pointerEvents={pointerEventsNone ? 'none' : 'auto'}
-            className={cn(
-                'left-0 right-0',
-                IS_WEB && 'web:sticky',
-                IS_WEB && STICKY_TOP_CLASS[framed ? 'framed' : 'bleed'][level],
-                IS_WEB && opaque && 'web:bg-card',
-                IS_WEB && rounded && framed && 'web:rounded-t-[28px]',
-                IS_WEB && pointerEventsNone && 'web:pointer-events-none',
-                className,
-            )}
-            style={[
-                Platform.select({
-                    web: { zIndex },
-                    default: {
-                        // Native: the inner ScrollView owns the scroll, so the
-                        // header is an absolute overlay at the top; a stacked
-                        // row (level 1) sits in normal flow under it.
-                        position: level === 0 ? ('absolute' as const) : ('relative' as const),
-                        top: 0,
-                        backgroundColor: 'transparent',
-                        zIndex,
-                    },
-                }),
-                style,
-            ]}
-        >
-            {children}
-        </Animated.View>
-    );
+  // The rounded shell frame (gutter inset + rounded corners) is shown only at
+  // the same >=500px breakpoint as the left sidebar. Below it the shell is
+  // full-bleed, so the chrome pins flush (`web:top-0`) with no rounded top
+  // corners instead of leaving a stray gutter band — the same `framed` signal
+  // drives the layout frame in `app/(app)/_layout.tsx`.
+  const framed = useIsScreenNotMobile();
+  return (
+    <Animated.View
+      pointerEvents={pointerEventsNone ? 'none' : 'auto'}
+      className={cn(
+        'left-0 right-0',
+        IS_WEB && 'web:sticky',
+        IS_WEB && STICKY_TOP_CLASS[framed ? 'framed' : 'bleed'][level],
+        IS_WEB && opaque && 'web:bg-card',
+        IS_WEB && rounded && framed && 'web:rounded-t-[28px]',
+        IS_WEB && pointerEventsNone && 'web:pointer-events-none',
+        className,
+      )}
+      style={[
+        Platform.select({
+          web: { zIndex },
+          default: {
+            // Native: the inner ScrollView owns the scroll, so the
+            // header is an absolute overlay at the top; a stacked
+            // row (level 1) sits in normal flow under it.
+            position: level === 0 ? ('absolute' as const) : ('relative' as const),
+            top: 0,
+            backgroundColor: 'transparent',
+            zIndex,
+          },
+        }),
+        style,
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
 }
 
 interface PanelStickyFooterProps {
-    children: React.ReactNode;
-    /** z-index override (web). Defaults above the bleed mask so the footer's own surface masks the feed's bottom-edge bleed. */
-    zIndex?: number;
-    /** Extra classes appended after the centralized chrome classes. */
-    className?: string;
-    /** Reanimated OR plain style — same `Animated.View` style type as the header. */
-    style?: StyleProp<AnimatedStyle<ViewStyle>>;
+  children: React.ReactNode;
+  /** z-index override (web). Defaults above the bleed mask so the footer's own surface masks the feed's bottom-edge bleed. */
+  zIndex?: number;
+  /** Extra classes appended after the centralized chrome classes. */
+  className?: string;
+  /** Reanimated OR plain style — same `Animated.View` style type as the header. */
+  style?: StyleProp<AnimatedStyle<ViewStyle>>;
 }
 
 /** z-index the sticky footer paints at on WEB — above the bleed mask (30) so its opaque surface + rounded bottom corners mask the feed's bottom-edge bleed (matches the z-ladder in `app/(app)/_layout.tsx`). */
@@ -273,33 +279,34 @@ const FOOTER_NATIVE_Z_INDEX = 999;
  * `ViewStyle.position` has no `'sticky'`, so it is never written as an inline
  * style here). NATIVE: a bottom-anchored absolute overlay.
  */
-export function PanelStickyFooter({
-    children,
-    zIndex,
-    className,
-    style,
-}: PanelStickyFooterProps) {
-    // Same `framed` signal as PanelStickyHeader / the layout frame: the bottom
-    // gutter inset + rounded bottom corners exist only while the rounded shell
-    // frame is shown (>=500px). Below it the shell is full-bleed → pin flush.
-    const framed = useIsScreenNotMobile();
-    return (
-        <Animated.View
-            className={cn(
-                'w-full',
-                IS_WEB && 'web:sticky web:shrink-0',
-                IS_WEB && (framed ? 'web:bottom-2 web:rounded-b-[28px]' : 'web:bottom-0'),
-                className,
-            )}
-            style={[
-                Platform.select({
-                    web: { zIndex: zIndex ?? FOOTER_Z_INDEX },
-                    default: { position: 'absolute' as const, bottom: 0, left: 0, right: 0, zIndex: zIndex ?? FOOTER_NATIVE_Z_INDEX },
-                }),
-                style,
-            ]}
-        >
-            {children}
-        </Animated.View>
-    );
+export function PanelStickyFooter({ children, zIndex, className, style }: PanelStickyFooterProps) {
+  // Same `framed` signal as PanelStickyHeader / the layout frame: the bottom
+  // gutter inset + rounded bottom corners exist only while the rounded shell
+  // frame is shown (>=500px). Below it the shell is full-bleed → pin flush.
+  const framed = useIsScreenNotMobile();
+  return (
+    <Animated.View
+      className={cn(
+        'w-full',
+        IS_WEB && 'web:sticky web:shrink-0',
+        IS_WEB && (framed ? 'web:bottom-2 web:rounded-b-[28px]' : 'web:bottom-0'),
+        className,
+      )}
+      style={[
+        Platform.select({
+          web: { zIndex: zIndex ?? FOOTER_Z_INDEX },
+          default: {
+            position: 'absolute' as const,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: zIndex ?? FOOTER_NATIVE_Z_INDEX,
+          },
+        }),
+        style,
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
 }

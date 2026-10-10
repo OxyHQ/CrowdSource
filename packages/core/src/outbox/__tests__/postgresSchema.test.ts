@@ -156,13 +156,12 @@ const EXPECTED_COLUMNS: Readonly<Record<string, readonly string[]>> = {
   ],
 };
 
-const PACKAGE_TABLES = [schema.moderationOutbox, schema.moderationEvents, schema.moderationEnforcements];
-const ALL_TABLES = [
-  ...PACKAGE_TABLES,
-  schema.reports,
-  schema.reviewOnlyReports,
-  schema.widgets,
+const PACKAGE_TABLES = [
+  schema.moderationOutbox,
+  schema.moderationEvents,
+  schema.moderationEnforcements,
 ];
+const ALL_TABLES = [...PACKAGE_TABLES, schema.reports, schema.reviewOnlyReports, schema.widgets];
 
 let testDatabase: PostgresTestDatabase | null = null;
 

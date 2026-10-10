@@ -72,7 +72,10 @@ export function parseArguments(argv: readonly string[]): Arguments {
 async function organizationFor(args: Arguments): Promise<string> {
   const existing = await organizations.findOne({ slug: args.organizationSlug });
   if (existing) return existing.organizationId;
-  const created = await createOrganization({ name: args.organizationName, slug: args.organizationSlug });
+  const created = await createOrganization({
+    name: args.organizationName,
+    slug: args.organizationSlug,
+  });
   return created.organizationId;
 }
 
@@ -85,9 +88,13 @@ export async function bootstrapFirstParty(args: Arguments): Promise<string> {
 
   const organizationId = await organizationFor(args);
   const existingByName = await applications.findOne({ organizationId, name: args.name });
-  const application = existingByName ?? (await createApplication({ organizationId, name: args.name }));
+  const application =
+    existingByName ?? (await createApplication({ organizationId, name: args.name }));
 
-  if (existingByName?.oxyApplicationId && existingByName.oxyApplicationId !== args.oxyApplicationId) {
+  if (
+    existingByName?.oxyApplicationId &&
+    existingByName.oxyApplicationId !== args.oxyApplicationId
+  ) {
     throw new Error(
       `Application '${args.name}' is already bound to a different Oxy application. ` +
         'Repointing it would move its data out from under the service that owns it.',

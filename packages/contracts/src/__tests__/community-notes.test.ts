@@ -48,7 +48,12 @@ const note = (overrides: Record<string, unknown> = {}) => ({
 
 describe('the note vocabulary', () => {
   it('has no status that is a verdict on the writer', () => {
-    expect([...COMMUNITY_NOTE_STATUSES]).toEqual(['needs_ratings', 'shown', 'not_shown', 'withdrawn']);
+    expect([...COMMUNITY_NOTE_STATUSES]).toEqual([
+      'needs_ratings',
+      'shown',
+      'not_shown',
+      'withdrawn',
+    ]);
   });
 });
 
@@ -64,35 +69,55 @@ describe('writing a note', () => {
   });
 
   it('refuses an empty note, an overlong one, too many sources and a non-http source', () => {
-    expect(rejectionPaths(CommunityNoteSubmissionSchema, submission({ text: '   ' }))).toEqual(['text']);
+    expect(rejectionPaths(CommunityNoteSubmissionSchema, submission({ text: '   ' }))).toEqual([
+      'text',
+    ]);
     expect(
-      rejectionPaths(CommunityNoteSubmissionSchema, submission({ text: 'x'.repeat(COMMUNITY_NOTE_TEXT_MAX_LENGTH + 1) })),
+      rejectionPaths(
+        CommunityNoteSubmissionSchema,
+        submission({ text: 'x'.repeat(COMMUNITY_NOTE_TEXT_MAX_LENGTH + 1) }),
+      ),
     ).toEqual(['text']);
     expect(
       rejectionPaths(
         CommunityNoteSubmissionSchema,
-        submission({ sourceUrls: Array.from({ length: COMMUNITY_NOTE_SOURCES_MAX + 1 }, (_, i) => `https://e.com/${i}`) }),
+        submission({
+          sourceUrls: Array.from(
+            { length: COMMUNITY_NOTE_SOURCES_MAX + 1 },
+            (_, i) => `https://e.com/${i}`,
+          ),
+        }),
       ),
     ).toEqual(['sourceUrls']);
-    expect(rejectionPaths(CommunityNoteSubmissionSchema, submission({ sourceUrls: ['javascript:alert(1)'] }))).toEqual([
-      'sourceUrls.0',
-    ]);
+    expect(
+      rejectionPaths(
+        CommunityNoteSubmissionSchema,
+        submission({ sourceUrls: ['javascript:alert(1)'] }),
+      ),
+    ).toEqual(['sourceUrls.0']);
   });
 
   it('carries no application id and nothing it did not declare', () => {
-    expect(rejectionPaths(CommunityNoteSubmissionSchema, submission({ applicationId: 'app_other' }))).toEqual(['']);
+    expect(
+      rejectionPaths(CommunityNoteSubmissionSchema, submission({ applicationId: 'app_other' })),
+    ).toEqual(['']);
   });
 
   it('requires both the writer and the subject author, so the rater exclusion is enforceable', () => {
     const { subjectAuthorPrincipalId: _a, ...withoutSubjectAuthor } = submission();
-    expect(rejectionPaths(CommunityNoteSubmissionSchema, withoutSubjectAuthor)).toEqual(['subjectAuthorPrincipalId']);
+    expect(rejectionPaths(CommunityNoteSubmissionSchema, withoutSubjectAuthor)).toEqual([
+      'subjectAuthorPrincipalId',
+    ]);
     expect(rejectionPaths(CommunityNoteWithdrawalSchema, {})).toEqual(['authorPrincipalId']);
   });
 });
 
 describe('asking for notes to rate', () => {
   it('defaults the batch to the maximum and bounds it', () => {
-    const parsed = accepted(CommunityNoteAssignmentRequestSchema, { raterPrincipalId: 'u1', languages: ['es'] });
+    const parsed = accepted(CommunityNoteAssignmentRequestSchema, {
+      raterPrincipalId: 'u1',
+      languages: ['es'],
+    });
     expect(parsed.limit).toBe(COMMUNITY_NOTE_ASSIGNMENT_BATCH_MAX);
     expect(
       rejectionPaths(CommunityNoteAssignmentRequestSchema, {
@@ -101,25 +126,44 @@ describe('asking for notes to rate', () => {
         limit: COMMUNITY_NOTE_ASSIGNMENT_BATCH_MAX + 1,
       }),
     ).toEqual(['limit']);
-    expect(rejectionPaths(CommunityNoteAssignmentRequestSchema, { raterPrincipalId: 'u1', languages: [] })).toEqual([
-      'languages',
-    ]);
+    expect(
+      rejectionPaths(CommunityNoteAssignmentRequestSchema, {
+        raterPrincipalId: 'u1',
+        languages: [],
+      }),
+    ).toEqual(['languages']);
   });
 });
 
 describe('rating a note', () => {
   it('accepts reasons that explain the rating given', () => {
-    accepted(CommunityNoteRatingSubmissionSchema, { raterPrincipalId: 'u1', rating: 'helpful', reasons: ['reliable_source'] });
-    accepted(CommunityNoteRatingSubmissionSchema, { raterPrincipalId: 'u1', rating: 'not_helpful', reasons: ['incorrect'] });
+    accepted(CommunityNoteRatingSubmissionSchema, {
+      raterPrincipalId: 'u1',
+      rating: 'helpful',
+      reasons: ['reliable_source'],
+    });
+    accepted(CommunityNoteRatingSubmissionSchema, {
+      raterPrincipalId: 'u1',
+      rating: 'not_helpful',
+      reasons: ['incorrect'],
+    });
   });
 
   it('refuses a reason from the other list, and a rating with no reason', () => {
     expect(
-      rejectionPaths(CommunityNoteRatingSubmissionSchema, { raterPrincipalId: 'u1', rating: 'not_helpful', reasons: ['reliable_source'] }),
+      rejectionPaths(CommunityNoteRatingSubmissionSchema, {
+        raterPrincipalId: 'u1',
+        rating: 'not_helpful',
+        reasons: ['reliable_source'],
+      }),
     ).toEqual(['reasons.0']);
-    expect(rejectionPaths(CommunityNoteRatingSubmissionSchema, { raterPrincipalId: 'u1', rating: 'helpful', reasons: [] })).toEqual([
-      'reasons',
-    ]);
+    expect(
+      rejectionPaths(CommunityNoteRatingSubmissionSchema, {
+        raterPrincipalId: 'u1',
+        rating: 'helpful',
+        reasons: [],
+      }),
+    ).toEqual(['reasons']);
   });
 });
 

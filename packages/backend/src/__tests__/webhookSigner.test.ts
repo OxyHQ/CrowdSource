@@ -126,8 +126,7 @@ describe('a body that was parsed and re-serialised', () => {
 });
 
 describe('the five-minute window (§10.8)', () => {
-  const at = (offsetSeconds: number): Date =>
-    new Date(NOW.getTime() + offsetSeconds * 1_000);
+  const at = (offsetSeconds: number): Date => new Date(NOW.getTime() + offsetSeconds * 1_000);
 
   it('accepts a timestamp at the edge of tolerance', () => {
     for (const offset of [
@@ -329,9 +328,9 @@ describe('how a signature is compared', () => {
   });
 
   it('does not flag the comparisons that are not about signature bytes', () => {
-    expect(
-      timingUnsafeComparisons("    if (result.reason !== 'signature_mismatch') {"),
-    ).toEqual([]);
+    expect(timingUnsafeComparisons("    if (result.reason !== 'signature_mismatch') {")).toEqual(
+      [],
+    );
     expect(timingUnsafeComparisons(' * a signature === expected comparison leaks bytes')).toEqual(
       [],
     );

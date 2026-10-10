@@ -196,13 +196,14 @@ async function mutateProfile(
     personhoodConfidence: personhoodConfidence(signalsOf(merged)),
   };
   const db = getPostgresDatabase();
-  const updated = principalLinks === undefined
-    ? await updateReviewerProfile(db, reviewerId, patch)
-    : await db.transaction(async (tx) => {
-        const row = await updateReviewerProfile(tx, reviewerId, patch);
-        if (row) await replaceReviewerPrincipalLinks(tx, reviewerId, principalLinks);
-        return row;
-      });
+  const updated =
+    principalLinks === undefined
+      ? await updateReviewerProfile(db, reviewerId, patch)
+      : await db.transaction(async (tx) => {
+          const row = await updateReviewerProfile(tx, reviewerId, patch);
+          if (row) await replaceReviewerPrincipalLinks(tx, reviewerId, principalLinks);
+          return row;
+        });
 
   if (!updated) {
     throw new Error(`Reviewer profile '${reviewerId}' vanished during a write.`);
@@ -248,41 +249,38 @@ export async function ensureReviewerProfile(
    * would fail on the unique index — an error the reviewer would see as their
    * first interaction with the product.
    */
-  const created = await insertReviewerProfileIfAbsent(
-    getPostgresDatabase(),
-    {
-        oxyUserId: identity.oxyUserId,
-        state: 'applicant',
-        accountActive: true,
-        oxyAccountVerified: identity.oxyAccountVerified,
-        isAdult: false,
-        suspectedSockPuppet: false,
-        riskClusterId: null,
-        languages: [],
-        categories: [],
-        specialistCategories: [],
-        maxSensitivityRank: sensitivityRank('standard'),
-        consentedSensitiveCategories: [],
-        declaredConflictApplications: [],
-        rulesAcceptedAt: null,
-        available: true,
-        dailyReviewLimit: DAILY_REVIEW_LIMIT_DEFAULT,
-        trainingCompletedModules: [],
-        trainingCompletedAt: null,
-        calibrationPassedAt: null,
-        calibrationScore: null,
-        calibrationAttempts: 0,
-        lastCalibrationAt: null,
-        reliabilityByCategory: {},
-        completedReviewCount: 0,
-        personhoodConfidence: personhoodConfidence(signals),
-        // Uniform in [0, 1). This is the sampling key `candidatePool.ts` scans
-        // a random window of; it must be drawn once and never recomputed, or a
-        // profile would move under a scan already in progress.
-        samplingKey: Math.random(),
-        suspendedUntil: null,
-    },
-  );
+  const created = await insertReviewerProfileIfAbsent(getPostgresDatabase(), {
+    oxyUserId: identity.oxyUserId,
+    state: 'applicant',
+    accountActive: true,
+    oxyAccountVerified: identity.oxyAccountVerified,
+    isAdult: false,
+    suspectedSockPuppet: false,
+    riskClusterId: null,
+    languages: [],
+    categories: [],
+    specialistCategories: [],
+    maxSensitivityRank: sensitivityRank('standard'),
+    consentedSensitiveCategories: [],
+    declaredConflictApplications: [],
+    rulesAcceptedAt: null,
+    available: true,
+    dailyReviewLimit: DAILY_REVIEW_LIMIT_DEFAULT,
+    trainingCompletedModules: [],
+    trainingCompletedAt: null,
+    calibrationPassedAt: null,
+    calibrationScore: null,
+    calibrationAttempts: 0,
+    lastCalibrationAt: null,
+    reliabilityByCategory: {},
+    completedReviewCount: 0,
+    personhoodConfidence: personhoodConfidence(signals),
+    // Uniform in [0, 1). This is the sampling key `candidatePool.ts` scans
+    // a random window of; it must be drawn once and never recomputed, or a
+    // profile would move under a scan already in progress.
+    samplingKey: Math.random(),
+    suspendedUntil: null,
+  });
 
   if (!created) {
     throw new Error('Creating a reviewer profile returned no document.');
@@ -333,7 +331,8 @@ export async function updateReviewerPreferences(
   }
 
   const isAdult = preferences.isAdult ?? current.isAdult;
-  const consented = preferences.consentedSensitiveCategories ?? current.consentedSensitiveCategories;
+  const consented =
+    preferences.consentedSensitiveCategories ?? current.consentedSensitiveCategories;
 
   /**
    * Refused rather than silently dropped: a reviewer who believes they
@@ -509,7 +508,10 @@ export async function submitCalibration(
 
   const unknown = answers.filter((answer) => !isCalibrationItemId(answer.itemId));
   if (unknown.length > 0) {
-    throw new ApiError('invalid_request', 'A calibration answer names an item that is not in the set.');
+    throw new ApiError(
+      'invalid_request',
+      'A calibration answer names an item that is not in the set.',
+    );
   }
 
   const result = gradeCalibration(answers);
@@ -522,7 +524,10 @@ export async function submitCalibration(
     ...(result.passed
       ? {
           calibrationPassedAt: now,
-          reliabilityByCategory: { ...current.reliabilityByCategory, ...result.reliabilityByFamily },
+          reliabilityByCategory: {
+            ...current.reliabilityByCategory,
+            ...result.reliabilityByFamily,
+          },
         }
       : {}),
   });

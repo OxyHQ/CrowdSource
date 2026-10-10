@@ -94,9 +94,9 @@ describe('tenantColumnShapeOf', () => {
       ]),
     ).toBe('application_nullable');
 
-    expect(
-      tenantColumnShapeOf([column('pair_key', false), column('co_served_count', false)]),
-    ).toBe('neither');
+    expect(tenantColumnShapeOf([column('pair_key', false), column('co_served_count', false)])).toBe(
+      'neither',
+    );
   });
 });
 

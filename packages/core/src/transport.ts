@@ -163,9 +163,7 @@ export class Transport {
     throw lastError;
   }
 
-  private async attempt<T>(
-    request: TransportRequest,
-  ): Promise<
+  private async attempt<T>(request: TransportRequest): Promise<
     | { ok: true; value: T }
     | {
         ok: false;

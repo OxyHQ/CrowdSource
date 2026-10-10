@@ -31,15 +31,15 @@
  * which is how `test-check-dist-orphans.mjs` mutation-tests it.
  */
 
-import { readdir, stat } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readdir, stat } from 'node:fs/promises';
+import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /** The packages whose `dist` is published. */
-const PUBLISHED = ["contracts", "core"];
+const PUBLISHED = ['contracts', 'core'];
 
 /** Output suffixes, longest first so `.d.ts.map` is stripped before `.map`. */
-const OUTPUT_SUFFIXES = [".d.ts.map", ".d.ts", ".js.map", ".js"];
+const OUTPUT_SUFFIXES = ['.d.ts.map', '.d.ts', '.js.map', '.js'];
 
 /**
  * `dist/esm/` is a SECOND emit of the same sources, not a second source tree.
@@ -52,12 +52,12 @@ const OUTPUT_SUFFIXES = [".d.ts.map", ".d.ts", ".js.map", ".js"];
  * `dist/esm/package.json` is the `{"type":"module"}` marker — build state rather
  * than an emitted module, and the ESM half is inert without it.
  */
-const SECOND_EMIT_PREFIX = "esm/";
-const BUILD_STATE_FILES = new Set(["esm/package.json"]);
+const SECOND_EMIT_PREFIX = 'esm/';
+const BUILD_STATE_FILES = new Set(['esm/package.json']);
 
 const repositoryRoot =
   process.argv[2] === undefined
-    ? resolve(dirname(fileURLToPath(import.meta.url)), "..")
+    ? resolve(dirname(fileURLToPath(import.meta.url)), '..')
     : resolve(process.argv[2]);
 
 const failures = [];
@@ -65,9 +65,9 @@ let distFilesChecked = 0;
 let packagesWithDist = 0;
 
 for (const name of PUBLISHED) {
-  const packageRoot = resolve(repositoryRoot, "packages", name);
-  const distRoot = join(packageRoot, "dist");
-  const srcRoot = join(packageRoot, "src");
+  const packageRoot = resolve(repositoryRoot, 'packages', name);
+  const distRoot = join(packageRoot, 'dist');
+  const srcRoot = join(packageRoot, 'src');
 
   if (!(await isDirectory(distRoot))) {
     // Not built. Nothing to compare, and not a failure on its own — `check`
@@ -80,7 +80,7 @@ for (const name of PUBLISHED) {
     const fromDist = relative(distRoot, file);
 
     // `tsconfig.tsbuildinfo` inside dist is build state, not output.
-    if (fromDist.endsWith(".tsbuildinfo")) continue;
+    if (fromDist.endsWith('.tsbuildinfo')) continue;
 
     if (BUILD_STATE_FILES.has(fromDist)) continue;
     const fromSources = fromDist.startsWith(SECOND_EMIT_PREFIX)
@@ -90,21 +90,24 @@ for (const name of PUBLISHED) {
     if (suffix === undefined) {
       failures.push(
         `packages/${name}/dist/${fromDist} is not a recognised build output. ` +
-          "Either it is stale, or this check needs to learn about a new emit kind.",
+          'Either it is stale, or this check needs to learn about a new emit kind.',
       );
       continue;
     }
 
     distFilesChecked += 1;
     const stem = fromSources.slice(0, -suffix.length);
-    if (!(await exists(join(srcRoot, `${stem}.ts`))) && !(await exists(join(srcRoot, `${stem}.tsx`)))) {
+    if (
+      !(await exists(join(srcRoot, `${stem}.ts`))) &&
+      !(await exists(join(srcRoot, `${stem}.tsx`)))
+    ) {
       failures.push(
         `packages/${name}/dist/${fromDist} has no source: packages/${name}/src/${stem}.ts is gone. ` +
-          "Delete the stale output (`bun run --cwd packages/" +
+          'Delete the stale output (`bun run --cwd packages/' +
           name +
-          " clean && bun run --cwd packages/" +
+          ' clean && bun run --cwd packages/' +
           name +
-          " build`) — publishing it would ship a module this repository no longer contains.",
+          ' build`) — publishing it would ship a module this repository no longer contains.',
       );
     }
   }
@@ -118,19 +121,19 @@ for (const name of PUBLISHED) {
 if (packagesWithDist > 0 && distFilesChecked === 0) {
   failures.push(
     `${packagesWithDist} package(s) have a dist directory but zero build outputs were examined; ` +
-      "the traversal is broken and this check proves nothing.",
+      'the traversal is broken and this check proves nothing.',
   );
 }
 
 if (failures.length > 0) {
-  console.error("Stale build output found in a published package:\n");
+  console.error('Stale build output found in a published package:\n');
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
 
 console.log(
   packagesWithDist === 0
-    ? "No package is built yet; nothing to compare."
+    ? 'No package is built yet; nothing to compare.'
     : `${distFilesChecked} build output(s) across ${packagesWithDist} published package(s) all have a source file.`,
 );
 

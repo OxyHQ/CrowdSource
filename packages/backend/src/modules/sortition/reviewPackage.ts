@@ -246,7 +246,8 @@ function languageOf(stored: CaseDocument): string | null {
   );
   return (
     primary?.language ??
-    stored.contentSnapshot.resources.find((resource) => resource.language !== undefined)?.language ??
+    stored.contentSnapshot.resources.find((resource) => resource.language !== undefined)
+      ?.language ??
     null
   );
 }

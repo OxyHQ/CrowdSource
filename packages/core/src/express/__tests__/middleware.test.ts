@@ -83,7 +83,10 @@ describe('crowdsourceWebhooks', () => {
   it('dispatches a community note status change to its handler, not to onUnhandled', async () => {
     const changed = vi.fn();
     const unhandled = vi.fn();
-    const { simulator } = await harness({ on: { 'community_note.status_changed': changed }, onUnhandled: unhandled });
+    const { simulator } = await harness({
+      on: { 'community_note.status_changed': changed },
+      onUnhandled: unhandled,
+    });
     const event = {
       id: 'evt_community_note_1',
       createdAt: '2026-09-02T10:00:00.000Z',
@@ -265,7 +268,10 @@ describe('crowdsourceWebhooks', () => {
 
   it('offers the unknown event to onUnhandled when one is registered', async () => {
     const unhandled = vi.fn();
-    const { simulator } = await harness({ on: { 'case.decided': vi.fn() }, onUnhandled: unhandled });
+    const { simulator } = await harness({
+      on: { 'case.decided': vi.fn() },
+      onUnhandled: unhandled,
+    });
 
     await simulator.deliver({
       id: 'evt_from_the_future_2',
@@ -294,10 +300,9 @@ describe('crowdsourceWebhooks', () => {
   it('refuses a body larger than the configured limit before verifying it', async () => {
     const { simulator } = await harness({ maxBodyBytes: 256 });
 
-    const result = await simulator.deliver(
-      caseDecidedEventFixture({ id: 'evt_large' }),
-      { tamperedBody: JSON.stringify({ padding: 'x'.repeat(4_096) }) },
-    );
+    const result = await simulator.deliver(caseDecidedEventFixture({ id: 'evt_large' }), {
+      tamperedBody: JSON.stringify({ padding: 'x'.repeat(4_096) }),
+    });
 
     expect(result.status).toBe(413);
   });

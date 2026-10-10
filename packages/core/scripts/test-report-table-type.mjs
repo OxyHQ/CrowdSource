@@ -161,9 +161,7 @@ if (broken.status === 0) {
       `it broke for some other reason and the gate is still unproven:\n${broken.output}`,
   );
 } else if (!broken.output.includes('fixture.ts')) {
-  failures.push(
-    `the broken fixture failed without naming its own file:\n${broken.output}`,
-  );
+  failures.push(`the broken fixture failed without naming its own file:\n${broken.output}`);
 }
 
 /** No fixture directory may survive a run, including the failing one. */

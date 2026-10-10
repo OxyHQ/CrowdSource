@@ -28,7 +28,6 @@ import { BACKENDS } from './support/backends.js';
  * visible, and the mutation script matches on the leaf.
  */
 describe.each(BACKENDS)('$name', (backend) => {
-
   let harness: Harness | null = null;
 
   afterEach(async () => {
@@ -44,9 +43,7 @@ describe.each(BACKENDS)('$name', (backend) => {
    * about the executor's bookkeeping, so the effect does nothing but succeed or
    * throw.
    */
-  function unreliableEnforcement(
-    failing: () => boolean,
-  ): ModerationEnforcementConfig<TestAction> {
+  function unreliableEnforcement(failing: () => boolean): ModerationEnforcementConfig<TestAction> {
     return {
       actions: TEST_ACTIONS,
       noneAction: 'none',
@@ -103,5 +100,4 @@ describe.each(BACKENDS)('$name', (backend) => {
       expect(rows[0].previousState).toEqual({ status: 'published' });
     });
   });
-
 });

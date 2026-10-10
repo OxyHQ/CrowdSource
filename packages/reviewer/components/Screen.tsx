@@ -210,9 +210,7 @@ interface PanelProps {
 export function Panel({ title, description, children }: PanelProps) {
   return (
     <View className="gap-3 rounded-lg border border-border p-4">
-      {title ? (
-        <Text className="text-lg font-semibold text-card-foreground">{title}</Text>
-      ) : null}
+      {title ? <Text className="text-lg font-semibold text-card-foreground">{title}</Text> : null}
       {description ? (
         <Text className="text-sm leading-5 text-muted-foreground">{description}</Text>
       ) : null}

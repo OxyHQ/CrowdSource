@@ -73,7 +73,9 @@ describe('canonicalize', () => {
   it('accepts a member literally named constructor', () => {
     // The prototype is what identifies a plain object; reading `.constructor`
     // instead would reject this perfectly legitimate payload.
-    expect(canonicalize({ constructor: 'not a function' })).toBe('{"constructor":"not a function"}');
+    expect(canonicalize({ constructor: 'not a function' })).toBe(
+      '{"constructor":"not a function"}',
+    );
   });
 
   it('accepts an object with no prototype', () => {

@@ -86,10 +86,7 @@ export function selectionWeight(inputs: SelectionWeightInputs): number {
     SELECTION_WEIGHT_COEFFICIENTS.personhoodConfidence * unitClamp(inputs.personhoodConfidence) +
     SELECTION_WEIGHT_COEFFICIENTS.availabilityScore * unitClamp(inputs.availabilityScore);
 
-  const clamped = Math.min(
-    SELECTION_WEIGHT_BOUNDS.MAX,
-    Math.max(SELECTION_WEIGHT_BOUNDS.MIN, raw),
-  );
+  const clamped = Math.min(SELECTION_WEIGHT_BOUNDS.MAX, Math.max(SELECTION_WEIGHT_BOUNDS.MIN, raw));
 
   // Four places: enough that two genuinely different reviewers keep different
   // weights, few enough that a persisted snapshot replays identically on a

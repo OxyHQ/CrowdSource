@@ -1,9 +1,6 @@
 import type { Decision } from '@crowdsource.you/contracts';
 import { planEnforcement } from './planner.js';
-import type {
-  ModerationEnforcementKey,
-  ModerationEnforcementStore,
-} from '../store/types.js';
+import type { ModerationEnforcementKey, ModerationEnforcementStore } from '../store/types.js';
 import type {
   EnforcementEffect,
   EnforcementOutcome,
@@ -92,11 +89,7 @@ export function createEnforcementExecutor<TAction extends string>(input: {
 }): EnforcementExecutor<TAction> {
   const { enforcement, config, logger } = input;
 
-  const count = (
-    action: TAction,
-    mode: ModerationEnforcementMode,
-    result: string,
-  ): void => {
+  const count = (action: TAction, mode: ModerationEnforcementMode, result: string): void => {
     input.metrics?.incrementCounter('crowdsource_enforcement_total', 1, {
       action,
       mode,
@@ -116,9 +109,7 @@ export function createEnforcementExecutor<TAction extends string>(input: {
   const previousStateFor = async (
     action: TAction,
     subject: EnforcementSubject,
-  ): Promise<
-    { previousState?: EnforcementPreviousState; previousAction: TAction } | undefined
-  > => {
+  ): Promise<{ previousState?: EnforcementPreviousState; previousAction: TAction } | undefined> => {
     const reversed: TAction | readonly TAction[] | undefined = config.reverses?.[action];
     if (reversed === undefined) return undefined;
     /**
@@ -126,8 +117,7 @@ export function createEnforcementExecutor<TAction extends string>(input: {
      * whole set wins, so `apply` receives what actually happened last rather
      * than what a single declared action happened to be.
      */
-    const candidates: readonly TAction[] =
-      typeof reversed === 'string' ? [reversed] : reversed;
+    const candidates: readonly TAction[] = typeof reversed === 'string' ? [reversed] : reversed;
     if (candidates.length === 0) return undefined;
     const row = await enforcement.latestApplied({
       subjectType: subject.type,
@@ -240,9 +230,7 @@ export function createEnforcementExecutor<TAction extends string>(input: {
       const appliedAt = new Date();
       await enforcement.markApplied(key, {
         appliedAt,
-        ...(effect.previousState === undefined
-          ? {}
-          : { previousState: effect.previousState }),
+        ...(effect.previousState === undefined ? {} : { previousState: effect.previousState }),
         now: appliedAt,
       });
       count(planned.action, mode, 'applied');

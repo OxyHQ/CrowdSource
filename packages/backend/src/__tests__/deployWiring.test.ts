@@ -283,9 +283,7 @@ describe('the migration interlock', () => {
     // Positive control on the stripper: it must not have eaten the directives
     // along with the prose, or both assertions below pass over an empty string.
     expect(ciConcurrency).toMatch(/^\s*group:/m);
-    expect(ciConcurrency).toContain(
-      "cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}",
-    );
+    expect(ciConcurrency).toContain("cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}");
     // The bare form is what this replaced, and what a future "optimisation"
     // would restore. Asserted over directives only — the comment above it quotes
     // this exact string while explaining why it is wrong.
@@ -311,7 +309,8 @@ describe('the migration interlock', () => {
   });
 
   it('deploys the backend whenever its scope changed, with no repository-variable switch', () => {
-    const deployJob = /^  deploy:\n([\s\S]*?)(?=^  [a-z][a-z0-9-]*:\n)/m.exec(deployWorkflow)?.[1] ?? '';
+    const deployJob =
+      /^  deploy:\n([\s\S]*?)(?=^  [a-z][a-z0-9-]*:\n)/m.exec(deployWorkflow)?.[1] ?? '';
     const directives = directivesOnly(deployJob);
     expect(directives).toContain("needs.scope.outputs.deploy == 'true'");
     expect(directives).not.toMatch(/vars\./);
@@ -343,7 +342,9 @@ describe('the secrets the service cannot boot without', () => {
   it('no workflow writes SSM', () => {
     expect(workflows.length).toBeGreaterThan(3); // vacuity floor
     const writers = workflows
-      .filter(([, text]) => /\bssm\s+(put-parameter|delete-parameters?|label-parameter-version)\b/i.test(text))
+      .filter(([, text]) =>
+        /\bssm\s+(put-parameter|delete-parameters?|label-parameter-version)\b/i.test(text),
+      )
       .map(([file]) => file);
     expect(writers).toEqual([]);
   });

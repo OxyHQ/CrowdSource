@@ -66,9 +66,18 @@ export interface PullResult {
 }
 
 /** Read the feed forward from the stored cursor, recording every verified event. */
-export async function pullAccountEvents(owner: string = randomUUID(), now: Date = new Date()): Promise<PullResult> {
+export async function pullAccountEvents(
+  owner: string = randomUUID(),
+  now: Date = new Date(),
+): Promise<PullResult> {
   const db = getPostgresDatabase();
-  const result: PullResult = { pages: 0, recorded: 0, refused: 0, cursorAdvanced: false, leased: false };
+  const result: PullResult = {
+    pages: 0,
+    recorded: 0,
+    refused: 0,
+    cursorAdvanced: false,
+    leased: false,
+  };
   const claimed = await claimAccountEventFeed(db, ACCOUNT_EVENTS_FEED, owner, now, FEED_LEASE_MS);
   if (!claimed) return result;
   result.leased = true;
@@ -131,13 +140,19 @@ export async function reconcileAccountEvents(): Promise<void> {
     const pulled = await pullAccountEvents();
     logger.info({ ...pulled }, 'Account-event feed read');
   } catch (_caught: unknown) {
-    logger.warn({ classification: 'account_event_pull_failed' }, 'Account-event feed read failed; the cursor did not move');
+    logger.warn(
+      { classification: 'account_event_pull_failed' },
+      'Account-event feed read failed; the cursor did not move',
+    );
   }
   try {
     const retried = await retryUnfinishedErasures();
     if (retried > 0) logger.info({ retried }, 'Unfinished account erasures completed');
   } catch (_caught: unknown) {
-    logger.warn({ classification: 'account_erasure_retry_failed' }, 'Account erasure retry scan failed');
+    logger.warn(
+      { classification: 'account_erasure_retry_failed' },
+      'Account erasure retry scan failed',
+    );
   }
 }
 
@@ -166,9 +181,12 @@ export function startAccountEventReconciliation(intervalMs = RECONCILIATION_INTE
     void reconcileOnce();
   }, intervalMs);
   timer.unref?.();
-  firstTick = setTimeout(() => {
-    void reconcileOnce();
-  }, Math.min(FIRST_TICK_DELAY_MS, intervalMs));
+  firstTick = setTimeout(
+    () => {
+      void reconcileOnce();
+    },
+    Math.min(FIRST_TICK_DELAY_MS, intervalMs),
+  );
   firstTick.unref?.();
 }
 

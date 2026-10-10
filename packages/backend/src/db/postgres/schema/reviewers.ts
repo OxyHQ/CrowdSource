@@ -185,7 +185,10 @@ export const reviewerProfiles = pgTable(
      * `type: Number` and nothing more. `categories`, `languages` and the two
      * consent arrays were `[String]` with no `enum`, for the same reason.
      */
-    check('reviewer_profiles_state_check', sql`${table.state} in (${sql.raw(inList(REVIEWER_STATES))})`),
+    check(
+      'reviewer_profiles_state_check',
+      sql`${table.state} in (${sql.raw(inList(REVIEWER_STATES))})`,
+    ),
   ],
 );
 

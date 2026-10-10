@@ -76,7 +76,9 @@ export default function TrainingScreen() {
               <View
                 key={module.moduleId}
                 className={
-                  index < training.modules.length - 1 ? 'gap-2 border-b border-border pb-3' : 'gap-2'
+                  index < training.modules.length - 1
+                    ? 'gap-2 border-b border-border pb-3'
+                    : 'gap-2'
                 }
               >
                 <Text className="text-base font-semibold text-foreground">{module.title}</Text>

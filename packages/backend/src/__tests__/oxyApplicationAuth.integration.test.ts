@@ -27,7 +27,11 @@ vi.mock('@oxy.so/core/server', () => ({
   OxyServer: class {
     readonly middleware = {
       auth() {
-        return (request: { headers: Record<string, string>; serviceApp?: unknown }, _res: unknown, next: () => void) => {
+        return (
+          request: { headers: Record<string, string>; serviceApp?: unknown },
+          _res: unknown,
+          next: () => void,
+        ) => {
           const token = /^Bearer\s+(\S+)$/i.exec(request.headers.authorization ?? '')?.[1] ?? '';
           const appId = oxy.appIdForToken.get(token);
           if (appId) request.serviceApp = { appId };
@@ -38,7 +42,10 @@ vi.mock('@oxy.so/core/server', () => ({
   },
 }));
 
-import { authenticateOxyServiceToken, looksLikeOxyServiceToken } from '../modules/tenancy/oxyApplicationAuth';
+import {
+  authenticateOxyServiceToken,
+  looksLikeOxyServiceToken,
+} from '../modules/tenancy/oxyApplicationAuth';
 import { APPLICATION_SCOPES, PRIVILEGED_SCOPES } from '../modules/tenancy/scopes';
 import { applications } from '../modules/tenancy/tenancy.collections';
 import { provisionTenant, startDatabase, stopDatabase } from './support/tenants';
@@ -63,10 +70,7 @@ beforeEach(() => {
 
 async function boundTenant(oxyApplicationId: string) {
   const tenant = await provisionTenant();
-  await applications.updateOne(
-    { applicationId: tenant.applicationId },
-    { oxyApplicationId },
-  );
+  await applications.updateOne({ applicationId: tenant.applicationId }, { oxyApplicationId });
   return tenant;
 }
 
@@ -106,7 +110,9 @@ describe('authenticating an Oxy service', () => {
     // The stub knows nothing about this token, which is what Oxy's verifier
     // answers for a forged or expired one.
 
-    await expect(authenticateOxyServiceToken(tokenFor('forged'), requestStub)).rejects.toMatchObject({
+    await expect(
+      authenticateOxyServiceToken(tokenFor('forged'), requestStub),
+    ).rejects.toMatchObject({
       code: 'unauthorized',
     });
   });
@@ -130,10 +136,7 @@ describe('authenticating an Oxy service', () => {
       credentialId: `oxy:${oxyApplicationId}`,
     });
 
-    await applications.updateOne(
-      { applicationId: tenant.applicationId },
-      { status: 'suspended' },
-    );
+    await applications.updateOne({ applicationId: tenant.applicationId }, { status: 'suspended' });
 
     await expect(authenticateOxyServiceToken(token, requestStub)).rejects.toMatchObject({
       code: 'unauthorized',

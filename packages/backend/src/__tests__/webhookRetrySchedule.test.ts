@@ -144,9 +144,11 @@ describe('the terminal classifications', () => {
     ['unsafe_target', 'unsafe_target'],
     ['endpoint_disabled', 'endpoint_disabled'],
   ] as const)('never retries %s, even on the first attempt', (kind, reason) => {
-    expect(
-      nextRetry({ outcome: { kind, failureKind: null }, cycleAttemptCount: 1 }),
-    ).toEqual({ retry: false, delayMs: 0, deadLetterReason: reason });
+    expect(nextRetry({ outcome: { kind, failureKind: null }, cycleAttemptCount: 1 })).toEqual({
+      retry: false,
+      delayMs: 0,
+      deadLetterReason: reason,
+    });
   });
 });
 

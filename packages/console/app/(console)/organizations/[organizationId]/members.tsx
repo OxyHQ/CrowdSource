@@ -64,7 +64,12 @@ export default function MembersScreen() {
       }
       actions={
         mayAdminister ? (
-          <Button appearance="solid" tone="accent" size="sm" onPress={() => setIsGranting((open) => !open)}>
+          <Button
+            appearance="solid"
+            tone="accent"
+            size="sm"
+            onPress={() => setIsGranting((open) => !open)}
+          >
             {t('members.grant.action')}
           </Button>
         ) : null
@@ -106,9 +111,7 @@ function MembersTable({
   // Filtered client-side, and it is the one filter in the app that is: the members
   // endpoint returns every seat including revoked ones in a single response, so
   // there is no server-side filter to defer to and no page after this one.
-  const rows = members.filter(
-    (member) => statusFilter === null || member.status === statusFilter,
-  );
+  const rows = members.filter((member) => statusFilter === null || member.status === statusFilter);
 
   const columns: Column<OrganizationMember>[] = [
     {

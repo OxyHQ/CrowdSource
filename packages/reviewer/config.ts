@@ -2,17 +2,10 @@
 export const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
 
 export type RuntimeLogLevel = 'debug' | 'info' | 'log' | 'warn' | 'error';
-const VALID_LOG_LEVELS: readonly RuntimeLogLevel[] = [
-  'debug',
-  'info',
-  'log',
-  'warn',
-  'error',
-];
+const VALID_LOG_LEVELS: readonly RuntimeLogLevel[] = ['debug', 'info', 'log', 'warn', 'error'];
 const configuredLogLevel = process.env.EXPO_PUBLIC_LOG_LEVEL;
 export const LOG_LEVEL: RuntimeLogLevel | undefined =
-  configuredLogLevel &&
-  VALID_LOG_LEVELS.includes(configuredLogLevel as RuntimeLogLevel)
+  configuredLogLevel && VALID_LOG_LEVELS.includes(configuredLogLevel as RuntimeLogLevel)
     ? (configuredLogLevel as RuntimeLogLevel)
     : undefined;
 export const LOG_DEBUG_FILTER = process.env.EXPO_PUBLIC_LOG_DEBUG ?? '';
@@ -42,5 +35,4 @@ export const OXY_AUTH_REDIRECT_URI =
   process.env.EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI ?? 'https://crowdsource.oxy.so';
 
 /** Public web origin of the reviewer app. */
-export const WEB_BASE_URL =
-  process.env.EXPO_PUBLIC_WEB_BASE_URL || 'https://crowdsource.oxy.so';
+export const WEB_BASE_URL = process.env.EXPO_PUBLIC_WEB_BASE_URL || 'https://crowdsource.oxy.so';

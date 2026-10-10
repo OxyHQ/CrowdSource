@@ -42,6 +42,12 @@
     "lib": ["ES2022"],
     "verbatimModuleSyntax": false
   },
-  "include": ["server.ts", "src/**/*.ts", "vitest.config.ts", "vitest.setup.ts", "vitest.globalSetup.ts"],
+  "include": [
+    "server.ts",
+    "src/**/*.ts",
+    "vitest.config.ts",
+    "vitest.setup.ts",
+    "vitest.globalSetup.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }
