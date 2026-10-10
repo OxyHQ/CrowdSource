@@ -54,8 +54,8 @@ jobs:
   # run's `success`) always follow a complete run.
   #
   # `shared` is everything more than one package reads — the lockfile, root
-  # manifests and configs, the scripts `bun run check` and the cutover suite
-  # run, CI itself (including test-suites.yml), and `contracts`, which every
+  # manifests and configs, the scripts `bun run check` runs, CI itself
+  # (including test-suites.yml), and `contracts`, which every
   # other package builds against. Touching any of it runs everything. A path in
   # no filter (docs, say) runs only the jobs that are never filtered.
   changes:
@@ -115,7 +115,7 @@ jobs:
           drop=()
           if [ "$PULL_REQUEST" = 'true' ] && [ "$SHARED" != 'true' ]; then
             drop+=(contracts)
-            [ "$BACKEND" = 'true' ] || drop+=(backend backend-cutover)
+            [ "$BACKEND" = 'true' ] || drop+=(backend)
             [ "$CORE" = 'true' ] || drop+=(core core-express core-testing core-outbox)
             [ "$REVIEWER" = 'true' ] || drop+=(reviewer)
             [ "$CONSOLE" = 'true' ] || drop+=(console)

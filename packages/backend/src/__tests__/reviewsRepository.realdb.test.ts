@@ -357,9 +357,9 @@ describe('the restored closed value sets are enforced by the database', () => {
   });
 
   /**
-   * `recommended_actions` is deliberately UNCONSTRAINED — it had no Mongoose
-   * `enum`, so a containment check would be a new restriction rather than a
-   * restored one. Asserted so the omission reads as a decision: without this, the
+   * `recommended_actions` is deliberately UNCONSTRAINED — its stored values
+   * were never held to a closed set, so a containment check would be a new
+   * restriction. Asserted so the omission reads as a decision: without this, the
    * next reader who notices the column is a closed vocabulary in TypeScript adds
    * the constraint, and the first application to send a member this build does not
    * know about is dead-lettered at the database instead of at the contract.

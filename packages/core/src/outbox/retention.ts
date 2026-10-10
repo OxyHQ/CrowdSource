@@ -8,9 +8,8 @@
  * handed the computed `expiresAt` rather than the window, so the window has one
  * definition.
  *
- * How the deadline is ENFORCED is a backend's business — a Mongo TTL index on
- * `expiresAt`, an expiry sweep on Postgres — but a table registered with
- * neither grows forever with no error and no failing test.
+ * How the deadline is ENFORCED is the store's business — an expiry sweep on
+ * Postgres — but a table registered with none grows forever with no error and no failing test.
  */
 
 /**

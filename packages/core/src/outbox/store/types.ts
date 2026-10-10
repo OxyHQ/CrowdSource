@@ -46,9 +46,8 @@ import type {
 /**
  * The transaction a domain write and its outbox row commit inside.
  *
- * The core cannot know what a transaction IS — a Mongo `ClientSession` and a
- * drizzle transaction handle have nothing in common but the fact that carrying
- * one is what makes two writes atomic — so `TTx` is opaque here and is only
+ * The core cannot know what a transaction IS — carrying one is what makes two
+ * writes atomic, and nothing more is assumed — so `TTx` is opaque here and is only
  * ever passed back to the store that produced it.
  *
  * What the runner owns is the guarantee, and it is the same on both backends:
@@ -84,9 +83,8 @@ export interface ModerationOutboxStore<TTx> {
    * implementation that could write outside one is the single line that
    * reintroduces it — so an implementation MUST refuse a `tx` that is not
    * actually in a transaction, by throwing `ModerationOutboxTransactionError`.
-   * A required parameter alone does not give this: a bare Mongo session nobody
-   * opened a transaction on type-checks perfectly and commits the row on its
-   * own.
+   * A required parameter alone does not give this: a handle that is not in a
+   * transaction type-checks perfectly and commits the row on its own.
    *
    * "A true no-op" is the other half. A repeated enqueue is ORDINARY — a
    * transaction retry, two concurrent duplicate submissions, a reconciliation
@@ -106,7 +104,7 @@ export interface ModerationOutboxStore<TTx> {
    * in the shared half and IMPORTED by each store, deleting the throw on its own
    * leaves an unused import and fails `noUnusedLocals`. A mutation aimed at a new
    * store has to delete the import with it, which is also what removing the guard
-   * actually looks like; the Mongoose one is the worked example.
+   * actually looks like; the Postgres one is the worked example.
    */
   enqueue(
     input: {

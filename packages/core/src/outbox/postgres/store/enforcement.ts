@@ -13,8 +13,7 @@ import type { ModerationPgHandle } from './transaction.js';
  *
  * ## The idempotency key IS the primary key
  *
- * `decision_id + decision_revision + action`. Mongo needed a surrogate `_id` plus
- * a unique index on that triple; here the triple is the key, so
+ * `decision_id + decision_revision + action`. The triple is the key, so
  * `onConflictDoNothing()` needs no explicit `target` — there is only one
  * constraint it could mean — and there is no second object to keep in step.
  *
@@ -52,7 +51,7 @@ export function postgresEnforcementStore(input: {
        * swallowing a real fault as "another delivery already handled it".
        *
        * `created_at` and `updated_at` are written from the caller's `now`. The
-       * Mongo store lets Mongoose own them; here nothing does, and the reversal
+       * reversal
        * lookup ORDERS BY `created_at`, so the clock that decides which row is
        * "most recent" is the caller's rather than two different defaults'.
        */

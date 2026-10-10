@@ -17,7 +17,7 @@ import { postgresTransactionRunner, type ModerationPgHandle } from './transactio
  * report and its outbox row commit in the SAME transaction, and a store assembled
  * from two handles would type-check perfectly and quietly lose that.
  *
- * Unlike the Mongo factory, this one CREATES NOTHING. There is no schema to
+ * This factory CREATES NOTHING. There is no schema to
  * register: the adopter's own migration created the tables, generated from the
  * definitions this package exports, in the adopter's own journal. That asymmetry
  * is deliberate and is the reason no migrations folder ships here — two journals
@@ -43,8 +43,8 @@ export function postgresModerationStore<TReport extends ModerationReportFields>(
     /**
      * ASSERTS the schema, rather than creating it.
      *
-     * The Mongo half calls `init()` and builds indexes; there is nothing here to
-     * build, so what remains is worth doing for its own sake: confirming the four
+     * There is nothing here to build, so what remains is worth doing for its
+     * own sake: confirming the four
      * tables this package queries exist BEFORE the first report is filed rather
      * than at the first delivery.
      *

@@ -6,15 +6,14 @@ import type { ModerationPgHandle } from './transaction.js';
 /**
  * The inbound webhook event log, in Postgres.
  *
- * ## The one place this backend is structurally better rather than equivalent
+ * ## Why the claim cannot misreport a fault
  *
- * Everything else in this port aims for parity. This claim does not: it removes a
- * failure mode instead of handling it, and the difference is worth being precise
- * about, because "better" is otherwise just an adjective.
+ * This claim removes a failure mode instead of handling it, and the difference
+ * is worth being precise about.
  *
- * **Mongo's claim throws and catches.** It inserts, and reads `code === 11000` to
- * tell "somebody else has this event" from a real fault; everything that is not
- * 11000 is rethrown, so a lost connection or a failover answers non-2xx and the
+ * **A claim that throws and catches** inserts, and reads a duplicate-key code to
+ * tell "somebody else has this event" from a real fault; everything else is
+ * rethrown, so a lost connection or a failover answers non-2xx and the
  * event stays on the sender's retry schedule. That property is correct — and it
  * lives in a PREDICATE. `catch { return false }` is one keystroke away, it
  * type-checks, and it turns a connection failure into "already processed": the
@@ -22,7 +21,7 @@ import type { ModerationPgHandle } from './transaction.js';
  * only thing standing between those two behaviours is a conditional somebody
  * could widen, and a test can only catch that by injecting a driver failure.
  *
- * **Postgres's claim does not throw at all.** `ON CONFLICT DO NOTHING` plus
+ * **This claim does not throw at all.** `ON CONFLICT DO NOTHING` plus
  * `RETURNING` makes a duplicate a ROW COUNT rather than an error: one row means
  * this call took the claim, zero means somebody else holds it. So there is no
  * catch block here — and therefore
@@ -32,7 +31,7 @@ import type { ModerationPgHandle } from './transaction.js';
  *   - and the "rethrow everything else" guarantee holds by the ABSENCE of code
  *     rather than by the presence of correct code.
  *
- * That is the mechanism: the Mongo version is a property of code that exists and
+ * That is the mechanism: the catching version is a property of code that exists and
  * can be edited wrongly; this one is a property of code that does not exist. Only
  * the second cannot be broken by a well-meaning change.
  *

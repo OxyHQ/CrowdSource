@@ -230,7 +230,7 @@ describe('the append commits with the work it records', () => {
 });
 
 /**
- * The CHECK that replaces Mongoose's `enum: OUTBOX_STATUSES`.
+ * The CHECK rendered from `OUTBOX_STATUSES`.
  *
  * A real server or nothing: a mocked insert accepts any statement, including one
  * the server rejects, so a constraint tested against a mock is a claim rather
@@ -326,7 +326,7 @@ describe('claiming a due row', () => {
     expect(claimed?.status).toBe('dispatching');
     expect(claimed?.availableAt).toEqual(LEASE_UNTIL);
     /**
-     * ONE, not zero. Mongo's wrapper hardcodes `returnDocument: 'after'`, and the
+     * ONE, not zero. The claim returns the row AFTER the update, and the
      * dispatcher's dead-letter arithmetic reads `attempts` off this row — a
      * before-image would dead-letter every row one attempt late, silently.
      */

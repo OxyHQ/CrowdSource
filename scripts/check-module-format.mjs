@@ -98,7 +98,7 @@ async function readIfPresent(path) {
  * package root.
  *
  * Node resolves a file's module type by walking upward to the first
- * `package.json`, so a marker at `dist/esm/` governs `dist/esm/mongoose/` too —
+ * `package.json`, so a marker at `dist/esm/` governs `dist/esm/outbox/postgres/` too —
  * which is why a subpath entry needs no marker of its own, and why looking only
  * beside the entry reported a false failure the moment one existed.
  *

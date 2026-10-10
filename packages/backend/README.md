@@ -4,8 +4,7 @@ CrowdSource's private Express service: tenancy, report ingestion, cases,
 sortition, review, consensus, decisions, appeals, webhooks, reviewer state and
 the developer/Trust & Safety console APIs.
 
-The current source is PostgreSQL-only. MongoDB is not a fallback and no Mongo
-URI, driver, deploy secret or test server belongs in this package.
+PostgreSQL is its only datastore.
 
 ## Runtime structure
 
@@ -54,8 +53,14 @@ MIGRATOR_DATABASE_URL='postgres://…' \
   bun scripts/migrate.ts --target-database=crowdsource --phase=pre
 ```
 
-Do not use example names or URLs as production values. Provisioning and cutover
-are operator actions covered by the backend PostgreSQL cutover runbook.
+`crowdsource_migrator` owns the database and therefore reaches the `public`
+schema through PostgreSQL's `pg_database_owner` pseudo-role; do not add a
+redundant direct `CREATE`/`USAGE` schema grant to it. `crowdsource_app` owns
+nothing, has an explicit `USAGE` grant on `public`, receives DML through the
+migrator's default privileges, and is subject to forced RLS.
+
+Do not use example names or URLs as production values. Provisioning is an
+operator action.
 
 ## Local development
 
@@ -80,27 +85,7 @@ production database.
 bun run --cwd packages/backend build
 bun run --cwd packages/backend lint
 bun run --cwd packages/backend test
-bun run check:backend-postgres-only
-CROWDSOURCE_BACKEND_TEST_POSTGRES_URL='postgres://crowdsource:crowdsource@127.0.0.1:5436/postgres' \
-  bun run test:backend-cutover:realdb
 ```
 
-`bun run check:backend-postgres-only` mutation-tests the signed freeze, exact
-IDs/relationships, the pinned final archive identity/census and fixed
-26-collection/27-table cutover manifest. The dedicated real-database command
-proves transactional import, JSONB/nullable-field canonicalization, exact
-idempotent retry, canonical re-export and target-mutation refusal. The backend
-Vitest suite also blocks Mongo imports, URIs, dependencies, environment
-templates and deployment wiring, and exercises RLS, constraints, transactions
-and claim races against real PostgreSQL.
-
-## Production-data status
-
-The code cut does not prove a live data cutover. The sole source is the exact
-versioned final S3 archive pinned by the runbook; its one-shot recovery uses a
-networkless MongoDB 8.2.11 container matching the archive producer and is never
-copied into this runtime image. Production remains blocked until an authorised
-archive recovery/import/re-export reconciliation produces a valid
-`crowdsource-backend-cutover/v1` schema-v2 manifest against a separately named
-empty PostgreSQL target. See
-[`../../docs/runbooks/crowdsource-backend-postgres-cutover.md`](../../docs/runbooks/crowdsource-backend-postgres-cutover.md).
+The backend Vitest suite exercises RLS, constraints, transactions and claim
+races against real PostgreSQL.

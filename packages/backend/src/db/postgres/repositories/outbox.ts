@@ -91,10 +91,8 @@ const CLAIMABLE_STATUSES: readonly OutboxStatus[] = ['pending', 'dispatching'];
 /**
  * Appends an event inside the caller's transaction.
  *
- * The handle comes first, as everywhere in this layer, rather than second as in
- * the Mongo function this replaces. That is a visible edit at every call site at
- * the switch, which is the point — the two arguments have unrelated types, so
- * `tsc` decides it rather than a reviewer.
+ * The handle comes first, as everywhere in this layer. The two arguments have
+ * unrelated types, so `tsc` catches them swapped rather than a reviewer.
  *
  * COUNTED on 2026-08-10, because the switch has to touch all of them: ELEVEN call
  * sites across SEVEN files — `ingestion/report.service.ts` (2),
@@ -123,7 +121,7 @@ export async function appendOutboxEvent(
     status: 'pending',
     attempts: 0,
     /**
-     * Available immediately, as on Mongo. `created_at` and `updated_at` come from
+     * Available immediately. `created_at` and `updated_at` come from
      * the column defaults instead, which resolve to the TRANSACTION's `now()`
      * rather than this process's clock — a difference of milliseconds that
      * nothing reads, whereas `available_at` is compared against the dispatcher's
@@ -148,17 +146,14 @@ export interface OutboxClaim {
 /**
  * Claims the next due row, atomically.
  *
- * `SELECT … FOR UPDATE SKIP LOCKED` inside the `UPDATE`, which is the Postgres
- * form of Mongo's single `findOneAndUpdate` and differs from it in one way worth
- * naming: `SKIP LOCKED` makes a second dispatcher take the NEXT row rather than
+ * `SELECT … FOR UPDATE SKIP LOCKED` inside the `UPDATE`, one atomic claim.
+ * `SKIP LOCKED` makes a second dispatcher take the NEXT row rather than
  * BLOCK on this one. Plain `FOR UPDATE` would block, and a blocked dispatcher is
  * indistinguishable from a slow one — the failure mode that has no diagnostic.
  *
  * Three details that are each a silent wrong answer if changed:
  *
- *  - **`returning()` yields the row AFTER the update**, which is what Mongo's
- *    `returnDocument: 'after'` gave (hardcoded in `collections.ts`). The
- *    dispatcher's dead-letter test reads `attempts` off this row, so a
+ *  - **`returning()` yields the row AFTER the update**. The dispatcher's dead-letter test reads `attempts` off this row, so a
  *    before-image would dead-letter every row one attempt late.
  *  - **`inArray`, never a bare array.** A bare array interpolated into a `sql`
  *    template renders as a ROW CONSTRUCTOR, which matches nothing and reads as an

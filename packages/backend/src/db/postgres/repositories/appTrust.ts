@@ -76,10 +76,10 @@ export async function findForTenant(
  * Creates the sandbox default for a new application, or leaves the existing row
  * alone.
  *
- * `ON CONFLICT … DO NOTHING` rather than the Mongo site's read-then-insert. That
- * pair races: two concurrent provisioning retries both read nothing and both
- * insert, and on Mongo the loser surfaced a duplicate-key error from a path whose
- * whole purpose is to be idempotent. Here the loser writes nothing and returns.
+ * `ON CONFLICT … DO NOTHING` rather than read-then-insert. That pair races: two
+ * concurrent provisioning retries both read nothing and both insert, and the
+ * loser surfaces a duplicate-key error from a path whose whole purpose is to be
+ * idempotent. Here the loser writes nothing and returns.
  *
  * No statement FAILS, which matters because this may run inside the provisioning
  * transaction: a caught duplicate would abort it (`25P02`), taking the
@@ -109,8 +109,8 @@ export interface StandingPatch {
 /**
  * Moves an application's standing, returning the row AFTER the write.
  *
- * `returning()` collapses the Mongo site's update-then-read into one statement.
- * That is not only a saved round trip: between those two Mongo calls another
+ * `returning()` makes update-then-read one statement. That is not only a saved
+ * round trip: between two separate calls another
  * operator's change could land, and the caller would return a row that never
  * reflected its own write. Here the returned row is the one this statement
  * produced.
@@ -157,10 +157,9 @@ export async function listByStanding(
 /**
  * How many applications sit in each standing — the T&S dashboard's headline.
  *
- * One `GROUP BY` where Mongo issued three `countDocuments`, and the caller
- * supplies the standings it wants counted so a standing nobody is in reads ZERO
- * rather than being absent. `GROUP BY` omits an empty group; `countDocuments`
- * returns 0. A dashboard rendering `undefined` for "restricted" says "unknown"
+ * One `GROUP BY`, and the caller supplies the standings it wants counted so a
+ * standing nobody is in reads ZERO rather than being absent. `GROUP BY` omits
+ * an empty group. A dashboard rendering `undefined` for "restricted" says "unknown"
  * where the truth is "none", and on this particular screen that is the difference
  * between "no application is restricted" and "we are not measuring it".
  *

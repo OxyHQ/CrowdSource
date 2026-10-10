@@ -23,15 +23,13 @@ import {
 /**
  * Tenant isolation, as PostgreSQL enforces it.
  *
- * `tenantIsolation.integration.test.ts` is the Mongo half of this and its header
- * explains why it is written the way it is: on Mongo the boundary is a property
- * of the codebase and of nothing else. These are the tests standing where that
- * file said Row Level Security would have stood.
+ * `tenantIsolation.integration.test.ts` covers the same boundary through the
+ * service layer; these tests prove what Row Level Security itself enforces.
  *
  * THIS FILE IS THE ONLY EVIDENCE THE COMPOSITE PROPERTY WILL EVER HAVE.
- * `crowdsource-production` holds two documents, both `reviewer_profiles`, and no
- * document anywhere carries an `organizationId` + `applicationId` pair — a census
- * run as a one-shot task in the VPC, with a 26-collection positive control. So
+ * Production data held two rows, both `reviewer_profiles`, and none anywhere
+ * carried an `organizationId` + `applicationId` pair — a census run as a
+ * one-shot task in the VPC, with a 26-dataset positive control. So
  * production will never supply a counterexample: if the policy is ever narrowed
  * to the organization key alone, nothing else in the system will notice. That is
  * why the mutation test at the bottom is load-bearing rather than hygienic, and
@@ -62,8 +60,7 @@ const beta = createTenantContext('org_beta', 'app_beta');
  * `application_id` passes every assertion here — two separate customers are
  * isolated by their organization alone. One customer's two products are not, and
  * that is the realistic shape: a staging application and a production one under
- * one account. Measured directly against a real server, not reasoned about; the
- * Mongo half of this suite records finding the identical defect by mutation.
+ * one account. Measured directly against a real server, not reasoned about.
  */
 const alphaSibling = createTenantContext('org_alpha', 'app_sibling');
 

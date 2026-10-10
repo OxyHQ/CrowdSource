@@ -40,10 +40,7 @@ export type PgHandle = PgDatabase<
  * than a runtime surprise. Measured: assigning a `PgHandle` here reports
  * `TS2739` naming all four missing members.
  *
- * This is what the Mongo side could not have. There, the root connection and a
- * session-bearing handle share ONE type alias, so nothing could discriminate
- * them at compile time and `requireTransaction` had to be a runtime predicate.
- * Here the type does the work, and the runtime check below is the second layer
+ * The type does the work, and the runtime check below is the second layer
  * for handles that arrive through a cast or an `any`.
  */
 export type PgTransactionHandle = PgTransaction<
@@ -121,7 +118,7 @@ function asTenantScoped(tx: PgTransactionHandle): TenantScopedHandle {
  * `PgTransactionHandle` makes the ordinary mistake a compile error, and it is
  * not sufficient on its own. A handle reaching an unscoped repository through a
  * cast, an `any`, or a generic boundary can be typed as a transaction and be a
- * pool at run time — which is exactly the case the Mongo guard was written for.
+ * pool at run time.
  * So this checks a property the pool cannot have: drizzle puts `rollback` on
  * `PgTransaction` and nowhere else.
  *

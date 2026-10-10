@@ -20,15 +20,13 @@ function uniqueTextValues(values: readonly string[]) {
  *
  * Every function takes a `TenantScopedHandle` — the branded type only
  * `withTenant` can mint — so passing the pool is a COMPILE error rather than a
- * silent empty result. The Mongo wrapper this replaces takes a `TenantContext` as
- * its first argument for the same purpose; here the context lives in the
- * transaction, and the brand is what proves the caller opened one.
+ * silent empty result. The context lives in the transaction, and the brand is
+ * what proves the caller opened one.
  *
  * NOTE WHAT IS ABSENT FROM EVERY QUERY BELOW: a tenant predicate. There is no
  * `where organization_id = …` anywhere in this file, and that is the whole point
  * of the migration — the DATABASE decides visibility through `tenant_isolation`,
- * not a filter a query could forget. `db/tenantScope.ts` has to state that rule in
- * application code because Mongo cannot enforce it; here the rule is the server's.
+ * not a filter a query could forget. The rule is the server's.
  *
  * The consequence for anyone editing this file: adding an `organization_id` term
  * to a query here would not be defence in depth, it would be a second authority

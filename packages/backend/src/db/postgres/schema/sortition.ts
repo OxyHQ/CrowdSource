@@ -25,12 +25,9 @@ import { REVIEW_POOLS } from '../../../modules/triage/triage';
  * asks for their next case. Both end in the same place; what differs is whether
  * the reviewer has yet looked at it.
  *
- * Declared HERE rather than in `assignment.collection.ts`, following the move
- * `OUTBOX_STATUSES` and `REVIEWER_RELATION_SOURCES` already made: the Mongoose
- * file is what goes away at the switch, and the CHECK below has to be rendered
- * from the same tuple the Mongoose `enum` validates. Two copies of a closed value
- * set is how they drift, and the copy that survives should be the one in the
- * store that survives.
+ * Declared HERE, beside the table, following the move `OUTBOX_STATUSES` and
+ * `REVIEWER_RELATION_SOURCES` already made: the CHECK below is rendered from
+ * this tuple, and two copies of a closed value set is how they drift.
  *
  * `SLOT_TYPES` and `REVIEW_POOLS` do NOT move, and are imported above from
  * `panelSpec` and `triage` instead. Their homes are domain modules that survive
@@ -56,9 +53,7 @@ export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
  * member is already admitted by `assignments_status_check`, and a column
  * constrained to this narrower set would refuse `submitted`, which is where every
  * completed assignment ends up. It moved with `ASSIGNMENT_STATUSES` because it is
- * derived from it and because the repositories below read it — a Postgres
- * repository importing it from the Mongoose file would point the surviving module
- * at the dying one.
+ * derived from it and because the repositories below read it.
  */
 export const OPEN_ASSIGNMENT_STATUSES: readonly AssignmentStatus[] = ['offered', 'accepted'];
 
@@ -155,10 +150,7 @@ export const assignments = pgTable(
     /**
      * ONE SEAT PER PERSON PER CASE REVISION, enforced by the database.
      *
-     * The Mongo counterpart of this line —
-     * `assignmentSchema.index({ caseId, reviewerId, caseRevision }, { unique: true })`
-     * — had no PostgreSQL equivalent until now, which is a preserved prohibition
-     * that the port silently dropped. It is not decorative: `openPanel`'s own
+     * It is not decorative: `openPanel`'s own
      * header names it as the reason a replayed draw is safe ("the unique index on
      * `caseId + reviewerId + caseRevision` rejects a second attempt to seat the
      * same person"), and §12.7's `case_id + reviewer_id + decision_revision`
@@ -193,7 +185,7 @@ export const assignments = pgTable(
     index('assignments_status_expires_at_idx').on(table.status, table.expiresAt),
 
     /**
-     * The three closed value sets this table carried in Mongo, restored.
+     * The three closed value sets of this table.
      *
      * Each is rendered from its tuple through `inList` + `sql.raw` rather than
      * spelled out, so adding a member is a code change PLUS a migration in the
@@ -206,10 +198,9 @@ export const assignments = pgTable(
      * that filled a seat need not be the class the seat asked for, and a single
      * constraint could not tell a reader that both are separately closed.
      *
-     * `sensitivity_class` deliberately gets NO CHECK. Mongo declared it
-     * `{ type: String, required: true }` with no `enum`, so constraining it here
-     * would be a NEW restriction smuggled in under a port rather than a preserved
-     * one. The asymmetry is recorded so a later reader does not "fix" it.
+     * `sensitivity_class` deliberately gets NO CHECK. It is a required string
+     * with an open value set, so constraining it here would be a NEW restriction
+     * the domain never asked for. The asymmetry is recorded so a later reader does not "fix" it.
      */
     check(
       'assignments_status_check',
@@ -301,9 +292,8 @@ export const sortitionDraws = pgTable(
     /**
      * `requested_slots` is `text[]`, so its value set is CONTAINMENT, not `in`.
      *
-     * Mongo's `{ type: [String], enum: SLOT_TYPES }` puts the validator on the
-     * CASTER — it constrains each element, not the array — and `<@` is the
-     * operator that says the same thing. An `in (...)` here would not compile
+     * `SLOT_TYPES` constrains each element, not the array, and `<@` is the
+     * operator that says that. An `in (...)` here would not compile
      * against an array column, and a per-element check written any other way
      * would need an unnest.
      *
@@ -344,9 +334,8 @@ export const sortitionDraws = pgTable(
      * ## This one is a NEW restriction, and is the only one in this file
      *
      * Said plainly because the other six were preserved and this one is not.
-     * Mongoose's `required: true` on an array does not mean non-empty, so no
-     * validator ever enforced this; the invariant lived in `:471`'s throw, which
-     * is application code. It is worth making structural — a `drawn` draw with no
+     * `NOT NULL` on an array does not mean non-empty, so before this CHECK the
+     * invariant lived only in `:471`'s throw, which is application code. It is worth making structural — a `drawn` draw with no
      * requested seat is a panel seated for nothing, and §8.5's audit story rests
      * on the record being coherent — but it is an addition, not a restoration,
      * and the next reader should not have to work that out.
@@ -444,7 +433,7 @@ export const reviews = pgTable(
     ),
 
     /**
-     * The two closed value sets this table carried in Mongo, restored.
+     * The two closed value sets of this table.
      *
      * Rendered from `REVIEW_OUTCOMES` and `CONTEXT_SUFFICIENCIES` in the contracts
      * package rather than from a local copy: both cross the reviewer API boundary
@@ -454,11 +443,10 @@ export const reviews = pgTable(
      * `REVIEWER_STATES` versus `REVIEWER_RELATION_SOURCES` made.
      *
      * `recommended_actions` DELIBERATELY gets no constraint. It is
-     * `{ type: [String], required: true, default: [] }` in Mongo with no `enum`,
-     * so a containment check here would be a NEW restriction smuggled in under a
-     * port — even though the TypeScript type is the closed `RecommendedAction`
-     * vocabulary, and even though consensus counts the values. The type is not the
-     * validator, and only the validator is being restored. `findings` is jsonb and
+     * a required string array with no closed value set, so a containment check
+     * here would be a NEW restriction — even though the TypeScript type is the
+     * closed `RecommendedAction` vocabulary, and even though consensus counts
+     * the values. The type is not the validator. `findings` is jsonb and
      * its interior paths carry no enum either.
      */
     check('reviews_outcome_check', sql`${table.outcome} in (${sql.raw(inList(REVIEW_OUTCOMES))})`),

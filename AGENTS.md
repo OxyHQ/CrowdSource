@@ -104,9 +104,6 @@ touched. It reads exactly like someone else's broken commit.
   dependency. A domain write and its outbox row commit through the SAME Drizzle
   transaction; workers claim durable rows with bounded leases. Never create work
   without the outbox row that makes it re-derivable.
-- **`@crowdsource.you/core/outbox` is PostgreSQL-only.** Do not restore a Mongoose
-  export, dependency or runtime path. Adopter migrations preserve exact ids and
-  reconcile counts plus canonical SHA-256 digests against an empty target.
 - **Isolation is enforced by PostgreSQL RLS and the scoped repository types.** A
   `TenantContext` is built ONLY by `createTenantContext`, from the authenticated
   service credential — never from a body, path, query or header. Tenant-owned
@@ -130,8 +127,7 @@ touched. It reads exactly like someone else's broken commit.
   silently, days later, as moderation work stuck in a queue.
 - **A backend data cutover is freeze/export/import/reconcile, never an in-place
   guess.** Preserve every existing identifier, prove the PostgreSQL target empty,
-  and compare canonical counts plus SHA-256 digests before deploy. The repository
-  runtime cut does not assert that production data was migrated.
+  and compare canonical counts plus SHA-256 digests before deploy.
 - **Take a reviewer `(family, language)` cell from
   `src/__tests__/support/reviewerAxes.ts`; never declare a pair inline.** Every
   integration file shares ONE disposable PostgreSQL database, so the eligibility

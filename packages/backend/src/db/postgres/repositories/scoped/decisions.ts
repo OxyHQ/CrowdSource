@@ -55,7 +55,7 @@ export async function findDecisionById(db: TenantScopedHandle, decisionId: strin
  * The decision for one revision of a case.
  *
  * `(case_id, revision)` is the unique that makes a decision addressable without
- * its id — deliberately NOT tenant-prefixed, as on Mongo, because a case id is
+ * its id — deliberately NOT tenant-prefixed, because a case id is
  * already globally unique and a prefixed version would be no stronger.
  */
 export async function findDecisionForRevision(

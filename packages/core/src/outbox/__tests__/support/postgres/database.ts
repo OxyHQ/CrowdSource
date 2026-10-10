@@ -9,9 +9,8 @@ import * as schema from './schema.js';
  * One throwaway Postgres database per test file, with the committed test DDL
  * applied.
  *
- * A real database, not a per-suite name on one connection: the Mongo harness can
- * hand every `createHarness` a fresh `dbName` over a single connection, and
- * Postgres has no equivalent — a database is a database. `createTestDatabase`
+ * A real database, not a per-suite name on one connection: Postgres cannot
+ * switch databases on a connection — a database is a database. `createTestDatabase`
  * creates one with a unique name and `dropTestDatabase` removes it, so nothing a
  * developer cares about is ever written to.
  */
@@ -24,8 +23,8 @@ const MIGRATIONS_FOLDER = resolve(__dirname, 'migrations');
  * Several properties here have a BLOCK as their natural failure mode — a claim
  * whose `SKIP LOCKED` was removed waits on the row another connection holds. A
  * test whose failure mode is a hang cannot distinguish a broken guard from a slow
- * machine, and the same lesson cost this package three different verdicts for one
- * defect on the Mongo side before `maxTimeMS` was added there. Bounded, a blocked
+ * machine, and the same lesson once cost this package three different verdicts
+ * for one defect. Bounded, a blocked
  * statement fails as `57014 query_canceled` in about two seconds, and a test can
  * assert that "answered null" and "was cancelled" are different outcomes.
  */

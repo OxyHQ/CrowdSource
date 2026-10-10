@@ -135,8 +135,8 @@ export function createDeliveryWorker<TReport extends ModerationReportFields, TTx
        */
       await input.reports.markDeliveryFailed(
         reportId,
-        // Bounded here rather than by a column width, so both dialects agree: a
-        // Mongoose validator throws on overflow and Postgres errors 22001.
+        // Bounded here rather than only by the column width: Postgres errors
+        // 22001 on overflow.
         (error instanceof Error ? error.message : String(error)).slice(0, 2_000),
       );
       count('failed');

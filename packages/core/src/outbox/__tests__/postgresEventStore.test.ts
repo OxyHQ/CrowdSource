@@ -92,7 +92,7 @@ describe('the claim', () => {
 
   it('answers false for a duplicate rather than throwing', async () => {
     /**
-     * The structural difference from Mongo, asserted rather than described: a
+     * The structural property, asserted rather than described: a
      * duplicate is a row COUNT here, not an exception, so there is no catch block
      * whose predicate could be widened into swallowing a connection failure as
      * "already processed".

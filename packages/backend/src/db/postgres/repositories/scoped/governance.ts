@@ -30,10 +30,9 @@ export interface NewPolicySet {
 
 /**
  * `locale` is `string | null` and NOT optional, so a caller with no locale has to
- * say so. On Mongo the field could be ABSENT rather than null on older documents,
- * and a backfill reading `doc.locale` gets `undefined` — writing the string
- * `"undefined"` into a nullable text column produces a locale nobody can explain
- * and nothing rejects. A required parameter is what makes that impossible here.
+ * say so. A caller passing `undefined` through string conversion would write
+ * `"undefined"` into a nullable text column — a locale nobody can explain and
+ * nothing rejects. A required parameter is what makes that impossible here.
  */
 export async function insertPolicySet(db: TenantScopedHandle, next: NewPolicySet): Promise<void> {
   await db.insert(policySets).values(next);
@@ -126,8 +125,7 @@ export async function listAuditEventsForCase(db: TenantScopedHandle, caseId: str
  * conflict target is the row's natural key, and `reports_received` is incremented
  * from the STORED value in SQL rather than from a value JavaScript computed.
  *
- * `day` is `text`, not a date — the Mongoose file states the reason and it is
- * carried over deliberately rather than re-derived.
+ * `day` is `text`, not a date — the schema states the reason.
  */
 export async function incrementUsageCounter(
   db: TenantScopedHandle,

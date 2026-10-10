@@ -86,8 +86,7 @@ describe('creating the sandbox default', () => {
   /**
    * No statement FAILS, so the surrounding transaction survives.
    *
-   * The Mongo site reads then inserts, which races; the port uses
-   * `ON CONFLICT DO NOTHING`. This runs it inside a transaction and then writes
+   * Read-then-insert races, so the repository uses `ON CONFLICT DO NOTHING`. This runs it inside a transaction and then writes
    * again — impossible if the conflict had aborted it (`25P02`).
    */
   it('leaves the provisioning transaction usable after a conflict', async () => {

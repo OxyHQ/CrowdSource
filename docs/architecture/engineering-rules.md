@@ -57,9 +57,9 @@ Apply the same rule beyond this table. Anything the ecosystem already solves onc
 
 ### Persistence
 
-`@crowdsource.you/core/outbox` (`packages/core/src/outbox`) and `@crowdsource/backend` are PostgreSQL-only in the current source tree. Neither package installs or boots a Mongo driver. Files still go through the Oxy media chokepoint, and Valkey holds nothing that must survive. Historical plans below this directory may describe the state before the cut; treat them as evidence, not runtime documentation.
+`@crowdsource.you/core/outbox` (`packages/core/src/outbox`) and `@crowdsource/backend` persist to PostgreSQL. Files go through the Oxy media chokepoint, and Valkey holds nothing that must survive.
 
-**The backend runtime cut is recorded in [`postgres-runtime-cut.md`](./postgres-runtime-cut.md); production data cutover is a separate, still-blocked operation.** It requires the two-role/RLS provisioning and the freeze/export/import/reconcile runbook. The retired `databaseIdentity.ts` Mongo override must not return under another name.
+Production requires the two-role/RLS provisioning: the migrator role owns the schema, and the application role owns nothing and stays subject to forced RLS.
 
 Database identity comes from the PostgreSQL URL and every migration also requires an explicit `--target-database=<name>`. The runtime receives only the non-owner application credential; the serving task must never carry the migrator credential.
 

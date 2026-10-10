@@ -1,14 +1,13 @@
 # Threat model
 
-- **Status**: archived Mongo-era measurement from 2026-07-30, against `origin/main` = `978d31ac`
+- **Status**: archived measurement from 2026-07-30, against `origin/main` = `978d31ac`
 - **Revised at the time**: PLAN §13.1, which was written before that snapshot
   and assumed PostgreSQL Row Level Security, an S3 evidence bucket and three
-  environments. The superseded ADR 0001 records why those did not run then.
+  environments.
 
 > **Not a current control inventory.** “Today” below means the pinned 2026-07-30
-> source tree. The serving runtime is now PostgreSQL-only with forced RLS; use
-> [`engineering-rules.md`](./engineering-rules.md) and
-> [`postgres-runtime-cut.md`](./postgres-runtime-cut.md) for the active storage
+> source tree. The serving runtime uses PostgreSQL with forced RLS; use
+> [`engineering-rules.md`](./engineering-rules.md) for the active storage
 > boundary, then verify each product control against current code and tests.
 
 ## How to read this
@@ -24,7 +23,7 @@ affect:
 - **Tenant isolation is a property of this codebase and of nothing underneath
   it.** There is no Row Level Security. A query that reaches around
   `packages/backend/src/db/collections.ts` is isolated by nothing, and the only
-  thing that would notice is a source-scanning test at build time (ADR 0001 §5).
+  thing that would notice is a source-scanning test at build time.
 - **Several surfaces named in the plan do not exist yet**: the appeal object, the
   Trust & Safety console, the developer console, the reputation bridge, and
   application trust standing. A threat against a
@@ -35,8 +34,7 @@ affect:
   as a second source of tenant proof through the one existing constructor; and a
   privileged cross-tenant read for Trust & Safety, built as named queries with the
   projection baked in. Rows §2 and §7 are written so they do not go false when
-  those land, and neither is described here as a guard that exists. ADR 0001 §5
-  *In flight* holds the detail.
+  those land, and neither is described here as a guard that exists.
 
 ---
 
@@ -484,16 +482,15 @@ document: not mitigated, merely not yet possible.
 
 **What will stop it, and why the shape matters.** A privileged cross-tenant read is
 written for Trust & Safety, because §4.3 and §10.4 make T&S the audience that sees
-across tenants. It is **not committed anywhere** — see ADR 0001 §5 *In flight* for
-the checked status — so what follows is verified against that working tree and is
-not yet a guard in the tree. The shape is **specific named queries with the
+across tenants. It is **not committed anywhere**, so what follows is verified against an
+uncommitted working tree and is not yet a guard in the tree. The shape is **specific named queries with the
 projection baked in**, allowlisted to one *file* rather than a directory, plus
 scalars-only aggregation for §16.4's metrics.
 
 Three properties of it are worth stating precisely, because each is stronger than
 the obvious version and the difference is what a reviewer should protect:
 
-1. **The projection is applied in the Mongo query, not to a loaded document.**
+1. **The projection is applied in the database query, not to a loaded document.**
    `ESCALATED_QUEUE_FIELDS` is a declared constant passed to
    `.select(ESCALATED_QUEUE_FIELDS.join(' '))`. A forbidden field therefore never
    enters the process. That is materially stronger than "projected before
@@ -801,7 +798,7 @@ watermark value, so nothing populates it today.
     correlation happens ONLY through `Incident`" names a chokepoint that does not
     exist — and once the §7 read lands that sentence is wrong on both halves and on
     its caller axis too (it constrains "application-API caller"; the new module
-    serves a **staff session**). See ADR 0001 §5 *In flight*.
+    serves a **staff session**).
 19. `AUDIT_ACTIONS` has no entry that could record a Trust & Safety read. The
     uncommitted work answers this with a **separate `staff_audit_events`
     collection** rather than an entry, because a staff read spans every tenant at
@@ -811,7 +808,7 @@ watermark value, so nothing populates it today.
     list: `organizationId + oxyUserId` on membership, `applicationId + day` on the
     usage counter, `oxyUserId` on `trust_safety_staff`. The first has teeth: without
     it two concurrent invitations give one person two role rows and every later
-    permission check answers whichever Mongo returns first — an intermittent
+    permission check answers whichever row the database returns first — an intermittent
     authorization bug, not a visible duplicate.
 21. **The juror collections (`Assignment`, `Review`, `ReviewerProfile`,
     `SortitionDraw`, `ReviewerAffinity`, `ReviewerRelation`) are unscoped, so they

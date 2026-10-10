@@ -264,4 +264,4 @@ failure the "one penalty per incident" invariant exists to prevent.
   "recorded, never fetched", which keeps §7.2.7's scheme rule from being mistaken
   for an SSRF control. Note this also removed the earlier `superRefine` requiring
   exactly one of `uploadId`/`url`: the two are no longer alternatives, since
-  `fileId` is now the only source of bytes. See ADR 0001 §3.
+  `fileId` is now the only source of bytes.

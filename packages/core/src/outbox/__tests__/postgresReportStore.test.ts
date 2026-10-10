@@ -5,8 +5,7 @@
  * attack one clause of it each.
  *
  * One assertion records a MEASUREMENT that contradicts the plan: an `extra` key
- * the table does not declare is dropped silently, exactly as Mongoose strict mode
- * drops it, because drizzle builds the statement from the table's own columns and
+ * the table does not declare is dropped silently, because drizzle builds the statement from the table's own columns and
  * Postgres never sees the offending name. See that test for the evidence.
  */
 
@@ -131,7 +130,7 @@ describe('storing a report', () => {
     expect(report.localStatus).toBe('queued');
   });
 
-  it('DROPS an extra field the table does not declare, exactly as Mongoose does', async () => {
+  it('DROPS an extra field the table does not declare', async () => {
     /**
      * This assertion records a behaviour the plan expected to be the opposite, so
      * it is written to the measurement rather than to the expectation.
@@ -143,11 +142,9 @@ describe('storing a report', () => {
      * recognise: measured with `.toSQL()`, `notAColumnAtAll` appears nowhere in
      * the statement or its parameters.
      *
-     * So the silent-discard hazard is not a Mongoose property, it is an ORM
-     * property, and BOTH ORMs have it. `CreateReportInput.extra` is
+     * So the silent-discard hazard is an ORM property. `CreateReportInput.extra` is
      * `Record<string, unknown>` by design — the whole point is that this package
-     * does not know an adopter's columns — so no type catches it either, on either
-     * backend. An adopter who misspells one of their own columns stores nothing
+     * does not know an adopter's columns — so no type catches it either. An adopter who misspells one of their own columns stores nothing
      * there, forever, with no error and no warning.
      *
      * Asserted here so the next reader gets the measurement instead of the
@@ -189,8 +186,7 @@ describe('storing a report', () => {
   it('answers null for an id nothing could have generated, without rejecting', async () => {
     /**
      * G13, and the reason it evaporates: `id` is `text`, so a malformed id matches
-     * no rows. Mongoose raises a `CastError` for the same input and its store has
-     * to catch it; there is nothing to catch here, and a branch for `22P02` would
+     * no rows. There is nothing to catch, and a branch for `22P02` would
      * handle an error this column cannot raise.
      */
     await expect(reportStore().findById('not-an-id-at-all')).resolves.toBeNull();
@@ -271,7 +267,7 @@ describe('the delivery transitions', () => {
     expect(row?.localStatus).toBe('submitted');
     expect(row?.crowdSourceCaseId).toBe('case_1');
     expect(row?.submittedAt).toEqual(submittedAt);
-    // Both cleared: `null` in drizzle is the port of Mongo's `$unset`, and
+    // Both cleared: `null` in drizzle clears a column, and
     // `undefined` would have left the stale values in place.
     expect(row?.lastDeliveryError).toBeNull();
     expect(row?.localStatusReason).toBeNull();

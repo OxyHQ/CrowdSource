@@ -43,15 +43,9 @@ export class DuplicateReportError<TReport> extends Error {
  * Refuses an identifier that is not a string, before it reaches the store.
  *
  * The input type says these are strings, but a type is erased at runtime and a
- * truthiness check passes anything non-empty — including an object. What that
- * costs depends on the backend, and the difference is worth stating rather than
- * flattening: on Mongo a `{ $ne: null }` becomes a query OPERATOR, so the
- * duplicate lookup matches an UNRELATED report and answers "you already reported
- * this" about somebody else's row; on Postgres a bound parameter cannot become
- * an operator, so that particular failure class does not exist there.
- *
- * The guard is not Mongo's, though. A non-string still reaches the insert and
- * stores something that is not an id where an id belongs, on any backend — and
+ * truthiness check passes anything non-empty — including an object. A bound
+ * parameter cannot become a query operator, but a non-string still reaches the
+ * insert and stores something that is not an id where an id belongs — and
  * the check lives here rather than at an application's route because this
  * function is exported: a queue worker, a reconciliation script or a future
  * admin path is under no obligation to have passed a route's validation, and a

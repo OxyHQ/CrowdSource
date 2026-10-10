@@ -197,9 +197,9 @@ describe('recording an outcome', () => {
 
   it('leaves previousState and appliedAt NULL for an action that was only recorded', async () => {
     /**
-     * The `null`-versus-absent decision, at the row that depends on it most: Mongo
-     * OMITS these two fields and Postgres stores NULL, so the façade and the
-     * lookup both have to treat the two as one answer. `latestApplied` must not
+     * The `null`-versus-absent decision, at the row that depends on it most:
+     * Postgres stores NULL, and the façade and the lookup both have to treat
+     * NULL and absent as one answer. `latestApplied` must not
      * report a `previousState` key at all here.
      */
     const key = { decisionId: 'dec_1', decisionRevision: 1, action: 'restore' };

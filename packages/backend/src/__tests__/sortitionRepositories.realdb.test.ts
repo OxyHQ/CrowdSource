@@ -388,12 +388,12 @@ describe("§13.7's exposure rows", () => {
   });
 
   /**
-   * `inArray(column, [])` renders as the literal `false`, which is what Mongo's
-   * `$in: []` matches too. Asserted rather than assumed, because the two stores
-   * disagreeing on a degenerate input is the shape of bug this port keeps finding
-   * — and here they agree, so no length guard is needed at the call site.
+   * `inArray(column, [])` renders as the literal `false`, matching nothing.
+   * Asserted rather than assumed, because a degenerate input matching
+   * EVERYTHING is a real shape of bug in this repository — and here it matches
+   * nothing, so no length guard is needed at the call site.
    */
-  it('returns nothing for an empty reviewer list, matching Mongo', async () => {
+  it('returns nothing for an empty reviewer list', async () => {
     await seedAssignments([assignmentRow({ assignmentId: 'asg_exp_present' })]);
 
     const rows = await sortitionRepository.findExposureAssignments(database.db, [], new Date(0));
@@ -723,8 +723,8 @@ describe('the restored closed value sets are enforced by the database', () => {
   /**
    * `requested_slots` is `text[]`, so its constraint is CONTAINMENT.
    *
-   * Mongo put the `enum` on the CASTER — it constrains each ELEMENT — and `<@` is
-   * the operator that says the same thing. The third assertion is the one that
+   * The value set constrains each ELEMENT, and `<@` is the operator that says
+   * that. The third assertion is the one that
    * earns its place: `<@` is vacuously TRUE for `{}`, so this constraint alone
    * says nothing whatever about empty. That is why the cardinality constraint
    * below is a SECOND constraint rather than a stricter spelling of this one.
@@ -770,11 +770,8 @@ describe('the restored closed value sets are enforced by the database', () => {
 /**
  * ONE SEAT PER PERSON PER CASE REVISION.
  *
- * This constraint is the one migration 0005 RESTORES rather than adds: Mongo
- * carried it as `{ caseId, reviewerId, caseRevision }, { unique: true }` and the
- * PostgreSQL schema had no counterpart, so it was a structural guarantee the port
- * had silently downgraded to a comment. No gate would have caught it —
- * `closedValueSets.realdb.test.ts` censuses `enum` validators, and a `unique` is a
+ * Added by migration 0005. No other gate would catch its loss —
+ * `closedValueSets.realdb.test.ts` censuses value sets, and a `unique` is a
  * different shape entirely.
  *
  * `openPanel` names it as the reason a replayed draw is safe, so the replay is

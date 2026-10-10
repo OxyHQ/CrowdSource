@@ -2,7 +2,7 @@
 
 - **Status**: accepted
 - **Date**: 2026-07-30
-- **Evidence**: production audit of Oxy Trust V1, recorded in `.plan/READINESS-OXYTRUST.md` (read-only audit of `OxyHQServices` at `origin/main` = `e2def02e`, plus a read-only sweep of the production MongoDB cluster)
+- **Evidence**: production audit of Oxy Trust V1, recorded in `.plan/READINESS-OXYTRUST.md` (read-only audit of `OxyHQServices` at `origin/main` = `e2def02e`, plus a read-only sweep of the production database)
 
 ## Context
 

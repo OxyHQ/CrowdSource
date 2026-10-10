@@ -142,7 +142,7 @@ describe('reviewer profiles', () => {
    * A single call returns the same answer whether the statement inserts or
    * upserts, so it cannot tell the two apart. Called twice, an insert that is not
    * conflict-guarded either raises `23505` or produces a second profile — and a
-   * second profile for one person is exactly what the Mongo unique index existed
+   * second profile for one person is exactly what the unique index exists
    * to stop.
    */
   it('gives one Oxy account one profile however many times it is claimed', async () => {
@@ -156,7 +156,7 @@ describe('reviewer profiles', () => {
     );
 
     expect(second.reviewerId).toBe(first.reviewerId);
-    /** The second call's values are DISCARDED, matching Mongo's `$setOnInsert`. */
+    /** The second call's values are DISCARDED: insert-if-absent, never update. */
     expect(second.dailyReviewLimit).toBe(10);
 
     const [{ n }] = await database.asMigrator<{ n: number }[]>`
@@ -212,7 +212,7 @@ describe('reviewer profiles', () => {
     ]);
     expect(found.map((row) => row.reviewerId).sort()).toEqual([a.reviewerId, b.reviewerId].sort());
 
-    /** `inArray(column, [])` renders as `false`, agreeing with Mongo's `$in: []`. */
+    /** `inArray(column, [])` renders as `false`, matching nothing. */
     expect(await reviewerRepository.findReviewerProfilesByIds(database.db, [])).toEqual([]);
   });
 });
@@ -225,7 +225,7 @@ describe('reviewer profiles', () => {
  * cannot be confused with a fixture that seeded nothing or a predicate that
  * stopped matching for an unrelated reason.
  */
-describe('an empty allegation list draws nobody, as it did on Mongo', () => {
+describe('an empty allegation list draws nobody', () => {
   let reviewerId: string;
   let now: Date;
 
@@ -245,13 +245,13 @@ describe('an empty allegation list draws nobody, as it did on Mongo', () => {
   });
 
   /**
-   * Mongo's `$all: []` matched NOTHING; `categories @> ARRAY[]::text[]` matches
-   * EVERYTHING. Measured on both servers 2026-08-11 — see the repository header.
+   * `categories @> ARRAY[]::text[]` matches EVERYTHING. Measured 2026-08-11 —
+   * see the repository header.
    *
    * The failure this pins is not an error. Without the branch the SAME reviewer
    * the control just proved drawable comes back here too, a full panel is seated,
    * and the case that alleges nothing gets a jury instead of the refusal
-   * (`candidate_pool_too_small`) Mongo produced.
+   * (`candidate_pool_too_small`) it must produce.
    */
   it('draws NOBODY when the case alleges nothing', async () => {
     expect(await drawnReviewerIds(criteriaWith({ families: [] }), now)).toEqual([]);
@@ -512,7 +512,7 @@ describe('reviewer principal links', () => {
    *
    * The type refuses the pool at every honestly typed call site; this covers the
    * handle that arrives through a cast, an `any` or a generic boundary, which is
-   * the case the Mongo guard was written for. A `DELETE` that ran outside a
+   * the case the runtime guard is written for. A `DELETE` that ran outside a
    * transaction and was followed by a failed `INSERT` would leave a reviewer with
    * no self-exclusion links and nothing to say so.
    */
@@ -592,8 +592,8 @@ describe('reviewer relations', () => {
     });
     /**
      * Called TWICE, which is the discriminator. A single call cannot tell an
-     * insert from a conflict-guarded one, and Mongo's `$setOnInsert`-only write
-     * left `source` as whatever the FIRST declaration said.
+     * insert from a conflict-guarded one, and the insert-if-absent write must
+     * leave `source` as whatever the FIRST declaration said.
      */
     await reviewerRepository.declareReviewerRelation(database.db, {
       reviewerId: 'rvw_relation',
@@ -641,8 +641,8 @@ describe('reviewer affinities', () => {
   /**
    * The first co-service must leave the counter at ONE, not zero.
    *
-   * Mongo applied `$setOnInsert` and `$inc` together, so the insert that created
-   * the row also incremented it. A Postgres insert that seeded 0 would undercount
+   * The insert that creates the row also counts that panel. An insert that
+   * seeded 0 would undercount
    * every pair's first panel forever, and the error is invisible until a pair
    * reaches the threshold one panel later than it should — no exception, no log
    * line, just two reviewers who keep being seated together.

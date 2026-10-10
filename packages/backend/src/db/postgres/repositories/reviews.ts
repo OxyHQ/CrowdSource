@@ -23,7 +23,7 @@ export type ReviewRow = typeof reviews.$inferSelect;
 /**
  * Records one juror's vote, inside the submission's transaction.
  *
- * Transactional because the Mongo call site is: `submitReview` consumes the
+ * Transactional because `submitReview` consumes the
  * assignment, writes this row, promotes the reviewer and appends the outbox event
  * in ONE transaction. That is not tidiness — a review stored without its consumed
  * assignment would let the same juror vote again, and an outbox row that failed to
@@ -48,7 +48,7 @@ export async function insertReview(
 /**
  * Every review submitted for one revision of one case — the consensus read.
  *
- * No ordering, matching the Mongo call site, because `evaluateConsensus` folds
+ * No ordering, because `evaluateConsensus` folds
  * ballots into counts and a fold does not depend on order. Stated rather than left
  * implicit: adding an `ORDER BY` here would be harmless but would suggest the
  * engine reads them in sequence, which it does not.
@@ -78,8 +78,8 @@ export interface ReviewHistoryCursor {
  * `submitted_at` alone is not a cursor. Review ids are `randomUUID`-derived and
  * carry no order, so two reviews landing in the same millisecond have no tiebreak
  * — and a keyset cursor without a TOTAL order either repeats a row across two
- * pages or drops one entirely. The Mongo site spells that as an `$or` of
- * "strictly older" plus "same instant, smaller id", and this is the same predicate:
+ * pages or drops one entirely. So the predicate is "strictly older" or "same
+ * instant, smaller id":
  *
  *     submitted_at < $1  OR  (submitted_at = $1 AND review_id < $2)
  *

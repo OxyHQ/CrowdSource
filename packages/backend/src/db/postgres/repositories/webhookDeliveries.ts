@@ -38,9 +38,8 @@ export interface DeliveryStatusCounts {
  * one.
  *
  * `ON CONFLICT … DO NOTHING RETURNING`, and the empty result IS the answer —
- * never a caught duplicate-key error. The Mongo site catches `11000` and returns
- * `false`, which ports badly for a reason that has nothing to do with style: in
- * PostgreSQL one failed statement aborts the WHOLE transaction (`25P02`), so a
+ * never a caught duplicate-key error, for a reason that has nothing to do with
+ * style: in PostgreSQL one failed statement aborts the WHOLE transaction (`25P02`), so a
  * caught duplicate inside the fan-out transaction would doom every write around
  * it. Here no statement fails, so a genuine infrastructure error still
  * propagates instead of being read as "already delivered".
@@ -76,8 +75,7 @@ export async function insertDeliveryIfAbsent(
  *
  * ## Why the sub-select, and why `SKIP LOCKED`
  *
- * Mongo's `findOneAndUpdate` with a sort is a single atomic claim. The PostgreSQL
- * equivalent is `UPDATE … WHERE delivery_id = (SELECT … ORDER BY … FOR UPDATE
+ * A single atomic claim of the oldest due row is `UPDATE … WHERE delivery_id = (SELECT … ORDER BY … FOR UPDATE
  * SKIP LOCKED LIMIT 1)`. A plain `UPDATE … LIMIT 1` has no such spelling, and an
  * `UPDATE` whose `WHERE` merely repeats the predicate lets two workers pick the
  * same row: under READ COMMITTED the loser blocks, re-evaluates, and — because
@@ -159,9 +157,8 @@ export interface DeliveryOutcomePatch {
  * an `undefined` from the `SET`, so a patch that left `deadLetterReason` off
  * would keep the previous attempt's reason on a delivery that has since
  * succeeded — and `lease_expires_at` must be cleared or the row stays claimable
- * by the crash-recovery branch above while it is finished. The Mongo call site
- * passes all six for the same reason; `undefined` there is a no-op, but here it
- * would be one too, which is exactly the trap.
+ * by the crash-recovery branch above while it is finished. The call site
+ * passes all six for that reason.
  */
 export async function recordDeliveryOutcome(
   db: PgHandle,
@@ -275,9 +272,8 @@ export async function listDeadLetteredAcrossTenants(
 /**
  * Turns grouped rows into the four counts, with ZERO for the absent statuses.
  *
- * This is the whole reason the eight `countDocuments` calls do not become eight
- * queries. A `GROUP BY` omits a status nobody is in — it does not return zero for
- * it — so a naive port reports `undefined` where Mongo reported `0`, and
+ * A `GROUP BY` omits a status nobody is in — it does not return zero for
+ * it — so a naive reading reports `undefined` where the answer is `0`, and
  * `undefined` reaching a health payload reads as "unknown" or renders as blank
  * where the honest answer is "none". Every status is seeded from the tuple first
  * and then overwritten, so a queue with no dead letters says `deadLetter: 0`.

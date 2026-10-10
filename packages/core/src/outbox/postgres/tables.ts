@@ -30,17 +30,15 @@ import type {
  *
  * 1. **A closed value set is `text` plus a CHECK built from the same tuple that
  *    types it**, never a Postgres `enum` type. Adding an enforcement action
- *    becomes a migration where Mongo only needed a restart, which is the correct
- *    trade: a stored action outside the declared set is exactly what the
+ *    is a migration, which is the correct trade: a stored action outside the declared set is exactly what the
  *    constraint exists to refuse.
- * 2. **The TTL indexes have no counterpart.** Postgres does not reap. Each
+ * 2. **There are no TTL indexes.** Postgres does not reap. Each
  *    `expires_at` keeps its index — the sweep's predicate needs it — and the
  *    reaping itself becomes an entry in the adopter's expiry registry; see
- *    `moderationExpirySweepTargets` in `registries.ts`. A table ported without
+ *    `moderationExpirySweepTargets` in `registries.ts`. A table without
  *    one grows forever, with no error and no failing test.
- * 3. **The enforcement unique index IS the primary key.** Mongo needed a
- *    surrogate `_id` plus a unique index on the idempotency triple; here the
- *    triple is the primary key, so there is no second object to keep in step.
+ * 3. **The enforcement idempotency triple IS the primary key**, so there is no
+ *    second object to keep in step.
  *
  * Every column is named EXPLICITLY. Drizzle can derive a snake_case name from
  * the property, and its derivation mangles digit- and capital-adjacent names
@@ -149,11 +147,9 @@ export function moderationTables(options: { enforcementActions: readonly string[
       /**
        * The last delivery error, bounded.
        *
-       * `varchar(2000)` matches the Mongoose `maxlength`, and the application
-       * slices to the same 2000 before writing. Both halves are needed: a
-       * Mongoose validator THROWS on overflow and Postgres errors `22001`, so
-       * the slice is what makes the two dialects agree rather than one of them
-       * failing a delivery over an error message.
+       * `varchar(2000)`, and the application slices to the same 2000 before
+       * writing. Both halves are needed: Postgres errors `22001` on overflow, so
+       * the slice is what keeps a long error message from failing a delivery.
        */
       lastError: varchar('last_error', { length: 2_000 }),
       processedAt: timestamptz(),
@@ -172,7 +168,7 @@ export function moderationTables(options: { enforcementActions: readonly string[
       index('moderation_outbox_due_idx').on(t.status, t.availableAt, t.createdAt),
       index('moderation_outbox_lease_idx').on(t.status, t.leaseUntil, t.createdAt),
       // The sweep's predicate is `expires_at <= now()`; without this it is a
-      // full scan on every run — the cost Mongo's TTL index hid.
+      // full scan on every run.
       index('moderation_outbox_expires_at_idx').on(t.expiresAt),
     ],
   );

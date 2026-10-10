@@ -52,8 +52,8 @@ export interface PostgresTestDatabase {
    * Connected as the MIGRATOR: owns the tables and holds `migrator_full_access`.
    *
    * This is the deliberate bypass path, and the fixtures need it for a reason
-   * worth stating. The Mongo isolation tests prove a 404 means FILTERED rather
-   * than ABSENT by reading the row straight off the driver with no tenant filter.
+   * worth stating. The isolation tests prove a 404 means FILTERED rather than
+   * ABSENT by reading the row straight off the database with no tenant filter.
    * Under FORCE the application role cannot do that — so without a second
    * connection every "the row exists" control silently returns nothing and the
    * isolation assertions go vacuous in the opposite direction. Both directions

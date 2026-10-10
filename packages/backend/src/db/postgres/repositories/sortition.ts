@@ -34,14 +34,13 @@ import { requireTransaction, type PgHandle, type PgTransactionHandle } from '../
  *
  * ## The degenerate-input question, answered rather than assumed
  *
- * Ten `$in` and one `$elemMatch` across the whole sortition surface, and no
- * `$all`. That matters because `$in` and `inArray` AGREE on the empty input —
- * Mongo's `$in: []` matches nothing and drizzle renders `inArray(col, [])` as the
- * literal `false` — whereas `$all: []` matches nothing in Mongo while
- * `col @> '{}'` matches EVERYTHING. The `$all` hazard is real in this repository
- * (`eligibilityFilter`, handled in `repositories/reviewers.ts`); it is simply not
- * present on these two tables. So no site here needs a length guard, and the ones
- * that have none are safe in both stores rather than safe by accident.
+ * The sortition surface uses `inArray` membership and no array containment.
+ * That matters because drizzle renders `inArray(col, [])` as the literal
+ * `false`, matching nothing, whereas `col @> '{}'` matches EVERYTHING. The
+ * containment hazard is real in this repository (`eligibilityFilter`, handled
+ * in `repositories/reviewers.ts`); it is simply not present on these two
+ * tables. So no site here needs a length guard, and the ones that have none are
+ * safe by construction rather than by accident.
  */
 
 export type AssignmentRow = typeof assignments.$inferSelect;
@@ -115,15 +114,14 @@ export async function findAssignmentById(
 /**
  * The reviewer's next case: the one they were assigned longest ago.
  *
- * `LIMIT 1` with `ORDER BY offered_at ASC`, matching the Mongo call site's
- * `{ sort: { offeredAt: 1 }, limit: 1 }` — and returning the row rather than a
+ * `LIMIT 1` with `ORDER BY offered_at ASC`, returning the row rather than a
  * one-element array, because every caller immediately took `[0]`.
  *
  * `offered_at` is `NOT NULL`, so this needs no `NULLS LAST`. Stated because an
  * ordering that silently misplaces null rows is the house bug, and the next
  * reader should not have to go and check the column.
  *
- * `expires_at > now` is strict, matching Mongo's `$gt`. `>=` would hand a reviewer
+ * `expires_at > now` is strict. `>=` would hand a reviewer
  * an assignment expiring on the very instant, which `isLive` — the caller's own
  * predicate, also strict — would then reject, producing a null case for a reviewer
  * who has work waiting.
@@ -146,7 +144,7 @@ export async function findNextOpenAssignment(
 /**
  * Open assignments whose deadline has passed, oldest first (§8.7's sweep).
  *
- * `<=` rather than `<`, matching Mongo's `$lte`, and it is the complement of
+ * `<=` rather than `<`, and it is the complement of
  * `findNextOpenAssignment`'s strict `>`: together they partition the open
  * assignments at any instant, so a seat expiring exactly now is swept rather than
  * being invisible to both queries.
@@ -168,16 +166,14 @@ export async function findDueAssignments(
  * §13.7's exposure rows: what these reviewers are holding, plus what they have
  * completed today.
  *
- * ONE query with an `OR`, as the Mongo site is, rather than two. Both arms are
+ * ONE query with an `OR` rather than two. Both arms are
  * bounded — open assignments by `MAX_OPEN_ASSIGNMENTS` and today's completions by
  * the daily limit — so the result is small by construction for every reviewer.
  *
  * `completed_at >= dayStart` needs no accompanying NOT NULL test, and that is
  * checked rather than assumed: `completed_at` is nullable and null on every seat
- * not yet finished. Mongo's `{ completedAt: { $gte: dayStart } }` does not match a
- * null; in SQL the comparison yields NULL, and a `WHERE` treats NULL as
- * not-matching. So the two stores agree, and adding `IS NOT NULL` would change
- * nothing. Written down because "is a null row included here?" is exactly the
+ * not yet finished. In SQL the comparison yields NULL, and a `WHERE` treats
+ * NULL as not-matching, so adding `IS NOT NULL` would change nothing. Written down because "is a null row included here?" is exactly the
  * question a port gets wrong silently, in the direction of counting a reviewer as
  * having done work they have not.
  */
@@ -240,7 +236,7 @@ export async function openAssignment(
  * been opened, so its token was never rotated to the one the reviewer is holding;
  * widening this to `isOpen()` would let a submission skip the acceptance step.
  *
- * Takes a transaction because the Mongo call site does: it runs inside the
+ * Takes a transaction because it runs inside the
  * review's transaction, so a review that fails to store cannot leave a consumed
  * assignment behind, and a consumed assignment cannot exist without its review.
  */
@@ -272,8 +268,7 @@ export async function consumeAssignmentForReview(
  * `completed_at` is set to NULL explicitly, not left alone. A recusal is NOT a
  * completion — §13.7 counts completions toward a reviewer's daily exposure, and a
  * recusal that left a stale `completed_at` behind would charge somebody for work
- * they declined. The Mongo write sets it to null for the same reason; drizzle
- * would simply omit an undefined, so the null has to be written.
+ * they declined. Drizzle would simply omit an undefined, so the null has to be written.
  *
  * Transactional because the vacancy's outbox row has to commit with it: the
  * replacement is drawn from that event, and a recusal recorded without one leaves
@@ -339,8 +334,7 @@ export async function insertAssignment(
 /**
  * Records which assignment took a vacated seat's place.
  *
- * No transaction: the Mongo call site (`sortition.worker.ts:113`) passes no
- * session, and it runs AFTER `openPanel` has committed the replacement. The
+ * No transaction: the call site (`sortition.worker.ts:113`) runs AFTER `openPanel` has committed the replacement. The
  * pointer is an audit convenience — the worker's own idempotency comes from
  * reading `replacementAssignmentId` back before drawing, so a crash between the
  * draw and this write costs a duplicate replacement at worst, never a lost seat.

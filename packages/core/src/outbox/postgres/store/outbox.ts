@@ -9,20 +9,16 @@ import type { ModerationPgHandle } from './transaction.js';
 /**
  * The moderation outbox, in Postgres.
  *
- * Same six operations as the Mongo store, same policy handed down from the
- * service above it, four places where the mechanism differs — and each of those
- * is where the correctness lives:
+ * Six operations, with the policy handed down from the service above it, and
+ * four mechanisms where the correctness lives:
  *
- * 1. **The transaction guard is `instanceof PgTransaction`.** Mongo's equivalent
- *    asks a session whether a transaction is open; here the mistake is passing
- *    the POOL handle where the `tx` belongs, which runs on a different connection
- *    and commits independently. Same lost guarantee, different shape, and it
- *    type-checks perfectly because both are `ModerationPgHandle`.
+ * 1. **The transaction guard is `instanceof PgTransaction`.** The mistake is
+ *    passing the POOL handle where the `tx` belongs, which runs on a different
+ *    connection and commits independently, and it type-checks perfectly because
+ *    both are `ModerationPgHandle`.
  * 2. **The insert-if-absent is `ON CONFLICT DO NOTHING`.** A no-op by
- *    construction rather than by suppressing an ORM's timestamp behaviour: it
- *    writes nothing and takes no row lock on an already-committed conflicting
- *    row. Never `DO UPDATE` — that reintroduces exactly the defect the Mongo
- *    side's `timestamps: false` exists to prevent.
+ *    construction: it writes nothing and takes no row lock on an
+ *    already-committed conflicting row. Never `DO UPDATE` — see `enqueue`.
  * 3. **The claim is `FOR UPDATE SKIP LOCKED`.** Load-bearing, not tuning: see
  *    `claim`.
  * 4. **Every lease transition asks `RETURNING` how many rows matched.**
@@ -87,14 +83,13 @@ export function postgresOutboxStore(input: {
   return {
     async enqueue(event, tx) {
       /**
-       * The guard, and it is not the same mistake Mongo's guards against.
+       * The guard.
        *
        * Both `db` and `tx` are a `ModerationPgHandle`, so handing this the POOL
        * handle type-checks perfectly — and then the row commits on its own
        * connection, independently of the domain write it was supposed to be
        * atomic with. That is "the report was answered 201 and never delivered",
-       * reached by a different route than a session nobody opened a transaction
-       * on, with the same silence.
+       * in silence.
        *
        * `PgTransaction` is a real runtime class in `drizzle-orm/pg-core`, so this
        * is a genuine check rather than a duck-typed guess.
@@ -110,15 +105,12 @@ export function postgresOutboxStore(input: {
        * duplicate submissions, a reconciliation sweep re-deriving an event — and
        * the dispatcher is concurrently taking, renewing and completing leases on
        * these same rows. `DO UPDATE` would make each repeat a real write, which
-       * conflicts with a live lease update and aborts the enclosing transaction:
-       * the exact defect the Mongo store's `timestamps: false` exists to prevent,
-       * reintroduced in a dialect where nothing forces it on you.
+       * conflicts with a live lease update and aborts the enclosing transaction.
        *
-       * One behavioural difference from Mongo, and Postgres has the better end of
-       * it: if a CONCURRENT UNCOMMITTED transaction holds this same key, Postgres
+       * If a CONCURRENT UNCOMMITTED transaction holds this same key, Postgres
        * WAITS for it and then proceeds (finding the row committed, and doing
-       * nothing), where Mongo raises `WriteConflict` (code 112) and aborts the
-       * enclosing transaction. Waiting is the outcome a caller wants.
+       * nothing) rather than aborting the enclosing transaction. Waiting is the
+       * outcome a caller wants.
        *
        * `created_at` and `updated_at` are written explicitly from the caller's
        * clock rather than left to their defaults, so both backends stamp a row
@@ -203,15 +195,14 @@ export function postgresOutboxStore(input: {
     /**
      * ## Why all three transitions read `RETURNING`, and what that collapses
      *
-     * Mongo's `complete` and `fail` answer `modifiedCount === 1` while its
-     * `renew` answers `matchedCount === 1`. `RETURNING` counts MATCHED rows, so
-     * this store answers the `matchedCount` question in all three places.
+     * `RETURNING` counts MATCHED rows, not modified ones, so all three
+     * transitions answer "did a row match".
      *
      * That is equivalent HERE, and the argument is worth writing down because it
      * is an argument rather than a test: the WHERE clause requires
      * `status = 'processing'`, and `complete` and `fail` both write a different
      * status, so a matched row is always a modified row. `renew` writes only
-     * `lease_until`/`updated_at` and Mongo already used `matchedCount` for it —
+     * `lease_until`/`updated_at`, and matched is the right question for it —
      * a renewal that lands on the values already stored is still a lease this
      * caller holds, and reporting it as lost would make a dispatcher abandon an
      * event it still owns.

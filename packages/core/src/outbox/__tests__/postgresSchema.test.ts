@@ -269,8 +269,7 @@ describe('the registry fragments an adopter merges', () => {
      * Against the REAL catalogue, because the question is whether a leading
      * btree exists — `pg_index` is the only thing that knows, and a fake would
      * answer whatever it was built to answer. Without the index the sweep's
-     * `expires_at <= now()` is a sequential scan on a schedule: exactly the cost
-     * Mongo's TTL index hid, now paid rather than never.
+     * `expires_at <= now()` is a sequential scan on a schedule.
      */
     expect(
       await findUnsupportedExpiryColumns(

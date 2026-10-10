@@ -232,12 +232,9 @@ describe('every tenancy repository function, exercised', () => {
     ).toBe(1);
 
     /**
-     * MEASURED against Mongo, 2026-08-10: the wrapper this replaces returns
-     * `modifiedCount`, and a same-value update still counts as modified because
-     * Mongoose's `timestamps: true` stamps `updated_at` — probe returned
-     * `changed=1, unchangedSameValue=1, noMatch=0`. So Postgres's matched-row count
-     * is equivalent and needs no `status <> $new` predicate. This assertion pins
-     * that equivalence: setting the SAME status again must still answer 1.
+     * A same-value update still stamps `updated_at`, so the matched-row count
+     * needs no `status <> $new` predicate. This assertion pins that: setting the
+     * SAME status again must still answer 1.
      */
     expect(
       await tenancyRepository.updateOrganizationStatus(database.db, ORGANIZATION_ID, 'suspended'),
