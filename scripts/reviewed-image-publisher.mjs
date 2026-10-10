@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 // and refreshed pins, not a filename-only exemption from deployment guards.
 const reviewed = {
   '.github/workflows/publish-reviewed-images.yml':
-    'aa25f35b348aa2476c0b1f2ad3a8dbb4f1fed13ee05ecd95c8b2952b780263c3',
+    '4d9e5ce0d4362ca6053eec6feb74dfc01fbba2f73262ef18753d57846a12162f',
   '.github/scripts/publish-reviewed-image.py':
     '4c20fa31ef8bcd5f18e8e894d6fd35157e7bcce1ef9392f70c21cdd6aa86f17e',
   '.github/scripts/reviewed-images.json':
