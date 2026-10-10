@@ -3,7 +3,7 @@ import { createTestDatabase, dropTestDatabase } from '@oxy.so/db/testing';
 import postgres from 'postgres';
 
 import { runBackendMigrations } from '../../db/migrate';
-import { type BackendSchema } from '../../db/postgres/database';
+import type { BackendSchema } from '../../db/postgres/database';
 import * as schema from '../../db/postgres/schema';
 import { APPLICATION_ROLE, MIGRATOR_ROLE } from '../../db/postgres/tenancy';
 

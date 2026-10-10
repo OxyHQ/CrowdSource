@@ -16,7 +16,7 @@
  * a glyph, a title, a sentence — reads as an answer.
  */
 
-import React, { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 interface EmptyStateProps {

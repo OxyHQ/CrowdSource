@@ -6,7 +6,7 @@ import {
   type CaseEnvelope,
   type CreateReportRequest,
 } from '@crowdsource.you/contracts';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 import type { TenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';

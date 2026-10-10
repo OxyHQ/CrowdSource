@@ -14,7 +14,6 @@
 import { Button } from '@oxy.so/bloom/button';
 import { RiSearchLine } from '@oxy.so/bloom/icons/RiSearchLine';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EmptyState } from '@/components/EmptyState';

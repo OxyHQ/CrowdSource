@@ -12,7 +12,7 @@
  * a card is a rectangle you can only find by its border.
  */
 
-import React, { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 import { PageScroll } from '@/components/PageScroll';

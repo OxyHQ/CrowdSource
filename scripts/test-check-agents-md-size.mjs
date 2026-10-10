@@ -96,7 +96,7 @@ console.log('check-agents-md-size self-test\n');
 }
 
 {
-  const { result } = await runAgainst({ 'AGENTS.md': '#'.repeat(20 * 1024) + '\n' });
+  const { result } = await runAgainst({ 'AGENTS.md': `${'#'.repeat(20 * 1024)}\n` });
   report(
     'an over-budget root AGENTS.md fails, naming the budget',
     result?.failures.length === 1 && /over its 12 KB budget/.test(result.failures[0]),
@@ -109,7 +109,7 @@ console.log('check-agents-md-size self-test\n');
   // that used the root budget everywhere would pass this.
   const { result } = await runAgainst({
     'AGENTS.md': withinBudget,
-    'packages/backend/AGENTS.md': 'x'.repeat(10 * 1024) + '\n',
+    'packages/backend/AGENTS.md': `${'x'.repeat(10 * 1024)}\n`,
   });
   report(
     'a nested AGENTS.md is held to the SMALLER budget',
@@ -124,7 +124,7 @@ console.log('check-agents-md-size self-test\n');
   // Same bytes, root path: proves the previous case failed on the BUDGET rather
   // than on the size alone. 10 KB sits strictly between the two budgets, which
   // is what makes the pair a discriminator at all.
-  const { result } = await runAgainst({ 'AGENTS.md': 'x'.repeat(10 * 1024) + '\n' });
+  const { result } = await runAgainst({ 'AGENTS.md': `${'x'.repeat(10 * 1024)}\n` });
   report(
     'control: the same 10 KB passes at the ROOT path',
     result?.failures.length === 0,
@@ -159,15 +159,13 @@ console.log('check-agents-md-size self-test\n');
   );
 }
 
-{
-  // A one-digit "#1" in a heading is far likelier to be a step number or an
-  // anchor than an issue, so the rule requires two digits. Pin that boundary,
-  // or a later tightening breaks headings nobody meant to forbid.
-  report(
-    "a one-digit '#1' in a heading does not fire; '#57' does",
-    issueHeadings('## Step #1\n').length === 0 && issueHeadings('## Offers (#57)\n').length === 1,
-  );
-}
+// A one-digit "#1" in a heading is far likelier to be a step number or an
+// anchor than an issue, so the rule requires two digits. Pin that boundary,
+// or a later tightening breaks headings nobody meant to forbid.
+report(
+  "a one-digit '#1' in a heading does not fire; '#57' does",
+  issueHeadings('## Step #1\n').length === 0 && issueHeadings('## Offers (#57)\n').length === 1,
+);
 
 // --- the real repository ----------------------------------------------------
 

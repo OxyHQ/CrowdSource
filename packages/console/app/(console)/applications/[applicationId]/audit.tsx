@@ -20,7 +20,7 @@
  */
 
 import { TextField, TextFieldInput, TextFieldLabel } from '@oxy.so/bloom/text-field';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 

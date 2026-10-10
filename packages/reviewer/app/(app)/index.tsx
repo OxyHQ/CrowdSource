@@ -13,7 +13,7 @@ import { RiCheckboxCircleLine } from '@oxy.so/bloom/icons/RiCheckboxCircleLine';
 import { getNormalizedUserHandle } from '@oxy.so/core';
 import { useAuth } from '@oxy.so/services/ui/client';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 

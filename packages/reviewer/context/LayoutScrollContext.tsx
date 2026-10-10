@@ -13,7 +13,8 @@
  * `ScrollView` per screen, which feeds this through `handleScroll`.
  */
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
+import type React from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
 import { useSharedValue, type SharedValue } from 'react-native-reanimated';
 

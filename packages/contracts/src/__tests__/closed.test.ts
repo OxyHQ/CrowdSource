@@ -35,7 +35,7 @@ describe('outbound schemas stay loose at runtime', () => {
 
     // §10.11: passed through, not stripped and not rejected. A receiver that
     // persists this keeps all of it.
-    expect((parsed as Record<string, unknown>)['fieldFromANewerServer']).toBe('kept');
+    expect((parsed as Record<string, unknown>).fieldFromANewerServer).toBe('kept');
   });
 
   it('does not reject an unknown field on a webhook envelope', () => {

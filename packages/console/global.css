@@ -76,13 +76,19 @@ body,
    clipping goes on the table's OWN container, never here. */
 html,
 body {
+  /* biome-ignore lint/complexity/noImportantStyles: must beat Expo's injected viewport reset (see above) */
   height: auto !important;
+  /* biome-ignore lint/complexity/noImportantStyles: must beat Expo's injected viewport reset (see above) */
   min-height: 100% !important;
+  /* biome-ignore lint/complexity/noImportantStyles: must beat Expo's injected viewport reset (see above) */
   overflow: visible !important;
 }
 
 #root {
+  /* biome-ignore lint/complexity/noImportantStyles: must beat Expo's injected viewport reset (see above) */
   height: auto !important;
+  /* biome-ignore lint/complexity/noImportantStyles: must beat Expo's injected viewport reset (see above) */
   min-height: 100vh !important;
+  /* biome-ignore lint/complexity/noImportantStyles: must beat Expo's injected viewport reset (see above) */
   overflow: visible !important;
 }

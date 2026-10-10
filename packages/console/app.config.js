@@ -11,7 +11,7 @@ const pkg = require('./package.json');
  * shared-keychain consequences, not something a config file should imply is
  * already true.
  */
-module.exports = function (_config) {
+module.exports = (_config) => {
   const APP_ENV = process.env.EXPO_PUBLIC_ENV ?? 'development';
   const VALID_APP_ENVS = ['development', 'production'];
   if (!VALID_APP_ENVS.includes(APP_ENV)) {

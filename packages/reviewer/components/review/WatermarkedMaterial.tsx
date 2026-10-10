@@ -13,7 +13,7 @@
  * room.
  */
 
-import React from 'react';
+import type React from 'react';
 import { Text, View } from 'react-native';
 
 interface WatermarkedMaterialProps {

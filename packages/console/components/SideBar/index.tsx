@@ -26,7 +26,7 @@
 import { ProfileButton } from '@oxy.so/services';
 import { useAuth } from '@oxy.so/services/ui/client';
 import { usePathname } from 'expo-router';
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 

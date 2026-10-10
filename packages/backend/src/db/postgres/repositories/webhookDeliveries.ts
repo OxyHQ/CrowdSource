@@ -1,7 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 
 import { webhookDeliveries } from '../schema/webhooks';
-import { type PgHandle } from '../withTenant';
+import type { PgHandle } from '../withTenant';
 
 /**
  * The webhook delivery queue, as a PostgreSQL repository.

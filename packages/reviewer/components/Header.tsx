@@ -1,5 +1,5 @@
 import React, { type ReactNode, useEffect, useState } from 'react';
-import { StyleSheet, View, Text, Pressable, ViewStyle, Platform } from 'react-native';
+import { StyleSheet, View, Text, Pressable, type ViewStyle, Platform } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useSafeBack } from '@/hooks/useSafeBack';
@@ -64,6 +64,7 @@ export const Header: React.FC<Props> = ({
           </Pressable>
         )}
         {options?.leftComponents?.map((component, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: caller-supplied nodes with no identity; a screen's list is fixed
           <React.Fragment key={index}>{component}</React.Fragment>
         ))}
         {titlePosition === 'left' && (
@@ -107,6 +108,7 @@ export const Header: React.FC<Props> = ({
       )}
       <View style={styles.rightContainer}>
         {options?.rightComponents?.map((component, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: caller-supplied nodes with no identity; a screen's list is fixed
           <React.Fragment key={index}>{component}</React.Fragment>
         ))}
       </View>

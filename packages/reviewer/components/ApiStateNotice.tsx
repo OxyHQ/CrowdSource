@@ -11,7 +11,6 @@
  */
 
 import * as Skeleton from '@oxy.so/bloom/skeleton';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
@@ -43,9 +42,11 @@ export function LoadingPanel({ count = 2 }: { count?: number }) {
   return (
     <View className="gap-6" accessibilityRole="progressbar" accessibilityLabel={t('state.loading')}>
       {Array.from({ length: count }, (_, index) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: identical placeholder panels with nothing else to key on
         <Panel key={index}>
           <View className="gap-2">
             {Array.from({ length: PLACEHOLDER_LINES_PER_PANEL }, (_, line) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: identical placeholder lines with nothing else to key on
               <Skeleton.Box key={line} width="100%" height={16} borderRadius={4} />
             ))}
           </View>

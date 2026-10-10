@@ -1,4 +1,4 @@
-import { type Metadata, type Serializable } from './types';
+import type { Metadata, Serializable } from './types';
 import { sanitizeLogMetadata } from './sanitize';
 
 export function prepareMetadata(metadata: Metadata): Record<string, Serializable> {

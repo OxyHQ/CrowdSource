@@ -64,33 +64,8 @@
     "enabled": true,
     "rules": {
       "preset": "recommended",
-      "complexity": {
-        "noAdjacentSpacesInRegex": "warn",
-        "noImportantStyles": "warn",
-        "noStaticOnlyClass": "warn",
-        "useArrowFunction": "warn",
-        "useOptionalChain": "warn"
-      },
       "correctness": {
-        "noUnusedImports": "warn",
-        "useExhaustiveDependencies": "warn",
         "useHookAtTopLevel": "error"
-      },
-      "style": {
-        "noNonNullAssertion": "warn",
-        "useConst": "warn",
-        "useImportType": "warn"
-      },
-      "suspicious": {
-        "noArrayIndexKey": "warn",
-        "noAssignInExpressions": "warn",
-        "noControlCharactersInRegex": "warn",
-        "noExportsInTest": "warn",
-        "noImplicitAnyLet": "warn",
-        "noPrototypeBuiltins": "warn",
-        "noTemplateCurlyInString": "warn",
-        "noThenProperty": "warn",
-        "useIterableCallbackReturn": "warn"
       }
     }
   }

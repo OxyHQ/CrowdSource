@@ -1,4 +1,5 @@
-import React, { createContext, useContext } from 'react';
+import type React from 'react';
+import { createContext, useContext } from 'react';
 import { Platform, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 import { cn } from '@/lib/utils';

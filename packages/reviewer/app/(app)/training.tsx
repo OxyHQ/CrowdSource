@@ -28,7 +28,7 @@ import {
 } from '@oxy.so/bloom/segmented-control';
 import type { ReviewerCalibrationSubmission } from '@crowdsource.you/contracts';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
