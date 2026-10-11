@@ -1,22 +1,20 @@
 -- oxy:deploy-phase=pre
 --
 -- PRE, on the same reasoning 0003 sets out: a `post` statement is one that
--- BREAKS A WRITE THE PREVIOUS IMAGE PERFORMS, and these break none. Both columns
--- are written today only through Mongoose, whose `enum: REVIEWER_STATES` and
--- `enum: REVIEWER_RELATION_SOURCES` validators constrain them to exactly the sets
--- rendered below — and no production caller writes either table in PostgreSQL
--- yet, so the previous image keeps running against these constraints unchanged.
+-- BREAKS A WRITE THE PREVIOUS IMAGE PERFORMS, and these break none. Every writer
+-- of both columns supplies a value from `REVIEWER_STATES` or
+-- `REVIEWER_RELATION_SOURCES` — exactly the sets rendered below — so the previous
+-- image keeps running against these constraints unchanged.
 --
--- These restore the TWO writer-side enforcements the reviewer tables had in
--- Mongo. A port that dropped them would turn a structural guarantee into a
--- comment, and nothing recomputes a comment. A prohibition is a TYPE or a CHECK,
--- never a convention.
+-- These are the TWO writer-side enforcements on the reviewer tables. Without
+-- them each set would be a comment, and nothing recomputes a comment. A
+-- prohibition is a TYPE or a CHECK, never a convention.
 --
 -- `reviewer_profiles.state` is the one worth reading twice. §8.1's ladder is
 -- enforced by `assertTransition`, which decides which MOVES are legal — but it is
 -- reached through `mutateProfile`, and `recordSubmittedReview` deliberately
 -- writes a promotion OUTSIDE it (said so on `assertTransition` itself, because it
--- is the only path that promotes anybody). On that path this validator was the
+-- is the only path that promotes anybody). On that path this CHECK is the
 -- single thing between a state and the column.
 --
 -- Both value lists are RENDERED from their tuples via `inList` — `REVIEWER_STATES`
@@ -28,11 +26,10 @@
 -- parameter `$1`, which fails at APPLY time with no local signal.
 --
 -- NOTHING ELSE on these tables gets a CHECK, and the asymmetry is recorded so a
--- later reader does not "fix" it. `max_sensitivity_rank` is an integer Mongo
--- constrained with `type: Number` and nothing more; `categories`, `languages` and
--- the two consent arrays were `[String]` with no `enum`. Constraining any of them
--- here would be a NEW restriction smuggled in under a port rather than a
--- preserved one.
+-- later reader does not "fix" it. `max_sensitivity_rank` is a plain integer;
+-- `categories`, `languages` and the two consent arrays are `text[]` with no
+-- fixed vocabulary. Constraining any of them would be a NEW restriction on
+-- their writers rather than the enforcement of an existing one.
 --
 -- REGENERATION WARNING. This header is HAND-MAINTAINED: `bun run db:generate`
 -- emits only the statements below and this block is gone. Re-apply it, keep
