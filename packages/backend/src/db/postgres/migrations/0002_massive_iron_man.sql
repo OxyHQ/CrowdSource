@@ -2,8 +2,7 @@
 --
 -- Additive only: sixteen CREATE TABLEs and their indexes. Nothing is dropped,
 -- renamed or narrowed, so this is safe to apply while the previous image is
--- still serving traffic. Nothing reads these tables yet — the batch is inert,
--- and Mongo remains the authority for every one of them.
+-- still serving traffic.
 --
 -- THE ABSENCE OF ROW-SECURITY DDL IS A DECISION, NOT AN OMISSION. Every table
 -- here is registered in `db/postgres/tableRegistry.ts` under one of four

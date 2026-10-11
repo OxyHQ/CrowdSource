@@ -8,10 +8,9 @@
 -- whole constrained set. So the previous image keeps running against it
 -- unchanged, which is exactly the property `pre` asserts.
 --
--- This restores the ONE writer-side enforcement the table had in Mongo,
--- `enum: OUTBOX_STATUSES` on the Mongoose path. A port that dropped it would
--- turn a structural guarantee into a comment, and nothing recomputes a comment.
--- A prohibition is a TYPE or a CHECK, never a convention.
+-- This CHECK is what makes `OUTBOX_STATUSES` binding on the column. Without it
+-- the set would be a comment, and nothing recomputes a comment. A prohibition
+-- is a TYPE or a CHECK, never a convention.
 --
 -- The value list is RENDERED from the `OUTBOX_STATUSES` tuple in
 -- `db/postgres/schema/infrastructure.ts` via `inList`, not spelled out here, so
@@ -20,10 +19,10 @@
 -- `sql.raw` deliberately: an ordinary interpolation into `check()` emits the
 -- bound parameter `$1`, which fails at APPLY time with no local signal.
 --
--- `type` DELIBERATELY GETS NO CHECK. It was never enum-constrained in Mongo
--- (`type: { type: String, required: true }`), so constraining it here would be a
--- NEW restriction smuggled in under a port rather than a preserved one. The
--- asymmetry is recorded so a later reader does not "fix" it.
+-- `type` DELIBERATELY GETS NO CHECK. It is free text (only NOT NULL) and has
+-- never been limited to a fixed set, so constraining it would be a NEW
+-- restriction on its writers rather than the enforcement of an existing one.
+-- The asymmetry is recorded so a later reader does not "fix" it.
 --
 -- REGENERATION WARNING. This header is HAND-MAINTAINED: `bun run db:generate`
 -- emits only the statement below and this block is gone. Re-apply it, keep
