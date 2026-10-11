@@ -22,7 +22,7 @@ compatibility_date = "2026-09-09"
 
 workers_dev = false
 
-# Every request is observed; ASSETS retains routing and public/_headers.
+# The Worker hands every request to ASSETS, which retains routing and public/_headers.
 [assets]
 binding = "ASSETS"
 run_worker_first = true

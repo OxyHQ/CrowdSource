@@ -53,7 +53,7 @@
     "check:schemas": "bun ./scripts/test-check-published-json-schemas.mjs && bun ./scripts/check-published-json-schemas.mjs",
     "check:module-format": "bun ./scripts/check-module-format.mjs && bun ./scripts/test-check-module-format.mjs",
     "check:migrations": "bun ./scripts/check-published-migrations.mjs && bun ./scripts/test-check-published-migrations.mjs",
-    "test:edge": "bun test scripts/edge-activity.test.ts"
+    "test:worker": "bun test scripts/frontend-worker.test.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
@@ -91,7 +91,6 @@
     "lightningcss-linux-x64-gnu": "1.30.1",
     "lightningcss-linux-x64-musl": "1.30.1",
     "browserslist": "4.28.8",
-    "@oxy.so/telemetry": "1.2.0",
     "metro": "0.84.6",
     "metro-babel-transformer": "0.84.6",
     "metro-cache": "0.84.6",
