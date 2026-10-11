@@ -96,7 +96,6 @@ updates:
       - dependency-name: "@oxy.so/bloom"
       - dependency-name: "@oxy.so/core"
       - dependency-name: "@oxy.so/services"
-      - dependency-name: "@oxy.so/telemetry"
 
   # ---------------------------------------------------------------------------
   # GitHub Actions — keep workflow action versions current.
