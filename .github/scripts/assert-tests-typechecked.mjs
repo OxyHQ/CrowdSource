@@ -15,7 +15,9 @@
 //
 // tsc itself is the authority. `tsc -p <config> --showConfig` resolves the include
 // and exclude globs to a concrete file list, so this never re-implements glob
-// semantics and cannot disagree with the compiler about what is covered.
+// semantics and cannot disagree with the compiler about what is covered. The
+// package scripts run `bun check` (TypeScript 7) or `tsc` over those configs;
+// both read the same tsconfig, so the file list is the same.
 
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -51,16 +53,18 @@ async function walk(directory) {
   return found;
 }
 
-// The tsconfigs a package's own gate scripts actually run. A config that exists
-// but is never invoked covers nothing, so the scripts — not the directory
-// listing — are what this reads.
+// The tsconfigs a package's own gate scripts actually run, through `tsc` or
+// `bun check`. A config that exists but is never invoked covers nothing, so the
+// scripts — not the directory listing — are what this reads.
 function configsFromScripts(scripts) {
   const configs = new Set();
   for (const name of ['lint', 'typecheck']) {
     const script = scripts?.[name];
     if (typeof script !== 'string') continue;
     for (const invocation of script.split('&&')) {
-      if (!/(^|\s|\/)tsc(\s|$)/.test(invocation)) continue;
+      if (!/(^|\s|\/)tsc(\s|$)/.test(invocation) && !/(^|\s)bun\s+check(\s|$)/.test(invocation)) {
+        continue;
+      }
       const projectMatch = /-p\s+(\S+)|--project\s+(\S+)/.exec(invocation);
       configs.add(projectMatch ? (projectMatch[1] ?? projectMatch[2]) : 'tsconfig.json');
     }
@@ -124,7 +128,7 @@ for (const workspacePath of workspacePaths) {
   const configs = configsFromScripts(manifest.scripts);
   if (configs.length === 0) {
     uncovered.push(
-      `${workspacePath} has ${testFiles.length} test file(s) but neither its lint nor its typecheck script runs tsc, so none of them is type-checked.`,
+      `${workspacePath} has ${testFiles.length} test file(s) but neither its lint nor its typecheck script runs tsc or bun check, so none of them is type-checked.`,
     );
     continue;
   }

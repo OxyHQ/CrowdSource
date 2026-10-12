@@ -12,9 +12,20 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     // CommonJS emit so Node consumers, the backend and bundlers all resolve the
-    // same build; `node` resolution matches that module format.
-    "module": "commonjs",
-    "moduleResolution": "node",
+    // same build.
+    // Node16, not `commonjs` + `node` (node10): TypeScript 7, which `bun check`
+    // implements, removes node10 (TS5108), and TypeScript 5.x rejects `bundler`
+    // with `commonjs` (TS5095), so Node16 is the one setting both accept. With
+    // `"type": "commonjs"` in package.json and no dynamic `import()` in the
+    // emitted sources, Node16 emits the same CommonJS byte for byte; imports
+    // now resolve through each dependency's `exports` map, as Node does.
+    "module": "node16",
+    "moduleResolution": "node16",
+    // Stated rather than left to tsc's default of every `node_modules/@types`
+    // package, which `bun check` does not load. That default put jsdom's DOM
+    // lib into this program, so `BodyInit` compiled under tsc and was TS2304
+    // under `bun check`; the two checkers now see the same program.
+    "types": ["node"],
 
     // --- Intentional override of the root base's `lib: ["ES2020"]`.
     // `new Error(message, { cause })` is ES2022, and every error this client
@@ -28,17 +39,18 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "rootDir": "./src",
-    "outDir": "./dist",
+    "outDir": "./dist"
 
-    // Contracts resolves through the workspace `node_modules` symlink to its
-    // PUBLISHED declaration surface (`dist/index.d.ts`), not to its source. That
-    // is deliberate for a published package: it type-checks against exactly what
-    // an integrator installs, so a symbol that is in contracts' source but not
-    // in its `exports` cannot compile here and fail for them. It also keeps
-    // `rootDir` honest — a `paths` mapping into `../contracts/src` pulls files
-    // from outside this project into the program (TS6059). `bun run build`
-    // builds contracts first, and `postinstall` keeps `dist/` present.
-    "baseUrl": "."
+    // No `paths` (and no `baseUrl`, which TypeScript 7 and `bun check` reject
+    // as TS5102). Contracts resolves through the workspace `node_modules`
+    // symlink to its PUBLISHED declaration surface (`dist/index.d.ts`), not to
+    // its source. That is deliberate for a published package: it type-checks
+    // against exactly what an integrator installs, so a symbol that is in
+    // contracts' source but not in its `exports` cannot compile here and fail
+    // for them. It also keeps `rootDir` honest — a `paths` mapping into
+    // `../contracts/src` pulls files from outside this project into the
+    // program (TS6059). `bun run build` builds contracts first, and
+    // `postinstall` keeps `dist/` present.
   },
   "include": ["src/**/*"],
   // Tests stay out of the EMITTING project so they never reach `dist/` and

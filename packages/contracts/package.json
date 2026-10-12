@@ -18,7 +18,7 @@
     "build": "tsc && tsc -p tsconfig.esm.json && bun ../../scripts/write-esm-marker.mjs",
     "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",
+    "lint": "bun check --noUnusedLocals --noUnusedParameters && bun check -p tsconfig.test.json",
     "test": "bun test ./src/__tests__",
     "test:watch": "bun test --watch ./src/__tests__",
     "prepublishOnly": "bun run build"

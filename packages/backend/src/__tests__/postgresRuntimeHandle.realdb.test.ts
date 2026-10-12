@@ -148,7 +148,7 @@ describe('requireTransaction', () => {
 });
 
 /**
- * A COMPILE-TIME assertion, checked by `tsc -p tsconfig.test.json` in `lint`.
+ * A COMPILE-TIME assertion, checked by `bun check -p tsconfig.test.json` in `lint`.
  *
  * The runtime test below proves the handle can roll back TODAY. It cannot catch
  * the type-level weakening, because `withTenant` passes a real transaction

@@ -59,7 +59,7 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
     "db:generate": "drizzle-kit generate",
-    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",
+    "lint": "bun check --noUnusedLocals --noUnusedParameters && bun check -p tsconfig.test.json",
     "test": "bun run test:unit && bun run test:express && bun run test:testing && bun run test:outbox && bun run test:invariants && bun run test:table-type",
     "test:unit": "node ../../node_modules/vitest/vitest.mjs run",
     "test:express": "node ../../node_modules/vitest/vitest.mjs run -c vitest.express.config.ts",

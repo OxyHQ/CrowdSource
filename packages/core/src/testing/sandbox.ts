@@ -298,7 +298,7 @@ export class CrowdSourceSandbox {
     return await new WebhookSimulator({ secret: this.webhookSecret, url }).deliver(event);
   }
 
-  private createReport(headers: Headers, body: BodyInit | null | undefined): Response {
+  private createReport(headers: Headers, body: RequestInit['body']): Response {
     const idempotencyKey = headers.get('idempotency-key');
     if (idempotencyKey === null || idempotencyKey.length === 0) {
       return apiError(400, 'invalid_request', 'The Idempotency-Key header is required.');
