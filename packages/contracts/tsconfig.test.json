@@ -1,7 +1,7 @@
 {
   // ---------------------------------------------------------------------------
   // Type-check-only project covering everything the emitting project leaves out:
-  // the contract tests and the Vitest config.
+  // the contract tests, which `bun test` runs from source.
   //
   // It exists because tests must not be emitted into `dist/` (they would ship in
   // the published tarball) but must still be type-checked — a contract test that
@@ -17,15 +17,16 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "types": ["node"],
-    // The tests run on Node 22 only, never in a consumer bundle, so they may use
-    // ES2022 built-ins (`Object.hasOwn`). The emitting project keeps the root lib.
-    "lib": ["ES2022"],
-    // The emitting project pins `rootDir` to `src/` so `dist/` mirrors it. This
-    // project emits nothing and also covers `vitest.config.ts` at the package
-    // root, so it widens `rootDir` rather than moving the config file.
-    "rootDir": "."
+    // `bun-types` for the `bun:test` module the tests import. A direct
+    // dependency on `bun-types` rather than `@types/bun`, deliberately: anything
+    // under `node_modules/@types` is hoisted to the root and joins EVERY project
+    // that does not list its `types`, which put Bun's `fetch` into `core`'s
+    // published source and failed its build.
+    "types": ["node", "bun-types"],
+    // The tests never reach a consumer bundle, so they may use ES2022 built-ins
+    // (`Object.hasOwn`). The emitting project keeps the root lib.
+    "lib": ["ES2022"]
   },
-  "include": ["src/**/*", "vitest.config.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

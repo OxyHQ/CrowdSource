@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  BUN_VERSION: '1.4.2'
+  BUN_VERSION: '1.4.3'
   # workflow_run admission below binds this release to github.sha before checkout.
   DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 

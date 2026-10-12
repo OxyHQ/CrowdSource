@@ -66,7 +66,12 @@ suites:
   # NAMED for every package directory with a test script, which the
   # `core` entry is.
   - package: contracts
-    command: bun run --cwd packages/contracts test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/contracts-tests.json"
+    # `bun test` rather than vitest: the contracts are plain TypeScript with no
+    # mocks, so nothing here needs a Node-hosted runner. Bun writes no
+    # jest-style JSON, so the floor reads its JUnit report instead; `report`
+    # names that file for the floor step in ci.yml.
+    command: bun run --cwd packages/contracts test -- --reporter=junit --reporter-outfile="$RUNNER_TEMP/contracts-tests.xml"
+    report: contracts-tests.xml
     # Raised with the appeals contracts (§9.8): the suite runs 201, and a
     # floor of 170 would let all 25 of those tests be deleted with the job
     # still green — which is the erosion this gate exists to catch.

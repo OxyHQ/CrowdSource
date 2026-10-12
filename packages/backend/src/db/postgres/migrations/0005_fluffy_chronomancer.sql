@@ -2,11 +2,10 @@
 --
 -- PRE, on the same reasoning 0003 and 0004 set out: a `post` statement is one
 -- that BREAKS A WRITE THE PREVIOUS IMAGE PERFORMS. Eight of the nine below break
--- none, because the Mongoose `enum` and `unique` validators already constrain
--- those paths to exactly these sets, and no production caller writes either table
--- in PostgreSQL yet. The previous image keeps running against them unchanged,
--- which is exactly the property `pre` asserts. Both tables are also EMPTY in
--- PostgreSQL, so no statement here can fail on existing data.
+-- none, because every writer of those columns already stays inside exactly these
+-- sets and never writes a duplicate. The previous image keeps running against
+-- them unchanged, which is exactly the property `pre` asserts. Both tables are
+-- also EMPTY, so no statement here can fail on existing data.
 --
 -- Do NOT paraphrase that rule as "post = narrowing". A CHECK and a UNIQUE both
 -- narrow, and all nine are `post` under that paraphrase — but the zero-capacity
@@ -14,60 +13,60 @@
 -- the constraints unapplied AND queue every later `pre` behind them. That exact
 -- stall has cost a sibling service four consecutive red deploys.
 --
--- These restore the structural guarantees the two sortition tables carried in
--- Mongo. A port that dropped them would turn each into a comment, and nothing
--- recomputes a comment. A prohibition is a TYPE or a CHECK, never a convention.
+-- These are the structural guarantees of the two sortition tables. Without them
+-- each would be a comment, and nothing recomputes a comment. A prohibition is a
+-- TYPE or a CHECK, never a convention.
 --
--- ## The UNIQUE is the one to read first, because it is the one that was lost
+-- ## The UNIQUE is the one to read first
 --
--- `assignments_case_id_reviewer_id_case_revision_key` restores
--- `assignmentSchema.index({ caseId, reviewerId, caseRevision }, { unique: true })`,
--- which had NO PostgreSQL counterpart in migrations 0000-0004 and no gate that
--- would ever have noticed: `closedValueSets.realdb.test.ts` censuses `enum`
--- validators, and a `unique` is a different shape.
+-- `assignments_case_id_reviewer_id_case_revision_key` makes
+-- `case_id + reviewer_id + case_revision` unique. Migrations 0000-0004 had no
+-- such constraint, and no gate would ever have noticed:
+-- `closedValueSets.realdb.test.ts` censuses value sets, and a unique is a
+-- different shape.
 --
 -- It is load-bearing rather than decorative. `openPanel`'s own header names it as
 -- the reason a replayed draw is safe — "the unique index on
 -- `caseId + reviewerId + caseRevision` rejects a second attempt to seat the same
 -- person" — and §12.7's review constraint is only meaningful if the assignment
--- authorising a review is unique the same way. Without it the switch would seat
--- duplicate jurors on a replayed outbox event, with no error and no log line.
+-- authorising a review is unique the same way. Without it a replayed outbox
+-- event would seat duplicate jurors, with no error and no log line.
 --
 -- Uniqueness is TOTAL, not partial: a recused or expired seat still occupies that
 -- person's place on that revision (the replacement is a different person by
 -- construction), so there is no status for which a second row is legitimate, and
 -- a partial unique would readmit exactly the replay this rejects.
 --
--- ## The seven restored value sets
+-- ## The seven value sets
 --
 -- Every value list is RENDERED from its tuple via `inList` rather than spelled
 -- out here — `ASSIGNMENT_STATUSES`, `DRAW_STATUSES` and `DRAW_KINDS` from
--- `db/postgres/schema/sortition.ts` (they moved there in this change, because the
--- Mongoose file that held them is what goes away at the switch), `SLOT_TYPES`
--- from `modules/sortition/panelSpec` and `REVIEW_POOLS` from `modules/triage`
--- (whose homes survive it). So adding a member is a code change PLUS a migration
+-- `db/postgres/schema/sortition.ts`, `SLOT_TYPES` from
+-- `modules/sortition/panelSpec` and `REVIEW_POOLS` from `modules/triage`. So
+-- adding a member is a code change PLUS a migration
 -- in the same PR rather than a constraint that silently stops agreeing with the
 -- type. Rendered with `sql.raw` deliberately: an ordinary interpolation into
 -- `check()` emits the bound parameter `$1`, which fails at APPLY time with no
 -- local signal.
 --
 -- `requested_slots` is `text[]`, so its value set is CONTAINMENT (`<@`) rather
--- than `in (...)`. Mongo put the `enum` on the CASTER, constraining each element;
--- `<@` says the same thing. Note it is vacuously TRUE for `{}`.
+-- than `in (...)`: it constrains each element. Note it is vacuously TRUE for
+-- `{}`.
 --
 -- `sensitivity_class`, `refusal_reason`, `panel_spec_id` and `rules_version`
--- DELIBERATELY get no CHECK. None was enum-constrained in Mongo, so constraining
--- any here would be a NEW restriction smuggled in under a port rather than a
--- preserved one. The asymmetry is recorded so a later reader does not "fix" it.
+-- DELIBERATELY get no CHECK. None has ever been limited to a fixed set, so
+-- constraining any here would be a NEW restriction on its writers rather than
+-- the enforcement of an existing one. The asymmetry is recorded so a later
+-- reader does not "fix" it.
 --
 -- ## THE LAST STATEMENT IS THE ONLY NEW RESTRICTION IN THIS FILE
 --
--- Called out because the other eight are preserved and it is not. Mongoose's
--- `required: true` on an array does not mean non-empty, so no validator ever
--- enforced it; the invariant lived in `sortition.service.ts:471`'s throw, which is
--- application code. It is still `pre` — no writer violates it today — but the
--- evidence is application-level rather than validator-level, and that is a weaker
--- kind of evidence than the eight above rest on.
+-- Called out because the other eight enforce rules writers already followed and
+-- it does not. Nothing before it enforced a non-empty array; the invariant lived
+-- in `sortition.service.ts:471`'s throw, which is application code. It is still
+-- `pre` — no writer violates it today — but that evidence rests on one code path
+-- rather than on an enforced rule, and that is a weaker kind of evidence than
+-- the eight above rest on.
 --
 -- It is an IMPLICATION, not a floor, and the asymmetry is load-bearing:
 -- `sortition.service.ts:433-450` records the §7.5 row-1 legal-pool refusal with

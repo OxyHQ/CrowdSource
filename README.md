@@ -9,7 +9,7 @@
   <img alt="Expo SDK 56" src="https://img.shields.io/badge/Expo-SDK%2056-000020?style=flat-square&logo=expo&logoColor=white">
   <img alt="React Native 0.85" src="https://img.shields.io/badge/React%20Native-0.85-61DAFB?style=flat-square&logo=react&logoColor=black">
   <img alt="TypeScript 5.9" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white">
-  <img alt="Bun 1.4.2" src="https://img.shields.io/badge/Bun-1.4.2-000000?style=flat-square&logo=bun&logoColor=white">
+  <img alt="Bun 1.4.3" src="https://img.shields.io/badge/Bun-1.4.3-000000?style=flat-square&logo=bun&logoColor=white">
 </p>
 
 ---
@@ -110,7 +110,7 @@ Start with the [integration guide](./docs/integration.md).
 
 ## Quick start
 
-Requires [Bun](https://bun.sh) 1.4.2 and Node.js 22.17.0 for the Expo and Jest toolchains.
+Requires [Bun](https://bun.sh) 1.4.3 and Node.js 22.17.0 for the Expo and Jest toolchains.
 
 ```bash
 bun install
@@ -131,7 +131,7 @@ bun run check           # the same gate CI runs
 bun run build           # contracts, backend, SDKs
 bun run build:reviewer  # reviewer static web export
 bun run build:console   # console static web export
-bun run test            # vitest for the backend and the libraries, jest for the two Expo apps
+bun run test            # bun test for contracts, vitest for the backend and core, jest for the two Expo apps
 bun run lint            # Biome format + lint over the whole tree, per-package tsc, Expo env-var ESLint
 bun run format          # apply Biome formatting
 ```
