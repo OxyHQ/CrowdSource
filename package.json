@@ -4,7 +4,7 @@
   "description": "CrowdSource — participatory moderation infrastructure: contracts, backend, reviewer app, console and SDKs",
   "license": "SEE LICENSE IN LICENSE",
   "private": true,
-  "packageManager": "bun@1.4.2",
+  "packageManager": "bun@1.4.3",
   "workspaces": [
     "packages/*"
   ],
