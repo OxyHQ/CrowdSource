@@ -1,6 +1,12 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
 
-FROM oven/bun:1.4.3-alpine AS manifests
+# Every image reference is pinned by digest: the digest is what the build uses,
+# and the tag is kept only for readability. A tag can be re-pushed without a
+# byte of this file changing, so it would move the build past the reviewed pin
+# in .github/scripts/reviewed-images.json. A bump needs a new digest (the
+# multi-arch index digest, which must list linux/arm64) and a re-review.
+
+FROM oven/bun:1.4.3-alpine@sha256:629e17411f1f129dbec3af78d5af9c9f2a937435c80349437206c6b0b7422373 AS manifests
 WORKDIR /app
 
 # Every workspace `packages/*` resolves to MUST be listed here, even ones this
@@ -42,7 +48,7 @@ COPY packages/backend/ packages/backend/
 RUN bun run --cwd packages/contracts build
 RUN bun run --cwd packages/backend build
 
-FROM oven/bun:1.4.3-alpine AS runtime
+FROM oven/bun:1.4.3-alpine@sha256:629e17411f1f129dbec3af78d5af9c9f2a937435c80349437206c6b0b7422373 AS runtime
 WORKDIR /app
 
 RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup

@@ -10,11 +10,10 @@ package-lock.json
 **/*.tsbuildinfo
 **/.claude/
 
-# Never send local secrets or platform credentials to a Docker builder. Keep
-# examples available to developers without allowing their populated variants
-# into image layers or remote build caches.
+# Never send local secrets or platform credentials to a Docker builder. No
+# `.env` file is sent, the examples included: the build reads none of them, and
+# a local copy of an example is the file most likely to be filled in by hand.
 **/.env*
-!**/.env.example
 **/.npmrc
 **/.aws/
 **/.ssh/

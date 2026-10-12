@@ -3,11 +3,13 @@ name: Refresh build cache
 # Weekly, rebuild the production image(s) with NO cache and write the fresh
 # layers into the same GitHub Actions cache scope deploy-aws.yml reads.
 #
-# The deploy reuses cached layers, so without this an `apt-get`/`apk` layer or
-# a base-image tag would stay as old as the last time its inputs changed and
-# stop picking up OS security patches. This job re-resolves the base images and
-# re-runs every step, then overwrites the scope; the next real deploy builds on
-# those fresh layers.
+# The deploy reuses cached layers, so without this an `apt-get`/`apk` layer
+# would stay as old as the last time its inputs changed and stop picking up OS
+# security patches. This job re-runs every step, then overwrites the scope; the
+# next real deploy builds on those fresh layers. Base images are pinned by
+# digest in the Dockerfile, so it does NOT move them: a base-image update is a
+# digest bump in the Dockerfile, re-reviewed and re-pinned in
+# .github/scripts/reviewed-images.json.
 #
 # It builds only: no AWS credentials, no ECR push, no deploy. It runs on the
 # default branch (schedule) or a dispatch from main, so it writes main's cache,
