@@ -3,15 +3,11 @@
   "recipes": [
     {
       "name": "crowdsource",
-      "services": [
-        "crowdsource"
-      ],
       "ecrRepository": "oxy/crowdsource",
       "dockerfile": "packages/backend/Dockerfile",
-      "dockerfileSha256": "03ee825714d7245a4a0eddf5b346fcb2d9c571c96b9f0490375c3267f033cfa4",
+      "context": ".",
       "target": null,
-      "tagSuffix": "",
-      "cacheScope": "crowdsource-backend"
+      "buildInputsSha256": "6b5530ac12eda96d39e1e6bfee175238db15e2b577555308800d77dddacc6569"
     }
   ]
 }
