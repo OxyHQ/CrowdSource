@@ -37,7 +37,6 @@
 
 import { Button } from '@oxy.so/bloom/button';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
@@ -325,6 +324,7 @@ function DecisionRevision({ decision }: { decision: CaseDecision }) {
             {t('caseDetail.decisions.findings')}
           </Text>
           {decision.findings.map((finding, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: a published decision never changes, and two findings can share a code
             <View key={`${finding.code}-${index}`} className="gap-0.5 rounded-md bg-muted p-2">
               <Text className="font-bloom-mono text-xs text-foreground" selectable>
                 {finding.code}
@@ -360,6 +360,7 @@ function DecisionRevision({ decision }: { decision: CaseDecision }) {
           </Text>
           {decision.recommendedActions.map((action, index) => (
             <Text
+              // biome-ignore lint/suspicious/noArrayIndexKey: a published decision never changes, and two actions can share a name
               key={`${action.action}-${index}`}
               className="font-bloom-mono text-xs text-foreground"
               selectable

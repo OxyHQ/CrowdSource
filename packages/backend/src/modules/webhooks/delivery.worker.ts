@@ -109,7 +109,7 @@ export async function attemptDelivery(
    * is a decision somebody made, and the delivery stays as a dead letter that a
    * replay can pick up once the endpoint is registered again.
    */
-  if (!endpoint || endpoint.status !== 'active') {
+  if (endpoint?.status !== 'active') {
     await recordAttempt(
       delivery,
       {

@@ -290,28 +290,26 @@ export function planEnforcement<TAction extends string>(
       ];
     }
 
-    // biome-ignore format: Biome 2.5.15 is not idempotent on a comment between a case label and its block (it moves the colon after the comment on a second pass).
-    case 'no_violation':
+    case 'no_violation': {
       /**
        * A restore, always planned — even when nothing was restricted. The
        * executor records it as not applied with the reason, which is how "we
        * checked and there was nothing to undo" is distinguishable from "we never
        * looked".
        */
-      {
-        const declared = restoreActions(config.restoreAction);
-        return declared.length === 0
-          ? [
-              {
-                action: config.noneAction,
-                reason: 'No violation, and this application has nothing to restore',
-              },
-            ]
-          : declared.map((action) => ({
-              action,
-              reason: 'No violation: undo any earlier restriction',
-            }));
-      }
+      const declared = restoreActions(config.restoreAction);
+      return declared.length === 0
+        ? [
+            {
+              action: config.noneAction,
+              reason: 'No violation, and this application has nothing to restore',
+            },
+          ]
+        : declared.map((action) => ({
+            action,
+            reason: 'No violation: undo any earlier restriction',
+          }));
+    }
 
     case 'insufficient_context':
     case 'inconclusive':

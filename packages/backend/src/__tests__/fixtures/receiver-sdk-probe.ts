@@ -34,7 +34,7 @@ async function close(server: Server | undefined): Promise<void> {
   });
 }
 function request(token?: string): Promise<Response> {
-  return fetch(receiverOrigin + '/owned-fixture', {
+  return fetch(`${receiverOrigin}/owned-fixture`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 }

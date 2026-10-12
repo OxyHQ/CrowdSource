@@ -11,7 +11,7 @@
  * possible score for a signal that has never been taken.
  */
 
-import React, { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 import { ABSENT } from '@/lib/console-api/presentation';

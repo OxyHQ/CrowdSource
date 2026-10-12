@@ -31,7 +31,7 @@
  */
 
 import { PANEL_TOP_INSET } from '@oxy.so/bloom/content-panel';
-import React from 'react';
+import type React from 'react';
 import { View } from 'react-native';
 
 import { useIsScreenNotMobile } from '@/hooks/useOptimizedMediaQuery';

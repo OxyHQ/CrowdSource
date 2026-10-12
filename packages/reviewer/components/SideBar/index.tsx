@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useCallback, useMemo } from 'react';
 import { Dimensions, Platform, View, StyleSheet } from 'react-native';
 import { usePathname, useRouter, type Href } from 'expo-router';
 import { useIsScreenNotMobile, useIsSideBarExpanded } from '@/hooks/useOptimizedMediaQuery';

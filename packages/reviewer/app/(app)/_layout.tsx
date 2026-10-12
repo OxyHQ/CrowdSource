@@ -16,7 +16,6 @@
 
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { Slot, Stack } from 'expo-router';
-import React from 'react';
 import { Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 

@@ -103,6 +103,7 @@ export function redactResponseBody(raw: string): string {
    * an operator-facing field is how a hostile receiver rewrites what the
    * operator believes they are looking at.
    */
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control characters is this regex's job
   preview = preview.replace(/[\u0000-\u001f\u007f-\u009f]+/g, ' ');
 
   for (const { pattern } of RULES) {

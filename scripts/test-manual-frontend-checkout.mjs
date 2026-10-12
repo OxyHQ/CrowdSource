@@ -12,6 +12,7 @@ function validate(value) {
   for (const job of Object.values(value.jobs)) {
     for (const step of job.steps ?? []) {
       if (!step.uses?.startsWith('actions/checkout@')) continue;
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, matched literally
       assert.equal(step.with.ref, '${{ github.sha }}');
       assert.equal(step.if, undefined);
       count++;
@@ -72,6 +73,7 @@ const checkout = structuredClone(workflow);
 Object.values(checkout.jobs)
   .find((job) => job.steps?.some((step) => step.uses?.startsWith('actions/checkout@')))
   .steps.find((step) => step.uses?.startsWith('actions/checkout@')).with.ref =
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, matched literally
   '${{ env.DEPLOY_SHA }}';
 assert.throws(() => validate(checkout));
 console.log(

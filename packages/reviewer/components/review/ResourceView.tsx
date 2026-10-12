@@ -23,7 +23,6 @@
 
 import type { ReviewerResource } from '@crowdsource.you/contracts';
 import { Image } from 'expo-image';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 

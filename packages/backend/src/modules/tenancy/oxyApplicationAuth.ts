@@ -101,7 +101,7 @@ export async function authenticateOxyServiceToken(
   if (!verified) throw unauthorized;
 
   const application = await applications.findOne({ oxyApplicationId: verified.appId });
-  if (!application || application.status !== 'active') throw unauthorized;
+  if (application?.status !== 'active') throw unauthorized;
 
   return {
     // Attributable, and distinguishable at a glance from a credential id — an

@@ -14,7 +14,7 @@ import { Button } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
 import { Switch } from '@oxy.so/bloom/switch';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 

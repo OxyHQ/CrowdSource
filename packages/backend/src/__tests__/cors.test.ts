@@ -72,6 +72,6 @@ describe('CORS', () => {
       .get('/health/live')
       .set('Origin', 'https://crowdsource.oxy.so');
 
-    expect(response.headers['vary']).toContain('Origin');
+    expect(response.headers.vary).toContain('Origin');
   });
 });

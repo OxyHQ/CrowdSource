@@ -27,7 +27,7 @@
 
 import { Button } from '@oxy.so/bloom/button';
 import { toast } from '@oxy.so/bloom/toast';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native';
 

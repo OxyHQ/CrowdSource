@@ -22,7 +22,8 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import React, { useLayoutEffect, useRef } from 'react';
+import type React from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 import { consoleQueryKeys } from '@/lib/console-api/query-keys';
 import { useConsoleViewer } from '@/lib/console-api/use-console-viewer';

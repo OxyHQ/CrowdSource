@@ -19,7 +19,6 @@
 
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { Slot } from 'expo-router';
-import React from 'react';
 import { View } from 'react-native';
 
 import { SideBar } from '@/components/SideBar';

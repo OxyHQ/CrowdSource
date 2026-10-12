@@ -14,7 +14,7 @@
 
 import { Button } from '@oxy.so/bloom/button';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, TextInput } from 'react-native';
 

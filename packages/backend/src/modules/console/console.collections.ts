@@ -1,5 +1,5 @@
 import { defineUnscopedCollection } from '../../db/collections';
-import { CONSOLE_ROLES, MEMBER_STATUSES, STAFF_ROLES } from '../../domain/closedValues';
+import type { CONSOLE_ROLES, MEMBER_STATUSES, STAFF_ROLES } from '../../domain/closedValues';
 
 /**
  * Who may use the console, and as what (§12.6 `organization_members`, §13.2).

@@ -1,4 +1,4 @@
-import { type LogLevel, type Metadata } from './types';
+import type { LogLevel, Metadata } from './types';
 import { sanitizeLogMessage, sanitizeLogMetadata, sanitizeLogString } from './sanitize';
 
 export type LogEntry = {
