@@ -263,7 +263,7 @@ jobs:
         if: matrix.minimum_tests
         run: >-
           bun .github/scripts/assert-test-floor.mjs
-          "$RUNNER_TEMP/${{ matrix.package }}-tests.json"
+          "$RUNNER_TEMP/${{ matrix.report || format('{0}-tests.json', matrix.package) }}"
           "${{ matrix.label || format('packages/{0}', matrix.package) }}"
           "${{ matrix.minimum_tests }}"
       - name: Upload coverage summary

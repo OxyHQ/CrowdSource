@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { RecusalSubmissionSchema, ReviewSubmissionSchema } from '../reviews.js';
 import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
@@ -199,7 +199,7 @@ describe('RecusalSubmissionSchema', () => {
       'language',
       'too_sensitive',
       'insufficient_context',
-    ]) {
+    ] as const) {
       expect(accepted(RecusalSubmissionSchema, { reason }).reason).toBe(reason);
     }
   });

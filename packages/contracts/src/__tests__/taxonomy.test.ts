@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import {
   FINDING_CONTEXTS,
@@ -51,7 +51,7 @@ describe('the universal taxonomy', () => {
     for (const [family, codes] of Object.entries(TAXONOMY_CODES_BY_FAMILY)) {
       for (const code of codes) {
         expect(code.startsWith(`${family}.`)).toBe(true);
-        expect(taxonomyFamilyOf(code)).toBe(family);
+        expect<string>(taxonomyFamilyOf(code)).toBe(family);
       }
     }
   });
@@ -128,7 +128,7 @@ describe('recommended actions', () => {
     expect(RECOMMENDED_ACTIONS).toContain('remove_or_restrict');
     expect(RECOMMENDED_ACTIONS).toContain('allow_with_label');
     // …and §7.6's per-outcome responses.
-    for (const action of ['remove', 'age_gate', 'restore', 'no_action', 'legal_queue']) {
+    for (const action of ['remove', 'age_gate', 'restore', 'no_action', 'legal_queue'] as const) {
       expect(RECOMMENDED_ACTIONS).toContain(action);
     }
     expect(new Set(RECOMMENDED_ACTIONS).size).toBe(RECOMMENDED_ACTIONS.length);

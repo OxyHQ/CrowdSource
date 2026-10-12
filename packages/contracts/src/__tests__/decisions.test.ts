@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { DECISION_OUTCOMES, DecisionSchema } from '../decisions.js';
 import { accepted, rejectionPaths } from './support/assertions.js';

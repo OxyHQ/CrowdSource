@@ -8,13 +8,13 @@
  *
  * The `@ts-expect-error` lines below are the real test, and they are checked by
  * `tsc -p tsconfig.test.json` in this package's `lint` script rather than by
- * vitest. If a catchall index signature ever comes back, those lines stop being
+ * bun test. If a catchall index signature ever comes back, those lines stop being
  * errors and tsc fails with TS2578 "unused '@ts-expect-error' directive" — which
  * is the failure we want, because a passing suite would otherwise report that
  * field-name checking works while it silently does not.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { CreateReportResponseSchema } from '../case-envelope.js';
 import { DecisionSchema } from '../decisions.js';
