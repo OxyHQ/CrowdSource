@@ -26,7 +26,7 @@
  * countable rather than becoming a fixture nobody compares to the plan again.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { CaseEnvelopeSchema } from '../case-envelope.js';
 import { DecisionSchema } from '../decisions.js';

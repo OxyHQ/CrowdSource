@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { RelationSchema, ResourceSchema, ResourceSchemaRegistrationSchema } from '../resources.js';
 import { accepted, rejectionIssues, rejectionPaths } from './support/assertions.js';
@@ -77,7 +77,7 @@ describe('asset-backed resources', () => {
      * host in front of a reviewer. A federated post's image genuinely has both a
      * provenance URL and pinned bytes.
      */
-    expect(
+    expect<unknown>(
       accepted(ResourceSchema, {
         ...imageResourceExample(),
         asset: {

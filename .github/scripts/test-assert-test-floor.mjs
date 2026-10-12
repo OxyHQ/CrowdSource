@@ -28,7 +28,7 @@ function runAssert(args) {
 
 async function writeReport(name, report) {
   const path = join(workingDirectory, name);
-  await writeFile(path, JSON.stringify(report));
+  await writeFile(path, typeof report === 'string' ? report : JSON.stringify(report));
   return path;
 }
 
@@ -110,6 +110,100 @@ await expectVerdict(
   [await writeReport('shape.json', { total: 175 }), 'packages/core', '12'],
   1,
   'carries no numTotalTests/numFailedTests',
+);
+
+// `bun test` reports as JUnit XML. Shaped on a real `bun test --reporter=junit`
+// run: a <testsuites> root with the totals, one <testsuite> per file (a `file`
+// and no `line`), and a nested <testsuite> per describe block (with a `line`),
+// which must not be counted as a file.
+function junit({ tests, failures, files = 2, extraRoot = '' }) {
+  const suites = Array.from(
+    { length: files },
+    (_, index) =>
+      `  <testsuite name="src/__tests__/f${index}.test.ts" file="src/__tests__/f${index}.test.ts" tests="1" failures="0" skipped="0" time="0.01" hostname="ci">
+    <testsuite name="block" file="src/__tests__/f${index}.test.ts" line="3" tests="1" failures="0" skipped="0" time="0.01" hostname="ci">
+      <testcase name="case" classname="block" time="0.001" file="src/__tests__/f${index}.test.ts" line="4" assertions="1" />
+    </testsuite>
+  </testsuite>`,
+  ).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="${tests}" assertions="${tests}" failures="${failures}" skipped="0" time="0.3"${extraRoot}>
+${suites}
+</testsuites>
+`;
+}
+
+await expectVerdict(
+  'junit-above-floor',
+  [
+    await writeReport('healthy.xml', junit({ tests: 241, failures: 0, files: 15 })),
+    'packages/contracts',
+    '195',
+  ],
+  0,
+  'packages/contracts: 241 test(s) across 15 file(s), 0 failed.',
+);
+
+await expectVerdict(
+  'junit-collapsed-suite',
+  [
+    await writeReport('collapsed.xml', junit({ tests: 3, failures: 0, files: 1 })),
+    'packages/contracts',
+    '195',
+  ],
+  1,
+  'only 3 test(s) ran, below the floor of 195',
+);
+
+await expectVerdict(
+  'junit-failed-tests-reported',
+  [
+    await writeReport('failed.xml', junit({ tests: 241, failures: 2 })),
+    'packages/contracts',
+    '195',
+  ],
+  1,
+  '2 test(s) failed but the runner exited successfully.',
+);
+
+// Some JUnit writers count errors apart from failures; an error is a failure here.
+await expectVerdict(
+  'junit-errors-reported',
+  [
+    await writeReport('errors.xml', junit({ tests: 241, failures: 0, extraRoot: ' errors="1"' })),
+    'packages/contracts',
+    '195',
+  ],
+  1,
+  '1 test(s) failed but the runner exited successfully.',
+);
+
+await expectVerdict(
+  'junit-unrecognised-report',
+  [
+    await writeReport(
+      'shape.xml',
+      '<?xml version="1.0"?>\n<testsuites name="bun test">\n</testsuites>\n',
+    ),
+    'packages/contracts',
+    '12',
+  ],
+  1,
+  'tests/failures totals (JUnit)',
+);
+
+await expectVerdict(
+  'junit-no-root',
+  [
+    await writeReport(
+      'noroot.xml',
+      '<?xml version="1.0"?>\n<testsuite tests="241" failures="0"/>\n',
+    ),
+    'packages/contracts',
+    '12',
+  ],
+  1,
+  'expected one <testsuites> root element, found 0',
 );
 
 await expectVerdict('missing-arguments', [], 1, 'usage: assert-test-floor.mjs');

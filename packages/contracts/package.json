@@ -19,8 +19,8 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.test.json",
-    "test": "node ../../node_modules/vitest/vitest.mjs run",
-    "test:watch": "node ../../node_modules/vitest/vitest.mjs",
+    "test": "bun test ./src/__tests__",
+    "test:watch": "bun test --watch ./src/__tests__",
     "prepublishOnly": "bun run build"
   },
   "keywords": [
@@ -46,8 +46,8 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
-    "typescript": "^5.9.3",
-    "vitest": "^5.0.3"
+    "bun-types": "^1.4.3",
+    "typescript": "^5.9.3"
   },
   "files": [
     "dist/**/*",
