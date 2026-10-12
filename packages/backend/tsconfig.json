@@ -17,10 +17,15 @@
     "lib": ["ES2022"],
     "types": ["node"],
     // --- Intentional override of the root base: emit CommonJS for Node/Bun.
-    // The ECS image executes the emitted `dist/**` as CommonJS; `node`
-    // resolution matches that runtime.
-    "module": "commonjs",
-    "moduleResolution": "node",
+    // The ECS image executes the emitted `dist/**` as CommonJS.
+    // Node16, not `commonjs` + `node` (node10): TypeScript 7, which `bun check`
+    // implements, removes node10 (TS5108), and TypeScript 5.x rejects `bundler`
+    // with `commonjs` (TS5095), so Node16 is the one setting both accept. With
+    // `"type": "commonjs"` in package.json and no dynamic `import()` in the
+    // emitted sources, Node16 emits the same CommonJS byte for byte; imports
+    // now resolve through each dependency's `exports` map, as Node does.
+    "module": "node16",
+    "moduleResolution": "node16",
 
     // --- Emit settings (the root base is type-check only / noEmit).
     // `rootDir: "./"` because the entrypoint `server.ts` lives at the package
@@ -40,7 +45,6 @@
 
     // Resolve the workspace dependency to contracts SOURCE during type-check so
     // backend changes see un-built type updates immediately.
-    "baseUrl": ".",
     "paths": {
       "@crowdsource.you/contracts": ["../contracts/src"],
       "@crowdsource.you/contracts/*": ["../contracts/src/*"]
