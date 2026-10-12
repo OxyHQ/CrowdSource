@@ -36,8 +36,8 @@ let unscoped: ProvisionedTenant;
 let webhookEndpointId: string;
 let sequence = 0;
 
-const key = (label: string) => `${label}-${Date.now()}-${(sequence += 1)}`;
-const subject = (label: string) => `post_${label}_${Date.now()}_${(sequence += 1)}`;
+const key = (label: string) => `${label}-${Date.now()}-${++sequence}`;
+const subject = (label: string) => `post_${label}_${Date.now()}_${++sequence}`;
 
 const noteBody = (overrides: Record<string, unknown> = {}) => ({
   externalSubjectId: subject('note'),
@@ -492,7 +492,7 @@ describe('scoring, the shown lookup and the status webhook', () => {
 
   it('refuses to fan out a status event that names no note or no revision', async () => {
     const orphan = (payload: Record<string, unknown>) => ({
-      eventId: `evt_orphan_${(sequence += 1)}`,
+      eventId: `evt_orphan_${++sequence}`,
       organizationId: tenant.organizationId,
       applicationId: tenant.applicationId,
       type: OUTBOX_EVENT_TYPES.communityNoteStatusChanged,

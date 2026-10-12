@@ -161,7 +161,7 @@ describe('MetadataBagSchema', () => {
     const hostile: unknown = JSON.parse('{"visibility":"public","__proto__":{"polluted":true}}');
     expect(Object.getOwnPropertyNames(hostile)).toContain('__proto__');
     expect(accepted(MetadataBagSchema, hostile)).toEqual({ visibility: 'public' });
-    expect(Object.prototype.hasOwnProperty.call({}, 'polluted')).toBe(false);
+    expect(Object.hasOwn({}, 'polluted')).toBe(false);
   });
 
   it('rejects a bag with more keys than the declared limit', () => {

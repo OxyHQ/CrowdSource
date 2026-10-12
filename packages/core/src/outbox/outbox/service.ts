@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import { MODERATION_OUTBOX_RETENTION_SECONDS } from '../retention.js';
 import type { ModerationOutboxStore } from '../store/types.js';
 import type {

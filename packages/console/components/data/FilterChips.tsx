@@ -12,7 +12,6 @@
  */
 
 import { Chip } from '@oxy.so/bloom/chip';
-import React from 'react';
 import { Text, View } from 'react-native';
 
 export interface FilterOption {

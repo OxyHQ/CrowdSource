@@ -16,9 +16,19 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     // --- Intentional override of the root base: emit CommonJS for the backend.
-    // `node` resolution matches the CJS module format the backend runtime uses.
-    "module": "commonjs",
-    "moduleResolution": "node",
+    // Node16, not `commonjs` + `node` (node10): TypeScript 7, which `bun check`
+    // implements, removes node10 (TS5108), and TypeScript 5.x rejects `bundler`
+    // with `commonjs` (TS5095), so Node16 is the one setting both accept. With
+    // `"type": "commonjs"` in package.json and no dynamic `import()` in the
+    // emitted sources, Node16 emits the same CommonJS byte for byte; imports
+    // now resolve through each dependency's `exports` map, as Node does.
+    "module": "node16",
+    "moduleResolution": "node16",
+    // Stated rather than left to tsc's default of every `node_modules/@types`
+    // package (React, Jest and jsdom's DOM among them), which `bun check` does
+    // not load: the two checkers then see the same program. The contracts are
+    // runtime-neutral and need no ambient types.
+    "types": [],
 
     // --- Emit settings (the root base is type-check only / noEmit).
     "noEmit": false,

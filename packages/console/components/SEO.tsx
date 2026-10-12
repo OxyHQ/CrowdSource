@@ -14,7 +14,6 @@
  */
 
 import ExpoHead from 'expo-router/head';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface SEOProps {

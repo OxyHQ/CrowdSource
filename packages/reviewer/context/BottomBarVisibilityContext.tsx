@@ -28,7 +28,8 @@
 
 import { setMinimized, useMinimizeState } from '@oxy.so/bloom/tab-bar';
 import { usePathname } from 'expo-router';
-import React, { createContext, useContext, useEffect } from 'react';
+import type React from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import { useAnimatedReaction, useSharedValue, type SharedValue } from 'react-native-reanimated';
 
 import { useLayoutScroll } from '@/context/LayoutScrollContext';
@@ -77,6 +78,7 @@ export function BottomBarVisibilityProvider({ children }: { children: React.Reac
   // Every screen opens with its chrome shown, and the bar at full size — without
   // this, leaving a scrolled screen opens the next one with a shrunken pill and
   // a header already half gone.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `pathname` is the trigger (reset on every navigation), not a value the effect reads
   useEffect(() => {
     hideAmount.value = 0;
     hidden.value = 0;

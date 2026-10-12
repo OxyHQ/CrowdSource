@@ -59,7 +59,7 @@ const SCOPES = [
 let tenant: ProvisionedTenant;
 let sibling: ProvisionedTenant;
 let sequence = 0;
-const unique = (label: string) => `${label}-${Date.now()}-${(sequence += 1)}`;
+const unique = (label: string) => `${label}-${Date.now()}-${++sequence}`;
 
 function post(path: string, body: unknown, as: ProvisionedTenant = tenant) {
   return request(app)

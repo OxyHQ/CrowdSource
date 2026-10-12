@@ -4,7 +4,7 @@ import type {
   WebhookDeliveryStatus,
 } from '../../db/postgres/schema/webhooks';
 import type { TenantContext } from '../../db/tenantScope';
-import {
+import type {
   WEBHOOK_DISABLED_REASONS,
   WEBHOOK_ATTEMPT_OUTCOMES,
   WEBHOOK_ENDPOINT_STATUSES,

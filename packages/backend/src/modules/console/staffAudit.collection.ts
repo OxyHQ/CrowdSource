@@ -1,5 +1,5 @@
 import { defineUnscopedCollection } from '../../db/collections';
-import { STAFF_AUDIT_ACTIONS } from '../../domain/closedValues';
+import type { STAFF_AUDIT_ACTIONS } from '../../domain/closedValues';
 import { newPublicId } from '../../utils/identifiers';
 import type { StaffRole } from './console.collections';
 

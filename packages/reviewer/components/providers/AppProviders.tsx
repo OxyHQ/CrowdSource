@@ -5,11 +5,12 @@
  * re-render never remounts the providers underneath it.
  */
 
-import { OxyServices } from '@oxy.so/core';
+import type { OxyServices } from '@oxy.so/core';
 import { OxyProvider } from '@oxy.so/services/ui/client';
-import { QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
-import React, { memo, useCallback } from 'react';
+import type React from 'react';
+import { memo, useCallback } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';

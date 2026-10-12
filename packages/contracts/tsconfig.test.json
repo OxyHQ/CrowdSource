@@ -22,7 +22,10 @@
     // under `node_modules/@types` is hoisted to the root and joins EVERY project
     // that does not list its `types`, which put Bun's `fetch` into `core`'s
     // published source and failed its build.
-    "types": ["node", "bun-types"]
+    "types": ["node", "bun-types"],
+    // The tests never reach a consumer bundle, so they may use ES2022 built-ins
+    // (`Object.hasOwn`). The emitting project keeps the root lib.
+    "lib": ["ES2022"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

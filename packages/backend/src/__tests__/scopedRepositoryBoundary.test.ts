@@ -51,7 +51,7 @@ function withoutComments(source: string): string {
 }
 
 /** A parameter annotated with the bare, unbranded handle. */
-export function bareHandleParameters(source: string): string[] {
+function bareHandleParameters(source: string): string[] {
   return [...withoutComments(source).matchAll(/(\w+)\s*:\s*PgHandle\b/g)].map((match) => match[0]);
 }
 

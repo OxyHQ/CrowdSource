@@ -18,7 +18,6 @@
  */
 
 import { PanelChromeTopInsetProvider } from '@/components/shell/PanelChrome';
-import React from 'react';
 import { ScrollView, Text } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 

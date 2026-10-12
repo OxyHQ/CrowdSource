@@ -29,7 +29,6 @@
  * cross-tenant reader has no relationship with the case they name.
  */
 
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 

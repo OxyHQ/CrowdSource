@@ -17,7 +17,6 @@
  */
 
 import ExpoHead from 'expo-router/head';
-import React from 'react';
 import { Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 

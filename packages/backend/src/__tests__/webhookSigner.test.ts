@@ -210,8 +210,8 @@ describe('malformed headers', () => {
   it.each([
     ['deadbeef', 'no version prefix'],
     ['v1=DEADBEEF', 'uppercase hex'],
-    ['v2=' + '0'.repeat(64), 'an unknown scheme version'],
-    ['v1=' + '0'.repeat(63), 'a short digest'],
+    [`v2=${'0'.repeat(64)}`, 'an unknown scheme version'],
+    [`v1=${'0'.repeat(63)}`, 'a short digest'],
     ['', 'nothing at all'],
   ])('rejects the signature %j (%s)', (signature) => {
     expect(

@@ -93,7 +93,7 @@ export async function pullAccountEvents(
       result.pages += 1;
 
       for (const item of response.events) {
-        let event;
+        let event: Awaited<ReturnType<typeof client.verify>>;
         try {
           event = await client.verify(item.token);
         } catch (caught: unknown) {

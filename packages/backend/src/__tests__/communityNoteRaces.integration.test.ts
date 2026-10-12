@@ -33,13 +33,13 @@ type ProvisionedTenant = Awaited<ReturnType<typeof provisionTenant>>;
 
 let tenant: ProvisionedTenant;
 let sequence = 0;
-const key = (label: string) => `${label}-${Date.now()}-${(sequence += 1)}`;
+const key = (label: string) => `${label}-${Date.now()}-${++sequence}`;
 const write = (label: string) => ({ idempotencyKey: key(label), credentialId: 'csk_test' });
 
 const note = (overrides: Record<string, unknown> = {}) => ({
-  externalSubjectId: `post_race_${Date.now()}_${(sequence += 1)}`,
+  externalSubjectId: `post_race_${Date.now()}_${++sequence}`,
   subjectAuthorPrincipalId: 'race_subject_author',
-  authorPrincipalId: `race_writer_${(sequence += 1)}`,
+  authorPrincipalId: `race_writer_${++sequence}`,
   language: 'fi',
   text: 'Kontekstia.',
   ...overrides,

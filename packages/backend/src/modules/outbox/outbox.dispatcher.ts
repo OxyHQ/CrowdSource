@@ -5,7 +5,7 @@ import {
   markOutboxEventDispatched,
   markOutboxEventFailed,
 } from '../../db/postgres/repositories/outbox';
-import { type OutboxEventDocument, type OutboxEventType } from './outbox.collection';
+import type { OutboxEventDocument, OutboxEventType } from './outbox.collection';
 
 /**
  * The outbox dispatcher (§12.5).

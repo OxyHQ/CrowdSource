@@ -151,6 +151,7 @@ const INVISIBLE_CHARACTERS = /[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
  * wall of one line is harder for a reviewer to read than the original — and
  * "harder to read" is a cost paid by the person being judged.
  */
+// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control characters is this regex's job
 const CONTROL_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]+/g;
 
 /** Redacts one free-text field written by an author (§9.8, §7.5 row 4, §13.5). */

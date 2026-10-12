@@ -20,7 +20,7 @@
 
 import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
 import { IconButton } from '@oxy.so/bloom/button';
-import React, { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View, type LayoutChangeEvent } from 'react-native';
 import { useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';

@@ -115,7 +115,7 @@ overrule this package.
 
 ```bash
 bun run --cwd packages/contracts test     # bun test, valid and invalid examples
-bun run --cwd packages/contracts lint     # tsc for src/ and again for the tests
+bun run --cwd packages/contracts lint     # bun check for src/ and again for the tests
 bun run --cwd packages/contracts build    # tsc → dist/ (CommonJS + .d.ts)
 ```
 

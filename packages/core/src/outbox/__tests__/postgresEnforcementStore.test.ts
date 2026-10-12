@@ -16,7 +16,7 @@
  *   passed or failed on timing rather than on the predicate.
  */
 
-import postgres from 'postgres';
+import type postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabase } from '@oxy.so/db';
 import { postgresEnforcementStore } from '../postgres/store/enforcement.js';

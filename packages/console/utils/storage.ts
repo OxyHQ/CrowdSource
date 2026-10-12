@@ -9,8 +9,8 @@ import { logger } from '@/lib/logger';
  * unencrypted device storage. Anything the server issues belongs to the SDK's
  * secure session storage.
  */
-export class Storage {
-  static async get<T>(key: string): Promise<T | null> {
+export const Storage = {
+  async get<T>(key: string): Promise<T | null> {
     try {
       const item = await AsyncStorage.getItem(key);
       return item ? (JSON.parse(item) as T) : null;
@@ -18,9 +18,9 @@ export class Storage {
       logger.warn(`[Storage] Failed to get item: ${key}`, { error });
       return null;
     }
-  }
+  },
 
-  static async set<T>(key: string, value: T): Promise<boolean> {
+  async set<T>(key: string, value: T): Promise<boolean> {
     try {
       await AsyncStorage.setItem(key, JSON.stringify(value));
       return true;
@@ -28,9 +28,9 @@ export class Storage {
       logger.warn(`[Storage] Failed to set item: ${key}`, { error });
       return false;
     }
-  }
+  },
 
-  static async remove(key: string): Promise<boolean> {
+  async remove(key: string): Promise<boolean> {
     try {
       await AsyncStorage.removeItem(key);
       return true;
@@ -38,5 +38,5 @@ export class Storage {
       logger.warn(`[Storage] Failed to remove item: ${key}`, { error });
       return false;
     }
-  }
-}
+  },
+};

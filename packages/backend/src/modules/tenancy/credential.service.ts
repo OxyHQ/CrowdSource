@@ -122,7 +122,7 @@ export async function authenticateServiceCredential(
   }
 
   const application = await applications.findOne({ applicationId: credential.applicationId });
-  if (!application || application.status !== 'active') {
+  if (application?.status !== 'active') {
     throw unauthorized;
   }
   // A credential naming one organization while its application names another is

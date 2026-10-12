@@ -7,9 +7,9 @@
  * invented. `Closed` is what lets those coexist — see `../closed.ts`.
  *
  * The `@ts-expect-error` lines below are the real test, and they are checked by
- * `tsc -p tsconfig.test.json` in this package's `lint` script rather than by
- * bun test. If a catchall index signature ever comes back, those lines stop being
- * errors and tsc fails with TS2578 "unused '@ts-expect-error' directive" — which
+ * `bun check -p tsconfig.test.json` in this package's `lint` script rather than
+ * by bun test. If a catchall index signature ever comes back, those lines stop
+ * being errors and the check fails with TS2578 "unused '@ts-expect-error' directive" — which
  * is the failure we want, because a passing suite would otherwise report that
  * field-name checking works while it silently does not.
  */
@@ -35,7 +35,7 @@ describe('outbound schemas stay loose at runtime', () => {
 
     // §10.11: passed through, not stripped and not rejected. A receiver that
     // persists this keeps all of it.
-    expect((parsed as Record<string, unknown>)['fieldFromANewerServer']).toBe('kept');
+    expect((parsed as Record<string, unknown>).fieldFromANewerServer).toBe('kept');
   });
 
   it('does not reject an unknown field on a webhook envelope', () => {
