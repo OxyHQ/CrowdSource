@@ -20,7 +20,14 @@
     "declarationMap": false,
     "noEmit": true,
     "types": ["node"],
-    "rootDir": "."
+    "rootDir": ".",
+    // The emitting project resolves as Node16 CommonJS, under which the four
+    // Vitest configs' `import ... from 'vitest/config'` (an ESM-only entry) is
+    // TS1479. Vitest loads its configs and runs these tests as ESM through its
+    // own transform, so they are checked the way they run, as
+    // `packages/backend/tsconfig.test.json` already does.
+    "module": "esnext",
+    "moduleResolution": "bundler"
   },
   "include": [
     "src/**/*",
