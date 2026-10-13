@@ -156,12 +156,8 @@ jobs:
       # the gate can fail, not that it stopped looking.
       - name: Prove the reviewed-image gate can fail
         run: python3 -B -m unittest discover -s .github/scripts -p test_reviewed_image.py
-      # Its fixtures are repositories named OxyHQ/Example, and the re-pin it
-      # drives refuses a configuration whose name differs from
-      # GITHUB_REPOSITORY, which Actions always sets. Unset it for the fixtures;
-      # the real bump runs with it set, against this repository's own config.
       - name: Prove the base-image digest bump
-        run: env -u GITHUB_REPOSITORY python3 -B -m unittest discover -s .github/scripts -p test_bump_base_digests.py
+        run: python3 -B -m unittest discover -s .github/scripts -p test_bump_base_digests.py
       - name: Verify the production image's build inputs are reviewed
         run: python3 -B .github/scripts/reviewed-image.py check
 
