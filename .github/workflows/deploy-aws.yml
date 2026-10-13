@@ -94,6 +94,7 @@ jobs:
         with:
           context: ${{ steps.reviewed.outputs.context }}
           file: ${{ steps.reviewed.outputs.dockerfile }}
+          target: ${{ steps.reviewed.outputs.target }}
           platforms: linux/arm64
           push: true
           # The SHA tag is the release record. `latest` is published alongside

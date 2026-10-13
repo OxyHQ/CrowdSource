@@ -8,8 +8,13 @@ name: Refresh build cache
 # security patches. This job re-runs every step, then overwrites the scope; the
 # next real deploy builds on those fresh layers. Base images are pinned by
 # digest in the Dockerfile, so it does NOT move them: a base-image update is a
-# digest bump in the Dockerfile, re-reviewed and re-pinned in
-# .github/scripts/reviewed-images.json.
+# digest bump in the Dockerfile (bump-base-digests.yml opens it weekly),
+# re-reviewed and re-pinned in .github/scripts/reviewed-images.json.
+#
+# It builds only what the owner reviewed. The same `guard` the deploy runs hands
+# this job its Dockerfile, context, target and labels, so the layers it writes
+# into the deploy's cache scope come from the reviewed inputs and nothing else;
+# an unreviewed Dockerfile stops here, before it can seed that cache.
 #
 # It builds only: no AWS credentials, no ECR push, no deploy. It runs on the
 # default branch (schedule) or a dispatch from main, so it writes main's cache,
@@ -40,12 +45,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
+      - name: Refuse unreviewed image build inputs
+        id: reviewed
+        run: python3 -B .github/scripts/reviewed-image.py guard --recipe crowdsource
+
       # push: false and no load: the result lives only in the exported cache.
       - name: Rebuild the crowdsource backend image from scratch into the cache
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          context: .
-          file: packages/backend/Dockerfile
+          context: ${{ steps.reviewed.outputs.context }}
+          file: ${{ steps.reviewed.outputs.dockerfile }}
+          target: ${{ steps.reviewed.outputs.target }}
+          labels: |-
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            io.oxy.source.tree=${{ steps.reviewed.outputs.source_tree }}
+            io.oxy.build-inputs.sha256=${{ steps.reviewed.outputs.build_inputs_sha256 }}
           platforms: linux/arm64
           push: false
           no-cache: true
