@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
 
 import { stubOxySession } from './support/reviewers';
 
@@ -18,10 +18,11 @@ import { stubOxySession } from './support/reviewers';
  * The values searched for are the dangerous ones by category: a reviewer id, the
  * reported text, a reporter fingerprint, and the internal triage figures.
  */
-vi.mock('@oxy.so/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
-  return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
-});
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
+  createOptionalOxyAuth: () => stubOxySession(),
+}));
 
 const { createApp } = await import('../app');
 const { cases } = await import('../modules/cases/case.collection');

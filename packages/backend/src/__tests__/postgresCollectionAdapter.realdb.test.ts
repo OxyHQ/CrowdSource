@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { TenantCollection, UnscopedCollection, type TenantScopedUpdate } from '../db/collections';
 import type { TenantContext } from '../db/tenantScope';

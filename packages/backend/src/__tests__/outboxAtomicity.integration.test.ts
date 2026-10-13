@@ -1,17 +1,9 @@
 import { postgresControl } from './support/postgresControl';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, mock, vi } from 'bun:test';
 
-import { reports } from '../modules/ingestion/report.collection';
-import { deliverReport } from '../modules/ingestion/report.service';
-import { appendAuditEvent } from '../modules/audit/audit.collection';
-import { appendOutboxEvent } from '../modules/outbox/outbox.collection';
-import {
-  provisionTenant,
-  sampleEnvelope,
-  startDatabase,
-  stopDatabase,
-  type ProvisionedTenant,
-} from './support/tenants';
+import { mocked } from './support/testDoubles';
+
+import type { ProvisionedTenant } from './support/tenants';
 
 /** A delivery for this tenant, distinct from every other test's material. */
 function delivery(externalReportId: string) {
@@ -42,15 +34,28 @@ function delivery(externalReportId: string) {
  * the outbox write fail and checks the report is not there either.
  */
 
-vi.mock('../modules/audit/audit.collection', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../modules/audit/audit.collection')>();
-  return { ...actual, appendAuditEvent: vi.fn(actual.appendAuditEvent) };
-});
+// `mock.module` is not hoisted the way `vi.mock` was, so both mocks are
+// registered here and everything that reaches them is imported dynamically
+// below. The real exports are copied first: the mock replaces them in place.
+const actualAudit = { ...(await import('../modules/audit/audit.collection')) };
+mock.module('../modules/audit/audit.collection', () => ({
+  ...actualAudit,
+  appendAuditEvent: vi.fn(actualAudit.appendAuditEvent),
+}));
 
-vi.mock('../modules/outbox/outbox.collection', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../modules/outbox/outbox.collection')>();
-  return { ...actual, appendOutboxEvent: vi.fn(actual.appendOutboxEvent) };
-});
+const actualOutbox = { ...(await import('../modules/outbox/outbox.collection')) };
+mock.module('../modules/outbox/outbox.collection', () => ({
+  ...actualOutbox,
+  appendOutboxEvent: vi.fn(actualOutbox.appendOutboxEvent),
+}));
+
+const { reports } = await import('../modules/ingestion/report.collection');
+const { deliverReport } = await import('../modules/ingestion/report.service');
+const { appendAuditEvent } = await import('../modules/audit/audit.collection');
+const { appendOutboxEvent } = await import('../modules/outbox/outbox.collection');
+const { provisionTenant, sampleEnvelope, startDatabase, stopDatabase } = await import(
+  './support/tenants'
+);
 
 let tenant: ProvisionedTenant;
 
@@ -65,7 +70,7 @@ let tenant: ProvisionedTenant;
 let passThroughAudit: (...args: Parameters<typeof appendAuditEvent>) => Promise<string>;
 
 beforeAll(async () => {
-  const implementation = vi.mocked(appendAuditEvent).getMockImplementation();
+  const implementation = mocked(appendAuditEvent).getMockImplementation();
   if (!implementation) {
     throw new Error('The audit mock was built without its pass-through implementation.');
   }
@@ -76,9 +81,9 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
-  vi.mocked(appendOutboxEvent).mockClear();
-  vi.mocked(appendAuditEvent).mockClear();
-  vi.mocked(appendAuditEvent).mockImplementation(passThroughAudit);
+  mocked(appendOutboxEvent).mockClear();
+  mocked(appendAuditEvent).mockClear();
+  mocked(appendAuditEvent).mockImplementation(passThroughAudit);
 });
 
 afterAll(async () => {
@@ -113,7 +118,7 @@ describe('a report and its outbox event commit together', () => {
 
   it('rolls the report back when the outbox event cannot be written', async () => {
     const externalReportId = `atomic-fail-${Date.now()}`;
-    vi.mocked(appendOutboxEvent).mockRejectedValueOnce(new Error('outbox write failed'));
+    mocked(appendOutboxEvent).mockRejectedValueOnce(new Error('outbox write failed'));
 
     await expect(deliverReport(tenant.tenant, delivery(externalReportId))).rejects.toThrow(
       /outbox write failed/,
@@ -184,7 +189,7 @@ describe('a report and its outbox event commit together', () => {
      * happen. Failing on every attempt is also the truer statement of what is
      * being tested: a later write in this transaction cannot succeed.
      */
-    vi.mocked(appendAuditEvent).mockRejectedValue(new Error('audit write failed'));
+    mocked(appendAuditEvent).mockRejectedValue(new Error('audit write failed'));
 
     await expect(deliverReport(tenant.tenant, delivery(externalReportId))).rejects.toThrow(
       /audit write failed/,
@@ -203,7 +208,7 @@ describe('a report and its outbox event commit together', () => {
 
   it('leaves the idempotency key free after a rolled-back delivery', async () => {
     const externalReportId = `atomic-retry-${Date.now()}`;
-    vi.mocked(appendOutboxEvent).mockRejectedValueOnce(new Error('outbox write failed'));
+    mocked(appendOutboxEvent).mockRejectedValueOnce(new Error('outbox write failed'));
 
     await expect(deliverReport(tenant.tenant, delivery(externalReportId))).rejects.toThrow();
 

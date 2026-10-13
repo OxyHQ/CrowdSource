@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { Resource } from '@crowdsource.you/contracts';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
 
 import { stubOxySession } from './support/reviewers';
 
@@ -35,10 +35,11 @@ import { stubOxySession } from './support/reviewers';
  * must not carry.
  */
 
-vi.mock('@oxy.so/core/server', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('@oxy.so/core/server');
-  return { ...actual, createOxyAuthMiddleware: () => stubOxySession() };
-});
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
+  createOxyAuthMiddleware: () => stubOxySession(),
+}));
 
 const { createApp } = await import('../app');
 const { cases } = await import('../modules/cases/case.collection');
@@ -234,7 +235,7 @@ describe('§9.1: every resource type projects, and the digest never travels', ()
   it('projects all twelve types and drops sha256 from each', async () => {
     const built = await packageForEveryType();
 
-    expect(built.resources.map((resource) => resource.type).sort()).toEqual(
+    expect<string[]>(built.resources.map((resource) => resource.type).sort()).toEqual(
       [
         'audio',
         'conversation',

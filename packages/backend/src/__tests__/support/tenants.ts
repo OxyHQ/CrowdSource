@@ -32,13 +32,13 @@ export async function startDatabase(): Promise<void> {
    * Gate the run on where it is about to write.
    *
    * The fallback URL deliberately names `unused-by-design`; reaching it means
-   * global setup did not provision the disposable database. Refuse before any
+   * `run-tests.ts` did not provision the disposable database. Refuse before any
    * test can write to a developer or shared database by accident.
    */
   if (config.databaseUrl.includes('unused-by-design')) {
     throw new Error(
       `The integration suite is pointed at '${config.databaseUrl}', which means ` +
-        'vitest.globalSetup.ts did not create the disposable PostgreSQL database. Refusing to run.',
+        'run-tests.ts did not create the disposable PostgreSQL database. Refusing to run.',
     );
   }
 
@@ -46,7 +46,7 @@ export async function startDatabase(): Promise<void> {
 }
 
 export async function stopDatabase(): Promise<void> {
-  // The serial suite shares one disposable database. Global teardown owns it.
+  // The serial suite shares one disposable database. `run-tests.ts` owns it.
 }
 
 /**

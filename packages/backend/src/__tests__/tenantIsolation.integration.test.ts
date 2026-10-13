@@ -1,6 +1,6 @@
 import { postgresControl } from './support/postgresControl';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
 import { createApp } from '../app';
 import { reports } from '../modules/ingestion/report.collection';

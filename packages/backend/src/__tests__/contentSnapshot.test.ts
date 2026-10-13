@@ -1,5 +1,5 @@
 import { CaseEnvelopeSchema, type CaseEnvelope } from '@crowdsource.you/contracts';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import {
   contentHashOf,

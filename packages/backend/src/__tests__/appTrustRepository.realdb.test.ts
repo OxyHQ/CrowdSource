@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'bun:test';
 
 import * as appTrust from '../db/postgres/repositories/appTrust';
 import { appTrustSnapshots } from '../db/postgres/schema/infrastructure';

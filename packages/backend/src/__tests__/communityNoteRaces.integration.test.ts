@@ -1,5 +1,7 @@
 import type { CommunityNoteRatingSubmission } from '@crowdsource.you/contracts';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, mock, vi } from 'bun:test';
+
+import { mocked } from './support/testDoubles';
 
 /**
  * The community-note paths only a race reaches, made deterministic.
@@ -11,19 +13,21 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
  * and the database is left to refuse the loser exactly as it would.
  */
 
-vi.mock('../db/postgres/repositories/scoped/communityNotes', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('../db/postgres/repositories/scoped/communityNotes')>();
-  return {
-    ...actual,
-    findCommunityNoteByIdempotencyKey: vi.fn(actual.findCommunityNoteByIdempotencyKey),
-    findCommunityNoteRatingByIdempotencyKey: vi.fn(actual.findCommunityNoteRatingByIdempotencyKey),
-    transitionCommunityNoteStatus: vi.fn(actual.transitionCommunityNoteStatus),
-    consumeCommunityNoteAssignment: vi.fn(actual.consumeCommunityNoteAssignment),
-    drawCommunityNotesToRate: vi.fn(actual.drawCommunityNotesToRate),
-    findCommunityNoteStatuses: vi.fn(actual.findCommunityNoteStatuses),
-  };
-});
+/**
+ * The real repository, copied before `mock.module` replaces its exports in
+ * place: what vitest's `importOriginal` / `vi.importActual` handed back.
+ */
+const actual = { ...(await import('../db/postgres/repositories/scoped/communityNotes')) };
+
+mock.module('../db/postgres/repositories/scoped/communityNotes', () => ({
+  ...actual,
+  findCommunityNoteByIdempotencyKey: vi.fn(actual.findCommunityNoteByIdempotencyKey),
+  findCommunityNoteRatingByIdempotencyKey: vi.fn(actual.findCommunityNoteRatingByIdempotencyKey),
+  transitionCommunityNoteStatus: vi.fn(actual.transitionCommunityNoteStatus),
+  consumeCommunityNoteAssignment: vi.fn(actual.consumeCommunityNoteAssignment),
+  drawCommunityNotesToRate: vi.fn(actual.drawCommunityNotesToRate),
+  findCommunityNoteStatuses: vi.fn(actual.findCommunityNoteStatuses),
+}));
 
 const repository = await import('../db/postgres/repositories/scoped/communityNotes');
 const service = await import('../modules/communityNotes/communityNotes.service');
@@ -68,26 +72,23 @@ beforeAll(async () => {
   ]);
 });
 
-afterEach(async () => {
-  const actual = await vi.importActual<
-    typeof import('../db/postgres/repositories/scoped/communityNotes')
-  >('../db/postgres/repositories/scoped/communityNotes');
-  vi.mocked(repository.findCommunityNoteByIdempotencyKey)
+afterEach(() => {
+  mocked(repository.findCommunityNoteByIdempotencyKey)
     .mockReset()
     .mockImplementation(actual.findCommunityNoteByIdempotencyKey);
-  vi.mocked(repository.findCommunityNoteRatingByIdempotencyKey)
+  mocked(repository.findCommunityNoteRatingByIdempotencyKey)
     .mockReset()
     .mockImplementation(actual.findCommunityNoteRatingByIdempotencyKey);
-  vi.mocked(repository.transitionCommunityNoteStatus)
+  mocked(repository.transitionCommunityNoteStatus)
     .mockReset()
     .mockImplementation(actual.transitionCommunityNoteStatus);
-  vi.mocked(repository.consumeCommunityNoteAssignment)
+  mocked(repository.consumeCommunityNoteAssignment)
     .mockReset()
     .mockImplementation(actual.consumeCommunityNoteAssignment);
-  vi.mocked(repository.drawCommunityNotesToRate)
+  mocked(repository.drawCommunityNotesToRate)
     .mockReset()
     .mockImplementation(actual.drawCommunityNotesToRate);
-  vi.mocked(repository.findCommunityNoteStatuses)
+  mocked(repository.findCommunityNoteStatuses)
     .mockReset()
     .mockImplementation(actual.findCommunityNoteStatuses);
 });
@@ -98,7 +99,7 @@ describe('a write racing its own retry', () => {
     const body = note();
     const first = await service.writeCommunityNote(tenant.tenant, body, idempotency);
 
-    vi.mocked(repository.findCommunityNoteByIdempotencyKey).mockResolvedValueOnce(null as never);
+    mocked(repository.findCommunityNoteByIdempotencyKey).mockResolvedValueOnce(null as never);
     const retried = await service.writeCommunityNote(tenant.tenant, body, idempotency);
 
     expect(retried).toMatchObject({ replayed: true, note: { noteId: first.note.noteId } });
@@ -109,7 +110,7 @@ describe('a write racing its own retry', () => {
     const body = note();
     await service.writeCommunityNote(tenant.tenant, body, idempotency);
 
-    vi.mocked(repository.findCommunityNoteByIdempotencyKey).mockResolvedValue(null as never);
+    mocked(repository.findCommunityNoteByIdempotencyKey).mockResolvedValue(null as never);
     const error = await refusal(service.writeCommunityNote(tenant.tenant, body, idempotency));
     expect(error.code).toBe('service_unavailable');
   });
@@ -118,7 +119,7 @@ describe('a write racing its own retry', () => {
 describe('a withdrawal losing to another transition', () => {
   it('is refused rather than recording a status the note never had', async () => {
     const written = await service.writeCommunityNote(tenant.tenant, note(), write('note'));
-    vi.mocked(repository.transitionCommunityNoteStatus).mockResolvedValueOnce(false);
+    mocked(repository.transitionCommunityNoteStatus).mockResolvedValueOnce(false);
 
     const error = await refusal(
       service.withdrawCommunityNote(
@@ -153,10 +154,8 @@ describe('ratings racing', () => {
       idempotency,
     );
 
-    vi.mocked(repository.findCommunityNoteRatingByIdempotencyKey).mockResolvedValueOnce(
-      null as never,
-    );
-    vi.mocked(repository.consumeCommunityNoteAssignment).mockResolvedValueOnce(1);
+    mocked(repository.findCommunityNoteRatingByIdempotencyKey).mockResolvedValueOnce(null as never);
+    mocked(repository.consumeCommunityNoteAssignment).mockResolvedValueOnce(1);
     const retried = await service.rateCommunityNote(
       tenant.tenant,
       noteId,
@@ -165,8 +164,8 @@ describe('ratings racing', () => {
     );
     expect(retried).toMatchObject({ replayed: true, rating: { ratingId: first.rating.ratingId } });
 
-    vi.mocked(repository.findCommunityNoteRatingByIdempotencyKey).mockResolvedValue(null as never);
-    vi.mocked(repository.consumeCommunityNoteAssignment).mockResolvedValueOnce(1);
+    mocked(repository.findCommunityNoteRatingByIdempotencyKey).mockResolvedValue(null as never);
+    mocked(repository.consumeCommunityNoteAssignment).mockResolvedValueOnce(1);
     const error = await refusal(
       service.rateCommunityNote(tenant.tenant, noteId, helpful('race_rater_1'), idempotency),
     );
@@ -177,7 +176,7 @@ describe('ratings racing', () => {
     const noteId = await assignedNote('race_rater_2');
     await service.rateCommunityNote(tenant.tenant, noteId, helpful('race_rater_2'), write('rate'));
 
-    vi.mocked(repository.consumeCommunityNoteAssignment).mockResolvedValueOnce(1);
+    mocked(repository.consumeCommunityNoteAssignment).mockResolvedValueOnce(1);
     const error = await refusal(
       service.rateCommunityNote(tenant.tenant, noteId, helpful('race_rater_2'), write('rate')),
     );
@@ -195,7 +194,7 @@ describe('draws and rescores that lose', () => {
     );
     expect(first.map((assignment) => assignment.note.id)).toContain(written.note.noteId);
 
-    vi.mocked(repository.drawCommunityNotesToRate).mockResolvedValueOnce([written.note]);
+    mocked(repository.drawCommunityNotesToRate).mockResolvedValueOnce([written.note]);
     const second = await service.issueCommunityNoteAssignments(
       tenant.tenant,
       { raterPrincipalId: 'race_drawer', languages: ['fi'] },
@@ -230,14 +229,14 @@ describe('draws and rescores that lose', () => {
     }
 
     // A status the scorer will disagree with, so it tries the transition — and loses it.
-    vi.mocked(repository.findCommunityNoteStatuses).mockResolvedValueOnce([
+    mocked(repository.findCommunityNoteStatuses).mockResolvedValueOnce([
       { noteId: written.note.noteId, status: 'withdrawn_elsewhere', statusRevision: 99 },
     ]);
-    vi.mocked(repository.transitionCommunityNoteStatus).mockResolvedValueOnce(false);
+    mocked(repository.transitionCommunityNoteStatus).mockResolvedValueOnce(false);
     expect(await service.rescoreCommunityNotes(fresh.tenant)).toBe(0);
     expect(repository.transitionCommunityNoteStatus).toHaveBeenCalledTimes(1);
 
-    vi.mocked(repository.findCommunityNoteStatuses).mockResolvedValueOnce([]);
+    mocked(repository.findCommunityNoteStatuses).mockResolvedValueOnce([]);
     expect(await service.rescoreCommunityNotes(fresh.tenant)).toBe(0);
 
     await service.withdrawCommunityNote(
@@ -246,7 +245,7 @@ describe('draws and rescores that lose', () => {
       written.note.authorPrincipalId,
       'csk_test',
     );
-    vi.mocked(repository.findCommunityNoteStatuses).mockResolvedValueOnce([
+    mocked(repository.findCommunityNoteStatuses).mockResolvedValueOnce([
       { noteId: written.note.noteId, status: 'withdrawn', statusRevision: 2 },
     ]);
     expect(await service.rescoreCommunityNotes(fresh.tenant)).toBe(0);
@@ -257,9 +256,6 @@ describe('two shown notes on one subject', () => {
   it('keeps the note shown first, and a stale revision cannot move a note', async () => {
     const { withTransaction } = await import('../db/transaction');
     const { withTenantTransaction } = await import('../db/postgres/withTenant');
-    const actual = await vi.importActual<
-      typeof import('../db/postgres/repositories/scoped/communityNotes')
-    >('../db/postgres/repositories/scoped/communityNotes');
     const externalSubjectId = `post_twice_${Date.now()}`;
     const first = await service.writeCommunityNote(
       tenant.tenant,

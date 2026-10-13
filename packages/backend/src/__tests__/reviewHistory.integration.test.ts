@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
 
 import { stubOxySession } from './support/reviewers';
 
@@ -40,10 +40,11 @@ import { stubOxySession } from './support/reviewers';
  * thought to name.
  */
 
-vi.mock('@oxy.so/core/server', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('@oxy.so/core/server');
-  return { ...actual, createOxyAuthMiddleware: () => stubOxySession() };
-});
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
+  createOxyAuthMiddleware: () => stubOxySession(),
+}));
 
 const { createApp } = await import('../app');
 const { cases } = await import('../modules/cases/case.collection');

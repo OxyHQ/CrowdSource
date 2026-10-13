@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'bun:test';
 
 /**
  * Community notes end to end (the community notes ADR): the application API, the assignment

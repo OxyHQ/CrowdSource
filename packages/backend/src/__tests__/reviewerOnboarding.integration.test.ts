@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
@@ -19,10 +19,11 @@ import { stubOxySession } from './support/reviewers';
  * number nobody verifies is one that eventually decides who judges for a reason
  * nobody can state.
  */
-vi.mock('@oxy.so/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
-  return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
-});
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
+  createOptionalOxyAuth: () => stubOxySession(),
+}));
 
 const { createApp } = await import('../app');
 const { CALIBRATION_ITEMS, TRAINING_MODULES } = await import('../modules/reviewer/calibration');

@@ -21,7 +21,11 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "types": ["node", "vitest/globals"],
+    // `bun-types` for the `bun:test` module the tests import. A direct
+    // dependency on `bun-types` rather than `@types/bun`, deliberately:
+    // anything under `node_modules/@types` is hoisted to the root and joins
+    // EVERY project that does not list its `types`.
+    "types": ["node", "bun-types"],
     // The emitting project sets `rootDir: "./"`, which this project must widen
     // rather than inherit: its `paths` resolves @crowdsource.you/contracts to
     // ../contracts/src, and every file there is then TS6059 "not under rootDir".
@@ -30,8 +34,8 @@
     "rootDir": "../..",
 
     // The emitting project above is a CommonJS/ES2020 RUNTIME contract for the
-    // ECS image. Vitest does not run the tests that way — it runs them as ESM
-    // through its own transform — so type-checking them under the emit contract
+    // ECS image. `bun test` does not run the tests that way — it runs them as
+    // ESM, from source — so type-checking them under the emit contract
     // reports failures the runtime does not have (top-level `await` rejected as
     // TS1378, `String.replaceAll` missing as TS2550). These options describe how
     // the tests are actually executed, which is what makes the errors that remain
@@ -42,12 +46,6 @@
     "lib": ["ES2022"],
     "verbatimModuleSyntax": false
   },
-  "include": [
-    "server.ts",
-    "src/**/*.ts",
-    "vitest.config.ts",
-    "vitest.setup.ts",
-    "vitest.globalSetup.ts"
-  ],
+  "include": ["server.ts", "src/**/*.ts", "test.setup.ts", "run-tests.ts"],
   "exclude": ["node_modules", "dist"]
 }

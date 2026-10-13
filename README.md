@@ -131,7 +131,7 @@ bun run check           # the same gate CI runs
 bun run build           # contracts, backend, SDKs
 bun run build:reviewer  # reviewer static web export
 bun run build:console   # console static web export
-bun run test            # bun test for contracts, vitest for the backend and core, jest for the two Expo apps
+bun run test            # bun test for contracts and the backend, vitest for core, jest for the two Expo apps
 bun run lint            # Biome format + lint over the whole tree, per-package bun check, Expo env-var ESLint
 bun run format          # apply Biome formatting
 ```

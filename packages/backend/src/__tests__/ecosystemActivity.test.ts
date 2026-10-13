@@ -1,45 +1,47 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, mock, vi } from 'bun:test';
 
-const publisher = vi.hoisted(() => ({
+import { stubEnv, unstubAllEnvs } from './support/testDoubles';
+
+const publisher = {
   observeHttp: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
   installFetch: vi.fn(),
   observeSocket: vi.fn(),
   stop: vi.fn(async () => {}),
-}));
-const create = vi.hoisted(() => vi.fn((_options: unknown) => publisher));
+};
+const create = vi.fn((_options: unknown) => publisher);
 // Mirrors the real implementation, which reads the ECS container credentials
 // endpoint out of the environment — so a test says "this is a task" the same way
 // a task does, and nothing here asserts against a hand-written boolean.
-const canAttest = vi.hoisted(() =>
-  vi.fn(() => Boolean(process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI)),
-);
-vi.mock('@oxy.so/core/server', () => ({
+const canAttest = vi.fn(() => Boolean(process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI));
+// Registered before the module under test is imported, which is why that
+// import is dynamic: `mock.module` is not hoisted the way `vi.mock` was.
+mock.module('@oxy.so/core/server', () => ({
   createEcosystemTraffic: create,
   canAttestWorkloadIdentity: canAttest,
 }));
-import {
+const {
   ecosystemActivityMiddleware,
   observeEcosystemSocket,
   startEcosystemActivity,
   stopEcosystemActivity,
-} from '../ecosystemActivity';
+} = await import('../ecosystemActivity');
 
 describe('ecosystem activity lifecycle', () => {
   beforeEach(() => {
-    vi.stubEnv('OXY_SERVICE_API_KEY', 'test-key');
-    vi.stubEnv('OXY_SERVICE_API_SECRET', 'test-secret');
-    vi.stubEnv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI', undefined);
+    stubEnv('OXY_SERVICE_API_KEY', 'test-key');
+    stubEnv('OXY_SERVICE_API_SECRET', 'test-secret');
+    stubEnv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI', undefined);
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.clearAllMocks();
   });
   afterEach(async () => {
     await stopEcosystemActivity();
-    vi.unstubAllEnvs();
+    unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
   it('does not start or publish when the API key is missing and nothing can be attested', () => {
-    vi.stubEnv('OXY_SERVICE_API_KEY', undefined);
+    stubEnv('OXY_SERVICE_API_KEY', undefined);
     startEcosystemActivity(() => true);
     expect(create).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalled();
@@ -51,14 +53,14 @@ describe('ecosystem activity lifecycle', () => {
   });
 
   it('does not start or publish when the API secret is missing and nothing can be attested', () => {
-    vi.stubEnv('OXY_SERVICE_API_SECRET', undefined);
+    stubEnv('OXY_SERVICE_API_SECRET', undefined);
     startEcosystemActivity(() => true);
     expect(create).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalled();
   });
 
   it('treats a blank credential the same as an absent one', () => {
-    vi.stubEnv('OXY_SERVICE_API_KEY', '   ');
+    stubEnv('OXY_SERVICE_API_KEY', '   ');
     startEcosystemActivity(() => true);
     expect(create).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalled();
@@ -73,9 +75,9 @@ describe('ecosystem activity lifecycle', () => {
    * ecosystem-activity producer, which is the failure mode nobody notices.
    */
   it('starts on a workload identity when the credential pair is gone', () => {
-    vi.stubEnv('OXY_SERVICE_API_KEY', undefined);
-    vi.stubEnv('OXY_SERVICE_API_SECRET', undefined);
-    vi.stubEnv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI', '/v2/credentials/abc');
+    stubEnv('OXY_SERVICE_API_KEY', undefined);
+    stubEnv('OXY_SERVICE_API_SECRET', undefined);
+    stubEnv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI', '/v2/credentials/abc');
     startEcosystemActivity(() => true);
     expect(create).toHaveBeenCalledTimes(1);
     expect(publisher.installFetch).toHaveBeenCalledTimes(1);
@@ -88,9 +90,9 @@ describe('ecosystem activity lifecycle', () => {
    * half-credential here is what used to make this throw at boot.
    */
   it('lets the SDK resolve the credential rather than passing one', () => {
-    vi.stubEnv('OXY_SERVICE_API_KEY', undefined);
-    vi.stubEnv('OXY_SERVICE_API_SECRET', undefined);
-    vi.stubEnv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI', '/v2/credentials/abc');
+    stubEnv('OXY_SERVICE_API_KEY', undefined);
+    stubEnv('OXY_SERVICE_API_SECRET', undefined);
+    stubEnv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI', '/v2/credentials/abc');
     startEcosystemActivity(() => true);
     const options = create.mock.calls[0]?.[0] as unknown as Record<string, unknown>;
     expect(options).not.toHaveProperty('credential');

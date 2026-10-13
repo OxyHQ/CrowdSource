@@ -1,5 +1,7 @@
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
+
+import { resetModules, stubEnv, unstubAllEnvs } from './support/testDoubles';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
@@ -18,10 +20,11 @@ import { stubOxySession } from './support/reviewers';
  * the honest way to test a guard whose job is to catch what should be
  * impossible.
  */
-vi.mock('@oxy.so/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
-  return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
-});
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
+  createOptionalOxyAuth: () => stubOxySession(),
+}));
 
 const { createApp } = await import('../app');
 const { createTenantContext } = await import('../db/tenantScope');
@@ -440,8 +443,8 @@ describe('the reviewer API when no Oxy API is configured', () => {
    * being wrong.
    */
   it('answers 503 rather than accepting sessions it cannot verify', async () => {
-    vi.resetModules();
-    vi.stubEnv('OXY_API_URL', '');
+    resetModules();
+    stubEnv('OXY_API_URL', '');
 
     const isolated = await import('../app');
     const { resetOxySession } = await import('../modules/identity/oxySession');
@@ -454,8 +457,8 @@ describe('the reviewer API when no Oxy API is configured', () => {
     expect(response.status).toBe(503);
     expect(response.body.error.code).toBe('service_unavailable');
 
-    vi.unstubAllEnvs();
-    vi.resetModules();
+    unstubAllEnvs();
+    resetModules();
     resetOxySession();
   });
 });

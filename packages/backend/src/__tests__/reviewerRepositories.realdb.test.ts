@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'bun:test';
 
 import type { TaxonomyFamily } from '@crowdsource.you/contracts';
 import { isCheckViolation } from '@oxy.so/db';

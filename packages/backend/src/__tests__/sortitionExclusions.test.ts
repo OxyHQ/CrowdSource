@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { principalReporterKey, reporterFingerprint } from '../modules/cases/case.service';
 import {

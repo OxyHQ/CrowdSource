@@ -4,7 +4,7 @@ import postgres, { type Row } from 'postgres';
  * Privileged test-only controls for proving that an RLS-filtered absence is not
  * a physically absent row. The URL belongs to the disposable global fixture;
  * this module refuses every other target and opens a bounded one-shot client so
- * global teardown can always drop the database.
+ * `run-tests.ts` can always drop the database at the end of the run.
  */
 
 const TABLES = {

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
 import {
   createPostgresTestDatabase,
@@ -452,7 +452,7 @@ describe('the PostgreSQL port ledger can see what it claims to see', () => {
   });
 
   it('keeps a real scalar vocabulary as a positive control', () => {
-    expect([...OUTBOX_STATUSES].sort()).toEqual(
+    expect<unknown>([...OUTBOX_STATUSES].sort()).toEqual(
       ['dispatched', 'dispatching', 'failed', 'pending'].sort(),
     );
     expect(MAPPED['OutboxEvent.status']).toEqual({

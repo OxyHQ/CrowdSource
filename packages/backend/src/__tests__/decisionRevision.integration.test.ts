@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
 import type { TaxonomyCode } from '@crowdsource.you/contracts';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
@@ -30,10 +30,11 @@ import { stubOxySession } from './support/reviewers';
  * (§9.4's minimum follows the REVISION, not the presence of an appeal row), and
  * nothing emits `appeal.decided` for a revision no appeal opened.
  */
-vi.mock('@oxy.so/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
-  return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
-});
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
+  createOptionalOxyAuth: () => stubOxySession(),
+}));
 
 const { createApp } = await import('../app');
 const { registerOutboxWorkers } = await import('../modules/outbox/workers');
@@ -225,7 +226,7 @@ describe('§9.9: a revision supersedes; it never edits', () => {
     const [first] = await decisions.find(tenant.tenant, { caseId, revision: 1 });
 
     expect(first.status).toBe('superseded');
-    expect(first.outcome).toBe(frozen.outcome);
+    expect<string>(first.outcome).toBe(frozen.outcome);
     expect(JSON.stringify(first.findings)).toBe(frozen.findings);
     expect(JSON.stringify(first.policyVersions)).toBe(frozen.policyVersions);
     expect(first.confidence).toBe(frozen.confidence);

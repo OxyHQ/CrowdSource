@@ -10,8 +10,29 @@
 # it for the package census and the test-floor checks.
 suites:
   - package: backend
-    command: bun run --cwd packages/backend test:coverage -- --coverage.reportsDirectory="$RUNNER_TEMP/backend-coverage"
+    # `bun test`, through `run-tests.ts`, which builds the one disposable
+    # database the serial suite shares and hands these flags on. Bun writes no
+    # jest-style JSON, so the floor reads its JUnit report (`report`), and
+    # its coverage is lcov (`coverage_file`), not a json-summary.
+    command: bun run --cwd packages/backend test:coverage -- --reporter=junit --reporter-outfile="$RUNNER_TEMP/backend-tests.xml" --coverage-reporter=text --coverage-reporter=lcov --coverage-dir="$RUNNER_TEMP/backend-coverage"
+    report: backend-tests.xml
     coverage: true
+    coverage_file: lcov.info
+    # The totals over `src/` (tests and their support code excluded), which
+    # is what vitest's thresholds were. Enforced by assert-coverage.mjs, NOT by
+    # Bun's own `coverageThreshold`, which is checked per FILE. Bun measures
+    # no branches or statements, so vitest's 92% branch and 97% statement
+    # floors have no successor here — the test floor below is what now
+    # catches a suite that silently stopped running. Measured on the complete
+    # suite under Bun 1.4.3: 98.90% of lines (13510/13660) and 99.02% of
+    # functions (1413/1427) across 153 files. Raise as coverage grows; never
+    # lower one to make a run pass.
+    coverage_lines: 98.5
+    coverage_functions: 98.5
+    # Measured 2026-10-13: 1477 tests across 90 files, the same under vitest
+    # and `bun test`. RETIREMENT CONDITION: raise it as the suite grows;
+    # lower it ONLY in the same change that deletes the tests, naming them.
+    minimum_tests: 1470
     # The tenant-isolation tests run against a REAL Postgres, and there is
     # no version of them that does not. Row-level security is a property of
     # the server: a mock cannot answer whether `FORCE` is set, whether a
@@ -22,7 +43,7 @@ suites:
     # RETURNING ROWS rather than erroring. A suite that silently stopped
     # running these would be green, and production cannot contradict it:
     # the database holds two documents and neither carries a tenant pair.
-    # `vitest.globalSetup.ts` therefore THROWS without the URL rather than
+    # `run-tests.ts` therefore EXITS without the URL rather than
     # skipping, so a job that forgot this flag fails loudly.
     postgres: true
   - package: reviewer
@@ -33,10 +54,9 @@ suites:
     # `collectCoverageFrom` and `coverageReporters` and NO
     # `coverageThreshold`, and there is no jest.config.* in the package
     # or at the repo root — so `--coverage` collects the numbers, prints
-    # them, and can never fail on them. `backend` is the opposite case
-    # and needs no entry here: its vitest.config.ts carries enforcing
-    # thresholds (97/92/96/98), so a suite that ran nothing scores 0%
-    # and fails already.
+    # them, and can never fail on them. `backend` is the opposite case:
+    # its entry carries enforced line and function floors as well as a
+    # test floor.
     #
     # Measured 2026-08-11 on a green run: 139 tests across 13 suites.
     # RETIREMENT CONDITION, stated here rather than in a pull request

@@ -1,6 +1,6 @@
 import { postgresControl } from './support/postgresControl';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
 import { createApp } from '../app';
 import { cases, caseReports } from '../modules/cases/case.collection';
@@ -117,7 +117,7 @@ describe('two people report the same version of a post', () => {
     // Two reporters, two fingerprints. One person filing twice would be one.
     expect(stored?.reporterFingerprints).toHaveLength(2);
     // Both allegations are on the case, as claims — never as findings (§6.2).
-    expect(stored?.allegationCodes.sort()).toEqual(
+    expect<unknown>(stored?.allegationCodes.sort()).toEqual(
       ['harassment.targeted_abuse', 'integrity.spam'].sort(),
     );
 

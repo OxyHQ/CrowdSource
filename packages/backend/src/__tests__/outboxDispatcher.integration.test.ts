@@ -1,5 +1,7 @@
 import { postgresControl } from './support/postgresControl';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'bun:test';
+
+import { waitFor } from './support/testDoubles';
 
 import { withTransaction } from '../db/transaction';
 import * as outboxRepository from '../db/postgres/repositories/outbox';
@@ -71,7 +73,7 @@ afterAll(async () => {
  * it. Webhook delivery now does — exactly as `outbox.dispatcher.ts` said it
  * would — so a suite calling `registerOutboxWorkers` claims and completes these
  * rows too. What keeps the assertions here meaningful is no longer type
- * ownership but `fileParallelism: false` in `vitest.config.ts`: the suites share
+ * ownership but running the files one at a time (`run-tests.ts`, no `--parallel`): the suites share
  * one database and the dispatcher is deliberately not tenant-scoped, so only one
  * file may run a dispatcher at a time. See that file for why.
  */
@@ -380,7 +382,7 @@ describe('the polling loop', () => {
     // A second call must not start a second timer competing with the first.
     startOutboxDispatcher(5);
 
-    await vi.waitFor(async () => {
+    await waitFor(async () => {
       expect((await readEvent(eventId))?.status).toBe('dispatched');
     });
     expect(handled).toEqual([eventId]);
@@ -398,7 +400,7 @@ describe('the polling loop', () => {
       .mockRejectedValueOnce(new Error('the database blinked'));
 
     startOutboxDispatcher(5);
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(failing).toHaveBeenCalled();
     });
     stopOutboxDispatcher();

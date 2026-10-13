@@ -148,6 +148,34 @@ for (const workflowName of workflowNames) {
           );
         }
       }
+      // The same for a coverage floor: `bun test` checks its own thresholds per
+      // FILE, so the suite's totals are enforced only by assert-coverage.mjs.
+      const declaresCoverage = matrixEntries.filter(
+        (entry) => entry?.coverage_lines !== undefined || entry?.coverage_functions !== undefined,
+      );
+      const assertsCoverage = (workflow?.jobs?.tests?.steps || []).some(
+        (step) => typeof step?.run === 'string' && step.run.includes('assert-coverage.mjs'),
+      );
+      if (declaresCoverage.length > 0 && !assertsCoverage) {
+        failures.push(
+          `${workflowName}: the tests job declares a coverage floor but never runs assert-coverage.mjs, so the floor is decorative`,
+        );
+      }
+      for (const entry of declaresCoverage) {
+        for (const metric of ['coverage_lines', 'coverage_functions']) {
+          const value = entry[metric];
+          if (typeof value !== 'number' || !(value > 0 && value <= 100)) {
+            failures.push(
+              `${workflowName}: matrix entry ${entry.package} declares a coverage floor without a percentage in (0, 100] for ${metric} (${value})`,
+            );
+          }
+        }
+        if (entry.coverage !== true) {
+          failures.push(
+            `${workflowName}: matrix entry ${entry.package} declares a coverage floor but not coverage: true, so nothing uploads what it measured`,
+          );
+        }
+      }
       if (matrixPackages.size === 0) {
         failures.push(
           `${workflowName}: the tests job declares no matrix packages, so no package suite runs on a pull request`,

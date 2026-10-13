@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
 import type { TaxonomyCode } from '@crowdsource.you/contracts';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
@@ -26,10 +26,11 @@ import { stubOxySession } from './support/reviewers';
  * is still refused. Any of those missing would make the refusal an eligibility
  * result and prove nothing about §7.5.
  */
-vi.mock('@oxy.so/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
-  return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
-});
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
+  createOptionalOxyAuth: () => stubOxySession(),
+}));
 
 const { createApp } = await import('../app');
 const { registerOutboxWorkers } = await import('../modules/outbox/workers');

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import {
   CROSS_TENANT_FORBIDDEN_FIELDS,
@@ -193,7 +193,7 @@ describe('the projections the privileged queries return', () => {
     // §11 protects these hardest, and they live in UNSCOPED collections where the tenant
     // filter is not — and cannot be — the control. The field list is the control.
     for (const field of ['reviewerId', 'agreeingReviewerIds', 'assignmentId', 'oxyUserId']) {
-      expect(CROSS_TENANT_FORBIDDEN_FIELDS, field).toContain(field);
+      expect<readonly string[]>(CROSS_TENANT_FORBIDDEN_FIELDS, field).toContain(field);
     }
   });
 });

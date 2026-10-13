@@ -1,6 +1,6 @@
 import { postgresControl } from './support/postgresControl';
 import request from 'supertest';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'bun:test';
 
 import { createApp } from '../app';
 import * as caseRepository from '../db/postgres/repositories/scoped/cases';

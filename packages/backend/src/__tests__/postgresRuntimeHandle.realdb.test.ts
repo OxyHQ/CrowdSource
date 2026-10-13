@@ -1,4 +1,6 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'bun:test';
+
+import { spyOnGetter } from './support/testDoubles';
 
 import { config } from '../config';
 import { closePostgresDatabase, getPostgresDatabase, pingPostgres } from '../db/postgres/database';
@@ -47,7 +49,7 @@ afterAll(async () => {
 
 /** Points the runtime handle at this file's throwaway database. */
 function useTestDatabaseUrl(): void {
-  vi.spyOn(config, 'databaseUrl', 'get').mockReturnValue(database.url);
+  spyOnGetter(config, 'databaseUrl').mockReturnValue(database.url);
 }
 
 describe('the runtime PostgreSQL handle', () => {
@@ -92,15 +94,18 @@ describe('the runtime PostgreSQL handle', () => {
      * `schema` still type-checks at the call site and fails at run time; a
      * handle pointed somewhere with no tables fails the same way. Both are
      * distinguishable from an empty table only by whether the query throws.
+     *
+     * `Promise.resolve` because a drizzle query is a thenable, not a Promise,
+     * and `bun:test`'s `.resolves` refuses anything that is not one.
      */
-    await expect(getPostgresDatabase().select().from(cases)).resolves.toEqual([]);
+    await expect(Promise.resolve(getPostgresDatabase().select().from(cases))).resolves.toEqual([]);
   });
 
   it('rejects when the database is unreachable, rather than resolving', async () => {
     // Port 1 refuses immediately: the failure has to be fast and loud, because
     // `/health/ready` awaits this and a probe whose failure mode is a hang leaves
     // a task marked slow rather than unhealthy.
-    vi.spyOn(config, 'databaseUrl', 'get').mockReturnValue(
+    spyOnGetter(config, 'databaseUrl').mockReturnValue(
       'postgres://nobody:nobody@127.0.0.1:1/nothing',
     );
 

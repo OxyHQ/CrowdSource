@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
 import { bootstrapFirstParty, parseArguments } from '../modules/tenancy/bootstrapFirstParty';
 import { applications, organizations } from '../modules/tenancy/tenancy.collections';

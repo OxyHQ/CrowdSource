@@ -87,7 +87,7 @@ bun run dev / dev:backend / dev:reviewer / dev:console
 bun run build              # contracts, backend, SDKs
 bun run build:reviewer / build:console
 bun run check              # doctor + workflows + security audit + build + typecheck + lint
-bun run test               # contracts (bun test), backend + core (vitest), apps (jest)
+bun run test               # contracts + backend (bun test), core (vitest), apps (jest)
 bun run lint               # Biome (whole tree) + per-package bun check + Expo env-var ESLint
 bun run format             # Biome formatter; `lint:fix` also applies safe lint fixes
 bun run validate:agents-md
@@ -132,8 +132,8 @@ touched. It reads exactly like someone else's broken commit.
   `src/__tests__/support/reviewerAxes.ts`; never declare a pair inline.** Every
   integration file shares ONE disposable PostgreSQL database, so the eligibility
   pair is the only thing keeping two files apart. When checking for this class of bug, assert on
-  the FILE count — a collision throws in a hook, which Vitest reports as
-  `Test Files 1 failed` while the skimmed line reads `Tests 40 passed`.
+  the FAIL count — a collision throws in a hook, which `bun test` reports as
+  one failed `(unnamed)` test while the file's own tests drop out of the total.
 - **`app/_layout.tsx` is the SOLE authority for the `(auth)` ↔ `(app)` swap.** A
   child screen must never navigate across that boundary on the same signal.
 - **Case material must never reach device storage, logs or analytics.**

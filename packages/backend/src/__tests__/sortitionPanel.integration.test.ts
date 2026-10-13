@@ -1,6 +1,6 @@
 import { postgresControl } from './support/postgresControl';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
@@ -25,10 +25,11 @@ import { stubOxySession } from './support/reviewers';
  * indexes, the exclusions, the transaction that writes the draw record and the
  * assignments together, and every authorisation decision.
  */
-vi.mock('@oxy.so/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
-  return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
-});
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
+  createOptionalOxyAuth: () => stubOxySession(),
+}));
 
 const { createApp } = await import('../app');
 const { registerOutboxWorkers } = await import('../modules/outbox/workers');
@@ -580,7 +581,7 @@ describe('§8.7: a recusal is not a vote, and it creates a replacement', () => {
     expect(draws[0].kind).toBe('initial');
     expect(draws[1].kind).toBe('replacement');
     expect(draws[1].seed).not.toBe(draws[0].seed);
-    expect(draws[1].requestedSlots).toEqual([originalSlot]);
+    expect<unknown>(draws[1].requestedSlots).toEqual([originalSlot]);
   });
 
   it('never re-draws the person who recused (§8.5 prior jurors)', async () => {

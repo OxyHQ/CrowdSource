@@ -1,5 +1,7 @@
 import request from 'supertest';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'bun:test';
+
+import { spyOnGetter } from './support/testDoubles';
 
 import { createApp } from '../app';
 import { config } from '../config';
@@ -191,7 +193,7 @@ describe('without a configured encryption key', () => {
    * delivered to, and the failure would surface days later as silence.
    */
   it('refuses to register, naming the variable, with 503', async () => {
-    vi.spyOn(config, 'webhookSecretEncryptionKey', 'get').mockReturnValue(undefined);
+    spyOnGetter(config, 'webhookSecretEncryptionKey').mockReturnValue(undefined);
 
     const response = await register(tenant, {
       url: freshUrl(),

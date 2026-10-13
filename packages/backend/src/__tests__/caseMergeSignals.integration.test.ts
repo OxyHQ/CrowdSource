@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'bun:test';
 
 import { withTransaction } from '../db/transaction';
 import { cases } from '../modules/cases/case.collection';

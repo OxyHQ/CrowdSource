@@ -1,6 +1,6 @@
 import express from 'express';
 import request from 'supertest';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'bun:test';
 
 import { createApp } from '../app';
 import { API_ERROR_STATUS, ApiError, isApiError } from '../http/apiError';

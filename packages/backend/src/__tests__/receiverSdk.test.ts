@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest';
+import { expect, it } from 'bun:test';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
