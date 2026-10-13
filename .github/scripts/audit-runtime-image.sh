@@ -10,8 +10,17 @@ image_uri="${1:-${IMAGE_URI:-}}"
 : "${EXPECTED_WORKSPACE_PACKAGES:?EXPECTED_WORKSPACE_PACKAGES is required}"
 EXPECTED_RUNTIME_COMMANDS="${EXPECTED_RUNTIME_COMMANDS:-}"
 
-if [[ ! "$image_uri" =~ @sha256:[[:xdigit:]]{64}$ ]]; then
-  echo "::error::Runtime image audit requires an immutable sha256 digest URI." >&2
+# Two immutable forms, and nothing else. The deploy passes the registry digest
+# it just pushed (`<registry>/<repo>@sha256:...`), which is pulled. CI's image
+# smoke passes the image ID of a build it loaded and never pushed
+# (`sha256:...`), which must already be in the local store: the same audit then
+# runs on the same build inputs before a merge can reach the deploy.
+if [[ "$image_uri" =~ ^sha256:[[:xdigit:]]{64}$ ]]; then
+  image_source=local
+elif [[ "$image_uri" =~ @sha256:[[:xdigit:]]{64}$ ]]; then
+  image_source=registry
+else
+  echo "::error::Runtime image audit requires an immutable sha256 digest URI or a local sha256 image ID." >&2
   exit 1
 fi
 if ! command -v docker >/dev/null 2>&1; then
@@ -19,7 +28,12 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-docker pull "$image_uri" >/dev/null
+if [[ "$image_source" == registry ]]; then
+  docker pull "$image_uri" >/dev/null
+elif ! docker image inspect "$image_uri" >/dev/null 2>&1; then
+  echo "::error::Local image $image_uri is not in the Docker image store." >&2
+  exit 1
+fi
 
 configured_user="$(docker image inspect --format '{{.Config.User}}' "$image_uri")"
 case "${configured_user,,}" in
