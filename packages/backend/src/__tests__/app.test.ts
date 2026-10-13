@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'bun:test';
 
 import { createApp } from '../app';
 import * as postgres from '../db/postgres/database';

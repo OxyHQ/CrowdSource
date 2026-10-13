@@ -6,7 +6,7 @@ import {
   buildWebhookSignedPayload,
   WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS,
 } from '@crowdsource.you/contracts';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import {
   signWebhookPayload,
@@ -196,7 +196,7 @@ describe('malformed headers', () => {
     ['12.5', 'malformed_timestamp'],
     ['-1785263400', 'malformed_timestamp'],
   ])('rejects the timestamp %j', (timestamp, reason) => {
-    expect(
+    expect<unknown>(
       verifyWebhookSignature({
         secret: SECRET,
         timestamp,

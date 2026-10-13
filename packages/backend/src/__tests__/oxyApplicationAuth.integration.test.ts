@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test';
 
 /**
  * An Oxy service authenticating here with NO CrowdSource credential.
@@ -21,9 +21,15 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
  * to prove, and it is the reason this module has no parser of its own.
  */
 
-const oxy = vi.hoisted(() => ({ appIdForToken: new Map<string, string>() }));
+const oxy = { appIdForToken: new Map<string, string>() };
 
-vi.mock('@oxy.so/core/server', () => ({
+// Registered before anything that reaches `@oxy.so/core/server` is imported,
+// which is why the imports below are dynamic: `mock.module` is not hoisted.
+// The rest of the module stays real: unlike vitest, Bun refuses to link a
+// module that imports a name the mock does not export.
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
   OxyServer: class {
     readonly middleware = {
       auth() {
@@ -42,13 +48,12 @@ vi.mock('@oxy.so/core/server', () => ({
   },
 }));
 
-import {
-  authenticateOxyServiceToken,
-  looksLikeOxyServiceToken,
-} from '../modules/tenancy/oxyApplicationAuth';
-import { APPLICATION_SCOPES, PRIVILEGED_SCOPES } from '../modules/tenancy/scopes';
-import { applications } from '../modules/tenancy/tenancy.collections';
-import { provisionTenant, startDatabase, stopDatabase } from './support/tenants';
+const { authenticateOxyServiceToken, looksLikeOxyServiceToken } = await import(
+  '../modules/tenancy/oxyApplicationAuth'
+);
+const { APPLICATION_SCOPES, PRIVILEGED_SCOPES } = await import('../modules/tenancy/scopes');
+const { applications } = await import('../modules/tenancy/tenancy.collections');
+const { provisionTenant, startDatabase, stopDatabase } = await import('./support/tenants');
 
 /** A JWT-shaped string. Its contents never matter: the stub decides. */
 const tokenFor = (label: string) => `header.${label}.signature`;

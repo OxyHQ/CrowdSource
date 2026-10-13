@@ -1,23 +1,30 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'bun:test';
+
+import { stubEnv, unstubAllEnvs } from './support/testDoubles';
 
 /**
  * `config` is a module-level singleton evaluated at import, which is the point:
  * a malformed deployment must fail at boot, not at the first request that
  * happens to read the bad value. Each case therefore re-imports the module with
  * a mutated environment.
+ *
+ * Under a specifier no earlier case used: Bun keeps a module whose evaluation
+ * THREW in its registry for good, so forgetting it the way `resetModules` does
+ * would hand the next case the previous case's error. A query string is a new
+ * module record, evaluated afresh, which is what vitest's `resetModules` gave.
  */
+let loads = 0;
 async function loadConfigModule(environment: Record<string, string>) {
-  vi.resetModules();
-  vi.unstubAllEnvs();
+  unstubAllEnvs();
   for (const [key, value] of Object.entries(environment)) {
-    vi.stubEnv(key, value);
+    stubEnv(key, value);
   }
-  return import('../config');
+  loads += 1;
+  return import(`../config/index.ts?load=${loads}`) as Promise<typeof import('../config')>;
 }
 
 afterEach(() => {
-  vi.unstubAllEnvs();
-  vi.resetModules();
+  unstubAllEnvs();
 });
 
 describe('config', () => {

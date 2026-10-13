@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
 import * as outboxRepository from '../db/postgres/repositories/outbox';
 import { OUTBOX_STATUSES, outboxEvents } from '../db/postgres/schema/infrastructure';
@@ -239,13 +239,20 @@ describe('the append commits with the work it records', () => {
  */
 describe('status is a closed set the database enforces', () => {
   it('refuses a status outside the tuple', async () => {
+    // `Promise.resolve` because a postgres.js query is a LAZY Promise subclass
+    // that only runs once `then` is called. Bun 1.4.3's `expect(…).rejects`
+    // reads a Promise's state without calling `then`, so the bare query never
+    // ran and the whole runner hung — past the test timeout. Vitest called
+    // `then`; this keeps the same statement and the same assertion.
     await expect(
-      database.asMigrator`
-        INSERT INTO outbox_events (event_id, organization_id, application_id, type, payload,
-                                   status, attempts, available_at)
-        VALUES ('evt_bad_status', ${tenant.organizationId}, ${tenant.applicationId},
-                ${OUTBOX_EVENT_TYPES.reportReceived}, '{}'::jsonb, 'nonsense', 0, ${NOW})
-      `,
+      Promise.resolve(
+        database.asMigrator`
+          INSERT INTO outbox_events (event_id, organization_id, application_id, type, payload,
+                                     status, attempts, available_at)
+          VALUES ('evt_bad_status', ${tenant.organizationId}, ${tenant.applicationId},
+                  ${OUTBOX_EVENT_TYPES.reportReceived}, '{}'::jsonb, 'nonsense', 0, ${NOW})
+        `,
+      ),
     ).rejects.toMatchObject({ code: '23514', constraint_name: 'outbox_events_status_check' });
 
     expect(await countById('evt_bad_status')).toBe(0);

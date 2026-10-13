@@ -1,5 +1,5 @@
 import { CaseEnvelopeSchema } from '@crowdsource.you/contracts';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { errorClassification } from '../modules/accountErasure/accountErasure.service';
 import { ERASED_ACCOUNT, erasedRowIdentity } from '../modules/accountErasure/erasedIdentity';

@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'bun:test';
+
+import { spyOnGetter } from './support/testDoubles';
 
 import { config } from '../config';
 import { ApiError } from '../http/apiError';
@@ -25,7 +27,7 @@ import {
 
 /** Replaces the configured key for one test, without touching the environment. */
 function withKey(value: string | undefined): void {
-  vi.spyOn(config, 'webhookSecretEncryptionKey', 'get').mockReturnValue(value);
+  spyOnGetter(config, 'webhookSecretEncryptionKey').mockReturnValue(value);
 }
 
 afterEach(() => {

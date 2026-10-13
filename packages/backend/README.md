@@ -87,5 +87,8 @@ bun run --cwd packages/backend lint
 bun run --cwd packages/backend test
 ```
 
-The backend Vitest suite exercises RLS, constraints, transactions and claim
-races against real PostgreSQL.
+The backend suite runs on `bun test` and exercises RLS, constraints,
+transactions and claim races against real PostgreSQL. `run-tests.ts` creates
+the one disposable database the serial suite shares (it refuses to start
+without `CROWDSOURCE_BACKEND_TEST_POSTGRES_URL`) and hands any further
+arguments to `bun test`.

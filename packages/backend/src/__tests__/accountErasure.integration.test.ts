@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { CaseEnvelopeSchema } from '@crowdsource.you/contracts';
 import { and, eq, sql } from 'drizzle-orm';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
 /**
  * Erasing a deleted Oxy account end to end (`docs/architecture/account-erasure.md`,
@@ -606,7 +606,7 @@ describe('the erasure', () => {
     expect(review).toMatchObject({ outcome: 'violation', notes: null });
 
     const due = await findDueAssignments(db, new Date(), 1000);
-    expect(due.map((seat) => seat.assignmentId)).toContain(seeded.assignmentId);
+    expect<unknown[]>(due.map((seat) => seat.assignmentId)).toContain(seeded.assignmentId);
 
     const bystanderRelations = await db
       .select()

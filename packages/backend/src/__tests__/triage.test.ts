@@ -1,5 +1,5 @@
 import type { TaxonomyCode } from '@crowdsource.you/contracts';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { triageCase, TRIAGE_WEIGHTS, type TriageInput } from '../modules/triage/triage';
 

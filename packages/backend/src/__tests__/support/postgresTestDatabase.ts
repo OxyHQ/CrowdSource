@@ -155,9 +155,7 @@ async function provisionRoles(admin: postgres.Sql, databaseName: string): Promis
 export async function createPostgresTestDatabase(): Promise<PostgresTestDatabase> {
   const adminUrl = process.env.CROWDSOURCE_BACKEND_TEST_POSTGRES_URL;
   if (adminUrl === undefined) {
-    throw new Error(
-      'CROWDSOURCE_BACKEND_TEST_POSTGRES_URL is unset: vitest.globalSetup.ts did not run.',
-    );
+    throw new Error('CROWDSOURCE_BACKEND_TEST_POSTGRES_URL is unset: run-tests.ts did not run.');
   }
 
   const url = await createTestDatabase({

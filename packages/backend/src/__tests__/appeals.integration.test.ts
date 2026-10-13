@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
 import type { TaxonomyCode } from '@crowdsource.you/contracts';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
@@ -27,10 +27,11 @@ import { stubOxySession } from './support/reviewers';
  * session. The appeal route authenticates a SERVICE CREDENTIAL, which is this
  * service's own and is not stubbed at all.
  */
-vi.mock('@oxy.so/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
-  return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
-});
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
+  createOptionalOxyAuth: () => stubOxySession(),
+}));
 
 const { createApp } = await import('../app');
 const { registerOutboxWorkers } = await import('../modules/outbox/workers');
@@ -357,7 +358,7 @@ describe('§10.2: POST /v1/cases/{id}/appeals', () => {
 
     expect(first.status).toBe('superseded');
     expect(first.decisionId).toBe(firstDecisionId);
-    expect(first.outcome).toBe(frozen.outcome);
+    expect<string>(first.outcome).toBe(frozen.outcome);
     expect(JSON.stringify(first.findings)).toBe(frozen.findings);
     expect(JSON.stringify(first.policyVersions)).toBe(frozen.policyVersions);
     expect(first.confidence).toBe(frozen.confidence);
@@ -450,7 +451,7 @@ describe('§10.2: POST /v1/cases/{id}/appeals', () => {
     });
 
     expect(created).toHaveLength(1);
-    expect(created[0].payload.appealId).toBe(filed.id);
+    expect<unknown>(created[0].payload.appealId).toBe(filed.id);
   });
 
   it('delivers `appeal.created` carrying the appeal and no case content', async () => {

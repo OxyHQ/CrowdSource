@@ -1,11 +1,11 @@
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
 
 import { reviewerAxesFor } from './support/reviewerAxes';
 import { stubOxySession } from './support/reviewers';
 
 /**
- * Type-only, so it is erased before `vi.mock` hoists and cannot pull the reviewer
+ * Type-only, so it is erased before the `mock.module` call below runs and cannot pull the reviewer
  * app in ahead of the session stub. The VALUES all come through the dynamic
  * imports below, like every other module this suite touches.
  */
@@ -53,10 +53,11 @@ import type { ReviewFormAction, ReviewFormState } from '../../../reviewer/lib/re
  * hand-wrote that body would have passed on the day the app was sending
  * `descriptive` and `appliedExceptionIds` to a `.strict()` schema.
  */
-vi.mock('@oxy.so/core/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@oxy.so/core/server')>();
-  return { ...actual, createOptionalOxyAuth: () => stubOxySession() };
-});
+const actualOxyServer = await import('@oxy.so/core/server');
+mock.module('@oxy.so/core/server', () => ({
+  ...actualOxyServer,
+  createOptionalOxyAuth: () => stubOxySession(),
+}));
 
 const { createApp } = await import('../app');
 const { assignments } = await import('../modules/sortition/assignment.collection');

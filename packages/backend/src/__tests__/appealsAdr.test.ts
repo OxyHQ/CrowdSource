@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { APPEALABLE_OUTCOMES, SEVERE_ACTIONS } from '../modules/appeals/appeal.service';
 import { APPEAL_MIN_ROUND, panelSpecFor, SLOT_FALLBACKS } from '../modules/sortition/panelSpec';
@@ -82,13 +82,13 @@ describe('the appeals ADR states what the code does', () => {
   });
 
   it('§8.1 and §7.5: what sits on an appeal panel in each pool', () => {
-    expect([...panelSpecFor('community', APPEAL_MIN_ROUND, true).slots]).toEqual(
+    expect<unknown>([...panelSpecFor('community', APPEAL_MIN_ROUND, true).slots]).toEqual(
       claim('community-appeal-slots'),
     );
-    expect([...new Set(panelSpecFor('specialist', APPEAL_MIN_ROUND, true).slots)]).toEqual(
+    expect<unknown>([...new Set(panelSpecFor('specialist', APPEAL_MIN_ROUND, true).slots)]).toEqual(
       claim('specialist-appeal-slots'),
     );
-    expect(SLOT_FALLBACKS.appeals_reviewer).toEqual(claim('appeals-reviewer-fallback'));
+    expect<unknown>(SLOT_FALLBACKS.appeals_reviewer).toEqual(claim('appeals-reviewer-fallback'));
   });
 
   it('§9.4: what counts as a severe action', () => {

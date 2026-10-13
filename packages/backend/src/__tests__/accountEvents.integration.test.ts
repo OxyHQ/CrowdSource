@@ -2,7 +2,9 @@ import { randomBytes, randomUUID } from 'node:crypto';
 
 import { eq } from 'drizzle-orm';
 import request from 'supertest';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test';
+
+import { resetModules, stubEnv, unstubAllEnvs } from './support/testDoubles';
 
 import type { OxyAccountEvent, OxyAccountEventFeedPage } from '@oxy.so/core/server';
 
@@ -133,9 +135,12 @@ beforeEach(async () => {
     .where(eq(accountEventCursors.feed, reconciliation.ACCOUNT_EVENTS_FEED));
 });
 
+// Two minutes, vitest's `hookTimeout`: `bun test` gives a hook the 30 s test timeout
+// unless it states its own, and settling a page of background erasures can
+// outlast that on a loaded machine.
 afterEach(async () => {
   await settleBackgroundErasures();
-});
+}, 120_000);
 
 afterAll(() => {
   setAccountEventClientForTests(null);
@@ -330,17 +335,25 @@ describe('retrying unfinished erasures', () => {
     });
 
     // A step that throws, in an isolated module graph so nothing else sees it.
-    vi.resetModules();
-    vi.doMock('../db/postgres/repositories/accountErasure', async (importOriginal) => ({
-      ...(await importOriginal<typeof import('../db/postgres/repositories/accountErasure')>()),
+    // The real exports are copied from the isolated graph's own fresh copy of
+    // the repository (what `importOriginal` gave), because `mock.module`
+    // then replaces that copy's exports in place.
+    resetModules();
+    const isolatedRepository = {
+      ...(await import('../db/postgres/repositories/accountErasure')),
+    };
+    mock.module('../db/postgres/repositories/accountErasure', () => ({
+      ...isolatedRepository,
       listApplicationTenants: () => Promise.reject(new TypeError('a message that may quote data')),
     }));
     const isolated = await import('../modules/accountErasure/accountErasure.service');
     const isolatedDatabase = await import('../db/postgres/database');
     expect(await isolated.processAccountErasure(failing.eventId)).toBe('failed');
     await isolatedDatabase.closePostgresDatabase();
-    vi.doUnmock('../db/postgres/repositories/accountErasure');
-    vi.resetModules();
+    // `bun:test` has no `doUnmock`: registering the real exports again is
+    // the undo, so a later import is served the repository and not the throw.
+    mock.module('../db/postgres/repositories/accountErasure', () => isolatedRepository);
+    resetModules();
 
     const failed = await findAccountErasure(db, failing.eventId);
     expect(failed).toMatchObject({
@@ -427,22 +440,22 @@ describe('the reconciliation tick', () => {
 
 describe('the Oxy client', () => {
   it('is built once from configuration, with the key pair when the task carries one', async () => {
-    vi.resetModules();
-    vi.stubEnv('OXY_SERVICE_API_KEY', 'key');
-    vi.stubEnv('OXY_SERVICE_API_SECRET', 'secret');
+    resetModules();
+    stubEnv('OXY_SERVICE_API_KEY', 'key');
+    stubEnv('OXY_SERVICE_API_SECRET', 'secret');
     const isolated = await import('../modules/accountErasure/oxyAccountEvents');
     const client = isolated.accountEventClient();
     expect(isolated.accountEventClient()).toBe(client);
-    vi.unstubAllEnvs();
-    vi.resetModules();
+    unstubAllEnvs();
+    resetModules();
   });
 
   it('refuses to exist without an Oxy API, which the webhook answers as 503', async () => {
-    vi.resetModules();
-    vi.stubEnv('OXY_API_URL', '');
+    resetModules();
+    stubEnv('OXY_API_URL', '');
     const isolated = await import('../modules/accountErasure/oxyAccountEvents');
     expect(() => isolated.accountEventClient()).toThrow('No Oxy API is configured');
-    vi.unstubAllEnvs();
-    vi.resetModules();
+    unstubAllEnvs();
+    resetModules();
   });
 });

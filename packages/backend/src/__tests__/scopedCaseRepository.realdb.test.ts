@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
 import * as caseRepository from '../db/postgres/repositories/scoped/cases';
 import { createTenantContext, type TenantContext } from '../db/tenantScope';

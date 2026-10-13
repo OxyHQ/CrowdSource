@@ -28,7 +28,7 @@ import {
   ASSIGNMENT_TOKEN_HEADER,
   DecisionFindingSchema,
 } from '@crowdsource.you/contracts';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
 import { config } from '../config';
 import { API_ERROR_STATUS } from '../http/apiError';
@@ -362,7 +362,7 @@ describe('the route tables describe the routes that are served', () => {
     const classOf = new Map(served.map((route) => [route.signature, route.callerClass]));
 
     for (const route of documentedRoutes(document)) {
-      expect(allowed as readonly CallerClass[], `${route.signature}`).toContain(
+      expect<readonly (CallerClass | undefined)[]>(allowed, `${route.signature}`).toContain(
         classOf.get(route.signature),
       );
     }

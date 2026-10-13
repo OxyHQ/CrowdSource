@@ -1,7 +1,9 @@
 import { SsrfRejection } from '@oxy.so/core/server';
 import { KnownWebhookEventSchema } from '@crowdsource.you/contracts';
 import request from 'supertest';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'bun:test';
+
+import { spyOnGetter, waitFor } from './support/testDoubles';
 
 import { createApp } from '../app';
 import { config } from '../config';
@@ -950,7 +952,7 @@ describe('a delivery whose secret cannot be read', () => {
      * `WEBHOOK_SECRET_ENCRYPTION_KEY`, so a secret that is perfectly well stored
      * cannot be turned back into a signing key.
      */
-    vi.spyOn(config, 'webhookSecretEncryptionKey', 'get').mockReturnValue(undefined);
+    spyOnGetter(config, 'webhookSecretEncryptionKey').mockReturnValue(undefined);
 
     await deliverOnce(delivery.deliveryId, new Date());
 
@@ -1325,7 +1327,7 @@ describe('the delivery loop', () => {
     // A second call must not start a second timer competing with the first.
     startWebhookDeliveryWorker(5);
 
-    await vi.waitFor(async () => {
+    await waitFor(async () => {
       expect((await webhookDeliveries.findOne({ deliveryId: delivery.deliveryId }))?.status).toBe(
         'succeeded',
       );
@@ -1343,7 +1345,7 @@ describe('the delivery loop', () => {
       .mockRejectedValue(new Error('the database blinked'));
 
     startWebhookDeliveryWorker(5);
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(failing).toHaveBeenCalled();
     });
     stopWebhookDeliveryWorker();

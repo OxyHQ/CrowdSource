@@ -3,7 +3,7 @@ import {
   TAXONOMY_CODES_BY_FAMILY,
   UNIVERSAL_TAXONOMY_CODES,
 } from '@crowdsource.you/contracts';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'bun:test';
 
 import { isApiError } from '../http/apiError';
 import {
@@ -149,15 +149,19 @@ describe('registering and publishing a tenant policy version', () => {
   });
 
   it('rejects a policy set that does not satisfy the contract', async () => {
-    await expect(
-      registerPolicyVersion(tenant.tenant, {
-        policySetId: 'tenant.invalid',
-        version: '2026.09',
-        status: 'draft',
-        title: 'No rules at all',
-        rules: [],
-      }),
-    ).rejects.toSatisfy((error: unknown) => isApiError(error) && error.code === 'invalid_request');
+    // The rejection is unwrapped by hand: Bun 1.4.3's `.rejects.toSatisfy`
+    // hands the predicate the Promise rather than the reason. A promise that
+    // RESOLVED yields its value here, which fails the predicate just the same.
+    const outcome = await registerPolicyVersion(tenant.tenant, {
+      policySetId: 'tenant.invalid',
+      version: '2026.09',
+      status: 'draft',
+      title: 'No rules at all',
+      rules: [],
+    }).catch((error: unknown) => error);
+    expect(outcome).toSatisfy(
+      (error: unknown) => isApiError(error) && error.code === 'invalid_request',
+    );
   });
 
   /**

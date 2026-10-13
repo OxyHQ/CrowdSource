@@ -10,9 +10,9 @@
     "dev": "bun --watch server.ts",
     "build": "tsc",
     "lint": "bun check && bun check -p tsconfig.test.json",
-    "test": "node ../../node_modules/vitest/vitest.mjs run",
-    "test:watch": "node ../../node_modules/vitest/vitest.mjs",
-    "test:coverage": "node ../../node_modules/vitest/vitest.mjs run --coverage",
+    "test": "bun --no-env-file ./run-tests.ts ./src/__tests__",
+    "test:watch": "bun --no-env-file ./run-tests.ts --watch ./src/__tests__",
+    "test:coverage": "bun --no-env-file ./run-tests.ts --coverage ./src/__tests__",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun scripts/migrate.ts",
     "clean": "rm -rf dist *.tsbuildinfo"
@@ -33,11 +33,10 @@
   "devDependencies": {
     "@types/compression": "^1.8.1",
     "@types/supertest": "^7.2.1",
-    "@vitest/coverage-v8": "^5.0.3",
+    "bun-types": "^1.4.3",
     "drizzle-kit": "^0.31.11",
     "pino-pretty": "^13.2.0",
     "supertest": "^7.3.1",
-    "typescript": "^5.9.3",
-    "vitest": "^5.0.3"
+    "typescript": "^5.9.3"
   }
 }
