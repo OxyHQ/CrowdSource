@@ -11,6 +11,10 @@
 # Expo, React, the native toolchain, the root-`overrides` pins and the majors
 # the stack cannot take yet stay manually coordinated (`ignore`, with reasons).
 #
+# No `docker` ecosystem, on purpose: the backend's base images are pinned by
+# digest and moved by .github/workflows/bump-base-digests.yml, which also
+# re-pins the reviewed image so the bump is one owner review, not two PRs.
+#
 # Known noise, harmless: the job logs `"<pkg>" is not a dependency of this
 # workspace` for packages only a workspace member declares (pino, supertest,
 # react-i18next, ...). Dependabot runs `bun update <pkg>` from the repo root

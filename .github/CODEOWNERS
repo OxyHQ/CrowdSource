@@ -7,6 +7,8 @@
 /.github/scripts/reviewed-images.json @NateIsern
 /.github/scripts/reviewed-image.py @NateIsern
 /.github/scripts/test_reviewed_image.py @NateIsern
+/.github/scripts/bump-base-digests.py @NateIsern
+/.github/scripts/test_bump_base_digests.py @NateIsern
 Dockerfile* @NateIsern
 .dockerignore @NateIsern
 *.dockerignore @NateIsern

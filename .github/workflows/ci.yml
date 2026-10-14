@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # bump-base-digests.yml opens its pull request with GITHUB_TOKEN, which starts
+  # no `pull_request` run, so it dispatches this workflow on its branch. A
+  # dispatch is not a pull request, so every job below runs in full. Neither
+  # deploy workflow follows it: both require a `push` run on main.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -67,6 +72,7 @@ jobs:
       pull-requests: read
     outputs:
       lockfile: ${{ github.event_name != 'pull_request' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.manifests == 'true' }}
+      image: ${{ github.event_name != 'pull_request' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.manifests == 'true' || steps.filter.outputs.backend == 'true' || steps.filter.outputs.image == 'true' }}
       reviewer: ${{ github.event_name != 'pull_request' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.reviewer == 'true' }}
       test-suites: ${{ steps.plan.outputs.suites }}
       tests-any: ${{ steps.plan.outputs.any }}
@@ -90,6 +96,10 @@ jobs:
               - 'packages/contracts/**'
             manifests:
               - '**/package.json'
+            image:
+              - '.dockerignore'
+              - '**/Dockerfile*'
+              - '**/*.dockerignore'
             backend:
               - 'packages/backend/**'
             core:
@@ -146,6 +156,8 @@ jobs:
       # the gate can fail, not that it stopped looking.
       - name: Prove the reviewed-image gate can fail
         run: python3 -B -m unittest discover -s .github/scripts -p test_reviewed_image.py
+      - name: Prove the base-image digest bump
+        run: python3 -B -m unittest discover -s .github/scripts -p test_bump_base_digests.py
       - name: Verify the production image's build inputs are reviewed
         run: python3 -B .github/scripts/reviewed-image.py check
 
@@ -186,6 +198,72 @@ jobs:
           bun .github/scripts/test-assert-coverage.mjs
           bun scripts/test-check-lockfile-sync.mjs
           bun scripts/test-check-injection-sinks.mjs
+
+  # The image the deploy would build, built and booted on the pull request. The
+  # deploy's own build happens only after merge, so without this a Dockerfile,
+  # dependency or entrypoint change is first built by the production release.
+  # Same reviewed inputs (the guard hands them out), same platform and the
+  # deploy's cache scope, read but never written; `load` and never `push`.
+  # smoke-backend-image.sh then runs the deploy's runtime audit on it, checks
+  # its files are out of the app user's reach, migrates an empty database with
+  # it and boots it to a ready health check.
+  image-smoke:
+    name: Backend image build and boot
+    needs: changes
+    if: >-
+      !cancelled() && needs.changes.result == 'success' &&
+      needs.changes.outputs.image == 'true'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    services:
+      # The same server as docker-compose.postgres.yml; a throwaway for this
+      # job only.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: crowdsource
+          POSTGRES_PASSWORD: crowdsource
+          POSTGRES_DB: postgres
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd "pg_isready -U crowdsource -d postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Refuse unreviewed image build inputs
+        id: reviewed
+        run: python3 -B .github/scripts/reviewed-image.py guard --recipe crowdsource
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build the backend image (linux/arm64, not pushed)
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ steps.reviewed.outputs.context }}
+          file: ${{ steps.reviewed.outputs.dockerfile }}
+          target: ${{ steps.reviewed.outputs.target }}
+          labels: |-
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            io.oxy.source.tree=${{ steps.reviewed.outputs.source_tree }}
+            io.oxy.build-inputs.sha256=${{ steps.reviewed.outputs.build_inputs_sha256 }}
+          platforms: linux/arm64
+          push: false
+          load: true
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=crowdsource-backend
+
+      - name: Audit, migrate and boot the image
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+          PG_PORT: '5432'
+          IMAGE_ID: ${{ steps.build.outputs.imageid }}
+        run: bash .github/scripts/smoke-backend-image.sh "$IMAGE_ID"
 
   lockfile:
     name: Lockfile sync
