@@ -266,6 +266,23 @@ for (const workflowName of workflowNames) {
           `${workflowName}: production workflow_run releases must verify origin/main before both build and deploy`,
         );
       }
+      // require-current-main.sh asks the GitHub API for main's head and CI's
+      // runs, so every step that reaches it — directly, or through
+      // deploy-ecs-image.sh's pre-rollout re-check — needs a token. Without one
+      // `gh` exits 4 after the pre-migration and before the rollout.
+      for (const [jobName, job] of Object.entries(workflow?.jobs || {})) {
+        for (const step of job?.steps || []) {
+          const run = typeof step?.run === 'string' ? step.run : '';
+          if (
+            (run.includes('require-current-main.sh') || run.includes('deploy-ecs-image.sh')) &&
+            !step?.env?.GH_TOKEN
+          ) {
+            failures.push(
+              `${workflowName}: job '${jobName}' step '${step?.name ?? run}' reaches require-current-main.sh without GH_TOKEN`,
+            );
+          }
+        }
+      }
       if (source.includes('steps.changes.outputs.deploy') || source.includes('git diff --quiet')) {
         failures.push(
           `${workflowName}: production workflow_run releases must not skip artifacts from a single-commit path diff`,

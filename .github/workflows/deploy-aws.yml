@@ -160,6 +160,9 @@ jobs:
 
       - name: Register immutable task definition and deploy
         env:
+          # deploy-ecs-image.sh re-runs require-current-main.sh right before the
+          # service update, and that guard reads main's head and CI's runs.
+          GH_TOKEN: ${{ github.token }}
           IMAGE_URI: ${{ env.ECR_REGISTRY }}/oxy/${{ env.APP }}@${{ steps.build.outputs.digest }}
           # The migration runner now EXISTS — `packages/backend/dist/scripts/
           # migrate.js`, emitted from `scripts/migrate.ts` — and
