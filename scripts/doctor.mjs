@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -140,6 +140,47 @@ for (const workspace of runtimeWorkspaces) {
 if (!deployWorkflow.includes(`EXPECTED_WORKSPACE_PACKAGES: '${runtimeWorkspaces.join(',')}'`)) {
   failures.push(
     `deploy-aws.yml must set EXPECTED_WORKSPACE_PACKAGES to '${runtimeWorkspaces.join(',')}' so the image audit matches the Dockerfile.`,
+  );
+}
+
+/**
+ * ONE copy of `react-native-css`, and the one Bloom was built against.
+ *
+ * Two copies is not a version warning, it is a blank page: Metro treats each path as its own
+ * module, the style interop initialises twice and a component list is read while the react-native
+ * entry is still loading ("Cannot read properties of undefined (reading 'default')" at `FlatList`).
+ * That shipped once: the apps declared `^3.0.7` while Bloom pins an exact release, so the install
+ * kept 3.0.7 at the top and a second copy under Bloom and under NativeWind — and every unit test,
+ * type check and web export was green, because none of them runs the bundle. Found only by loading
+ * the exported site in a browser.
+ */
+const bloomCssVersion = installedBloom.dependencies?.['react-native-css'];
+const topCss = await readJson('node_modules/react-native-css/package.json');
+if (bloomCssVersion !== undefined && topCss.version !== bloomCssVersion) {
+  failures.push(
+    `react-native-css must be the release Bloom pins (${bloomCssVersion}); the top-level copy is ${topCss.version}. ` +
+      'Declare that exact version in both apps and in the root overrides.',
+  );
+}
+const nestedCss = [];
+for (const holder of await readdir(resolve(repositoryRoot, 'node_modules'), {
+  withFileTypes: true,
+})) {
+  if (!holder.isDirectory()) continue;
+  const names = holder.name.startsWith('@')
+    ? (await readdir(resolve(repositoryRoot, 'node_modules', holder.name))).map(
+        (name) => `${holder.name}/${name}`,
+      )
+    : [holder.name];
+  for (const name of names) {
+    const nested = resolve(repositoryRoot, 'node_modules', name, 'node_modules/react-native-css');
+    if (await Bun.file(resolve(nested, 'package.json')).exists()) nestedCss.push(name);
+  }
+}
+if (nestedCss.length > 0) {
+  failures.push(
+    `react-native-css is installed more than once (nested under ${nestedCss.join(', ')}). ` +
+      'Make every dependent agree on one release, then reinstall from a clean node_modules.',
   );
 }
 
