@@ -18,6 +18,8 @@ on:
 
 permissions:
   contents: read
+  # require-current-main.sh reads CI's runs for the commits after the candidate.
+  actions: read
 
 concurrency:
   group: deploy-crowdsource-frontend
@@ -25,7 +27,13 @@ concurrency:
 
 env:
   BUN_VERSION: '1.4.3'
-  # workflow_run admission below binds this release to github.sha before checkout.
+  # The commit CI tested on `workflow_run`, the dispatched main SHA on a manual
+  # release. Every checkout uses it. Until 2026-10 the checkouts used the event
+  # `github.sha` (main's head when CI finished) and admission required the two
+  # to be equal, which stranded a CI-green commit whenever main had moved on to
+  # a commit that never gets a CI run of its own (an auto-merge push starts
+  # none): the event was skipped and nothing newer ever released. The scope
+  # job's `require-current-main.sh --decide` now decides which commit releases.
   DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
@@ -37,12 +45,12 @@ jobs:
       vars.OXY_1519_ROLLOUT_HOLD != 'true' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
        (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.head_sha == github.sha &&
        github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       github.event.workflow_run.head_branch == 'main'))
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       # One output per Worker. They are separate targets with separate markers,
       # so a console-only change must not redeploy the reviewer and vice versa.
@@ -51,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.DEPLOY_SHA }}
           # Each scope diff runs from its own `deployed/<target>` marker to the
           # candidate, so this job needs the marker tags and the history that
           # connects them to the candidate.
@@ -67,12 +75,22 @@ jobs:
           OXY_1519_ROLLOUT_HOLD: ${{ vars.OXY_1519_ROLLOUT_HOLD }}
         run: python3 .github/scripts/verify-manual-frontend.py
 
+      # Holds (skips both Workers) only when a newer main commit has a CI run
+      # that will release it; otherwise this is the newest CI-tested commit.
+      - name: Release only the newest CI-green main commit
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/require-current-main.sh --decide
+
       - name: Detect reviewer deployment scope
         id: reviewer
+        if: steps.gate.outputs.current == 'true'
         run: bash .github/scripts/deployment-scope.sh frontend
 
       - name: Detect console deployment scope
         id: console
+        if: steps.gate.outputs.current == 'true'
         run: bash .github/scripts/deployment-scope.sh console
 
   deploy-frontend:
@@ -84,10 +102,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.DEPLOY_SHA }}
           fetch-depth: 2
 
       - name: Verify current main before building
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/require-current-main.sh
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -116,6 +136,8 @@ jobs:
         run: bun .github/scripts/validate-frontend-static-output.mjs packages/reviewer/dist
 
       - name: Verify current main before production changes
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/require-current-main.sh
 
       # MUST run BEFORE the deploy. Afterwards the Worker exists whatever the
@@ -224,10 +246,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.DEPLOY_SHA }}
           fetch-depth: 2
 
       - name: Verify current main before building
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/require-current-main.sh
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -258,6 +282,8 @@ jobs:
         run: bun .github/scripts/validate-frontend-static-output.mjs packages/console/dist
 
       - name: Verify current main before production changes
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/require-current-main.sh
 
       - name: Determine whether this Worker has ever been deployed
@@ -331,7 +357,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.DEPLOY_SHA }}
           fetch-depth: 1
 
       - name: Record the deployed frontend revision
@@ -347,7 +373,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.DEPLOY_SHA }}
           fetch-depth: 1
 
       - name: Record the deployed console revision

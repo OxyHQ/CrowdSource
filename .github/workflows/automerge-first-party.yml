@@ -19,6 +19,7 @@ jobs:
     # dependabot/bun/<directory>/<group>-<hash> when the PR covers one directory.
     if: github.actor == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/bun/') && contains(github.head_ref, '/oxy-')
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - run: gh pr merge --auto --merge "$PR_URL"
         env:

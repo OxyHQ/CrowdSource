@@ -19,6 +19,7 @@ permissions:
 jobs:
   dns:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Create the ACM validation and API records
         env:
