@@ -216,17 +216,15 @@ trustSafetyRouter.post(
       applicationId,
     });
 
-    response
-      .status(200)
-      .json(
-        trustView(
-          updated,
-          (await namesFor([updated])).get(updated.applicationId) ?? {
-            organizationName: null,
-            applicationName: null,
-          },
-        ),
-      );
+    response.status(200).json(
+      trustView(
+        updated,
+        (await namesFor([updated])).get(updated.applicationId) ?? {
+          organizationName: null,
+          applicationName: null,
+        },
+      ),
+    );
   },
 );
 
