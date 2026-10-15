@@ -333,7 +333,6 @@ describe('the secrets the service cannot boot without', () => {
     'CLOUDFLARE_API_TOKEN',
     'CLOUDFLARE_ACCOUNT_ID',
     'NPM_TOKEN',
-    'ADD_TO_PROJECT_TOKEN',
   ]);
   const workflowsDir = path.join(repoRoot, '.github', 'workflows');
   const workflows = readdirSync(workflowsDir)
