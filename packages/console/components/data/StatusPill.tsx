@@ -40,7 +40,7 @@ interface StatusPillProps {
 export function StatusPill({ label, tone }: StatusPillProps) {
   const { color, variant } = TONE_STYLE[tone];
   return (
-    <Chip size="small" color={color} variant={variant}>
+    <Chip size="sm" color={color} variant={variant}>
       {label}
     </Chip>
   );

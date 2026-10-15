@@ -597,5 +597,14 @@
   "applicationStatus": {
     "active": "Activa",
     "suspended": "Suspendida"
+  },
+  "askAlia": {
+    "label": "Preguntar a Alia",
+    "clientContext": "The person is an operator of CrowdSource Console, the web console where a developer manages their CrowdSource applications: service credentials, webhook delivery, quotas, and the cases and decisions of their own tenant. They are asking you for help about that. Never ask them to paste a credential, secret or API key.",
+    "suggestions": {
+      "first": "¿Qué me muestra esta pantalla?",
+      "second": "¿Cómo roto una credencial de servicio?",
+      "third": "¿Por qué falló la entrega de un webhook?"
+    }
   }
 }

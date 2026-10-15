@@ -38,7 +38,7 @@ export function FilterChips({ label, options, selected, onSelect }: FilterChipsP
       {options.map((option) => (
         <Chip
           key={option.value ?? 'all'}
-          size="small"
+          size="sm"
           variant={option.value === selected ? 'solid' : 'outlined'}
           color={option.value === selected ? 'primary' : 'default'}
           selected={option.value === selected}

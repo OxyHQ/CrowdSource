@@ -23,6 +23,7 @@
  * constantly, and putting them behind a tap would cost a click on each.
  */
 
+import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { ProfileButton } from '@oxy.so/services';
 import { useAuth } from '@oxy.so/services/ui/client';
 import { usePathname } from 'expo-router';
@@ -33,6 +34,7 @@ import { Text, View } from 'react-native';
 import { LogoIcon } from '@/components/LogoIcon';
 import { NavIcon } from '@/components/SideBar/icons';
 import { SideBarItem } from '@/components/SideBar/SideBarItem';
+import { useAskAlia } from '@/context/AskAliaContext';
 import { useIsRailFixed } from '@/hooks/useOptimizedMediaQuery';
 import { useApplication, useApplications, useConsoleSession } from '@/lib/console-api/queries';
 import { createScopedLogger } from '@/lib/logger';
@@ -49,6 +51,7 @@ export function SideBar() {
   const pathname = usePathname();
   const isFixed = useIsRailFixed();
   const { signIn } = useAuth();
+  const askAlia = useAskAlia();
   const applicationId = applicationIdFromPathname(pathname);
 
   const session = useConsoleSession();
@@ -156,7 +159,13 @@ export function SideBar() {
           for the handlers it is given, so leaving these out removes the entries —
           which is the wanted result. Do NOT wire them to a route invented to
           satisfy them. */}
-      <View className={cn(isFixed ? 'pt-2' : 'pt-1')}>
+      <View className={cn('gap-0.5', isFixed ? 'pt-2' : 'pt-1')}>
+        <SideBarItem
+          label={t('askAlia.label')}
+          onPress={askAlia.open}
+          isActive={false}
+          icon={<RiSparklingLine width={20} height={20} fill="currentColor" />}
+        />
         <ProfileButton expanded onAddAccount={handleAddAccount} />
       </View>
     </View>
