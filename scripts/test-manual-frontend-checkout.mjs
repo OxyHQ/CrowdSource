@@ -12,8 +12,11 @@ function validate(value) {
   for (const job of Object.values(value.jobs)) {
     for (const step of job.steps ?? []) {
       if (!step.uses?.startsWith('actions/checkout@')) continue;
+      // Every checkout is the commit CI tested (DEPLOY_SHA), never the event's
+      // `github.sha`, which is main's head when CI finished and may be a commit
+      // CI never ran on (an auto-merge push starts no workflow).
       // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, matched literally
-      assert.equal(step.with.ref, '${{ github.sha }}');
+      assert.equal(step.with.ref, '${{ env.DEPLOY_SHA }}');
       assert.equal(step.if, undefined);
       count++;
     }
@@ -44,8 +47,23 @@ function validate(value) {
   }
   assert.equal(admits(github), true);
   assert.equal(admits(github, 'true'), false);
+  // main moved on past the tested commit: admitted here, and the scope job's
+  // `require-current-main.sh --decide` step decides whether it still releases.
+  assert.equal(
+    admits({
+      ...github,
+      event: { workflow_run: { ...github.event.workflow_run, head_sha: 'b'.repeat(40) } },
+    }),
+    true,
+  );
+  const gate = value.jobs.scope.steps.find((step) => step.id === 'gate');
+  assert.match(gate?.run ?? '', /require-current-main\.sh --decide/);
+  for (const id of ['reviewer', 'console'])
+    assert.equal(
+      value.jobs.scope.steps.find((step) => step.id === id)?.if,
+      "steps.gate.outputs.current == 'true'",
+    );
   for (const change of [
-    { head_sha: 'b'.repeat(40) },
     { conclusion: 'failure' },
     { event: 'pull_request' },
     { head_repository: { full_name: 'other/repo' } },
@@ -63,19 +81,16 @@ function validate(value) {
   if (value.on.push) assert.equal(admits({ ...github, event_name: 'push' }), true);
 }
 validate(workflow);
-const stale = structuredClone(workflow);
-stale.jobs.scope.if = stale.jobs.scope.if.replace(
-  'github.event.workflow_run.head_sha == github.sha &&',
-  '',
-);
-assert.throws(() => validate(stale));
+const ungated = structuredClone(workflow);
+delete ungated.jobs.scope.steps.find((step) => step.id === 'reviewer').if;
+assert.throws(() => validate(ungated));
 const checkout = structuredClone(workflow);
 Object.values(checkout.jobs)
   .find((job) => job.steps?.some((step) => step.uses?.startsWith('actions/checkout@')))
   .steps.find((step) => step.uses?.startsWith('actions/checkout@')).with.ref =
   // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, matched literally
-  '${{ env.DEPLOY_SHA }}';
+  '${{ github.sha }}';
 assert.throws(() => validate(checkout));
 console.log(
-  `${expectedCheckouts} immutable event-SHA checkouts; current/stale/manual/hold/foreign/failed CI controls and two mutations PASS`,
+  `${expectedCheckouts} CI-tested-SHA checkouts; current/moved-on/manual/hold/foreign/failed CI controls, the gate and two mutations PASS`,
 );

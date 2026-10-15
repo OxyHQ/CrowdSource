@@ -193,6 +193,8 @@ jobs:
           bash -n .github/scripts/*.sh
           bash .github/scripts/test-deploy-ecs-image.sh
           bash .github/scripts/test-cloudflare-worker.sh
+          bash .github/scripts/test-require-current-main.sh
+          bun scripts/test-manual-frontend-checkout.mjs
           bun .github/scripts/test-runtime-image-audit.mjs
           bun .github/scripts/test-assert-test-floor.mjs
           bun .github/scripts/test-assert-coverage.mjs
