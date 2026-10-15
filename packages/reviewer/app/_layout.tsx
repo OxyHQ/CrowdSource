@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 import { enableFreeze } from 'react-native-screens';
 
 import { AppProviders } from '@/components/providers/AppProviders';
+import { AskAliaProvider } from '@/context/AskAliaContext';
 import { registerChunkErrorRecovery } from '@/lib/chunkReload';
 import { oxyServices } from '@/lib/oxyServices';
 import { queryClient } from '@/lib/queryClient';
@@ -49,7 +50,9 @@ export default function RootLayout() {
     >
       <AppProviders oxyServices={oxyServices} queryClient={queryClient}>
         <PortalProvider>
-          <AuthRouter />
+          <AskAliaProvider>
+            <AuthRouter />
+          </AskAliaProvider>
           <PortalOutlet />
         </PortalProvider>
       </AppProviders>

@@ -570,5 +570,14 @@
       "title": "Supporto"
     },
     "title": "Benessere"
+  },
+  "askAlia": {
+    "label": "Chiedi ad Alia",
+    "clientContext": "The person is a reviewer in CrowdSource, a participatory moderation service: they are randomly drawn onto juries that review reports blind. They are asking you for help with the app, its guidelines or their reviewer account. Reports are blind: you never see a report's content unless the person types it, and you must not ask for details that would identify the reported person or the reporter.",
+    "suggestions": {
+      "first": "Come funziona una revisione qui?",
+      "second": "Cosa faccio se ho dubbi su una segnalazione?",
+      "third": "Come viene calcolata la mia affidabilità?"
+    }
   }
 }

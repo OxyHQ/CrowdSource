@@ -4,12 +4,14 @@ import { Dimensions, Platform, View, StyleSheet } from 'react-native';
 import { usePathname, useRouter, type Href } from 'expo-router';
 import { useIsScreenNotMobile, useIsSideBarExpanded } from '@/hooks/useOptimizedMediaQuery';
 import { useTranslation } from 'react-i18next';
+import { useAskAlia } from '@/context/AskAliaContext';
 import { SideBarItem } from './SideBarItem';
 
 import { RiFlaskLine } from '@oxy.so/bloom/icons/RiFlaskLine';
 import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
 import { RiSeedlingLine } from '@oxy.so/bloom/icons/RiSeedlingLine';
 import { RiHeartLine } from '@oxy.so/bloom/icons/RiHeartLine';
+import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { RiHomeLine } from '@oxy.so/bloom/icons/RiHomeLine';
 import { ProfileButton } from '@oxy.so/services';
 import { useAuth } from '@oxy.so/services/ui/client';
@@ -39,6 +41,7 @@ export function SideBar({ asDrawer = false, onNavigate }: SideBarProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { signIn } = useAuth();
+  const askAlia = useAskAlia();
 
   // Every sidebar destination is a TAB ROOT (review, training, history,
   // reliability, wellbeing). With the (app) center now a Stack, `navigate`
@@ -110,8 +113,14 @@ export function SideBar({ asDrawer = false, onNavigate }: SideBarProps) {
         iconActive: <RiHeartLine width={26} height={26} fill="currentColor" />,
         route: '/wellbeing',
       },
+      {
+        title: t('askAlia.label'),
+        icon: <RiSparklingLine width={26} height={26} fill="currentColor" />,
+        iconActive: <RiSparklingLine width={26} height={26} fill="currentColor" />,
+        onPress: askAlia.open,
+      },
     ],
-    [t],
+    [t, askAlia.open],
   );
 
   const pathname = usePathname();

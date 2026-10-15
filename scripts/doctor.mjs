@@ -11,7 +11,7 @@ const expectedNodeVersion = '22.17.0';
 // The Bloom release the whole workspace is pinned to — manifest range, root
 // override and installed copy must all agree on it. Bump this ONE constant when
 // taking a new Bloom.
-const expectedBloomVersion = '7.1.2';
+const expectedBloomVersion = '10.6.0';
 const failures = [];
 
 if (!expectedBunVersion) {
@@ -56,8 +56,8 @@ if (Object.keys(rootManifest.dependencies || {}).length > 0) {
 const installedExpo = await readJson('node_modules/expo/package.json');
 const installedBloom = await readJson('node_modules/@oxy.so/bloom/package.json');
 
-if (!String(installedExpo.version || '').startsWith('56.')) {
-  failures.push(`Installed Expo must be version 56.x (found ${String(installedExpo.version)}).`);
+if (!String(installedExpo.version || '').startsWith('57.')) {
+  failures.push(`Installed Expo must be version 57.x (found ${String(installedExpo.version)}).`);
 }
 if (
   rootManifest.overrides?.['@oxy.so/bloom'] !== expectedBloomVersion ||
@@ -80,9 +80,9 @@ if (
 for (const appName of ['reviewer', 'console']) {
   const manifest = await readJson(`packages/${appName}/package.json`);
 
-  if (!String(manifest.dependencies?.expo || '').startsWith('~56.')) {
+  if (!String(manifest.dependencies?.expo || '').startsWith('~57.')) {
     failures.push(
-      `The ${appName} app must target Expo 56 (found ${String(manifest.dependencies?.expo)}).`,
+      `The ${appName} app must target Expo 57 (found ${String(manifest.dependencies?.expo)}).`,
     );
   }
   if (manifest.dependencies?.react !== '19.2.3') {
@@ -90,9 +90,9 @@ for (const appName of ['reviewer', 'console']) {
       `The ${appName} app must target React 19.2.3 (found ${String(manifest.dependencies?.react)}).`,
     );
   }
-  if (manifest.dependencies?.['react-native'] !== '0.85.3') {
+  if (manifest.dependencies?.['react-native'] !== '0.86.3') {
     failures.push(
-      `The ${appName} app must target React Native 0.85.3 (found ${String(manifest.dependencies?.['react-native'])}).`,
+      `The ${appName} app must target React Native 0.86.3 (found ${String(manifest.dependencies?.['react-native'])}).`,
     );
   }
   if (manifest.dependencies?.['@oxy.so/bloom'] !== expectedBloomVersion) {

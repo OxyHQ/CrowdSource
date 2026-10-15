@@ -22,7 +22,10 @@ import { cn } from '@/lib/utils';
 
 interface SideBarItemProps {
   label: string;
-  href: Href;
+  /** The destination, for a row that navigates. */
+  href?: Href;
+  /** What the row does, for a row that is an action (Ask Alia) and not a destination. */
+  onPress?: () => void;
   isActive: boolean;
   /** The glyph, or null for a row that is a name rather than a destination. */
   icon?: React.ReactNode;
@@ -31,6 +34,7 @@ interface SideBarItemProps {
 export const SideBarItem = React.memo(function SideBarItem({
   label,
   href,
+  onPress,
   isActive,
   icon,
 }: SideBarItemProps) {
@@ -39,15 +43,16 @@ export const SideBarItem = React.memo(function SideBarItem({
   const isHighlighted = isActive || isHovered;
 
   const handlePress = useCallback(() => {
-    router.navigate(href);
-  }, [href, router]);
+    if (onPress) onPress();
+    else if (href) router.navigate(href);
+  }, [href, onPress, router]);
 
   return (
     <Pressable
       onPress={handlePress}
       onHoverIn={useCallback(() => setIsHovered(true), [])}
       onHoverOut={useCallback(() => setIsHovered(false), [])}
-      accessibilityRole="link"
+      accessibilityRole={href ? 'link' : 'button'}
       accessibilityState={{ selected: isActive }}
       className={cn(
         'w-full flex-row items-center gap-2.5 rounded-md px-2.5 py-2 web:cursor-pointer',
