@@ -14,7 +14,7 @@ import {
   reviewerRelations,
 } from '../schema/reviewers';
 import { OPEN_ASSIGNMENT_STATUSES, assignments, reviews } from '../schema/sortition';
-import { applications } from '../schema/tenancy';
+import { applications, organizations } from '../schema/tenancy';
 import { webhookDeliveries } from '../schema/webhooks';
 import { requireTransaction, type PgHandle, type PgTransactionHandle } from '../withTenant';
 
@@ -369,6 +369,7 @@ export async function deleteReviewerRowsNamingPrincipal(
 }
 
 export interface ConsoleErasureCounts {
+  readonly organizationsDetached: number;
   readonly membershipsDeleted: number;
   readonly invitationsAnonymised: number;
   readonly staffDeleted: number;
@@ -387,6 +388,11 @@ export async function eraseConsoleIdentity(
   erased: string,
 ): Promise<ConsoleErasureCounts> {
   requireTransaction(tx);
+  const detached = await tx
+    .update(organizations)
+    .set({ oxyAccountId: null, status: 'suspended' })
+    .where(eq(organizations.oxyAccountId, oxyUserId))
+    .returning({ id: organizations.organizationId });
 
   const memberships = await tx
     .delete(organizationMembers)
@@ -413,6 +419,7 @@ export async function eraseConsoleIdentity(
     .returning({ id: appTrustSnapshots.applicationId });
 
   return {
+    organizationsDetached: detached.length,
     membershipsDeleted: memberships.length,
     invitationsAnonymised: invitations.length,
     staffDeleted: staff.length,

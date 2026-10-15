@@ -192,6 +192,7 @@ export async function eraseAccount(
 
   await withTransaction(async (tx) => {
     const consoleCounts = await eraseConsoleIdentity(tx, oxyUserId, ERASED_ACCOUNT);
+    add(counts, 'console.organizationsDetached', consoleCounts.organizationsDetached);
     add(counts, 'console.membershipsDeleted', consoleCounts.membershipsDeleted);
     add(counts, 'console.invitationsAnonymised', consoleCounts.invitationsAnonymised);
     add(counts, 'console.staffDeleted', consoleCounts.staffDeleted);

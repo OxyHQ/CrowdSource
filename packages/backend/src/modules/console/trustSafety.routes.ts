@@ -1,3 +1,4 @@
+import { organizationDirectory } from '../tenancy/organizationDirectory';
 import { Router } from 'express';
 import { z } from 'zod';
 
@@ -89,17 +90,30 @@ function trustView(
   };
 }
 
-async function namesFor(
-  trust: ApplicationTrustDocument,
-): Promise<{ organizationName: string | null; applicationName: string | null }> {
-  const [organization, application] = await Promise.all([
-    organizations.findOne({ organizationId: trust.organizationId }),
-    applications.findOne({ applicationId: trust.applicationId }),
+async function namesFor(rows: readonly ApplicationTrustDocument[]) {
+  const [orgs, apps] = await Promise.all([
+    organizations.find({
+      organizationId: { $in: [...new Set(rows.map((row) => row.organizationId))] },
+    }),
+    applications.find({ applicationId: { $in: rows.map((row) => row.applicationId) } }),
   ]);
-  return {
-    organizationName: organization?.name ?? null,
-    applicationName: application?.name ?? null,
-  };
+  const directory = await organizationDirectory(orgs.map((org) => org.oxyAccountId));
+  const orgById = new Map(orgs.map((org) => [org.organizationId, org]));
+  const appById = new Map(apps.map((app) => [app.applicationId, app]));
+  return new Map(
+    rows.map((row) => {
+      const org = orgById.get(row.organizationId);
+      return [
+        row.applicationId,
+        {
+          organizationName: org?.oxyAccountId
+            ? (directory.get(org.oxyAccountId)?.name ?? null)
+            : null,
+          applicationName: appById.get(row.applicationId)?.name ?? null,
+        },
+      ];
+    }),
+  );
 }
 
 /**
@@ -130,9 +144,15 @@ trustSafetyRouter.get(
         : {},
     );
 
+    const names = await namesFor(rows);
     const views: Record<string, unknown>[] = [];
     for (const trust of rows) {
-      views.push(trustView(trust, await namesFor(trust)));
+      views.push(
+        trustView(
+          trust,
+          names.get(trust.applicationId) ?? { organizationName: null, applicationName: null },
+        ),
+      );
     }
 
     const staff = requestStaff(request);
@@ -196,7 +216,17 @@ trustSafetyRouter.post(
       applicationId,
     });
 
-    response.status(200).json(trustView(updated, await namesFor(updated)));
+    response
+      .status(200)
+      .json(
+        trustView(
+          updated,
+          (await namesFor([updated])).get(updated.applicationId) ?? {
+            organizationName: null,
+            applicationName: null,
+          },
+        ),
+      );
   },
 );
 

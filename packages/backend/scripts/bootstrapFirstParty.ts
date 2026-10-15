@@ -1,5 +1,9 @@
 import { closePostgresDatabase, pingPostgres } from '../src/db/postgres/database';
-import { bootstrapFirstParty, parseArguments } from '../src/modules/tenancy/bootstrapFirstParty';
+import {
+  authorizeFirstPartyBinding,
+  bootstrapFirstParty,
+  parseArguments,
+} from '../src/modules/tenancy/bootstrapFirstParty';
 
 /**
  * The first-party bootstrap entrypoint — a process around
@@ -15,10 +19,13 @@ import { bootstrapFirstParty, parseArguments } from '../src/modules/tenancy/boot
  * `src/`.
  *
  * Run from inside the VPC, where the database is reachable:
- *   node dist/scripts/bootstrapFirstParty.js --name Mention --oxy-application-id <id>
+ *   node dist/scripts/bootstrapFirstParty.js --name Mention --oxy-application-id <id> --oxy-organization-id <owner account id>
  */
 async function main(): Promise<void> {
-  const args = parseArguments(process.argv.slice(2));
+  const args = await authorizeFirstPartyBinding(
+    parseArguments(process.argv.slice(2)),
+    process.env.OXY_ADMIN_ACCESS_TOKEN,
+  );
   await pingPostgres();
   try {
     const applicationId = await bootstrapFirstParty(args);

@@ -1,3 +1,5 @@
+import { installOrganizationDirectoryFixture } from './support/organizationDirectory';
+installOrganizationDirectoryFixture();
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
@@ -136,7 +138,7 @@ describe('self-service tenant creation (§15.10)', () => {
     const created = await request(app)
       .post('/v1/console/organizations')
       .set(asUser(oxyUserId))
-      .send({ name: 'Console Test Org', slug });
+      .send({ oxyAccountId: 'Console Test Org', slug });
 
     expect(created.status).toBe(201);
     expect(created.body.role).toBe('owner');
@@ -158,12 +160,12 @@ describe('self-service tenant creation (§15.10)', () => {
     await request(app)
       .post('/v1/console/organizations')
       .set(asUser(newOxyUserId()))
-      .send({ name: 'First', slug });
+      .send({ oxyAccountId: `first-${randomUUID()}`, slug });
 
     const second = await request(app)
       .post('/v1/console/organizations')
       .set(asUser(newOxyUserId()))
-      .send({ name: 'Second', slug });
+      .send({ oxyAccountId: `second-${randomUUID()}`, slug });
 
     expect(second.status).toBe(409);
   });
@@ -173,7 +175,7 @@ describe('self-service tenant creation (§15.10)', () => {
     const organization = await request(app)
       .post('/v1/console/organizations')
       .set(asUser(oxyUserId))
-      .send({ name: 'Sandbox Org', slug: `sandbox-${randomUUID()}` });
+      .send({ oxyAccountId: 'Sandbox Org', slug: `sandbox-${randomUUID()}` });
 
     const created = await request(app)
       .post(`/v1/console/organizations/${organization.body.organizationId}/applications`)

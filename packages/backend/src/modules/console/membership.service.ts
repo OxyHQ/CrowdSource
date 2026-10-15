@@ -1,4 +1,5 @@
 import { createTenantContext, type TenantContext } from '../../db/tenantScope';
+import { organizationDirectory } from '../tenancy/organizationDirectory';
 import { ApiError } from '../../http/apiError';
 import { isPublicId } from '../../utils/identifiers';
 import {
@@ -67,7 +68,8 @@ export interface Membership {
 }
 
 export interface MembershipWithOrganization extends Membership {
-  readonly name: string;
+  readonly name: string | null;
+  readonly oxyAccountId: string | null;
   readonly slug: string;
   readonly status: OrganizationDocument['status'];
 }
@@ -89,18 +91,22 @@ export async function membershipsWithOrganizations(
   oxyUserId: string,
 ): Promise<readonly MembershipWithOrganization[]> {
   const memberships = await membershipsOf(oxyUserId);
+  const rows = await organizations.find({
+    organizationId: { $in: memberships.map((item) => item.organizationId) },
+  });
+  const byId = new Map(rows.map((row) => [row.organizationId, row]));
+  const directory = await organizationDirectory(rows.map((row) => row.oxyAccountId));
   const resolved: MembershipWithOrganization[] = [];
-
   for (const membership of memberships) {
-    const organization = await organizations.findOne({
-      organizationId: membership.organizationId,
-    });
-    // A seat whose organization is gone is not an error to surface to the member —
-    // there is nothing they can do about it — and it must not abort the whole list.
+    const organization = byId.get(membership.organizationId);
     if (!organization) continue;
+    const identity = organization.oxyAccountId
+      ? directory.get(organization.oxyAccountId)
+      : undefined;
     resolved.push({
       ...membership,
-      name: organization.name,
+      oxyAccountId: identity?.accountId ?? organization.oxyAccountId,
+      name: identity?.name ?? null,
       slug: organization.slug,
       status: organization.status,
     });

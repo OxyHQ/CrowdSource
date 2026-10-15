@@ -1,3 +1,5 @@
+import { ApiError } from '../../http/apiError';
+import { requireRegistrationOrganization, withOrganizationSession } from './organizationDirectory';
 import { createApplication, createOrganization } from './provisioning.service';
 import { applications, organizations } from './tenancy.collections';
 
@@ -23,7 +25,7 @@ import { applications, organizations } from './tenancy.collections';
  * ## Idempotent on purpose
  *
  * A deploy that runs this twice must not create a second organization or a
- * second application — so it reuses the organization by slug, reuses an existing
+ * second application — so it reuses the organization by its canonical Oxy account id, reuses an existing
  * binding, and refuses only when the SAME Oxy application is already bound to a
  * DIFFERENT CrowdSource application. That last one is a genuine conflict and
  * silently repointing it would move a tenant's data out from under it.
@@ -38,19 +40,25 @@ export interface Arguments {
   name: string;
   oxyApplicationId: string;
   organizationSlug: string;
-  organizationName: string;
+  oxyOrganizationId: string;
 }
 
 /** The one organization every first-party Oxy service belongs to. */
 const DEFAULT_ORGANIZATION_SLUG = 'oxy';
-const DEFAULT_ORGANIZATION_NAME = 'Oxy';
 
 export function parseArguments(argv: readonly string[]): Arguments {
   const values = new Map<string, string>();
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
     const value = argv[index + 1];
-    if (!flag?.startsWith('--') || value === undefined) {
+    if (
+      !flag ||
+      !['--name', '--oxy-application-id', '--oxy-organization-id', '--organization-slug'].includes(
+        flag,
+      ) ||
+      value === undefined ||
+      values.has(flag.slice(2))
+    ) {
       throw new Error(`Unrecognised argument near '${flag ?? ''}'. Every flag takes a value.`);
     }
     values.set(flag.slice(2), value);
@@ -61,19 +69,21 @@ export function parseArguments(argv: readonly string[]): Arguments {
   if (!name) throw new Error('--name is required.');
   if (!oxyApplicationId) throw new Error('--oxy-application-id is required.');
 
+  const oxyOrganizationId = values.get('oxy-organization-id')?.trim();
+  if (!oxyOrganizationId) throw new Error('--oxy-organization-id is required.');
   return {
     name,
     oxyApplicationId,
     organizationSlug: values.get('organization-slug')?.trim() || DEFAULT_ORGANIZATION_SLUG,
-    organizationName: values.get('organization-name')?.trim() || DEFAULT_ORGANIZATION_NAME,
+    oxyOrganizationId,
   };
 }
 
 async function organizationFor(args: Arguments): Promise<string> {
-  const existing = await organizations.findOne({ slug: args.organizationSlug });
+  const existing = await organizations.findOne({ oxyAccountId: args.oxyOrganizationId });
   if (existing) return existing.organizationId;
   const created = await createOrganization({
-    name: args.organizationName,
+    oxyAccountId: args.oxyOrganizationId,
     slug: args.organizationSlug,
   });
   return created.organizationId;
@@ -82,7 +92,9 @@ async function organizationFor(args: Arguments): Promise<string> {
 export async function bootstrapFirstParty(args: Arguments): Promise<string> {
   const bound = await applications.findOne({ oxyApplicationId: args.oxyApplicationId });
   if (bound) {
-    // Already onboarded. Say which application it is and change nothing.
+    const owner = await organizations.findOne({ organizationId: bound.organizationId });
+    if (owner?.oxyAccountId !== args.oxyOrganizationId)
+      throw new Error('Oxy application organization binding conflicts with this workspace.');
     return bound.applicationId;
   }
 
@@ -106,4 +118,21 @@ export async function bootstrapFirstParty(args: Arguments): Promise<string> {
     { oxyApplicationId: args.oxyApplicationId },
   );
   return application.applicationId;
+}
+
+/** Resolve current company authority and exact application ownership before any provisioning write. */
+export async function authorizeFirstPartyBinding(
+  args: Arguments,
+  token: string | undefined,
+): Promise<Arguments> {
+  const organization = await requireRegistrationOrganization(token, args.oxyOrganizationId);
+  await withOrganizationSession(token, async (oxy) => {
+    const application = await oxy.apps.get(args.oxyApplicationId);
+    if (application.ownerAccountId !== organization.accountId)
+      throw new ApiError(
+        'forbidden',
+        'Oxy application owner does not match the selected organization.',
+      );
+  });
+  return { ...args, oxyOrganizationId: organization.accountId };
 }

@@ -93,7 +93,7 @@ export async function provisionTenant(
   scopes: readonly ApplicationScope[] = DEFAULT_SCOPES,
 ): Promise<ProvisionedTenant> {
   const organization = await createOrganization({
-    name: 'Test Organization',
+    oxyAccountId: `oxy-org-${randomUUID()}`,
     slug: `test-${randomUUID()}`,
   });
   return provisionApplication(organization.organizationId, scopes);

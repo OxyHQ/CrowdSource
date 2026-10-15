@@ -24,6 +24,7 @@ export const consoleQueryKeys = {
 
   session: (viewer: string) => ['console', viewer, 'session'] as const,
 
+  organizationOptions: (viewer: string) => ['console', viewer, 'organization-options'] as const,
   organizations: (viewer: string) => ['console', viewer, 'organizations'] as const,
   members: (viewer: string, organizationId: string) =>
     ['console', viewer, 'organization', organizationId, 'members'] as const,

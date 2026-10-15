@@ -1,3 +1,6 @@
+import { createOrganization } from '../modules/tenancy/provisioning.service';
+import { authenticateServiceCredential } from '../modules/tenancy/credential.service';
+import { provisionApplication } from './support/tenants';
 import { randomBytes, randomUUID } from 'node:crypto';
 
 import { CaseEnvelopeSchema } from '@crowdsource.you/contracts';
@@ -48,6 +51,7 @@ const axis = reviewerAxesFor(import.meta.url);
 const PERSON = randomBytes(12).toString('hex');
 const OTHER = randomBytes(12).toString('hex');
 const EVENT = randomUUID();
+let deletedOrganization: Awaited<ReturnType<typeof provisionApplication>>;
 const SCOPES = [
   'crowdsource:reports:write',
   'crowdsource:reports:read',
@@ -176,6 +180,11 @@ const seeded: {
 
 beforeAll(async () => {
   await startDatabase();
+  const organization = await createOrganization({
+    oxyAccountId: PERSON,
+    slug: `erased-org-${randomUUID()}`,
+  });
+  deletedOrganization = await provisionApplication(organization.organizationId);
   tenant = await provisionTenant(SCOPES);
   sibling = await provisionTenant(SCOPES);
   const person: Party = { type: 'oxy_user', id: PERSON };
@@ -432,6 +441,7 @@ describe('before the erasure', () => {
         'community_note_ratings',
         'community_notes',
         'organization_members',
+        'organizations',
         'reports',
         'reviewer_principal_links',
         'reviewer_profiles',
@@ -463,6 +473,23 @@ describe('the erasure', () => {
     expect(await rowsNamingAnywhere(PERSON)).toEqual({});
   });
 
+  it('suspends a deleted organization without removing the tenant or its application', async () => {
+    const [organization] = await db
+      .select()
+      .from(schema.organizations)
+      .where(eq(schema.organizations.organizationId, deletedOrganization.organizationId));
+    expect(organization).toMatchObject({ oxyAccountId: null, status: 'suspended' });
+    expect(
+      await db
+        .select()
+        .from(schema.applications)
+        .where(eq(schema.applications.applicationId, deletedOrganization.applicationId)),
+    ).toHaveLength(1);
+    await expect(authenticateServiceCredential(deletedOrganization.token)).rejects.toMatchObject({
+      status: 401,
+    });
+  });
+
   it('counts what it did, and only counts', () => {
     expect(counts).toMatchObject({
       'reports.rewritten': 3,
@@ -478,6 +505,7 @@ describe('the erasure', () => {
       'webhookDeliveries.bodiesAnonymised': 1,
       'reviewers.relationsNamingAccountDeleted': 1,
       'reviewers.linksNamingAccountDeleted': 1,
+      'console.organizationsDetached': 1,
       'console.membershipsDeleted': 1,
       'console.invitationsAnonymised': 1,
       'console.staffDeleted': 1,

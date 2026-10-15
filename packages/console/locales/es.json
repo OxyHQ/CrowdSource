@@ -188,19 +188,21 @@
     "suspended": "Suspendida",
     "members": "Miembros",
     "create": {
-      "action": "Nueva organización",
-      "title": "Crear una organización",
-      "description": "Te conviertes en su propietario en la misma solicitud. Una organización sin propietario sería inalcanzable desde cualquier otra pantalla de aquí.",
-      "nameLabel": "Nombre",
-      "slugLabel": "Slug",
+      "action": "Conectar organización",
+      "title": "Conectar una organización de Oxy",
+      "description": "Elige una organización que administras en Oxy. Los miembros de aquí solo gestionan este espacio de moderación.",
+      "nameLabel": "Organización de Oxy",
+      "slugLabel": "Identificador del espacio",
       "slugHint": "De 2 a 63 caracteres: minúsculas, dígitos y guiones, empezando por letra o dígito. No puede estar ya ocupado.",
-      "submit": "Crear organización",
-      "created": "{{name}} creada. Eres su propietario."
+      "submit": "Crear espacio de moderación",
+      "created": "Espacio de moderación de {{name}} creado.",
+      "noOptions": "Crea una organización o únete a una en Oxy primero."
     },
     "empty": {
       "title": "Todavía no hay organizaciones",
       "body": "Crea una para tener una aplicación, y una aplicación para tener la credencial de servicio que usa tu integración."
-    }
+    },
+    "unavailable": "Organización no disponible"
   },
   "applications": {
     "column": {
@@ -225,7 +227,7 @@
   },
   "members": {
     "title": "Miembros",
-    "subtitle": "Quién tiene asiento, y con qué rol.",
+    "subtitle": "Estos permisos solo afectan a este espacio de moderación. Los miembros y propietarios de la empresa se gestionan en Oxy.",
     "grant": {
       "action": "Añadir miembro",
       "title": "Conceder un asiento",

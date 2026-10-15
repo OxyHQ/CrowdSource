@@ -17,6 +17,8 @@ first decision, in five steps.
 | [`runbooks/`](./runbooks/README.md) | Dead letters, outbox backlogs, cases that cannot empanel, and the two audit trails. |
 | [`architecture/`](./architecture/README.md) | Decision records and the threat model: why CrowdSource diverges from the plan's infrastructure, the universal case envelope, the reputation axes, and appeals. |
 
+[Canonical organization identity and cutover](architecture/central-organizations.md)
+
 ## Three rules keep this tree honest
 
 - **A document that describes behaviour the code does not have is a bug.** Write

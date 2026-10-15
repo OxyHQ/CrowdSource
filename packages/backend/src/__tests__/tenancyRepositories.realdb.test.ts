@@ -60,7 +60,7 @@ function rowCount(result: unknown): number {
 async function seedOrganizationAndApplication(): Promise<void> {
   await tenancyRepository.insertOrganization(database.db, {
     organizationId: ORGANIZATION_ID,
-    name: 'Repository Fixture',
+    oxyAccountId: 'repository-canonical-org',
     slug: 'repository-fixture',
     status: 'active',
   });
@@ -86,7 +86,16 @@ describe('the tenant-defining tables are reachable with NO tenant context', () =
     await seedOrganizationAndApplication();
 
     const organization = await tenancyRepository.findOrganizationById(database.db, ORGANIZATION_ID);
-    expect(organization?.name).toBe('Repository Fixture');
+    expect(organization?.oxyAccountId).toBe('repository-canonical-org');
+    expect(
+      await tenancyRepository.countApplicationsByOrganizationIds(database.db, [
+        ORGANIZATION_ID,
+        'absent',
+      ]),
+    ).toEqual(new Map([[ORGANIZATION_ID, 1]]));
+    expect(await tenancyRepository.countApplicationsByOrganizationIds(database.db, [])).toEqual(
+      new Map(),
+    );
 
     const application = await tenancyRepository.findApplicationById(database.db, APPLICATION_ID);
     expect(application?.organizationId).toBe(ORGANIZATION_ID);

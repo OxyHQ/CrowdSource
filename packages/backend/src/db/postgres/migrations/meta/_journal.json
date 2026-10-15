@@ -127,6 +127,20 @@
       "when": 1790441566874,
       "tag": "0017_account_erasure",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792048980897,
+      "tag": "0018_central_organizations_pre",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792048981584,
+      "tag": "0019_central_organizations_post",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,5 @@
+import { installOrganizationDirectoryFixture } from './support/organizationDirectory';
+installOrganizationDirectoryFixture();
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';

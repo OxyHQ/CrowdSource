@@ -1,3 +1,4 @@
+import { createServer } from 'node:net';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'bun:test';
 
 import { spyOnGetter } from './support/testDoubles';
@@ -102,14 +103,23 @@ describe('the runtime PostgreSQL handle', () => {
   });
 
   it('rejects when the database is unreachable, rather than resolving', async () => {
-    // Port 1 refuses immediately: the failure has to be fast and loud, because
-    // `/health/ready` awaits this and a probe whose failure mode is a hang leaves
-    // a task marked slow rather than unhealthy.
+    // A real TCP endpoint that immediately refuses the PostgreSQL handshake.
+    // Port 1 can be silently filtered by a host firewall and hang for 30 seconds.
+    const refusing = createServer((socket) => socket.destroy());
+    await new Promise<void>((resolve) => refusing.listen(0, '127.0.0.1', resolve));
+    const address = refusing.address();
+    if (!address || typeof address === 'string') throw new Error('Expected a TCP listener');
     spyOnGetter(config, 'databaseUrl').mockReturnValue(
-      'postgres://nobody:nobody@127.0.0.1:1/nothing',
+      `postgres://nobody:nobody@127.0.0.1:${address.port}/nothing`,
     );
-
-    await expect(pingPostgres()).rejects.toThrow();
+    try {
+      await expect(pingPostgres()).rejects.toThrow();
+    } finally {
+      await closePostgresDatabase();
+      await new Promise<void>((resolve, reject) =>
+        refusing.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
   });
 });
 

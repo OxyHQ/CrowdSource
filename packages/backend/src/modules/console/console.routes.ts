@@ -1,3 +1,10 @@
+import type { OxyAuthRequest } from '@oxy.so/core/server';
+import {
+  registrationOrganizations,
+  requireRegistrationOrganization,
+} from '../tenancy/organizationDirectory';
+import { getPostgresDatabase } from '../../db/postgres/database';
+import { countApplicationsByOrganizationIds } from '../../db/postgres/repositories/tenancy';
 import { Router } from 'express';
 import { z } from 'zod';
 
@@ -70,8 +77,14 @@ import {
 
 export const consoleRouter: Router = Router();
 
+/** The SDK's verified human session, never a service acting-as credential. */
+function organizationSessionToken(request: OxyAuthRequest): string | undefined {
+  if (request.serviceApp) throw new ApiError('unauthorized', 'An Oxy human session is required.');
+  return request.accessToken;
+}
+
 const CreateOrganizationSchema = z.strictObject({
-  name: z.string().min(1).max(200),
+  oxyAccountId: z.string().min(1).max(200),
   slug: z.string().min(2).max(63),
 });
 
@@ -198,17 +211,21 @@ consoleRouter.get(
   async (request, response) => {
     const memberships = await membershipsWithOrganizations(consoleUser(request));
 
+    const counts = await countApplicationsByOrganizationIds(
+      getPostgresDatabase(),
+      memberships.map((row) => row.organizationId),
+    );
     const rows: Record<string, unknown>[] = [];
     for (const membership of memberships) {
       rows.push({
         organizationId: membership.organizationId,
         name: membership.name,
+        oxyAccountId: membership.oxyAccountId,
+        membershipScope: 'moderation_workspace',
         slug: membership.slug,
         status: membership.status,
         role: membership.role,
-        applicationCount: await applications.countDocuments({
-          organizationId: membership.organizationId,
-        }),
+        applicationCount: counts.get(membership.organizationId) ?? 0,
       });
     }
 
@@ -231,11 +248,15 @@ consoleRouter.post(
     const oxyUserId = consoleUser(request);
     const parsed = CreateOrganizationSchema.safeParse(request.body);
     if (!parsed.success) {
-      throw new ApiError('invalid_request', 'An organization needs a name and a slug.');
+      throw new ApiError('invalid_request', 'Choose an Oxy organization and a workspace handle.');
     }
 
+    const identity = await requireRegistrationOrganization(
+      organizationSessionToken(request),
+      parsed.data.oxyAccountId,
+    );
     const organization = await createOrganization({
-      name: parsed.data.name,
+      oxyAccountId: identity.accountId,
       slug: parsed.data.slug,
     });
     await grantMembership({
@@ -247,7 +268,9 @@ consoleRouter.post(
 
     response.status(201).json({
       organizationId: organization.organizationId,
-      name: organization.name,
+      name: identity.name,
+      oxyAccountId: identity.accountId,
+      membershipScope: 'moderation_workspace',
       slug: organization.slug,
       role: 'owner',
     });
@@ -857,3 +880,14 @@ function parseWindowDays(raw: unknown): number {
   }
   return days;
 }
+
+consoleRouter.get(
+  '/console/organization-options',
+  ...requireConsoleSession(),
+  async (request, response) => {
+    const items = await registrationOrganizations(organizationSessionToken(request));
+    response.json({
+      organizations: items.map((item) => ({ accountId: item.accountId, name: item.name })),
+    });
+  },
+);

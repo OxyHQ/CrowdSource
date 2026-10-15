@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, index, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { check, foreignKey, index, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { createdAt, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
@@ -42,7 +42,7 @@ export const organizations = pgTable(
      */
     organizationId: text('organization_id').primaryKey(),
 
-    name: text('name').notNull(),
+    oxyAccountId: text('oxy_account_id'),
     /** A human-readable console handle, unique across the deployment. */
     slug: text('slug').notNull(),
     status: text('status').notNull(),
@@ -63,7 +63,12 @@ export const organizations = pgTable(
      * candidate and is worse: it fails the backfill on any row a non-validating
      * path stored differently, where this just works.
      */
+    uniqueIndex('organizations_oxy_account_id_key').on(table.oxyAccountId),
     uniqueIndex('organizations_slug_lower_key').on(sql`lower(${table.slug})`),
+    check(
+      'organizations_active_identity_check',
+      sql`${table.status} <> 'active' OR ${table.oxyAccountId} IS NOT NULL`,
+    ),
     check(
       'organizations_status_check',
       sql`${table.status} in (${sql.raw(inList(ORGANIZATION_STATUSES))})`,
@@ -165,5 +170,22 @@ export const applicationCredentials = pgTable(
       'application_credentials_status_check',
       sql`${table.status} in (${sql.raw(inList(CREDENTIAL_STATUSES))})`,
     ),
+  ],
+);
+
+/** Frozen migration evidence only; never a runtime identity source. */
+export const organizationIdentityArchives = pgTable(
+  'organization_identity_archives',
+  {
+    organizationId: text('organization_id').primaryKey(),
+    name: text('name').notNull(),
+    archivedAt: createdAt(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'org_identity_archive_org_fk',
+      columns: [table.organizationId],
+      foreignColumns: [organizations.organizationId],
+    }).onDelete('restrict'),
   ],
 );
