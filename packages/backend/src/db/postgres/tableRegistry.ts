@@ -215,6 +215,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     why: 'A membership row ESTABLISHES the tenant for a console session (membership.service.ts:83 reads by oxyUserId), so a filter by the tenant it derives would be circular.',
     readers: [
       'src/db/postgres/repositories/accountErasure.ts#eraseConsoleIdentity',
+      'src/modules/console/membership.service.ts#createModerationWorkspace',
       'src/modules/console/membership.service.ts#grantMembership',
       'src/modules/console/membership.service.ts#membersOf',
       'src/modules/console/membership.service.ts#membershipsOf',

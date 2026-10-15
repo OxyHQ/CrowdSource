@@ -1,3 +1,5 @@
+import { withTransaction } from '../../db/transaction';
+import { createOrganization } from '../tenancy/provisioning.service';
 import { createTenantContext, type TenantContext } from '../../db/tenantScope';
 import { organizationDirectory } from '../tenancy/organizationDirectory';
 import { ApiError } from '../../http/apiError';
@@ -351,4 +353,33 @@ export async function membersOf(
   organizationId: string,
 ): Promise<readonly OrganizationMemberDocument[]> {
   return organizationMembers.find({ organizationId }, { sort: { createdAt: 1 }, limit: 500 });
+}
+
+/** A new moderation workspace and its first seat must either both exist or neither. */
+export async function createModerationWorkspace(input: {
+  oxyAccountId: string;
+  slug: string;
+  ownerOxyUserId: string;
+}) {
+  return withTransaction(async (tx) => {
+    const organization = await createOrganization(
+      { oxyAccountId: input.oxyAccountId, slug: input.slug },
+      tx,
+    );
+    const now = new Date();
+    await organizationMembers.insertOne(
+      {
+        organizationId: organization.organizationId,
+        oxyUserId: input.ownerOxyUserId,
+        role: 'owner',
+        status: 'active',
+        invitedByOxyUserId: input.ownerOxyUserId,
+        revokedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+      tx,
+    );
+    return organization;
+  });
 }

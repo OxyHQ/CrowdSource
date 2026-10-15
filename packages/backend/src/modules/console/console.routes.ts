@@ -15,7 +15,6 @@ import { appendAuditEvent } from '../audit/audit.collection';
 import { APPLICATION_SCOPES } from '../tenancy/scopes';
 import {
   createApplication,
-  createOrganization,
   issueApplicationCredential,
   listApplicationCredentials,
   revokeCredential,
@@ -38,6 +37,7 @@ import {
   grantMembership,
   membersOf,
   membershipsWithOrganizations,
+  createModerationWorkspace,
   requireMembership,
   requireRole,
   resolveApplicationForMember,
@@ -255,15 +255,10 @@ consoleRouter.post(
       organizationSessionToken(request),
       parsed.data.oxyAccountId,
     );
-    const organization = await createOrganization({
+    const organization = await createModerationWorkspace({
       oxyAccountId: identity.accountId,
       slug: parsed.data.slug,
-    });
-    await grantMembership({
-      organizationId: organization.organizationId,
-      oxyUserId,
-      role: 'owner',
-      invitedByOxyUserId: oxyUserId,
+      ownerOxyUserId: oxyUserId,
     });
 
     response.status(201).json({

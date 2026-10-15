@@ -1,3 +1,4 @@
+import type { PgTransactionHandle } from '../../db/postgres/withTenant';
 import { randomBytes } from 'node:crypto';
 
 import { duplicateKeyViolation } from '../../db/transaction';
@@ -48,10 +49,13 @@ export interface IssuedCredential {
   readonly token: string;
 }
 
-export async function createOrganization(input: {
-  oxyAccountId: string;
-  slug: string;
-}): Promise<Organization> {
+export async function createOrganization(
+  input: {
+    oxyAccountId: string;
+    slug: string;
+  },
+  transaction?: PgTransactionHandle,
+): Promise<Organization> {
   const oxyAccountId = input.oxyAccountId.trim();
   const slug = input.slug.trim().toLowerCase();
   if (!oxyAccountId) throw new ApiError('invalid_request', 'An Oxy organization is required.');
@@ -64,14 +68,17 @@ export async function createOrganization(input: {
 
   const organizationId = newPublicId('organization');
   try {
-    await organizations.insertOne({
-      organizationId,
-      oxyAccountId,
-      slug,
-      status: 'active',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    await organizations.insertOne(
+      {
+        organizationId,
+        oxyAccountId,
+        slug,
+        status: 'active',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      transaction,
+    );
   } catch (error: unknown) {
     if (duplicateKeyViolation(error)) {
       throw new ApiError(

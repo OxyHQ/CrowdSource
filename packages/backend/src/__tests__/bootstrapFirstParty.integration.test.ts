@@ -68,6 +68,20 @@ describe('bootstrapping a first-party application', () => {
     expect(all).toHaveLength(1);
   });
 
+  it('refuses an already-bound suspended workspace without changing its binding', async () => {
+    const input = args('Suspended', `oxy-app-${randomUUID()}`);
+    const applicationId = await bootstrapFirstParty(input);
+    const application = await applications.findOne({ applicationId });
+    await organizations.updateOne(
+      { organizationId: application?.organizationId },
+      { status: 'suspended' },
+    );
+    await expect(bootstrapFirstParty(input)).rejects.toMatchObject({ status: 403 });
+    expect((await applications.findOne({ applicationId }))?.oxyApplicationId).toBe(
+      input.oxyApplicationId,
+    );
+  });
+
   it('puts two services in ONE organization rather than one each', async () => {
     const slug = `oxy-test-${randomUUID().slice(0, 8)}`;
     const first = await bootstrapFirstParty({

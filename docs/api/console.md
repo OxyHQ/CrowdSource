@@ -52,7 +52,8 @@ that the role is missing. Otherwise §10.5's conventions apply unchanged.
 moderation workspace for an existing active, claimed Oxy organization. The original
 verified human bearer must hold live owner/admin membership and `account:update`
 in Oxy. The options endpoint returns eligible organizations; registration checks
-again. Names come from Oxy in deduplicated batches of at most 100; missing or
+again. The workspace and initial owner seat commit in one database transaction;
+a failed seat write leaves no orphan tenant. Names come from Oxy in deduplicated batches of at most 100; missing or
 suppressed names are null, and upstream outages return 503. No local name writer
 or fallback exists. `slug` is the stable moderation workspace route handle.
 

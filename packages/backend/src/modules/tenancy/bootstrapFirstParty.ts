@@ -93,6 +93,8 @@ export async function bootstrapFirstParty(args: Arguments): Promise<string> {
   const bound = await applications.findOne({ oxyApplicationId: args.oxyApplicationId });
   if (bound) {
     const owner = await organizations.findOne({ organizationId: bound.organizationId });
+    if (owner?.status !== 'active' || bound.status !== 'active')
+      throw new ApiError('forbidden', 'This workspace or application is suspended.');
     if (owner?.oxyAccountId !== args.oxyOrganizationId)
       throw new Error('Oxy application organization binding conflicts with this workspace.');
     return bound.applicationId;
