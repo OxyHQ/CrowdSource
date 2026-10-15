@@ -284,7 +284,7 @@ function readNullableEnum<T extends string>(
 function projectMembership(source: Record<string, unknown>, path: string): ConsoleMembership {
   return {
     organizationId: readString(source, 'organizationId', path),
-    name: readString(source, 'name', path),
+    name: readNullableString(source, 'name') ?? '',
     slug: readString(source, 'slug', path),
     status: readEnum(source, 'status', path, ORGANIZATION_STATUSES),
     role: readEnum(source, 'role', path, CONSOLE_ROLES),
@@ -799,4 +799,13 @@ export function projectPlatformMetrics(payload: unknown): PlatformMetrics {
     // metrics nobody knows are missing.
     unavailable: readStringArray(source, 'unavailable'),
   };
+}
+
+export function projectOrganizationOptions(
+  payload: unknown,
+): { accountId: string; name: string }[] {
+  return readArray(asRecord(payload, ''), 'organizations', 'organizations', (item, path) => ({
+    accountId: readString(item, 'accountId', path),
+    name: readString(item, 'name', path),
+  }));
 }

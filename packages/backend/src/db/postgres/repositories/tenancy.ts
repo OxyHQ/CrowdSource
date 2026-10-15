@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { applicationCredentials, applications, organizations } from '../schema/tenancy';
 import type { PgHandle } from '../withTenant';
@@ -51,7 +51,7 @@ type UpdatedRowCount = number;
 
 export interface NewOrganization {
   readonly organizationId: string;
-  readonly name: string;
+  readonly oxyAccountId: string;
   readonly slug: string;
   readonly status: string;
 }
@@ -259,4 +259,17 @@ export async function listCredentialSummaries(
     )
     .orderBy(desc(applicationCredentials.createdAt))
     .limit(limit);
+}
+
+export async function countApplicationsByOrganizationIds(
+  db: PgHandle,
+  ids: string[],
+): Promise<Map<string, number>> {
+  if (!ids.length) return new Map();
+  const rows = await db
+    .select({ organizationId: applications.organizationId, total: sql<number>`count(*)::int` })
+    .from(applications)
+    .where(inArray(applications.organizationId, ids))
+    .groupBy(applications.organizationId);
+  return new Map(rows.map((row) => [row.organizationId, row.total]));
 }

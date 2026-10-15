@@ -188,19 +188,21 @@
     "suspended": "Suspended",
     "members": "Members",
     "create": {
-      "action": "New organization",
-      "title": "Create an organization",
-      "description": "You become its owner in the same request. An organization with no owner would be unreachable through every other screen here.",
-      "nameLabel": "Name",
-      "slugLabel": "Slug",
+      "action": "Connect organization",
+      "title": "Connect an Oxy organization",
+      "description": "Choose an organization you administer in Oxy. Members here manage this moderation workspace only.",
+      "nameLabel": "Oxy organization",
+      "slugLabel": "Workspace handle",
       "slugHint": "2 to 63 characters: lowercase letters, digits and hyphens, starting with a letter or digit. It must not already be taken.",
-      "submit": "Create organization",
-      "created": "{{name}} created. You are its owner."
+      "submit": "Create moderation workspace",
+      "created": "Moderation workspace for {{name}} created.",
+      "noOptions": "Create or join an organization in Oxy first."
     },
     "empty": {
       "title": "No organizations yet",
       "body": "Create one to get an application, and an application to get the service credential your integration uses."
-    }
+    },
+    "unavailable": "Organization unavailable"
   },
   "applications": {
     "column": {
@@ -225,7 +227,7 @@
   },
   "members": {
     "title": "Members",
-    "subtitle": "Who holds a seat, and at what role.",
+    "subtitle": "These seats control this moderation workspace only. Company membership and ownership are managed in Oxy.",
     "grant": {
       "action": "Add member",
       "title": "Grant a seat",

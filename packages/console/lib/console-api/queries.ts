@@ -41,6 +41,7 @@ import {
   getDeliveries,
   getMembers,
   getOrganizations,
+  getOrganizationOptions,
   getPlatformMetrics,
   getSession,
   getTrustSafetyApplications,
@@ -72,6 +73,7 @@ import {
   projectIssuedCredential,
   projectMembers,
   projectOrganizations,
+  projectOrganizationOptions,
   projectPlatformMetrics,
   projectRotatedSecret,
   projectSession,
@@ -583,6 +585,17 @@ export function usePlatformMetrics(): UseQueryResult<PlatformMetrics, Error> {
     queryKey: consoleQueryKeys.platformMetrics(key),
     queryFn: async () =>
       ingest(await getPlatformMetrics(), projectPlatformMetrics, 'platformMetrics'),
+    enabled: canQuery,
+    retry: consoleQueryRetry,
+  });
+}
+
+export function useOrganizationOptions() {
+  const { key, canQuery } = useViewerKey();
+  return useQuery({
+    queryKey: consoleQueryKeys.organizationOptions(key),
+    queryFn: async () =>
+      ingest(await getOrganizationOptions(), projectOrganizationOptions, 'organization-options'),
     enabled: canQuery,
     retry: consoleQueryRetry,
   });

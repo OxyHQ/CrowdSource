@@ -33,7 +33,7 @@ export type CredentialStatus = (typeof CREDENTIAL_STATUSES)[number];
 
 export interface OrganizationDocument {
   organizationId: string;
-  name: string;
+  oxyAccountId: string | null;
   slug: string;
   status: OrganizationStatus;
   createdAt: Date;

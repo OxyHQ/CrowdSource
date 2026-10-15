@@ -1,6 +1,8 @@
+import { installOrganizationDirectoryFixture } from './support/organizationDirectory';
+installOrganizationDirectoryFixture();
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test';
 
 import { stubOxySession } from './support/reviewers';
 
@@ -31,7 +33,7 @@ const { grantMembership } = await import('../modules/console/membership.service'
 const { organizationMembers } = await import('../modules/console/console.collections');
 const { authenticateServiceCredential } = await import('../modules/tenancy/credential.service');
 const { setOrganizationStatus } = await import('../modules/tenancy/provisioning.service');
-const { applications } = await import('../modules/tenancy/tenancy.collections');
+const { applications, organizations } = await import('../modules/tenancy/tenancy.collections');
 const { newPublicId } = await import('../utils/identifiers');
 const { deliveryBody, provisionTenant, startDatabase, stopDatabase } = await import(
   './support/tenants'
@@ -136,7 +138,7 @@ describe('self-service tenant creation (§15.10)', () => {
     const created = await request(app)
       .post('/v1/console/organizations')
       .set(asUser(oxyUserId))
-      .send({ name: 'Console Test Org', slug });
+      .send({ oxyAccountId: 'Console Test Org', slug });
 
     expect(created.status).toBe(201);
     expect(created.body.role).toBe('owner');
@@ -153,17 +155,63 @@ describe('self-service tenant creation (§15.10)', () => {
     });
   });
 
+  it('rolls back the tenant when its first seat cannot be stored, then permits a retry', async () => {
+    const oxyAccountId = `atomic-${randomUUID()}`;
+    const slug = `atomic-${randomUUID()}`;
+    const user = newOxyUserId();
+    const failure = spyOn(organizationMembers, 'insertOne').mockRejectedValueOnce(
+      new Error('seat write unavailable'),
+    );
+    try {
+      const refused = await request(app)
+        .post('/v1/console/organizations')
+        .set(asUser(user))
+        .send({ oxyAccountId, slug });
+      expect(refused.status).toBe(500);
+      expect(await organizations.findOne({ oxyAccountId })).toBeNull();
+    } finally {
+      failure.mockRestore();
+    }
+    const retried = await request(app)
+      .post('/v1/console/organizations')
+      .set(asUser(user))
+      .send({ oxyAccountId, slug });
+    expect(retried.status).toBe(201);
+    expect(
+      await organizationMembers.find({ organizationId: retried.body.organizationId }),
+    ).toHaveLength(1);
+  });
+
+  it('converges concurrent registration to one complete workspace without an orphan seat', async () => {
+    const oxyAccountId = `concurrent-${randomUUID()}`;
+    const slug = `concurrent-${randomUUID()}`;
+    const results = await Promise.all(
+      [newOxyUserId(), newOxyUserId()].map((user) =>
+        request(app)
+          .post('/v1/console/organizations')
+          .set(asUser(user))
+          .send({ oxyAccountId, slug }),
+      ),
+    );
+    expect(results.map((result) => result.status).sort()).toEqual([201, 409]);
+    const rows = await organizations.find({ oxyAccountId });
+    expect(rows).toHaveLength(1);
+    expect(
+      await organizationMembers.find({ organizationId: rows[0]?.organizationId }),
+    ).toHaveLength(1);
+  });
+
   it('refuses a slug somebody already took', async () => {
     const slug = `taken-${randomUUID()}`;
     await request(app)
       .post('/v1/console/organizations')
       .set(asUser(newOxyUserId()))
-      .send({ name: 'First', slug });
+      .send({ oxyAccountId: `first-${randomUUID()}`, slug });
 
     const second = await request(app)
       .post('/v1/console/organizations')
       .set(asUser(newOxyUserId()))
-      .send({ name: 'Second', slug });
+      .send({ oxyAccountId: `second-${randomUUID()}`, slug });
 
     expect(second.status).toBe(409);
   });
@@ -173,7 +221,7 @@ describe('self-service tenant creation (§15.10)', () => {
     const organization = await request(app)
       .post('/v1/console/organizations')
       .set(asUser(oxyUserId))
-      .send({ name: 'Sandbox Org', slug: `sandbox-${randomUUID()}` });
+      .send({ oxyAccountId: 'Sandbox Org', slug: `sandbox-${randomUUID()}` });
 
     const created = await request(app)
       .post(`/v1/console/organizations/${organization.body.organizationId}/applications`)

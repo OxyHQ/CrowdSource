@@ -33,6 +33,7 @@ import {
   useCreateApplication,
   useCreateOrganization,
   useOrganizations,
+  useOrganizationOptions,
 } from '@/lib/console-api/queries';
 import {
   ORGANIZATION_SLUG_PATTERN,
@@ -81,18 +82,22 @@ export default function OrganizationsScreen() {
 function CreateOrganizationForm({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation();
   const create = useCreateOrganization();
-  const [name, setName] = useState('');
+  const options = useOrganizationOptions();
+  const [oxyAccountId, setOxyAccountId] = useState('');
   const [slug, setSlug] = useState('');
 
   // Normalized the way the server normalizes it before validating, or a perfectly
   // acceptable "My Org" would be rejected here and accepted there.
   const normalizedSlug = slug.trim().toLowerCase();
   const isSlugValid = ORGANIZATION_SLUG_PATTERN.test(normalizedSlug);
-  const canSubmit = name.trim() !== '' && isSlugValid && !create.isPending;
+  const canSubmit =
+    Boolean(options.data?.some((item) => item.accountId === oxyAccountId)) &&
+    isSlugValid &&
+    !create.isPending;
 
   const handleSubmit = useCallback(() => {
     create.mutate(
-      { name: name.trim(), slug: normalizedSlug },
+      { oxyAccountId, slug: normalizedSlug },
       {
         onSuccess: (organization) => {
           toast.success(t('organizations.create.created', { name: organization.name }));
@@ -100,7 +105,7 @@ function CreateOrganizationForm({ onDone }: { onDone: () => void }) {
         },
       },
     );
-  }, [create, name, normalizedSlug, onDone, t]);
+  }, [create, oxyAccountId, normalizedSlug, onDone, t]);
 
   return (
     <Panel
@@ -110,13 +115,23 @@ function CreateOrganizationForm({ onDone }: { onDone: () => void }) {
       <View className="gap-3">
         <View className="gap-1">
           <TextFieldLabel>{t('organizations.create.nameLabel')}</TextFieldLabel>
-          <TextField>
-            <TextFieldInput
-              label={t('organizations.create.nameLabel')}
-              value={name}
-              onChangeText={setName}
-            />
-          </TextField>
+          {options.isPending ? <LoadingPanel count={1} /> : null}
+          {options.error ? <ApiStateNotice error={options.error} /> : null}
+          {options.data?.length === 0 ? (
+            <Text className="text-sm text-muted-foreground">
+              {t('organizations.create.noOptions')}
+            </Text>
+          ) : null}
+          {options.data?.map((item) => (
+            <Button
+              key={item.accountId}
+              appearance={oxyAccountId === item.accountId ? 'solid' : 'outline'}
+              tone="neutral"
+              onPress={() => setOxyAccountId(item.accountId)}
+            >
+              {item.name}
+            </Button>
+          ))}
         </View>
 
         <View className="gap-1">
@@ -220,7 +235,7 @@ function OrganizationPanel({ organization }: { organization: OrganizationSummary
 
   return (
     <Panel
-      title={organization.name}
+      title={organization.name || t('organizations.unavailable')}
       description={t('organizations.meta', {
         slug: organization.slug,
         applicationCount: organization.applicationCount,

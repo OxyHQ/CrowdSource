@@ -19,7 +19,7 @@ import { verifySecret } from '@oxy.so/core/server';
 import { createTenantContext, type TenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';
 import { isPublicId } from '../../utils/identifiers';
-import { applicationCredentials, applications } from './tenancy.collections';
+import { applicationCredentials, applications, organizations } from './tenancy.collections';
 
 /**
  * Resolving a presented service credential into a tenant.
@@ -131,6 +131,9 @@ export async function authenticateServiceCredential(
   if (application.organizationId !== credential.organizationId) {
     throw unauthorized;
   }
+
+  const organization = await organizations.findOne({ organizationId: application.organizationId });
+  if (organization?.status !== 'active' || !organization.oxyAccountId) throw unauthorized;
 
   return {
     credentialId: credential.credentialId,

@@ -46,8 +46,20 @@ indistinguishable, so the route cannot be used to enumerate Oxy's customers. `40
 means membership is established and the seat is too small, or on Trust & Safety
 that the role is missing. Otherwise §10.5's conventions apply unchanged.
 
+## Canonical organizations
+
+`POST /v1/console/organizations` accepts `{ oxyAccountId, slug }`. It creates a
+moderation workspace for an existing active, claimed Oxy organization. The original
+verified human bearer must hold live owner/admin membership and `account:update`
+in Oxy. The options endpoint returns eligible organizations; registration checks
+again. The workspace and initial owner seat commit in one database transaction;
+a failed seat write leaves no orphan tenant. Names come from Oxy in deduplicated batches of at most 100; missing or
+suppressed names are null, and upstream outages return 503. No local name writer
+or fallback exists. `slug` is the stable moderation workspace route handle.
+
 ## Seats
 
+These are **moderation workspace** seats, independent of Oxy company ownership.
 `owner` > `admin` > `developer` > `viewer`. Reading needs `viewer`. Anything that
 changes production behaviour needs `admin`: issuing or revoking a credential,
 rotating a webhook secret, replaying a delivery, granting or revoking a member,
@@ -60,6 +72,7 @@ organization with no owner has no self-service path back.
 | --- | --- | --- |
 | GET | `/v1/console/session` | any |
 | GET | `/v1/console/organizations` | any |
+| GET | `/v1/console/organization-options` | any |
 | POST | `/v1/console/organizations` | any (creator becomes `owner`) |
 | GET | `/v1/console/organizations/{id}/members` | viewer |
 | POST | `/v1/console/organizations/{id}/members` | admin |

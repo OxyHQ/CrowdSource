@@ -163,6 +163,12 @@ export type UnscopedReason =
  */
 export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
   // ── defines_the_tenant ────────────────────────────────────────────────────
+  organization_identity_archives: {
+    kind: 'tenant_attributed_not_tenant_owned',
+    shape: 'organization_only',
+    why: 'Immutable migration provenance read only by post-migration verification, never an application identity source.',
+    readers: ['src/db/postgres/migrations/0019_central_organizations_post.sql'],
+  },
   organizations: {
     kind: 'defines_the_tenant',
     shape: 'organization_only',
@@ -209,6 +215,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
     why: 'A membership row ESTABLISHES the tenant for a console session (membership.service.ts:83 reads by oxyUserId), so a filter by the tenant it derives would be circular.',
     readers: [
       'src/db/postgres/repositories/accountErasure.ts#eraseConsoleIdentity',
+      'src/modules/console/membership.service.ts#createModerationWorkspace',
       'src/modules/console/membership.service.ts#grantMembership',
       'src/modules/console/membership.service.ts#membersOf',
       'src/modules/console/membership.service.ts#membershipsOf',

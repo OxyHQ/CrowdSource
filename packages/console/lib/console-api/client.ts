@@ -43,6 +43,7 @@ const linkedClient = oxyServices.createLinkedClient({ baseURL: API_URL, enableCa
 /** Every endpoint this app depends on, named in one place. */
 export const CONSOLE_ENDPOINTS = {
   session: 'GET /v1/console/session',
+  organizationOptions: 'GET /v1/console/organization-options',
   organizations: 'GET /v1/console/organizations',
   createOrganization: 'POST /v1/console/organizations',
   members: 'GET /v1/console/organizations/{organizationId}/members',
@@ -410,5 +411,14 @@ export function getPlatformMetrics(): Promise<unknown> {
     endpoint: CONSOLE_ENDPOINTS.platformMetrics,
     notFound: 'unavailable',
     forbidden: 'trust-safety',
+  });
+}
+
+export function getOrganizationOptions(): Promise<unknown> {
+  return request({
+    method: 'GET',
+    path: '/v1/console/organization-options',
+    endpoint: CONSOLE_ENDPOINTS.organizationOptions,
+    notFound: 'unavailable',
   });
 }

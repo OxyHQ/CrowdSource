@@ -19,7 +19,7 @@ const args = (name: string, oxyApplicationId: string) => ({
   name,
   oxyApplicationId,
   organizationSlug: `oxy-test-${randomUUID().slice(0, 8)}`,
-  organizationName: 'Oxy Test',
+  oxyOrganizationId: `canonical-${randomUUID()}`,
 });
 
 beforeAll(async () => {
@@ -68,15 +68,31 @@ describe('bootstrapping a first-party application', () => {
     expect(all).toHaveLength(1);
   });
 
+  it('refuses an already-bound suspended workspace without changing its binding', async () => {
+    const input = args('Suspended', `oxy-app-${randomUUID()}`);
+    const applicationId = await bootstrapFirstParty(input);
+    const application = await applications.findOne({ applicationId });
+    await organizations.updateOne(
+      { organizationId: application?.organizationId },
+      { status: 'suspended' },
+    );
+    await expect(bootstrapFirstParty(input)).rejects.toMatchObject({ status: 403 });
+    expect((await applications.findOne({ applicationId }))?.oxyApplicationId).toBe(
+      input.oxyApplicationId,
+    );
+  });
+
   it('puts two services in ONE organization rather than one each', async () => {
     const slug = `oxy-test-${randomUUID().slice(0, 8)}`;
     const first = await bootstrapFirstParty({
       ...args('Homiio', `oxy-app-${randomUUID()}`),
       organizationSlug: slug,
+      oxyOrganizationId: slug,
     });
     const second = await bootstrapFirstParty({
       ...args('Noted', `oxy-app-${randomUUID()}`),
       organizationSlug: slug,
+      oxyOrganizationId: slug,
     });
 
     const one = await applications.findOne({ applicationId: first });
@@ -87,12 +103,20 @@ describe('bootstrapping a first-party application', () => {
   it('refuses to repoint an application at a different Oxy identity', async () => {
     const slug = `oxy-test-${randomUUID().slice(0, 8)}`;
     const name = 'Moovo';
-    await bootstrapFirstParty({ ...args(name, `oxy-app-${randomUUID()}`), organizationSlug: slug });
+    await bootstrapFirstParty({
+      ...args(name, `oxy-app-${randomUUID()}`),
+      organizationSlug: slug,
+      oxyOrganizationId: slug,
+    });
 
     // The same application NAME, a different Oxy application. Silently moving
     // the binding would hand one service another's tenant and its data.
     await expect(
-      bootstrapFirstParty({ ...args(name, `oxy-app-${randomUUID()}`), organizationSlug: slug }),
+      bootstrapFirstParty({
+        ...args(name, `oxy-app-${randomUUID()}`),
+        organizationSlug: slug,
+        oxyOrganizationId: slug,
+      }),
     ).rejects.toThrow(/already bound to a different Oxy application/);
   });
 });
@@ -109,16 +133,32 @@ describe('bootstrapping a first-party application', () => {
  */
 describe('reading the arguments', () => {
   it('reads the two flags that identify the application', () => {
-    expect(parseArguments(['--name', 'Mention', '--oxy-application-id', 'app_1'])).toMatchObject({
+    expect(
+      parseArguments([
+        '--name',
+        'Mention',
+        '--oxy-application-id',
+        'app_1',
+        '--oxy-organization-id',
+        'oxy-org',
+      ]),
+    ).toMatchObject({
       name: 'Mention',
       oxyApplicationId: 'app_1',
     });
   });
 
   it('defaults the organization to the one every Oxy service shares', () => {
-    const args = parseArguments(['--name', 'Mention', '--oxy-application-id', 'app_1']);
+    const args = parseArguments([
+      '--name',
+      'Mention',
+      '--oxy-application-id',
+      'app_1',
+      '--oxy-organization-id',
+      'oxy-org',
+    ]);
 
-    expect(args).toMatchObject({ organizationSlug: 'oxy', organizationName: 'Oxy' });
+    expect(args).toMatchObject({ organizationSlug: 'oxy', oxyOrganizationId: 'oxy-org' });
   });
 
   it('lets both organization fields be named explicitly', () => {
@@ -129,18 +169,24 @@ describe('reading the arguments', () => {
       'app_1',
       '--organization-slug',
       'oxy-staging',
-      '--organization-name',
+      '--oxy-organization-id',
       'Oxy Staging',
     ]);
 
     expect(args).toMatchObject({
       organizationSlug: 'oxy-staging',
-      organizationName: 'Oxy Staging',
+      oxyOrganizationId: 'Oxy Staging',
     });
   });
 
   it.each([
     ['nothing at all', [], /--name is required/],
+    ['obsolete name identity flag', ['--organization-name', 'Oxy'], /Unrecognised argument/],
+    [
+      'no canonical organization',
+      ['--name', 'Mention', '--oxy-application-id', 'app_1'],
+      /--oxy-organization-id is required/,
+    ],
     ['no application', ['--name', 'Mention'], /--oxy-application-id is required/],
     [
       'a name that is only spaces',
@@ -168,6 +214,8 @@ describe('reading the arguments', () => {
       'app_1',
       '--organization-slug',
       '  ',
+      '--oxy-organization-id',
+      'oxy-org',
     ]);
 
     expect(args.organizationSlug).toBe('oxy');

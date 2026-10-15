@@ -449,10 +449,14 @@ One row, written by a one-off task inside the VPC — not a console click, becau
 nothing about it is a decision a person makes per service:
 
 ```bash
-node dist/scripts/bootstrapFirstParty.js --name Mention --oxy-application-id <oxy application id>
+node dist/scripts/bootstrapFirstParty.js --name Mention --oxy-application-id <oxy application id> --oxy-organization-id <owning Oxy organization account id>
 ```
 
-It is idempotent: it reuses the `oxy` organization, reuses an existing binding,
+The operator supplies `OXY_ADMIN_ACCESS_TOKEN` through the task secret environment.
+The shared SDK verifies live organization administration and the application owner
+before any database write. The token is never printed.
+
+It is idempotent: it reuses the canonical Oxy organization account reference, reuses an existing binding,
 and refuses only when the same Oxy application is already bound to a *different*
 CrowdSource application — which would move a tenant's data out from under the
 service that owns it.

@@ -1,3 +1,4 @@
+import type { PgTransactionHandle } from '../../db/postgres/withTenant';
 import { randomBytes } from 'node:crypto';
 
 import { duplicateKeyViolation } from '../../db/transaction';
@@ -25,7 +26,7 @@ import {
 
 export interface Organization {
   readonly organizationId: string;
-  readonly name: string;
+  readonly oxyAccountId: string;
   readonly slug: string;
 }
 
@@ -48,13 +49,16 @@ export interface IssuedCredential {
   readonly token: string;
 }
 
-export async function createOrganization(input: {
-  name: string;
-  slug: string;
-}): Promise<Organization> {
-  const name = input.name.trim();
+export async function createOrganization(
+  input: {
+    oxyAccountId: string;
+    slug: string;
+  },
+  transaction?: PgTransactionHandle,
+): Promise<Organization> {
+  const oxyAccountId = input.oxyAccountId.trim();
   const slug = input.slug.trim().toLowerCase();
-  if (!name) throw new ApiError('invalid_request', 'An organization requires a name.');
+  if (!oxyAccountId) throw new ApiError('invalid_request', 'An Oxy organization is required.');
   if (!/^[a-z0-9][a-z0-9-]{1,62}$/.test(slug)) {
     throw new ApiError(
       'invalid_request',
@@ -64,22 +68,28 @@ export async function createOrganization(input: {
 
   const organizationId = newPublicId('organization');
   try {
-    await organizations.insertOne({
-      organizationId,
-      name,
-      slug,
-      status: 'active',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    await organizations.insertOne(
+      {
+        organizationId,
+        oxyAccountId,
+        slug,
+        status: 'active',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      transaction,
+    );
   } catch (error: unknown) {
     if (duplicateKeyViolation(error)) {
-      throw new ApiError('conflict', `The slug '${slug}' is already taken.`);
+      throw new ApiError(
+        'conflict',
+        'This organization or workspace handle is already registered.',
+      );
     }
     throw error;
   }
 
-  return { organizationId, name, slug };
+  return { organizationId, oxyAccountId, slug };
 }
 
 export async function createApplication(input: {
@@ -197,11 +207,9 @@ export async function issueApplicationCredential(input: {
 /**
  * Suspends or restores an organization.
  *
- * A suspended organization cannot have new applications created under it. It is
- * deliberately NOT a kill switch for traffic already flowing: stopping an
- * application mid-incident is what `setApplicationStatus` is for, and the two
- * being separate is what lets an operator halt one product without freezing a
- * whole customer.
+ * A suspended organization cannot create applications or authenticate service
+ * credentials and Oxy application tokens. `setApplicationStatus` is the narrower
+ * control when only one product must stop.
  */
 export async function setOrganizationStatus(
   organizationId: string,

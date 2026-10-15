@@ -2,7 +2,7 @@ import { OxyServer } from '@oxy.so/core/server';
 import type { Request } from 'express';
 
 import { config } from '../../config';
-import { applications } from './tenancy.collections';
+import { applications, organizations } from './tenancy.collections';
 import { createTenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';
 import type { ServiceCredentialCaller } from './credential.service';
@@ -102,6 +102,9 @@ export async function authenticateOxyServiceToken(
 
   const application = await applications.findOne({ oxyApplicationId: verified.appId });
   if (application?.status !== 'active') throw unauthorized;
+
+  const organization = await organizations.findOne({ organizationId: application.organizationId });
+  if (organization?.status !== 'active' || !organization.oxyAccountId) throw unauthorized;
 
   return {
     // Attributable, and distinguishable at a glance from a credential id — an

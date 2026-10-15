@@ -84,7 +84,7 @@ describe('application suspension', () => {
 describe('organization suspension', () => {
   it('blocks new applications under a suspended organization', async () => {
     const organization = await createOrganization({
-      name: 'Suspendable',
+      oxyAccountId: 'Suspendable',
       slug: `susp-${randomUUID()}`,
     });
 
@@ -183,7 +183,7 @@ describe('provisioning failures that are not conflicts', () => {
     );
 
     await expect(
-      createOrganization({ name: 'Unlucky', slug: `unlucky-${randomUUID()}` }),
+      createOrganization({ oxyAccountId: 'Unlucky', slug: `unlucky-${randomUUID()}` }),
     ).rejects.toThrow(/stepped down/);
   });
 });

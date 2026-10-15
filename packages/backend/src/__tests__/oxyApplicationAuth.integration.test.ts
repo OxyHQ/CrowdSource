@@ -1,3 +1,4 @@
+import { setOrganizationStatus } from '../modules/tenancy/provisioning.service';
 import { randomUUID } from 'node:crypto';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test';
@@ -143,6 +144,18 @@ describe('authenticating an Oxy service', () => {
 
     await applications.updateOne({ applicationId: tenant.applicationId }, { status: 'suspended' });
 
+    await expect(authenticateOxyServiceToken(token, requestStub)).rejects.toMatchObject({
+      code: 'unauthorized',
+    });
+  });
+
+  it('refuses a suspended organization even while its application and Oxy service binding remain active', async () => {
+    const oxyApplicationId = `oxy-app-${randomUUID()}`;
+    const tenant = await boundTenant(oxyApplicationId);
+    const token = tokenFor('suspended-org');
+    oxy.appIdForToken.set(token, oxyApplicationId);
+    await expect(authenticateOxyServiceToken(token, requestStub)).resolves.toBeDefined();
+    await setOrganizationStatus(tenant.organizationId, 'suspended');
     await expect(authenticateOxyServiceToken(token, requestStub)).rejects.toMatchObject({
       code: 'unauthorized',
     });

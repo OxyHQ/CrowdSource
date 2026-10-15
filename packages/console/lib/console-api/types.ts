@@ -509,7 +509,7 @@ export interface PlatformMetrics {
 // --- request bodies ----------------------------------------------------------
 
 export interface CreateOrganizationInput {
-  name: string;
+  oxyAccountId: string;
   slug: string;
 }
 

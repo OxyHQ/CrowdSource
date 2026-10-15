@@ -85,7 +85,7 @@ describe('authenticateServiceCredential', () => {
 
   it('honours the expiry instant in both directions', async () => {
     const organization = await createOrganization({
-      name: 'Expiring',
+      oxyAccountId: 'Expiring',
       slug: `expiring-${randomUUID()}`,
     });
     const application = await createApplication({
@@ -208,16 +208,20 @@ describe('scope issuance', () => {
 describe('provisioning validation', () => {
   it('refuses a duplicate organization slug', async () => {
     const slug = `dup-${randomUUID()}`;
-    await createOrganization({ name: 'First', slug });
+    await createOrganization({ oxyAccountId: 'First', slug });
 
-    await expect(createOrganization({ name: 'Second', slug })).rejects.toThrow(/already taken/);
+    await expect(createOrganization({ oxyAccountId: 'Second', slug })).rejects.toThrow(
+      /already registered/,
+    );
   });
 
-  it('refuses a malformed slug and an empty name', async () => {
-    await expect(createOrganization({ name: 'X', slug: 'Not A Slug' })).rejects.toThrow(/slug/);
-    await expect(createOrganization({ name: '  ', slug: `ok-${randomUUID()}` })).rejects.toThrow(
-      /requires a name/,
+  it('refuses a malformed slug and an empty canonical reference', async () => {
+    await expect(createOrganization({ oxyAccountId: 'X', slug: 'Not A Slug' })).rejects.toThrow(
+      /slug/,
     );
+    await expect(
+      createOrganization({ oxyAccountId: '  ', slug: `ok-${randomUUID()}` }),
+    ).rejects.toThrow(/Oxy organization/);
   });
 
   it('refuses an application under an organization that does not exist', async () => {

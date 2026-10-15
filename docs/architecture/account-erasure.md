@@ -11,6 +11,10 @@ The code is `packages/backend/src/modules/accountErasure/`, with the statements
 in `db/postgres/repositories/accountErasure.ts` (unscoped tables) and
 `db/postgres/repositories/scoped/accountErasure.ts` (tenant tables).
 
+A deleted organization account is also detached from its CrowdSource tenant. The
+tenant is suspended; service credentials, Oxy application tokens and console seats
+can no longer operate it. Its domain identifiers and moderation history remain.
+
 ## Trigger: push and pull, signed events only
 
 Oxy's `DELETE /users/me` writes a signed `account.deleted` Security Event Token
