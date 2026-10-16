@@ -8,6 +8,7 @@ backend's modular monolith.
 | [ADR 0002](0002-the-universal-case-envelope.md) | One Case Envelope for every application, why resources and policies are versioned, and what the envelope refuses to carry. |
 | [ADR 0003](0003-reputation-axes.md) | Why contribution, conduct, reporting, reviewing and personhood are separate axes and never one number. |
 | [Account erasure](account-erasure.md) | What happens to a person's reports, notes, reviewer profile and console access when their Oxy account is deleted: the signed event, what is deleted, what is kept anonymised and why. |
+| [Evidence files](evidence-files.md) | Oxy file ownership, references and lifecycle for a case's binary evidence (oxy ADR 0043): who may submit a file, the reference worker, the nightly reconciliation, and the file events that withhold evidence from a jury. |
 | [Community notes](community-notes.md) | Reader-written context: who writes and rates, why ratings need an assignment, the bridging scorer, and anonymity. |
 | [Threat model](threat-model.md) | PLAN §13.1 revised against what the system now is: each threat, its control, the file that implements it, and whether a test proves it. |
 

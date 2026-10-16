@@ -53,6 +53,10 @@ type AssignmentDocument = Parameters<typeof buildReviewPackage>[0];
 const { deliveryBody, provisionTenant, startDatabase, stopDatabase } = await import(
   './support/tenants'
 );
+const { installOxyFiles } = await import('./support/oxyFiles');
+
+/** The tenant's organization owns every evidence file these envelopes name. */
+const oxyFiles = installOxyFiles();
 
 const app = createApp();
 
@@ -67,7 +71,14 @@ afterAll(async () => {
 const digestOf = (value: string): string =>
   `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}`;
 
-const FILE_ID = 'file_0123456789abcdef';
+/** One Oxy file per asset type: one file holds one set of bytes, so one digest. */
+const FILE_IDS = {
+  image: 'file_image_0123456789abcdef',
+  video: 'file_video_0123456789abcdef',
+  audio: 'file_audio_0123456789abcdef',
+  doc: 'file_doc_0123456789abcdef',
+} as const;
+const FILE_ID = FILE_IDS.image;
 const APPLICATION_HOST_URL = 'https://mention.earth/media/original.png';
 
 /**
@@ -143,7 +154,7 @@ const EVERY_RESOURCE_TYPE: readonly Resource[] = [
     type: 'video',
     role: 'evidence',
     asset: {
-      fileId: FILE_ID,
+      fileId: FILE_IDS.video,
       url: APPLICATION_HOST_URL,
       mimeType: 'video/mp4',
       sha256: digestOf('video'),
@@ -155,7 +166,7 @@ const EVERY_RESOURCE_TYPE: readonly Resource[] = [
     type: 'audio',
     role: 'evidence',
     asset: {
-      fileId: FILE_ID,
+      fileId: FILE_IDS.audio,
       url: APPLICATION_HOST_URL,
       mimeType: 'audio/mpeg',
       sha256: digestOf('audio'),
@@ -168,7 +179,7 @@ const EVERY_RESOURCE_TYPE: readonly Resource[] = [
     role: 'evidence',
     data: { title: 'a.pdf' },
     asset: {
-      fileId: FILE_ID,
+      fileId: FILE_IDS.doc,
       url: APPLICATION_HOST_URL,
       mimeType: 'application/pdf',
       sha256: digestOf('doc'),
@@ -178,8 +189,12 @@ const EVERY_RESOURCE_TYPE: readonly Resource[] = [
 
 async function packageForEveryType(
   sensitivity: AssignmentDocument['sensitivityClass'] = 'standard',
+  withheld: ReadonlySet<string> = new Set(),
 ): Promise<Awaited<ReturnType<typeof buildReviewPackage>>> {
   const tenant = await provisionTenant();
+  for (const [label, fileId] of Object.entries(FILE_IDS)) {
+    await oxyFiles.putForTenant(tenant.tenant, fileId, label);
+  }
   const delivered = await request(app)
     .post('/v1/reports')
     .set('authorization', `Bearer ${tenant.token}`)
@@ -228,7 +243,7 @@ async function packageForEveryType(
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  return buildReviewPackage(assignment, stored, policy);
+  return buildReviewPackage(assignment, stored, policy, undefined, withheld);
 }
 
 describe('§9.1: every resource type projects, and the digest never travels', () => {
@@ -270,6 +285,25 @@ describe('§9.1: every resource type projects, and the digest never travels', ()
     expect(image.asset.fileId).toBe(FILE_ID);
     expect(image.asset.retrievable).toBe(true);
     expect(Object.keys(image.asset).sort()).toEqual(['fileId', 'mediaType', 'retrievable']);
+  });
+
+  it('withholds a file Oxy says may not be shown: no file id, not retrievable, still there', async () => {
+    const built = await packageForEveryType('standard', new Set([FILE_IDS.video]));
+
+    const video = built.resources.find((resource) => resource.type === 'video');
+    if (video === undefined || !('asset' in video)) throw new Error('no video projected');
+    expect(video.asset.retrievable).toBe(false);
+    expect(Object.keys(video.asset).sort()).toEqual([
+      'durationSeconds',
+      'mediaType',
+      'retrievable',
+    ]);
+    expect(JSON.stringify(built)).not.toContain(FILE_IDS.video);
+
+    const image = built.resources.find((resource) => resource.type === 'image');
+    if (image === undefined || !('asset' in image)) throw new Error('no image projected');
+    expect(image.asset.retrievable).toBe(true);
+    expect(image.asset.fileId).toBe(FILE_IDS.image);
   });
 
   it('carries a video and audio duration through, and a document body', async () => {

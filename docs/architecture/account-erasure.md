@@ -138,8 +138,12 @@ reasons in the table, not claimed to be anonymous.
   deletion belongs.
 - **`webhook_attempts`** hold a tenant server's redacted response bodies and
   are swept after 90 days (`db/postgres/expiry.ts`); erasure does not read them.
-- **Uploaded evidence** is Oxy media (`cloud.oxy.so`), erased by Oxy's account
-  deletion rather than here.
+- **Evidence files** are Oxy files owned by the reporting application or its
+  organization's account, never by the reported person
+  (`docs/architecture/evidence-files.md`), and `case_evidence_files` and
+  `oxy_file_events` hold file and case ids only — no Oxy account id. An
+  ORGANIZATION account's deletion deletes its own files at Oxy, which arrives
+  here as `file.deleted` and withholds them from the jury.
 
 ## Verifying a run
 

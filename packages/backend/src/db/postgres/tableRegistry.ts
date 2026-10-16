@@ -178,6 +178,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
       'src/modules/console/membership.service.ts#grantMembership',
       'src/modules/console/membership.service.ts#membershipsWithOrganizations',
       'src/modules/console/trustSafety.routes.ts#namesFor',
+      'src/modules/evidence/evidenceFiles.ts#assertEvidenceOwnedByTenant',
       'src/modules/tenancy/provisioning.service.ts#createApplication',
       'src/modules/tenancy/provisioning.service.ts#createOrganization',
       'src/modules/tenancy/provisioning.service.ts#setOrganizationStatus',
@@ -192,6 +193,7 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
       'src/modules/console/console.routes.ts#pathOrganizationId',
       'src/modules/console/membership.service.ts#resolveApplicationForMember',
       'src/modules/console/trustSafety.routes.ts#namesFor',
+      'src/modules/evidence/evidenceFiles.ts#assertEvidenceOwnedByTenant',
       'src/modules/tenancy/credential.service.ts#authenticateServiceCredential',
       'src/modules/tenancy/provisioning.service.ts#createApplication',
       'src/modules/tenancy/provisioning.service.ts#issueApplicationCredential',
@@ -280,6 +282,24 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
       'src/db/postgres/repositories/accountErasure.ts#releaseAccountEventFeed',
     ],
   },
+  oxy_file_events: {
+    kind: 'no_tenant_dimension',
+    shape: 'neither',
+    why: 'The ledger of Oxy file events (oxy ADR 0043 D9). Oxy addresses them to this SERVICE’s application, one event per file for every case that uses it, so the record cannot sit behind one tenant’s policy.',
+    readers: [
+      'src/db/postgres/repositories/evidenceFiles.ts#applyFileEventToEvidence',
+      'src/db/postgres/repositories/evidenceFiles.ts#recordOxyFileEvent',
+    ],
+  },
+  oxy_file_reconciliations: {
+    kind: 'no_tenant_dimension',
+    shape: 'neither',
+    why: 'Which task holds the nightly reconciliation of this service’s Oxy file references, and what the last run found. The references are the SERVICE’s, across every tenant.',
+    readers: [
+      'src/db/postgres/repositories/evidenceFiles.ts#claimReconciliation',
+      'src/db/postgres/repositories/evidenceFiles.ts#finishReconciliation',
+    ],
+  },
   reviewer_affinities: {
     kind: 'no_tenant_dimension',
     shape: 'neither',
@@ -312,6 +332,20 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
       'src/modules/sortition/sortition.service.ts#replayDraw',
       'src/modules/sortition/sortition.worker.ts#handleAssignmentVacated',
       'src/modules/sortition/sortition.worker.ts#handleCaseReadyForReview',
+    ],
+  },
+  case_evidence_files: {
+    kind: 'tenant_stamped_reached_through_parent',
+    shape: 'both_not_null',
+    why: 'The Oxy files a case’s evidence is made of, stamped from the case in the report’s transaction. Read across every tenant by the reference worker, the file-events receiver (an event names a file, never a tenant) and the reconciliation, and by the reviewer surface, whose Oxy session carries no tenant.',
+    readers: [
+      'src/db/postgres/repositories/evidenceFiles.ts#applyFileEventToEvidence',
+      'src/db/postgres/repositories/evidenceFiles.ts#claimDueEvidenceReferences',
+      'src/db/postgres/repositories/evidenceFiles.ts#finishEvidenceReference',
+      'src/db/postgres/repositories/evidenceFiles.ts#insertCaseEvidenceFiles',
+      'src/db/postgres/repositories/evidenceFiles.ts#lockEvidenceByFile',
+      'src/db/postgres/repositories/evidenceFiles.ts#referencedEvidenceInventory',
+      'src/db/postgres/repositories/evidenceFiles.ts#withheldEvidenceFileIds',
     ],
   },
   sortition_draws: {

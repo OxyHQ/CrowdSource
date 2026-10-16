@@ -34,6 +34,15 @@ import { config } from '../config';
 import { API_ERROR_STATUS } from '../http/apiError';
 import { APPEALABLE_OUTCOMES } from '../modules/appeals/appeal.service';
 import { AUDIT_ACTIONS, AUDIT_REASONS } from '../modules/audit/audit.collection';
+import { EVIDENCE_WITHHELD_REASONS, INGRESS_REFUSAL_REASONS } from '../domain/closedValues';
+import { FILE_EVENT_TYPES } from '@oxy.so/core/server';
+import { OXY_FILE_RECONCILIATION_MODES } from '../config';
+import { OXY_FILE_EVENT_TYPES } from '../db/postgres/schema/evidence';
+import {
+  RECONCILIATION_MIN_INTERVAL_MS,
+  REFERENCE_BATCH_SIZE,
+} from '../modules/evidence/evidenceReferences';
+import { EVIDENCE_ENTITY_TYPE } from '../modules/evidence/oxyFiles';
 import { MINIMUM_AGREEING_VOTES, ROUND_AGREEING_VOTES } from '../modules/consensus/consensus';
 import { CONSOLE_ROLES, STAFF_ROLES } from '../modules/console/console.collections';
 import { STAFF_AUDIT_ACTIONS } from '../modules/console/staffAudit.collection';
@@ -549,19 +558,19 @@ describe('docs/api/application.md', () => {
     expect(sorted(claims.list('appealable-outcomes'))).toEqual(sorted(APPEALABLE_OUTCOMES));
     expect(sorted(claims.list('appeal-reasons'))).toEqual(sorted(APPEAL_REASONS));
     expect(sorted(claims.list('error-codes'))).toEqual(sorted(Object.keys(API_ERROR_STATUS)));
-    expect(sorted(claims.list('ingress-refusal-reasons'))).toEqual(sorted(AUDIT_REASONS));
+    expect(sorted(claims.list('ingress-refusal-reasons'))).toEqual(sorted(INGRESS_REFUSAL_REASONS));
     expect(sorted(claims.list('decision-finding-fields'))).toEqual(
       sorted(Object.keys(DecisionFindingSchema.shape)),
     );
   });
 
   /**
-   * The evidence gap, asserted as an ABSENCE. The document says nothing copies
-   * evidence bytes into storage CrowdSource controls; the day a second file
-   * appears in that module, this fails and the claim gets re-read rather than
-   * quietly outliving the gap it describes.
+   * The evidence section describes what the evidence module does — the snapshot,
+   * the ownership check at ingress, the references, the file events. The day a
+   * file is added to or removed from that module, this fails and the section gets
+   * re-read rather than quietly outliving the code it describes.
    */
-  it('is right that the evidence module holds only the content snapshot', () => {
+  it('is right about which files the evidence module holds', () => {
     const files = readdirSync(path.resolve(__dirname, '../modules/evidence'), {
       withFileTypes: true,
     })
@@ -903,4 +912,48 @@ describe('the claims parser itself', () => {
     reader.list('checked');
     expect(() => reader.assertEveryClaimWasChecked()).toThrow();
   });
+});
+
+describe('docs/architecture/evidence-files.md', () => {
+  const claims = new ClaimReader(
+    'architecture/evidence-files.md',
+    doc('architecture/evidence-files.md'),
+  );
+
+  it('names the entity type and the vocabularies', () => {
+    expect(claims.one('entity-type')).toBe(EVIDENCE_ENTITY_TYPE);
+    expect(sorted(claims.list('withheld-reasons'))).toEqual(sorted(EVIDENCE_WITHHELD_REASONS));
+    expect(sorted(claims.list('reconciliation-modes'))).toEqual(
+      sorted(OXY_FILE_RECONCILIATION_MODES),
+    );
+    expect(Number(claims.one('reference-batch-size'))).toBe(REFERENCE_BATCH_SIZE);
+    expect(Number(claims.one('reconciliation-min-interval-hours'))).toBe(
+      RECONCILIATION_MIN_INTERVAL_MS / 3_600_000,
+    );
+  });
+
+  /**
+   * The event vocabulary three ways: the page, the CHECK on `oxy_file_events`,
+   * and the SDK that verifies the events. A type the SDK gains and the CHECK
+   * lacks would be verified, then fail to record, and answer 500 forever.
+   */
+  it('lists exactly the file events the SDK verifies and the ledger accepts', () => {
+    expect(sorted(claims.list('file-event-types'))).toEqual(sorted(OXY_FILE_EVENT_TYPES));
+    expect(sorted(OXY_FILE_EVENT_TYPES)).toEqual(sorted(FILE_EVENT_TYPES));
+  });
+
+  it('names the path the receiver is mounted at', () => {
+    const path_ = claims.one('file-events-path');
+    const [mount, route] = ['/webhooks', path_.slice('/webhooks'.length)];
+    expect(path_.startsWith(mount)).toBe(true);
+    const app = readFileSync(path.resolve(__dirname, '../app.ts'), 'utf8');
+    const routes = readFileSync(
+      path.resolve(__dirname, '../modules/evidence/fileEvents.routes.ts'),
+      'utf8',
+    );
+    expect(app).toContain(`app.use('${mount}', createOxyFileEventsRouter())`);
+    expect(routes).toContain(`router.post(\n    '${route}',`);
+  });
+
+  it('leaves no claim unchecked', () => claims.assertEveryClaimWasChecked());
 });

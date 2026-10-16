@@ -96,6 +96,16 @@ const { buildReviewSubmission, createInitialReviewFormState, reviewFormReducer }
 );
 
 const { ASSIGNMENT_TOKEN_HEADER } = await import('@crowdsource.you/contracts');
+const { installOxyFiles } = await import('./support/oxyFiles');
+const { acceptFileEvent } = await import('../modules/evidence/fileEvents.service');
+
+/**
+ * The case's one evidence image, which Oxy then blocks: the package the app
+ * receives must keep the resource and withhold the file
+ * (`docs/architecture/evidence-files.md`).
+ */
+const oxyFiles = installOxyFiles();
+const EVIDENCE_FILE = `file_contract_${Date.now()}`;
 
 type ProvisionedTenant = Awaited<ReturnType<typeof provisionTenant>>;
 
@@ -135,6 +145,7 @@ function asReviewer(oxyUserId: string) {
 
 async function openCase(subject: string): Promise<string> {
   const externalReportId = `${subject}-${Date.now()}`;
+  const sha256 = await oxyFiles.putForTenant(tenant.tenant, EVIDENCE_FILE, 'evidence bytes');
   const created = await request(app)
     .post('/v1/reports')
     .set('Authorization', `Bearer ${tenant.token}`)
@@ -145,6 +156,14 @@ async function openCase(subject: string): Promise<string> {
         allegationCode: CODE,
         language: LANGUAGE,
         text: REPORTED_TEXT,
+        extraResources: [
+          {
+            id: 'res_image',
+            type: 'image',
+            role: 'evidence',
+            asset: { fileId: EVIDENCE_FILE, mimeType: 'image/png', sha256 },
+          },
+        ],
       }),
     );
 
@@ -169,6 +188,13 @@ beforeAll(async () => {
   await createReviewerPool(FAMILY, 9, [LANGUAGE]);
 
   const caseId = await openCase(`post_contract_${Date.now()}`);
+  await acceptFileEvent({
+    id: `fev_contract_${Date.now()}`,
+    type: 'file.blocked',
+    occurredAt: new Date().toISOString(),
+    file: { id: EVIDENCE_FILE, ownerKind: 'account', visibility: 'unlisted', status: 'blocked' },
+    references: [{ entityType: 'case', entityId: caseId }],
+  });
   const seats = await assignments.find({ caseId });
   expect(seats).toHaveLength(3);
 
@@ -255,6 +281,15 @@ describe('POST /v1/reviewer/assignments/next → the app’s assignment projecti
     // §13.8's watermark, recomputed independently: the app renders what the server
     // issued and never synthesises one, so it has to actually arrive.
     expect(issued.watermark).toBe(assignmentWatermark(assignmentId));
+
+    // The blocked evidence: still there, not retrievable, and its file id never
+    // reaches the reviewer's client.
+    const evidence = issued.resources.find((resource) => resource.type === 'image');
+    expect(evidence?.type === 'image' ? evidence.asset : null).toEqual({
+      mediaType: 'image/png',
+      retrievable: false,
+    });
+    expect(JSON.stringify(response.body)).not.toContain(EVIDENCE_FILE);
   });
 
   it('is refused without §8.7’s token, which is why the app has to send it', async () => {

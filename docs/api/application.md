@@ -330,37 +330,43 @@ bytes live behind the one chokepoint the ecosystem already uses, so there is no
 second place for bytes to be, no presigned URL to leak and no bucket to
 configure.
 
-**Pending:** nothing in this repository establishes whether a non-first-party
-application can obtain a `cloud.oxy.so` file id. If it cannot, an external
-adopter can report text and cannot attach media at all — see
-[the integration guide](../integration.md#attaching-media--text-only-reports-work-today-attachments-may-not).
-
 ```ts
 attachments: [{
   type: 'image',
   asset: {
-    fileId: post.imageFileId,        // bare Oxy file id — never a URL
+    fileId: file.id,                 // YOUR Oxy file — never a URL
     mimeType: 'image/jpeg',
-    sha256: `sha256:${digestOf(bytes)}`,
+    sha256: `sha256:${file.sha256}`, // the bytes that file holds
     url: post.remoteImageUrl,        // optional provenance. Never fetched.
   },
 }]
 ```
 
+**Every evidence file is checked at ingress** (`modules/evidence/evidenceFiles.ts`):
+Oxy must say it is active, owned by the tenant application's bound Oxy
+application or the tenant organization's Oxy account, and holding exactly the
+declared `sha256`. Anything else is `422 unprocessable_envelope`, audited as
+`evidence_unverified`; Oxy unreachable is `503`. A retry of a report already
+stored is answered as the replay it is even if its file has since gone. How to
+obtain such a file is in
+[the integration guide](../integration.md#attaching-media--upload-the-evidence-as-yours-then-name-its-file-id).
+
 `asset.url` is a **provenance record and never a fetch target**. Nothing
 resolves it. Fetching it would tell that host exactly when its content is under
 review, and would deliver live bytes instead of the version the case pins.
 
-**Gap, stated because a documented protection that does not exist is worse than
-an acknowledged one:** nothing copies evidence bytes into storage CrowdSource
-controls, and nothing verifies a fetched stream against the declared `sha256`.
-`packages/backend/src/modules/evidence/` contains one file,
-`contentSnapshot.ts`, which snapshots and hashes *inline text* resources; binary
-evidence is referenced and never fetched. A `fileId` resolves to whatever
-`cloud.oxy.so` currently serves, so **an author who deletes an image removes it
-from the reviewer's screen** mid-case. The reviewer is told plainly and
-`insufficient_context` and recusal stay open, which bounds the damage without
-removing it.
+**The bytes are pinned by ownership and reference, not by a copy.** A file id
+names immutable, content-addressed bytes, and the check above proves they are
+the ones declared. While a case uses the file, CrowdSource holds an Oxy reference
+to it (entity type `case`), so the owning application cannot delete it and Oxy
+never garbage-collects it; the reported content's author never owned it. What
+can still take it away is Oxy itself (a rights or privacy takedown), the owning
+ORGANIZATION account deleting its own file, or the file being trashed or made
+private — and each arrives as a signed file event that withholds the file from
+the jury (`retrievable: false`, no `fileId`) and audits why, rather than leaving
+a reviewer to find a broken image. The design, the reference worker, the
+nightly reconciliation and the events are in
+[`docs/architecture/evidence-files.md`](../architecture/evidence-files.md).
 
 ## Machine-checked claims
 
@@ -378,6 +384,6 @@ appealable-outcomes: violation, inconclusive, insufficient_context
 appeal-reasons: context_missing, policy_misapplied, finding_incorrect, exception_applies, not_responsible, procedural_error
 decision-finding-fields: code, resourceIds, severity, context, scope, attribution, policyRuleIds
 error-codes: invalid_request, unauthorized, forbidden, not_found, conflict, payload_too_large, unprocessable_envelope, rate_limited, internal_error, service_unavailable
-ingress-refusal-reasons: schema_invalid, application_mismatch, unsafe_resource_url, policy_unknown, payload_conflict
-evidence-module-files: contentSnapshot.ts
+ingress-refusal-reasons: schema_invalid, application_mismatch, unsafe_resource_url, policy_unknown, payload_conflict, evidence_unverified
+evidence-module-files: contentSnapshot.ts, evidenceFiles.ts, evidenceReferences.ts, fileEvents.routes.ts, fileEvents.service.ts, oxyFiles.ts
 ```

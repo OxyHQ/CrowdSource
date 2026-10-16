@@ -362,7 +362,11 @@ describe('the secrets the service cannot boot without', () => {
   it('names every runtime secret on the task definition by its SSM path', () => {
     const overrides =
       /TASK_SECRET_OVERRIDES_JSON:[\s\S]*?\n(?= {8}\S|\S)/.exec(deployWorkflow)?.[0] ?? '';
-    for (const name of ['DATABASE_URL', 'WEBHOOK_SECRET_ENCRYPTION_KEY']) {
+    for (const name of [
+      'DATABASE_URL',
+      'WEBHOOK_SECRET_ENCRYPTION_KEY',
+      'OXY_FILES_WEBHOOK_SECRET',
+    ]) {
       expect(overrides).toMatch(
         new RegExp(`"${name}":\\s*"arn:aws:ssm:[^"]*:parameter/oxy/crowdsource/${name}"`),
       );

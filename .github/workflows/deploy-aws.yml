@@ -202,11 +202,17 @@ jobs:
           # container holding only crowdsource_app, which owns nothing. It lives
           # on `oxy-crowdsource-migrate` instead, which nothing serves traffic
           # from, and `deployWiring.test.ts` fails the build if it appears here.
+          #
+          # OXY_FILES_WEBHOOK_SECRET is the secret Oxy returned when the file-events
+          # endpoint was set; it is created with a placeholder BEFORE the first
+          # deploy naming it (docs/architecture/evidence-files.md).
           TASK_SECRET_OVERRIDES_JSON: >-
             {"WEBHOOK_SECRET_ENCRYPTION_KEY":
             "arn:aws:ssm:us-west-2:237343248947:parameter/oxy/crowdsource/WEBHOOK_SECRET_ENCRYPTION_KEY",
             "DATABASE_URL":
-            "arn:aws:ssm:us-west-2:237343248947:parameter/oxy/crowdsource/DATABASE_URL"}
+            "arn:aws:ssm:us-west-2:237343248947:parameter/oxy/crowdsource/DATABASE_URL",
+            "OXY_FILES_WEBHOOK_SECRET":
+            "arn:aws:ssm:us-west-2:237343248947:parameter/oxy/crowdsource/OXY_FILES_WEBHOOK_SECRET"}
         # ELB mutations belong in oxy-infra because the deploy role
         # intentionally lacks ELB access; the target group's health check path
         # is owned there.

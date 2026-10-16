@@ -13,6 +13,7 @@ export * from './cases';
 export * from './communityNotes';
 export * from './console';
 export * from './decisions';
+export * from './evidence';
 export * from './governance';
 export * from './infrastructure';
 export * from './reports';

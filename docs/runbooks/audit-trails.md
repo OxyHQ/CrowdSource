@@ -50,6 +50,8 @@ Ingress and access, which is where the tenant boundary is either held or broken:
 | `console.webhook.secret.rotated` | |
 | `console.delivery.replayed` | |
 | `console.application.created` | |
+| `evidence.withheld` | A jury stopped being shown an evidence file. `caseId`, the Oxy file id as `subjectId`, and `reason`. No actor: Oxy said so, or refused CrowdSource a reference. |
+| `evidence.restored` | A withheld evidence file may be shown again (unblocked, restored from trash, made non-private). |
 
 An accepted ingress joins the report's own transaction — an accepted report with
 no trail is the gap this collection exists to close. A **rejected** ingress has
@@ -79,7 +81,15 @@ id is never written next to a case, anywhere.
 
 A closed vocabulary, because a free-text reason is where an envelope fragment
 ends up: `schema_invalid`, `application_mismatch`, `unsafe_resource_url`,
-`policy_unknown`, `payload_conflict`.
+`policy_unknown`, `payload_conflict`, `evidence_unverified`.
+
+### Withheld-evidence reasons
+
+Why `evidence.withheld` was written (`docs/architecture/evidence-files.md`):
+`file_trashed`, `file_blocked`, `file_deleted`, `file_private`,
+`file_unavailable` (a status Oxy reported that this code does not know) and
+`file_unreferenceable` (Oxy refused CrowdSource a reference to the file). The
+Oxy event behind each change is in `oxy_file_events`, keyed on Oxy's event id.
 
 ### Queries
 
@@ -217,8 +227,8 @@ before writing the query, not after.
 ```docs-claims
 audit-collection: audit_events
 staff-audit-collection: staff_audit_events
-audit-actions: report.ingress.accepted, report.ingress.replayed, report.ingress.rejected, report.receipt.read, case.read, decision.read, appeal.filed, appeal.filed.replayed, community_note.written, community_note.withdrawn, community_note.assignments.issued, community_note.rated, console.credential.issued, console.credential.revoked, console.webhook.secret.rotated, console.delivery.replayed, console.application.created
-audit-reasons: schema_invalid, application_mismatch, unsafe_resource_url, policy_unknown, payload_conflict
+audit-actions: report.ingress.accepted, report.ingress.replayed, report.ingress.rejected, report.receipt.read, case.read, decision.read, appeal.filed, appeal.filed.replayed, community_note.written, community_note.withdrawn, community_note.assignments.issued, community_note.rated, console.credential.issued, console.credential.revoked, console.webhook.secret.rotated, console.delivery.replayed, console.application.created, evidence.withheld, evidence.restored
+audit-reasons: schema_invalid, application_mismatch, unsafe_resource_url, policy_unknown, payload_conflict, evidence_unverified, file_trashed, file_blocked, file_deleted, file_private, file_unavailable, file_unreferenceable
 staff-audit-actions: staff.applications.read, staff.escalated.read, staff.metrics.read, staff.deadletter.read, staff.standing.changed
 staff-roles: policy, appeals, evidence, security
 console-seats: owner, admin, developer, viewer

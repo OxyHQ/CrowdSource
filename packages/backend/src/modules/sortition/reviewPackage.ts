@@ -113,15 +113,29 @@ function reviewerSensitivity(
  * `sha256` does not cross either; it is what pins a case to the exact bytes
  * reported, and the case verifies that, not a reviewer.
  *
- * `retrievable` is `true` for every asset the contract can now express, because
- * §5.2 requires a `fileId`. It is not vacuous: it is the field that will carry
- * "material existed and cannot be shown" once evidence retention is built, since
- * nothing today copies bytes into storage CrowdSource controls and an author who
- * deletes a file removes it from the reviewer's screen. Saying so beats dropping
- * the resource, which would hide from the jury that material existed at all —
- * that is why `content_unavailable` is one of the outcomes a reviewer may return.
+ * `retrievable` is `false`, and `fileId` absent, for a file the jury must not be
+ * shown: Oxy said it is blocked, trashed, deleted or private, or refused
+ * CrowdSource a reference to it (`evidence/evidenceFiles.ts#withheldReason`).
+ * The resource stays — material existed and cannot be shown — because dropping
+ * it would hide from the jury that it existed at all; that is why
+ * `content_unavailable` is one of the outcomes a reviewer may return. Its
+ * `fileId` does not cross, so a reviewer's client never asks Oxy for bytes that
+ * were taken down.
  */
-function reviewerAsset(asset: Extract<Resource, { asset: unknown }>['asset']): ReviewerAssetView {
+function reviewerAsset(
+  asset: Extract<Resource, { asset: unknown }>['asset'],
+  withheld: ReadonlySet<string>,
+): ReviewerAssetView {
+  if (withheld.has(asset.fileId)) {
+    return {
+      mediaType: asset.mimeType,
+      retrievable: false,
+      ...(asset.sizeBytes === undefined ? {} : { sizeBytes: asset.sizeBytes }),
+      ...(asset.width === undefined ? {} : { width: asset.width }),
+      ...(asset.height === undefined ? {} : { height: asset.height }),
+      ...(asset.durationSeconds === undefined ? {} : { durationSeconds: asset.durationSeconds }),
+    };
+  }
   return {
     mediaType: asset.mimeType,
     fileId: asset.fileId,
@@ -165,7 +179,7 @@ function resourceBase(resource: Resource) {
  * error, so it cannot reach a reviewer unreviewed and, just as importantly,
  * cannot be silently dropped from what the jury is shown.
  */
-function reviewerResource(resource: Resource): ReviewerResource {
+function reviewerResource(resource: Resource, withheld: ReadonlySet<string>): ReviewerResource {
   switch (resource.type) {
     case 'text':
       return { ...resourceBase(resource), type: 'text', data: resource.data };
@@ -189,26 +203,30 @@ function reviewerResource(resource: Resource): ReviewerResource {
         payload: resource.payload,
       };
     case 'image':
-      return { ...resourceBase(resource), type: 'image', asset: reviewerAsset(resource.asset) };
+      return {
+        ...resourceBase(resource),
+        type: 'image',
+        asset: reviewerAsset(resource.asset, withheld),
+      };
     case 'video':
       return {
         ...resourceBase(resource),
         type: 'video',
-        asset: reviewerAsset(resource.asset),
+        asset: reviewerAsset(resource.asset, withheld),
         ...(resource.data === undefined ? {} : { data: resource.data }),
       };
     case 'audio':
       return {
         ...resourceBase(resource),
         type: 'audio',
-        asset: reviewerAsset(resource.asset),
+        asset: reviewerAsset(resource.asset, withheld),
         ...(resource.data === undefined ? {} : { data: resource.data }),
       };
     case 'document':
       return {
         ...resourceBase(resource),
         type: 'document',
-        asset: reviewerAsset(resource.asset),
+        asset: reviewerAsset(resource.asset, withheld),
         data: resource.data,
       };
     default: {
@@ -263,6 +281,11 @@ export function buildReviewPackage(
    * the field being present and empty.
    */
   authorContext?: AssignmentPackage['authorContext'],
+  /**
+   * The case's evidence files the jury must not be shown, read by the caller
+   * (`withheldEvidenceFileIds`) for the same reason as `authorContext`.
+   */
+  withheldFileIds: ReadonlySet<string> = new Set(),
 ): AssignmentPackage {
   return {
     assignmentId: assignment.assignmentId,
@@ -299,7 +322,9 @@ export function buildReviewPackage(
       blurBeforeReveal: assignment.sensitivityClass !== 'standard',
     },
 
-    resources: stored.contentSnapshot.resources.map(reviewerResource),
+    resources: stored.contentSnapshot.resources.map((resource) =>
+      reviewerResource(resource, withheldFileIds),
+    ),
     relations: [...stored.contentSnapshot.relations],
     watermark: assignmentWatermark(assignment.assignmentId),
     ...(authorContext === undefined ? {} : { authorContext }),
