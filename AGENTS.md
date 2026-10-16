@@ -82,6 +82,10 @@ instruction not to go looking.
 
 ## Commands
 
+npm releases: only Actions → Release packages (`release-packages.yml`, Oxy's shared
+workflow, OIDC); a package's gates are its `prepublishOnly`. Never publish from a laptop —
+`~/Oxy/docs/npm-releases.md`.
+
 ```bash
 bun run dev / dev:backend / dev:reviewer / dev:console
 bun run build              # contracts, backend, SDKs
