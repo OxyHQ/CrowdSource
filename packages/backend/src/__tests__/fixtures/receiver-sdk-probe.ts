@@ -55,7 +55,13 @@ globalThis.fetch = new Proxy(originalFetch, {
 async function run(): Promise<void> {
   try {
     issuer = createServer((req, res) => {
-      if (!req.url?.startsWith('/session/validate/receiver-session')) {
+      // A server validating the bearer its request carried hands Oxy that bearer
+      // (`/session/validate-header/:id`, @oxy.so/core >= 4.18), so Oxy binds the
+      // token to the session it names. Refuse anything else, as Oxy would.
+      if (
+        !req.url?.startsWith('/session/validate-header/receiver-session') ||
+        !req.headers.authorization?.startsWith('Bearer ')
+      ) {
         res.writeHead(404).end();
         return;
       }
