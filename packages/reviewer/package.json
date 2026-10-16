@@ -57,6 +57,7 @@
     "@babel/plugin-transform-export-namespace-from": "^7.29.7",
     "@crowdsource.you/contracts": "workspace:*",
     "@expo/vector-icons": "^15.1.1",
+    "@oxy.so/app-preset": "3.2.1",
     "@oxy.so/bloom": "10.7.0",
     "@oxy.so/core": "4.10.0",
     "@oxy.so/services": "11.5.0",

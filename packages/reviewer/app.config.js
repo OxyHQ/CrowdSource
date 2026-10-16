@@ -180,6 +180,13 @@ module.exports = (_config) => {
         // so.oxy.permission.IDENTITY and DEVICE_SESSION and adds the
         // <queries> for their providers.
         '@oxy.so/services/plugins/withOxySharedPermissions',
+        // Every Oxy app MUST be release-signed with the one shared Oxy ecosystem
+        // certificate: the signature permissions above are only granted to apps
+        // signed like Commons. This replaces Expo's debug signing of the release
+        // buildType with the OXY_UPLOAD_* Gradle properties (never in the repo;
+        // debug fallback without them, so verify the artefact's certificate) and
+        // swaps in proguard-android-optimize.txt.
+        '@oxy.so/app-preset/plugin/withOxyAndroidRelease',
       ],
       extra: {
         // No `eas.projectId`: no EAS project has been created for CrowdSource.
