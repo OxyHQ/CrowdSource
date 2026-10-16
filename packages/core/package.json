@@ -60,7 +60,8 @@
     "clean": "rm -rf dist *.tsbuildinfo",
     "db:generate": "drizzle-kit generate",
     "lint": "bun check --noUnusedLocals --noUnusedParameters && bun check -p tsconfig.test.json",
-    "test": "bun run test:unit && bun run test:express && bun run test:testing && bun run test:outbox && bun run test:invariants && bun run test:table-type",
+    "test": "bun run test:without-db && bun run test:outbox && bun run test:invariants",
+    "test:without-db": "bun run test:unit && bun run test:express && bun run test:testing && bun run test:table-type",
     "test:unit": "node ../../node_modules/vitest/vitest.mjs run",
     "test:express": "node ../../node_modules/vitest/vitest.mjs run -c vitest.express.config.ts",
     "test:outbox": "node ../../node_modules/vitest/vitest.mjs run -c vitest.outbox.config.ts",
@@ -68,7 +69,7 @@
     "test:invariants": "bun ./scripts/test-invariants.mjs",
     "test:table-type": "bun ./scripts/test-report-table-type.mjs",
     "test:watch": "node ../../node_modules/vitest/vitest.mjs",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run test:without-db && bun run build"
   },
   "keywords": [
     "crowdsource",
