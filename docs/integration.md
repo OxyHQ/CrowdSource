@@ -166,23 +166,23 @@ between two deliveries of one report.
 **A `409` is not retryable.** It means the payload has to change. Everything
 else your outbox should retry is already marked `retryable: true`.
 
-### Attaching media — text-only reports work today; attachments may not
-
-**Start with text.** `content` and `context` carry text resources and need
-nothing but the report itself. Everything above works for a text-only
-integration right now.
-
-An attachment is a different matter, and this is a step to plan around rather
-than to follow:
+### Attaching media — upload the evidence as yours, then name its file id
 
 ```ts
+// 1. Store the bytes as YOUR evidence (oxy ADR 0043): owned by your
+//    application, unlisted so a reviewer's client can render it.
+const { file } = await oxyServer.assets.uploadAppFile(bytes, 'image/jpeg', {
+  visibility: 'unlisted',
+});
+
+// 2. Name it in the report.
 attachments: [{
   type: 'image',
   asset: {
-    fileId: post.imageFileId,   // a bare Oxy file id — REQUIRED
+    fileId: file.id,                       // a bare Oxy file id — REQUIRED
     mimeType: 'image/jpeg',
-    sha256: `sha256:${digestOf(bytes)}`,
-    url: post.remoteImageUrl,   // optional provenance. Never fetched.
+    sha256: `sha256:${file.sha256}`,       // the SHA-256 Oxy stored
+    url: post.remoteImageUrl,              // optional provenance. Never fetched.
   },
 }]
 ```
@@ -191,21 +191,35 @@ attachments: [{
 (`packages/contracts/src/resources.ts`). CrowdSource has no upload route of its
 own, deliberately: the presigned design was superseded by the Oxy media
 chokepoint before it was ever built, and the client's `src/uploads.ts` was
-deleted. So a file id is the only way bytes reach a reviewer, and the only place
-one comes from is the ecosystem's media service.
+deleted. So a file id is the only way bytes reach a reviewer.
 
-**Pending, and it decides whether attachments are usable at all:** nothing in
-this repository establishes whether a **non-first-party** application can obtain
-a `cloud.oxy.so` file id. If uploading is first-party only, an external adopter
-can send text and cannot attach an image, and there is no fallback — `url` is a
-provenance record that nothing ever resolves. That question is being answered
-outside this repository; until it is, do not plan an attachment path, and do not
-read the snippet above as an instruction.
+**The file must be yours, active, and the bytes you declare.** Ingress asks Oxy
+who owns every evidence file and refuses (`422`, audited as
+`evidence_unverified`) one that is not owned by **your application's bound Oxy
+application** or **your organization's Oxy account**, is not active, or whose
+SHA-256 is not `asset.sha256`. A file you do not own — the reported post's own
+media, owned by its author — is refused: copy it into your own files first
+(`uploadAppFile`, or `importAppFile` for a URL). That copy is what makes the
+evidence the case's: its author cannot take it down mid-case, and while a case
+uses it CrowdSource holds an Oxy reference to it, so your application cannot
+delete it either (Oxy answers `409 FILE_IN_USE`) and Oxy never garbage-collects
+it. If Oxy cannot be asked, the answer is `503`: retry from your outbox.
 
-**And a gap that holds either way:** nothing copies those bytes into storage
-CrowdSource controls, and nothing verifies a fetched stream against the declared
-`sha256`. A file id resolves to whatever `cloud.oxy.so` currently serves, so an
-author who deletes an image removes it from the reviewer's screen mid-case.
+A third party gets its own Oxy files under its developer plan (`files:app:write`
+is self-service for a `third_party` application) — but CrowdSource can only
+attribute an APPLICATION's file to your tenant once that Oxy application is bound
+to it, which is a deliberate act. Until then, store evidence under your
+organization's Oxy account.
+
+**Upload it `unlisted` (or `public`).** A reviewer's client renders evidence by
+its id; a `private` file cannot be shown, and CrowdSource may not reference
+another application's private file at all. Such a file is withheld from the jury
+— the reviewer sees that material existed and cannot be shown, and may answer
+`content_unavailable` — and the case's audit trail says why. The same happens if
+Oxy later blocks, trashes or deletes the file, or it is made private; an unblock,
+a restore or a visibility change back shows it again.
+[`docs/architecture/evidence-files.md`](./architecture/evidence-files.md) is the
+whole design.
 
 ---
 

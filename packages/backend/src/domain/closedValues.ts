@@ -41,15 +41,35 @@ export const AUDIT_ACTIONS = [
   'console.webhook.secret.rotated',
   'console.delivery.replayed',
   'console.application.created',
+  'evidence.withheld',
+  'evidence.restored',
 ] as const;
 
-export const AUDIT_REASONS = [
+/** Why a report was refused at ingress (`report.ingress.rejected`). */
+export const INGRESS_REFUSAL_REASONS = [
   'schema_invalid',
   'application_mismatch',
   'unsafe_resource_url',
   'policy_unknown',
   'payload_conflict',
+  'evidence_unverified',
 ] as const;
+
+/**
+ * Why a jury stopped being shown an evidence file (`evidence.withheld`), read
+ * off what Oxy said about the file — or, for `file_unreferenceable`, off Oxy
+ * refusing CrowdSource a reference to it (`modules/evidence/`).
+ */
+export const EVIDENCE_WITHHELD_REASONS = [
+  'file_trashed',
+  'file_blocked',
+  'file_deleted',
+  'file_private',
+  'file_unavailable',
+  'file_unreferenceable',
+] as const;
+
+export const AUDIT_REASONS = [...INGRESS_REFUSAL_REASONS, ...EVIDENCE_WITHHELD_REASONS] as const;
 
 export const CONSOLE_ROLES = ['owner', 'admin', 'developer', 'viewer'] as const;
 export const MEMBER_STATUSES = ['active', 'revoked'] as const;

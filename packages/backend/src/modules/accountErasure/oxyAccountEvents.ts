@@ -1,6 +1,6 @@
-import { OxyServer, type OxyAccountEvent, type OxyAccountEventFeedPage } from '@oxy.so/core/server';
+import type { OxyAccountEvent, OxyAccountEventFeedPage } from '@oxy.so/core/server';
 
-import { config } from '../../config';
+import { oxyServiceServer } from '../identity/oxyService';
 
 /**
  * THE ONE PLACE CrowdSource touches Oxy's account-event contract
@@ -14,10 +14,8 @@ import { config } from '../../config';
  * Oxy application — is `@oxy.so/core`'s `accountEvents.verify`; this file only
  * builds the client and names the SDK's refusal.
  *
- * The client authenticates as this service. With an
- * `OXY_SERVICE_API_KEY`/`OXY_SERVICE_API_SECRET` pair it uses the pair; without
- * one the SDK attests the task's IAM role (oxy ADR 0026), which is what the
- * deployment runs on — the same identity `ecosystemActivity.ts` publishes with.
+ * The client authenticates as this service (`identity/oxyService.ts`): the
+ * key pair when the task carries one, otherwise the task's attested IAM role.
  * The audience a token must carry is the application that identity names.
  */
 
@@ -31,19 +29,7 @@ export interface AccountEventClient {
 let client: AccountEventClient | null = null;
 
 function buildClient(): AccountEventClient {
-  const apiUrl = config.oxy.apiUrl;
-  if (!apiUrl) {
-    // Not a refusal: the event may be genuine, and a 503 makes Oxy retry once
-    // the deployment is configured.
-    throw new Error('No Oxy API is configured; account events cannot be verified.');
-  }
-  const apiKey = process.env.OXY_SERVICE_API_KEY?.trim();
-  const apiSecret = process.env.OXY_SERVICE_API_SECRET?.trim();
-  const oxy = new OxyServer({
-    baseURL: apiUrl,
-    ...(apiKey && apiSecret ? { serviceAuth: { apiKey, apiSecret } } : {}),
-  });
-  return oxy.accountEvents;
+  return oxyServiceServer().accountEvents;
 }
 
 export function accountEventClient(): AccountEventClient {

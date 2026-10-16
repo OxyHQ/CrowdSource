@@ -614,16 +614,24 @@ because matching the hash is what put it there. Each resource carries a required
 over a normalised projection. An edit changes the hash and therefore opens a new
 case rather than mutating an old one.
 
-**Gap — the asset copy does not exist.** §13.1's control for this row is
+**Binary evidence is pinned by ownership and reference** (oxy ADR 0043,
+`docs/architecture/evidence-files.md`). §13.1's control for this row is
 "snapshot, hash and **copy of assets**", and §5.6 is explicit about not depending
-on a URL the application controls. Inline text is snapshotted; binary evidence is
-a reference — now a bare Oxy `fileId` since `9f577343` removed uploads from the
-contract, so the bytes live behind the ecosystem media chokepoint and CrowdSource
-never ingests them. Nothing copies an asset into
-storage CrowdSource controls, and nothing verifies a fetched byte stream against
-its declared `sha256`. **An author who deletes an image after reporting removes it
-from the reviewer's screen**, and the hash proves only that whatever *is* served
-is or is not what was declared — which nothing currently checks.
+on a URL the application controls. Binary evidence is a bare Oxy `fileId`, and
+ingress refuses one the reporting tenant does not own (its bound Oxy application
+or its organization's Oxy account), one that is not active, and one whose stored
+SHA-256 is not the declared `sha256` — so the bytes a case names are verified,
+and they are the reporting application's copy, not the author's: **an author who
+deletes their own post's image no longer touches the evidence.** CrowdSource
+holds an Oxy reference to every evidence file for as long as the case exists, so
+the owning application cannot delete it (`409 FILE_IN_USE`) and Oxy's lifecycle
+never collects it.
+
+**Residual.** The owning organization ACCOUNT can still delete its own file (a
+person's file is never taken from them), and Oxy can block one on a rights or
+privacy claim. Both arrive as signed file events; the file is withheld from the
+jury (`retrievable: false`) and the case's audit trail records why, so a juror
+answers `content_unavailable` knowingly rather than meeting a broken image.
 
 ### Coordinated jurors
 
@@ -754,11 +762,14 @@ watermark value, so nothing populates it today.
 ## Complete list of gaps in this document
 
 1. No rate limiting anywhere in the service; no quotas.
-2. No evidence asset copy and no byte-level hash verification, so evidence can
-   still disappear from under a reviewer.
+2. ~~No evidence asset copy and no byte-level hash verification, so evidence can
+   still disappear from under a reviewer.~~ **Closed by the Oxy file references
+   (oxy ADR 0043)** — evidence must be the tenant's own active file holding the
+   declared bytes, a case's reference keeps it, and a takedown or an owner's
+   deletion withholds it visibly and audited (`docs/architecture/evidence-files.md`).
 3. ~~No evidence upload route, though the published SDK calls one.~~ **Closed by
    `9f577343`** — uploads removed from the contract and the SDK; an asset is a bare
-   Oxy `fileId`. Gap 2 above is the part that survives.
+   Oxy `fileId`.
 4. Appeals do not exist as an object; appellant free text will be the first
    author prose aimed at a reviewer and is not yet covered.
 5. `riskClusterId` and `suspectedSockPuppet` are read by the draw and written by

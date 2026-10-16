@@ -49,6 +49,26 @@ describe('config', () => {
     expect(config.logLevel).toBe('warn');
   });
 
+  it('reconciles Oxy file references by default, and reads the webhook secret when set', async () => {
+    const defaults = await loadConfigModule({ NODE_ENV: 'test' });
+    expect(defaults.config.oxy.fileReconciliation).toBe('apply');
+    expect(defaults.config.oxy.filesWebhookSecret).toBeUndefined();
+
+    const set = await loadConfigModule({
+      NODE_ENV: 'test',
+      OXY_FILE_RECONCILIATION: 'dry_run',
+      OXY_FILES_WEBHOOK_SECRET: 'whsec_x',
+    });
+    expect(set.config.oxy.fileReconciliation).toBe('dry_run');
+    expect(set.config.oxy.filesWebhookSecret).toBe('whsec_x');
+  });
+
+  it('refuses to boot with a reconciliation mode it does not know', async () => {
+    await expect(
+      loadConfigModule({ NODE_ENV: 'test', OXY_FILE_RECONCILIATION: 'sometimes' }),
+    ).rejects.toThrow(/Invalid environment configuration.*OXY_FILE_RECONCILIATION/s);
+  });
+
   it('names the offending field when a value is malformed', async () => {
     await expect(loadConfigModule({ NODE_ENV: 'test', PORT: 'not-a-port' })).rejects.toThrow(
       /Invalid environment configuration.*PORT/s,

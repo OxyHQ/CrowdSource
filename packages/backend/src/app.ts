@@ -6,6 +6,7 @@ import helmet from 'helmet';
 
 import { errorHandler, notFoundHandler } from './http/errorHandler';
 import { createAccountEventsRouter } from './modules/accountErasure/accountEvents.routes';
+import { createOxyFileEventsRouter } from './modules/evidence/fileEvents.routes';
 import { appealsRouter } from './modules/appeals/appeals.routes';
 import { communityNotesRouter } from './modules/communityNotes/communityNotes.routes';
 import { casesRouter } from './modules/cases/cases.routes';
@@ -76,6 +77,13 @@ export function createApp(): Express {
    * service credential nor an Oxy session is a caller class this route has.
    */
   app.use('/webhooks', createAccountEventsRouter());
+
+  /**
+   * Oxy's signed file events (`docs/architecture/evidence-files.md`). BEFORE the
+   * JSON parser, because the signature is over the RAW body, and outside `/v1`
+   * for the same reason as the account events: the signature is the caller.
+   */
+  app.use('/webhooks', createOxyFileEventsRouter());
 
   app.use(express.json({ limit: '1mb' }));
 

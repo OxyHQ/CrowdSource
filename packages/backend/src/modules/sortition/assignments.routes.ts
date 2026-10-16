@@ -7,6 +7,8 @@ import {
   type IssuedAssignmentPackage,
 } from '@crowdsource.you/contracts';
 
+import { getPostgresDatabase } from '../../db/postgres/database';
+import { withheldEvidenceFileIds } from '../../db/postgres/repositories/evidenceFiles';
 import { createTenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';
 import { parseOrThrow } from '../../http/parseBody';
@@ -89,7 +91,17 @@ async function reviewPackage(assignment: AssignmentDocument): Promise<Assignment
     version: policyVersionOfToken(stored.policyVersion, stored.policySetId),
   });
 
-  return buildReviewPackage(assignment, stored, policy, await appealAuthorContext(assignment));
+  // The case's evidence Oxy says may not be shown (blocked, trashed, deleted,
+  // private, or refused a reference): withheld, never fetched by the reviewer.
+  const withheld = new Set(await withheldEvidenceFileIds(getPostgresDatabase(), assignment.caseId));
+
+  return buildReviewPackage(
+    assignment,
+    stored,
+    policy,
+    await appealAuthorContext(assignment),
+    withheld,
+  );
 }
 
 /**

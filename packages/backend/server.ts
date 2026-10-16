@@ -23,6 +23,12 @@ import {
   stopAccountEventReconciliation,
 } from './src/modules/accountErasure/accountEventReconciliation';
 import { settleBackgroundErasures } from './src/modules/accountErasure/accountErasure.service';
+import {
+  startEvidenceReconciliation,
+  startEvidenceReferenceWorker,
+  stopEvidenceReconciliation,
+  stopEvidenceReferenceWorker,
+} from './src/modules/evidence/evidenceReferences';
 import { setRuntimeReady } from './src/routes/health.routes';
 import { logger } from './src/utils/logger';
 
@@ -116,6 +122,14 @@ async function start(): Promise<void> {
    */
   startAccountEventReconciliation();
 
+  startEvidenceReferenceWorker();
+  startEvidenceReconciliation();
+  if (!config.oxy.filesWebhookSecret) {
+    logger.warn(
+      'OXY_FILES_WEBHOOK_SECRET is unset: Oxy file events answer 503 until it is configured.',
+    );
+  }
+
   await new Promise<void>((resolve) => {
     server.listen(config.port, resolve);
   });
@@ -143,6 +157,8 @@ function shutdown(signal: NodeJS.Signals): void {
   stopWebhookDeliveryWorker();
   stopAssignmentExpirySweep();
   stopAccountEventReconciliation();
+  stopEvidenceReferenceWorker();
+  stopEvidenceReconciliation();
 
   server.close((error) => {
     if (error) {

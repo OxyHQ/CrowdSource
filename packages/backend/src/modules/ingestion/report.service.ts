@@ -10,8 +10,14 @@ import { ApiError } from '../../http/apiError';
 import { canonicalHash } from '../../utils/canonicalJson';
 import { newPublicId } from '../../utils/identifiers';
 import { logger } from '../../utils/logger';
+import { insertCaseEvidenceFiles } from '../../db/postgres/repositories/evidenceFiles';
 import { appendAuditEvent, type AuditReason } from '../audit/audit.collection';
 import { attachReportToCase } from '../cases/case.service';
+import {
+  assertEvidenceOwnedByTenant,
+  EvidenceRefusal,
+  evidenceFileIdsOf,
+} from '../evidence/evidenceFiles';
 import { appendOutboxEvent, OUTBOX_EVENT_TYPES } from '../outbox/outbox.collection';
 import { resolvePolicy, type ResolvedPolicy } from '../policy/policy.registry';
 import { assertApplicationMayIngest } from '../trust/applicationTrust.service';
@@ -156,6 +162,32 @@ export async function deliverReport(
     envelope: delivery.envelope,
   });
 
+  /**
+   * The evidence files are the tenant's own, active, and the bytes declared
+   * (`evidence/evidenceFiles.ts`). Before the transaction, like the policy: it
+   * is a call to Oxy, and a refusal writes nothing.
+   *
+   * It is the one ingress check whose answer can CHANGE between two deliveries
+   * of one report — a file can be deleted after the report was stored — so a
+   * refusal first asks whether this exact delivery is already stored, and a
+   * retry of a stored report is answered as the replay it is. Without that, an
+   * integrator's outbox retrying a delivery CrowdSource already accepted would
+   * be told, permanently, that it was refused.
+   */
+  try {
+    await assertEvidenceOwnedByTenant(context, delivery.envelope);
+  } catch (error: unknown) {
+    if (!(error instanceof EvidenceRefusal)) throw error;
+    const stored = await reports.findOne(context, {
+      externalReportId: delivery.externalReportId,
+    });
+    if (stored && stored.payloadHash === payloadHash) {
+      return replayOf(context, delivery, stored);
+    }
+    await recordIngressRefusal(context, delivery, 'evidence_unverified');
+    throw error;
+  }
+
   for (let attempt = 1; ; attempt += 1) {
     try {
       return await storeDelivery(context, delivery, policy, payloadHash);
@@ -209,6 +241,19 @@ async function storeDelivery(
     });
 
     const status = attached.merged ? 'merged' : 'received';
+
+    /**
+     * The case's evidence files, owed a reference at Oxy. In this transaction:
+     * the row is the durable record of that work, so a case can never exist
+     * whose files Oxy was never told it uses (`docs/architecture/evidence-files.md`).
+     */
+    await insertCaseEvidenceFiles(session, {
+      organizationId: context.organizationId,
+      applicationId: context.applicationId,
+      caseId: attached.caseId,
+      fileIds: evidenceFileIdsOf(delivery.envelope),
+      now: receivedAt,
+    });
 
     await reports.insertOne(
       context,
@@ -330,6 +375,15 @@ async function resolveDuplicateDelivery(
     throw new ApiError('conflict', collision.conflict);
   }
 
+  return replayOf(context, delivery, existing);
+}
+
+/** Answers a delivery that matched a stored report: audited, and the original ids. */
+async function replayOf(
+  context: TenantContext,
+  delivery: ReportDelivery,
+  existing: { reportId: string; caseId: string; externalReportId: string; status: ReportStatus },
+): Promise<DeliveredReport> {
   await appendAuditEvent(context, {
     action: 'report.ingress.replayed',
     actorCredentialId: delivery.credentialId,
