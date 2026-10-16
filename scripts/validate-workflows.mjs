@@ -31,8 +31,10 @@ for (const workflowName of workflowNames) {
     // with every other Oxy backend, so a release here is one wrong identifier
     // away from redeploying a different product. Pin the identifiers that
     // select the blast radius: APP names the ECS service, the ECR repository
-    // and the /oxy/<app>/ parameter namespace all at once.
-    for (const parameterNamespace of source.match(/\/oxy\/[A-Za-z0-9_.-]+\//g) || []) {
+    // and the /oxy/<app>/ parameter namespace all at once. `OxyHQ/oxy/…` is
+    // the OxyHQ/oxy repository (the shared release workflow's `uses:`), not a
+    // parameter path, and is not matched.
+    for (const parameterNamespace of source.match(/(?<!OxyHQ)\/oxy\/[A-Za-z0-9_.-]+\//g) || []) {
       if (parameterNamespace !== '/oxy/crowdsource/') {
         failures.push(
           `${workflowName}: ${parameterNamespace} is outside this app's /oxy/crowdsource/ namespace; a release must never read or write another Oxy app's parameters`,
