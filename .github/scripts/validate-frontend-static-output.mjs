@@ -26,6 +26,23 @@ async function exists(path) {
 const indexPath = resolve(outputDirectory, 'index.html');
 if (!(await exists(indexPath))) {
   failures.push('index.html is missing');
+} else {
+  // The shell must load the app. An export whose index.html carries no bundle
+  // script still passes every check below and serves a blank page (Inbox's Expo
+  // SDK 58 deploy, 2026-10-19). Assert on the script TAGS and that each target
+  // shipped, not on a file name: SDK 58 renamed what a web export emits.
+  const shell = await readFile(indexPath, 'utf8');
+  const scripts = [
+    ...shell.matchAll(/<script\b[^>]*\bsrc="(\/_expo\/static\/js\/web\/[^"]+\.js)"/g),
+  ].map((match) => match[1]);
+  if (scripts.length === 0) {
+    failures.push('index.html references no /_expo/static/js/web/*.js bundle script');
+  }
+  for (const script of scripts) {
+    if (!(await exists(resolve(outputDirectory, `.${script}`)))) {
+      failures.push(`index.html references ${script}, which the export does not contain`);
+    }
+  }
 }
 
 const headersPath = resolve(outputDirectory, '_headers');
