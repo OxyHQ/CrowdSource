@@ -42,7 +42,7 @@
       "name": "@crowdsource/console",
       "version": "0.1.0",
       "dependencies": {
-        "@alia.onl/sdk": "^21.3.1",
+        "@alia.onl/sdk": "^21.3.2",
         "@babel/plugin-transform-export-namespace-from": "^7.29.7",
         "@crowdsource.you/contracts": "workspace:*",
         "@expo/app-integrity": "~58.0.2",
@@ -165,7 +165,7 @@
       "name": "@crowdsource/reviewer",
       "version": "0.1.0",
       "dependencies": {
-        "@alia.onl/sdk": "^21.3.1",
+        "@alia.onl/sdk": "^21.3.2",
         "@babel/plugin-transform-export-namespace-from": "^7.29.7",
         "@crowdsource.you/contracts": "workspace:*",
         "@expo/app-integrity": "~58.0.2",
@@ -281,7 +281,7 @@
   "packages": {
     "2g": ["2g@1.0.1", "", { "peerDependencies": { "typescript": ">=5.8.0" }, "optionalPeers": ["typescript"], "bin": { "2g": "bin/cli.js" } }, "sha512-+uViadKOS/wwR4pFu5g8TPn3QHpKqoX19JHCnp8k/3cLpImdcXozwvZA6Q/5PeW3AcU8neL8faaMidBcv7o8CA=="],
 
-    "@alia.onl/sdk": ["@alia.onl/sdk@21.3.1", "", { "dependencies": { "clsx": "^2.1.1", "socket.io-client": "^4.8.3", "tailwind-merge": "^3.7.0", "zustand": "^5.0.15" }, "peerDependencies": { "@expo/vector-icons": "^15.1.1", "@oxy.so/bloom": ">=10.21.0", "@oxy.so/core": ">=3.0.0", "@oxy.so/services": ">=11.12.0", "@react-native-async-storage/async-storage": "^2.2.0", "@tanstack/react-query": "^5.101", "expo-audio": "^57.0.0 || ^58.0.0", "expo-blur": "^57.0.0 || ^58.0.0", "expo-clipboard": "^57.0.0 || ^58.0.0", "expo-document-picker": "^57.0.0 || ^58.0.0", "expo-file-system": "^57.0.0 || ^58.0.0", "expo-haptics": "^57.0.0 || ^58.0.0", "expo-image": "^57.0.0 || ^58.0.0", "expo-image-picker": "^57.0.2 || ^58.0.0", "expo-web-browser": "^57.0.0 || ^58.0.0", "nativewind": "^5.0.0-preview.3", "react": "^19.2.3", "react-native": "^0.86.0 || ^0.88.0", "react-native-audio-api": "^0.13.6", "react-native-css": "^3.0.7", "react-native-gesture-handler": "^2.32.0 || ^3.3.0", "react-native-keyboard-controller": "^1.21.9", "react-native-reanimated": "^4.5.0", "react-native-safe-area-context": "^5.8.0", "react-native-svg": "^15.15.5" }, "optionalPeers": ["expo-clipboard", "nativewind"] }, "sha512-Z0VVu/7u7XNc2BusRrWD/sFlcnWMk/BFuKFha24RlCaWbFFAxtqMay+f7r/RnAjtXJZxPzMDjeB1g0HGCoC1hw=="],
+    "@alia.onl/sdk": ["@alia.onl/sdk@21.3.2", "", { "dependencies": { "clsx": "^2.1.1", "socket.io-client": "^4.8.3", "tailwind-merge": "^3.7.0", "zustand": "^5.0.15" }, "peerDependencies": { "@expo/vector-icons": "^15.1.1", "@oxy.so/bloom": ">=10.21.0", "@oxy.so/core": ">=3.0.0", "@oxy.so/services": ">=11.12.0", "@react-native-async-storage/async-storage": "^2.2.0", "@tanstack/react-query": "^5.101", "expo-audio": "^57.0.0 || ^58.0.0", "expo-blur": "^57.0.0 || ^58.0.0", "expo-clipboard": "^57.0.0 || ^58.0.0", "expo-document-picker": "^57.0.0 || ^58.0.0", "expo-file-system": "^57.0.0 || ^58.0.0", "expo-haptics": "^57.0.0 || ^58.0.0", "expo-image": "^57.0.0 || ^58.0.0", "expo-image-picker": "^57.0.2 || ^58.0.0", "expo-web-browser": "^57.0.0 || ^58.0.0", "nativewind": "^5.0.0-preview.3", "react": "^19.2.3", "react-native": "^0.86.0 || ^0.88.0", "react-native-audio-api": "^0.13.6", "react-native-css": "^3.0.7", "react-native-gesture-handler": "^2.32.0 || ^3.3.0", "react-native-keyboard-controller": "^1.21.9", "react-native-reanimated": "^4.5.0", "react-native-safe-area-context": "^5.8.0", "react-native-svg": "^15.15.5" }, "optionalPeers": ["expo-clipboard", "nativewind"] }, "sha512-Ig69XBHXgCK4KqI8OP4ZFVOQoq1tF8PEXVnSV/S1LgQBcr9KICcpMtoYQPweVHnBZGjVSKzLMo1NDnnJ0+U1SQ=="],
 
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
 
