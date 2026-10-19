@@ -11,7 +11,8 @@ interface AskAliaSheetProps {
 /**
  * Alia's chat sheet, in its own module so `AskAliaProvider` can load the SDK lazily instead of
  * shipping it in the entry bundle. It mounts on the first press, so the first `present()` runs as
- * soon as the sheet is ready. Text only: no voice session, so no call audio enters the bundle.
+ * soon as the sheet is ready. Text only: the SDK turns the voice call on by default, so
+ * `voice={false}` keeps it off, and the call's audio module is never loaded.
  * The SDK greets and loads the 3D avatar from alia.onl itself.
  */
 export default function AskAliaSheet({
@@ -30,6 +31,7 @@ export default function AskAliaSheet({
       ref={ref}
       clientContext={clientContext}
       welcomeSuggestions={welcomeSuggestions}
+      voice={false}
     />
   );
 }

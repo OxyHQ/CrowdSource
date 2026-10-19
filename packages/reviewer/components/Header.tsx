@@ -4,6 +4,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { cn } from '@/lib/utils';
+import { asViewStyle } from '@/types/webStyles';
+
+// `position: 'sticky'` is a react-native-web value absent from RN's `ViewStyle['position']`
+// union (React Native 0.88's strict types reject even a cast), so it is authored through the
+// shared web style type and bridged, like SideBar and RightBar.
+const WEB_STICKY = Platform.OS === 'web' ? asViewStyle({ position: 'sticky' }) : undefined;
 
 interface Props {
   style?: ViewStyle;
@@ -50,6 +56,7 @@ export const Header: React.FC<Props> = ({
 
   const headerStyle = [
     styles.topRow,
+    WEB_STICKY,
     isSticky && styles.stickyHeader,
     hideBottomBorder ? { borderBottomWidth: 0 } : {},
     disableSticky && Platform.OS === 'web' ? { position: 'relative' as const } : {},
@@ -130,14 +137,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     position: 'relative',
-    ...Platform.select({
-      web: {
-        position: 'sticky',
-      },
-    }),
     top: 0,
     zIndex: 100,
-  } as ViewStyle,
+  },
   topRowText: {
     fontSize: 18,
     fontWeight: '800',
