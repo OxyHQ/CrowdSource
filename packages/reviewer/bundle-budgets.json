@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "budgets": {
-    "totalBytes": 10742784,
-    "javascriptBytes": 9437184,
+    "totalBytes": 10912768,
+    "javascriptBytes": 9671680,
     "initialJavascriptBytes": 6291456,
     "initialJavascriptGzipBytes": 1572864,
     "fontBytes": 2359296,
@@ -11,5 +11,8 @@
   "targets": {
     "initialJavascriptGzipBytes": 1048576,
     "largestFileBytes": 4718592
+  },
+  "notes": {
+    "2026-10-19": "totalBytes 10742784 -> 10912768 and javascriptBytes 9437184 -> 9671680 for the lazy account-screen chunk: services 12's EditProfileField and Oxy One screens draw Bloom 15's PhoneInput (144 KB of flag art) and date picker. Measured against main: total +172887 B, JS +158556 B, all in screenComponents (loaded after first paint); initial JS fell 198846 B (-55663 B gzip). First-paint budgets are unchanged."
   }
 }
