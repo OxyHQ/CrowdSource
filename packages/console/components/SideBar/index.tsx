@@ -24,8 +24,7 @@
  */
 
 import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
-import { ProfileButton } from '@oxy.so/services';
-import { useAuth } from '@oxy.so/services/ui/client';
+import { ProfileButton, useAuth } from '@oxy.so/services/ui/client';
 import { usePathname } from 'expo-router';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';

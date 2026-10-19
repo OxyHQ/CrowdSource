@@ -13,8 +13,7 @@ import { RiSeedlingLine } from '@oxy.so/bloom/icons/RiSeedlingLine';
 import { RiHeartLine } from '@oxy.so/bloom/icons/RiHeartLine';
 import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { RiHomeLine } from '@oxy.so/bloom/icons/RiHomeLine';
-import { ProfileButton } from '@oxy.so/services';
-import { useAuth } from '@oxy.so/services/ui/client';
+import { ProfileButton, useAuth } from '@oxy.so/services/ui/client';
 import { asViewStyle, type WebViewStyle } from '@/types/webStyles';
 
 const WindowHeight = Dimensions.get('window').height;
