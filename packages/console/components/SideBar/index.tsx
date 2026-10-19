@@ -151,13 +151,12 @@ export function SideBar() {
           skeleton, signed-in row + account switcher, signed-out "Sign in") and the
           device-account switcher menu.
 
-          `onNavigateManage` and `onNavigateProfile` are omitted ON PURPOSE. The
-          console has no settings screen and no profile screen: an operator's
-          identity is Oxy's, and account management lives at accounts.oxy.so, which
-          the account dialog already reaches. The SDK registers a menu entry only
-          for the handlers it is given, so leaving these out removes the entries —
-          which is the wanted result. Do NOT wire them to a route invented to
-          satisfy them. */}
+          `onNavigateProfile` is omitted ON PURPOSE. The console has no profile
+          screen: an operator's identity is Oxy's. The SDK registers a menu entry
+          only for the handlers it is given, so leaving it out removes the entry —
+          which is the wanted result. Do NOT wire it to a route invented to satisfy
+          it. "Manage your Oxy account" always opens the SDK's own ManageAccount
+          screen. */}
       <View className={cn('gap-0.5', isFixed ? 'pt-2' : 'pt-1')}>
         <SideBarItem
           label={t('askAlia.label')}
