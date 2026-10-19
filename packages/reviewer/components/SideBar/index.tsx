@@ -13,8 +13,7 @@ import { RiSeedlingLine } from '@oxy.so/bloom/icons/RiSeedlingLine';
 import { RiHeartLine } from '@oxy.so/bloom/icons/RiHeartLine';
 import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { RiHomeLine } from '@oxy.so/bloom/icons/RiHomeLine';
-import { ProfileButton } from '@oxy.so/services';
-import { useAuth } from '@oxy.so/services/ui/client';
+import { ProfileButton, useAuth } from '@oxy.so/services/ui/client';
 import { asViewStyle, type WebViewStyle } from '@/types/webStyles';
 
 const WindowHeight = Dimensions.get('window').height;
@@ -162,16 +161,14 @@ export function SideBar({ asDrawer = false, onNavigate }: SideBarProps) {
                         signed-out "Sign in") and the device-account switcher menu
                         (switch / add account / sign out / sign out all).
 
-                        `onNavigateManage` and `onNavigateProfile` are omitted ON
-                        PURPOSE, not forgotten. CrowdSource has no settings screen
-                        and no profile screen: a reviewer's identity is Oxy's, and
-                        their standing is on /reliability and is nobody else's to
-                        look at. The SDK registers a menu entry only for the
-                        handlers it is given, so leaving these out removes the
-                        entries — which is the wanted result. Do NOT wire them to
-                        a route invented to satisfy them; if account management is
-                        ever wanted, it belongs at accounts.oxy.so, which the
-                        account dialog already reaches. */}
+                        `onNavigateProfile` is omitted ON PURPOSE, not forgotten.
+                        CrowdSource has no profile screen: a reviewer's identity is
+                        Oxy's, and their standing is on /reliability and is nobody
+                        else's to look at. The SDK registers a menu entry only for
+                        the handlers it is given, so leaving it out removes the
+                        entry — which is the wanted result. Do NOT wire it to a
+                        route invented to satisfy it. "Manage your Oxy account"
+                        always opens the SDK's own ManageAccount screen. */}
           <ProfileButton expanded={showExpanded} onAddAccount={handleAddAccount} />
         </View>
       </View>
