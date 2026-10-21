@@ -114,8 +114,9 @@ async function run(): Promise<void> {
       assert.equal(admitted, before);
     }
 
-    // reuses a validated admit for the same bearer, and refuses a revocation
-    // once the cached validation is gone (a fresh client holds none)
+    // with no live revocation feed (no service token here) the SDK caches
+    // nothing (@oxy.so/core >= 6.9): every request asks Oxy, so a revoked
+    // session is refused on the very next request by the SAME client
     {
       active = true;
       resetOxySession();
@@ -123,12 +124,11 @@ async function run(): Promise<void> {
       assert.equal((await request(token)).status, 200);
       const checks = validations;
       assert.equal((await request(token)).status, 200);
-      assert.equal(validations, checks);
+      assert.equal(validations, checks + 1);
       const before = admitted;
       active = false;
-      resetOxySession();
       assert.equal((await request(token)).status, 401);
-      assert.equal(validations, checks + 1);
+      assert.equal(validations, checks + 2);
       assert.equal(admitted, before);
     }
     assert.equal(blockedNetwork, 0);
