@@ -1,3 +1,4 @@
+import express from 'express';
 import request from 'supertest';
 import { afterEach, describe, expect, it, vi } from 'bun:test';
 
@@ -61,5 +62,41 @@ describe('createApp', () => {
 
     expect(response.status).toBe(404);
     expect(response.body.error.code).toBe('not_found');
+  });
+});
+
+/**
+ * `req.ip` is the real client behind the ALB, with or without the Cloudflare
+ * proxy in front of it. The webhook limiters key on it; with `trust proxy = 1`
+ * a proxied hostname reported Cloudflare's edge as every caller.
+ *
+ * The probe takes the `trust proxy` setting `createApp` leaves on its app, so it
+ * fails if `createApp` stops setting it. Supertest connects over loopback, which
+ * plays the ALB (a private socket peer).
+ */
+describe('createApp client address', () => {
+  const CLIENT = '203.0.113.7';
+  const CLOUDFLARE_EDGE = '172.70.1.2';
+
+  async function ipSeenFor(forwardedFor: string): Promise<string> {
+    const probe = express();
+    probe.set('trust proxy', createApp().get('trust proxy'));
+    probe.get('/ip', (req, res) => {
+      res.json({ ip: req.ip });
+    });
+    const response = await request(probe).get('/ip').set('X-Forwarded-For', forwardedFor);
+    return response.body.ip;
+  }
+
+  it('is the client on a DNS-only hostname (the ALB appended the client)', async () => {
+    expect(await ipSeenFor(CLIENT)).toBe(CLIENT);
+  });
+
+  it('is the client, not the Cloudflare edge, on a proxied hostname', async () => {
+    expect(await ipSeenFor(`${CLIENT}, ${CLOUDFLARE_EDGE}`)).toBe(CLIENT);
+  });
+
+  it('ignores an address the caller wrote into the header itself', async () => {
+    expect(await ipSeenFor(`198.51.100.1, ${CLIENT}`)).toBe(CLIENT);
   });
 });

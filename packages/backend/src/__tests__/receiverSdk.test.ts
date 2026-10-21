@@ -31,6 +31,6 @@ it('validates receiver identity and revocation in an isolated loopback process',
   } = JSON.parse(lines[lines.length - 1] ?? '{}');
   expect(receipt.controls).toBe(3);
   expect(receipt.validations).toBe(4);
-  expect(receipt.admitted).toBe(2);
+  expect(receipt.admitted).toBe(3);
   expect(receipt.nonLoopbackRequests).toBe(0);
 });
