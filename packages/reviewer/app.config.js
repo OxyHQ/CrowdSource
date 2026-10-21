@@ -170,6 +170,10 @@ module.exports = (_config) => {
               enableProguardInReleaseBuilds: true,
               enableShrinkResourcesInReleaseBuilds: true,
               useLegacyPackaging: false,
+              // Expo SDK 58+: no Fresco GIF/WebP decoders. Nothing here draws through
+              // react-native's own Image — Bloom and @oxy.so/services use expo-image.
+              gifEnabled: false,
+              webpEnabled: false,
             },
           },
         ],
