@@ -64,11 +64,12 @@ jobs:
               exit 1
             fi
 
-            # DNS-only: the validation record must not be proxied, and api.*
-            # hosts are unproxied across this zone.
+            # The ACM validation record must stay DNS-only; api.* hosts are
+            # Cloudflare-proxied across Oxy since 2026-10-21.
+            proxied=false; case "$name" in _*) ;; *) proxied=true ;; esac
             created=$(api POST "zones/${zone_id}/dns_records" --data "$(jq -cn \
-              --arg name "$name" --arg content "$content" \
-              '{type:"CNAME", name:$name, content:$content, proxied:false, ttl:60}')")
+              --arg name "$name" --arg content "$content" --argjson proxied "$proxied" \
+              '{type:"CNAME", name:$name, content:$content, proxied:$proxied, ttl:60}')")
 
             if [ "$(echo "$created" | jq -r '.success')" != "true" ]; then
               echo "::error::Could not create ${name}:"
