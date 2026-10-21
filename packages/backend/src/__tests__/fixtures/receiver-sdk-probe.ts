@@ -84,6 +84,7 @@ async function run(): Promise<void> {
       '../../modules/console/consoleAuth.js'
     );
     const { errorHandler } = await import('../../http/errorHandler.js');
+    const { resetOxySession } = await import('../../modules/identity/oxySession.js');
     const middleware = requireConsoleSession();
     const app = express();
     app.get('/owned-fixture', middleware, (req: ExpressRequest, res: ExpressResponse) => {
@@ -113,14 +114,20 @@ async function run(): Promise<void> {
       assert.equal(admitted, before);
     }
 
-    // revalidates on the next call and refuses revocation without a cached admit
+    // reuses a validated admit for the same bearer, and refuses a revocation
+    // once the cached validation is gone (a fresh client holds none)
     {
       active = true;
-      assert.equal((await request(bearer())).status, 200);
-      const before = admitted;
+      resetOxySession();
+      const token = bearer();
+      assert.equal((await request(token)).status, 200);
       const checks = validations;
+      assert.equal((await request(token)).status, 200);
+      assert.equal(validations, checks);
+      const before = admitted;
       active = false;
-      assert.equal((await request(bearer())).status, 401);
+      resetOxySession();
+      assert.equal((await request(token)).status, 401);
       assert.equal(validations, checks + 1);
       assert.equal(admitted, before);
     }

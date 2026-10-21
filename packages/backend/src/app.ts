@@ -1,5 +1,5 @@
 import { ecosystemActivityMiddleware } from './ecosystemActivity';
-import { createOxyCors } from '@oxy.so/core/server';
+import { createOxyCors, oxyTrustProxy } from '@oxy.so/core/server';
 import compression from 'compression';
 import express, { type Express, Router } from 'express';
 import helmet from 'helmet';
@@ -48,12 +48,19 @@ const CONSOLE_ORIGIN = 'https://console.crowdsource.oxy.so';
 
 export function createApp(): Express {
   const app = express();
+  /**
+   * Before every middleware, so nothing reads `req.ip` under another rule. The
+   * socket peer is the shared ALB, which appends the address it saw; when the
+   * hostname is behind the Cloudflare proxy that address is Cloudflare's edge,
+   * and `oxyTrustProxy` trusts it only when it is a published Cloudflare
+   * address. `req.ip` is therefore the real client whether or not the hostname
+   * is proxied — `1` answered Cloudflare's edge, putting every caller of the
+   * webhook limiters on a few counters — and a forged header is never believed.
+   */
+  app.set('trust proxy', oxyTrustProxy);
   app.use(ecosystemActivityMiddleware);
 
   app.disable('x-powered-by');
-  // One proxy hop: the shared ALB terminates TLS and sets X-Forwarded-*.
-  // A permissive value would let a client forge its own client address.
-  app.set('trust proxy', 1);
 
   app.use(helmet());
   /**
