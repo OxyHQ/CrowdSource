@@ -2,7 +2,7 @@
 import 'react-native-reanimated';
 import { PortalOutlet, PortalProvider } from '@oxy.so/bloom/portal';
 import { BloomProvider } from '@oxy.so/bloom/provider';
-import { useAuth } from '@oxy.so/services/ui/client';
+import { useAccountColor, useAuth } from '@oxy.so/services/ui/client';
 import { Redirect, Slot, Stack, useSegments } from 'expo-router';
 import { Platform } from 'react-native';
 import { enableFreeze } from 'react-native-screens';
@@ -68,6 +68,9 @@ export default function RootLayout() {
  */
 function AuthRouter() {
   const { isAuthenticated, isAuthResolved } = useAuth();
+  // The Oxy account colour is the app's accent: applied once, below both the
+  // Oxy and Bloom providers.
+  useAccountColor();
   const segments = useSegments();
 
   // `isAuthenticated: false` is UNDETERMINED until cold boot resolves, so
