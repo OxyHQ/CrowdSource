@@ -1,3 +1,4 @@
+import { workloadCredentials } from './workload';
 import { OxyServer } from '@oxy.so/core/server';
 
 import { config } from '../../config';
@@ -15,6 +16,6 @@ export function oxyServiceServer(): OxyServer {
     // configured.
     throw new Error('No Oxy API is configured; this service cannot call Oxy as itself.');
   }
-  server = new OxyServer({ baseURL: apiUrl });
+  server = new OxyServer({ baseURL: apiUrl, workloadCredentials });
   return server;
 }

@@ -1,7 +1,7 @@
 import { CrowdSource, BASE_URL_ENV_VAR } from './client.js';
 import { CROWDSOURCE_SERVICE_AUDIENCE, DEFAULT_BASE_URL } from './defaults.js';
 import {
-  canAttestWorkloadIdentity,
+  hasOxyServiceSdk,
   oxySdkResolutionError,
   oxyServiceHost,
   type OxyServiceHost,
@@ -32,10 +32,10 @@ export function crowdSourceForOxyService(
   const sharedDefault = !options.oxy && !options.requester && !options.baseUrl;
   if (sharedDefault && client) return client;
   if (sharedDefault && unavailable) return undefined;
-  if (!options.oxy && !canAttestWorkloadIdentity()) {
+  if (!options.oxy && !hasOxyServiceSdk()) {
     if (sharedDefault) unavailable = true;
     options.logger?.info('[CrowdSource] client not built', {
-      reason: 'this process has no workload identity',
+      reason: 'the optional Oxy workload SDK is unavailable',
       ...(oxySdkResolutionError() ? { oxySdk: oxySdkResolutionError() } : {}),
     });
     return undefined;

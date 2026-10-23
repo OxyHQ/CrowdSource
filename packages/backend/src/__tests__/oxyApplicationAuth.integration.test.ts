@@ -1,22 +1,23 @@
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test';
 import express from 'express';
 import request from 'supertest';
 import type { ServiceIntrospection } from '@oxy.so/contracts';
 
 const live = new Map<string, ServiceIntrospection>();
 const actual = await import('@oxy.so/core/server');
-mock.module('@oxy.so/core/server', () => ({
-  ...actual,
-  OxyServer: class extends actual.OxyServer {
-    override async verifyActingAs() {
-      return null;
-    }
-    override async introspectServiceToken(token: string): Promise<ServiceIntrospection> {
-      return live.get(token) ?? { active: false };
-    }
-  },
+const temporaryCredentials = (accessKeyId: string) => async () => ({
+  AccessKeyId: accessKeyId,
+  SecretAccessKey: 'fixture-secret',
+  Token: 'fixture-session',
+});
+mock.module('@oxy.so/core/server/aws', () => ({
+  createAwsWorkloadCredentialProvider: () => temporaryCredentials('ASIA_CROWD_RECEIVER'),
 }));
+const { config } = await import('../config');
+const originalApiUrl = config.oxy.apiUrl;
+let issuer: ReturnType<typeof Bun.serve>;
+let callerApplicationId = '';
 const { CROWDSOURCE_SERVICE_AUDIENCE, looksLikeOxyServiceToken } = await import(
   '../modules/tenancy/oxyApplicationAuth'
 );
@@ -37,8 +38,6 @@ const jwk = {
   alg: 'EdDSA',
   use: 'sig',
 };
-const nativeFetch = globalThis.fetch;
-let fetchSpy: ReturnType<typeof spyOn>;
 const app = express();
 app.use(express.json());
 app.get('/v1/applications/me', requireAnyServiceCredential(), (req, res) =>
@@ -110,19 +109,59 @@ async function bound() {
 }
 beforeAll(async () => {
   await startDatabase();
-  fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(
-    Object.assign(
-      (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
-        if (String(input).includes('/.well-known/jwks.json'))
-          return Promise.resolve(Response.json({ keys: [jwk] }));
-        return nativeFetch(input, init);
-      },
-      { preconnect: nativeFetch.preconnect },
-    ),
-  );
+  issuer = Bun.serve({
+    hostname: '127.0.0.1',
+    port: 0,
+    async fetch(request) {
+      const path = new URL(request.url).pathname;
+      if (path === '/.well-known/jwks.json') return Response.json({ keys: [jwk] });
+      if (path === '/auth/service-token/workload/challenge')
+        return Response.json({ data: { nonce: 'crowdsource-challenge' } });
+      if (path === '/auth/service-token/workload') {
+        const body = (await request.json()) as {
+          provider?: string;
+          protocolVersion?: number;
+          nonce?: string;
+          audience?: string;
+          attestation?: { headers?: Record<string, string> };
+        };
+        const signature = body.attestation?.headers?.authorization ?? '';
+        if (
+          body.provider !== 'aws-iam' ||
+          body.protocolVersion !== 2 ||
+          body.nonce !== 'crowdsource-challenge' ||
+          body.attestation?.headers?.['x-oxy-attestation-nonce'] !== body.nonce ||
+          !signature.includes('ASIA_CROWD_')
+        )
+          return new Response(null, { status: 401 });
+        const appId = signature.includes('ASIA_CROWD_RECEIVER')
+          ? 'crowdsource-receiver'
+          : callerApplicationId;
+        const proof = token(appId, 'first_party', body.audience ?? 'oxy-api');
+        return Response.json({
+          data: { token: proof.bearer, expiresIn: 300, appName: 'Own workload' },
+        });
+      }
+      if (path === '/auth/resources/introspect') {
+        // The receiver's cached signed token remains valid across caller revocation.
+        const bearer = request.headers.get('authorization')?.replace(/^Bearer /, '') ?? '';
+        const payload = JSON.parse(Buffer.from(bearer.split('.')[1] ?? '', 'base64url').toString());
+        if (payload.appId !== 'crowdsource-receiver') return new Response(null, { status: 401 });
+        const body = (await request.json()) as { token: string };
+        const result = live.get(body.token);
+        return Response.json(result?.active ? { ...result, kind: 'service' } : { active: false });
+      }
+      if (path.includes('acting-as')) return Response.json({ authorized: false });
+      return new Response(null, { status: 404 });
+    },
+  });
+  Reflect.set(config.oxy, 'apiUrl', issuer.url.toString().replace(/\/$/, ''));
 });
 afterAll(async () => {
-  fetchSpy.mockRestore();
+  const { oxyServiceServer } = await import('../modules/identity/oxyService');
+  oxyServiceServer().dispose();
+  issuer.stop(true);
+  Reflect.set(config.oxy, 'apiUrl', originalApiUrl);
   await stopDatabase();
 });
 beforeEach(() => live.clear());
@@ -233,20 +272,15 @@ describe('shared service verifier and tenant binding over HTTP', () => {
   });
   it('resolves the SDK identity through the same HTTP receiver', async () => {
     const tenant = await bound();
-    const proof = token(tenant.appId);
+    callerApplicationId = tenant.appId;
     const listener = app.listen(0, '127.0.0.1');
     await new Promise<void>((resolve) => listener.once('listening', resolve));
     const address = listener.address();
     if (!address || typeof address === 'string') throw new Error('No address');
     try {
-      const oxy = new actual.OxyServer({ baseURL: 'https://api.oxy.invalid' });
-      // Replace only the attestation issuer, keeping the published SDK transport
-      // and the receiver's signature/live authority checks real.
-      Object.defineProperty(oxy, 'workloadServiceToken', {
-        value: async (audience: string) => {
-          expect(audience).toBe(CROWDSOURCE_SERVICE_AUDIENCE);
-          return proof.bearer;
-        },
+      const oxy = new actual.OxyServer({
+        baseURL: issuer.url.toString(),
+        workloadCredentials: temporaryCredentials('ASIA_CROWD_CALLER'),
       });
       try {
         const client = crowdSourceForOxyService({

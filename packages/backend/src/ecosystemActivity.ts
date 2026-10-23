@@ -1,26 +1,17 @@
-import { canAttestWorkloadIdentity, createEcosystemTraffic } from '@oxy.so/core/server';
+import { createEcosystemTraffic } from '@oxy.so/core/server';
 import type { RequestHandler } from 'express';
+import { workloadCredentials } from './modules/identity/workload';
 
 let activity: ReturnType<typeof createEcosystemTraffic> | undefined;
 
-/** Own telemetry uses attested workload identity, never customer API keys. */
-function canAuthenticateToOxy(): boolean {
-  return canAttestWorkloadIdentity();
-}
-
-/** Start only at process bootstrap; constructing a test app starts no publisher. */
-export function startEcosystemActivity(ready: () => boolean): void {
-  if (!canAuthenticateToOxy()) {
-    console.warn(
-      'Ecosystem activity is disabled for crowdsource: no workload identity this process can attest',
-    );
-    return;
-  }
-  if (activity) return;
-  activity = createEcosystemTraffic({
-    service: 'crowdsource',
-    ready,
-  });
+/** Region config enables telemetry; the shared provider resolves role credentials on demand. */
+export function startEcosystemActivity(
+  ready: () => boolean,
+  create: typeof createEcosystemTraffic = createEcosystemTraffic,
+  region = process.env.AWS_REGION,
+): void {
+  if (activity || !region) return;
+  activity = create({ service: 'crowdsource', ready, region, workloadCredentials });
   activity.installFetch();
 }
 

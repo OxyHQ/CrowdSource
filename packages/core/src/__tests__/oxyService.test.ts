@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 const sdk = vi.hoisted(() => ({
-  canAttestWorkloadIdentity: vi.fn(() => false),
+  hasOxyServiceSdk: vi.fn(() => false),
   oxyServiceHost: vi.fn(),
 }));
 vi.mock('../oxySdk.js', async (original) => ({
@@ -13,7 +13,7 @@ import type { OxyServiceHost } from '../oxySdk.js';
 beforeEach(() => {
   resetCrowdSourceForOxyService();
   vi.clearAllMocks();
-  sdk.canAttestWorkloadIdentity.mockReturnValue(false);
+  sdk.hasOxyServiceSdk.mockReturnValue(false);
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -30,7 +30,7 @@ function host() {
   }));
   return { createServiceClient, fetch, dispose };
 }
-it('does not reinterpret configured API keys as own workload identity', () => {
+it('customer keys do not replace an unavailable workload SDK', () => {
   vi.stubEnv('OXY_SERVICE_API_KEY', 'external-key');
   vi.stubEnv('OXY_SERVICE_API_SECRET', 'external-secret');
   expect(crowdSourceForOxyService()).toBeUndefined();
@@ -66,7 +66,7 @@ it('never reuses a requester client across accounts and snapshots proof options'
 });
 it('shares only the default application client and disposes it on reset', () => {
   const oxy = host();
-  sdk.canAttestWorkloadIdentity.mockReturnValue(true);
+  sdk.hasOxyServiceSdk.mockReturnValue(true);
   sdk.oxyServiceHost.mockReturnValue(oxy);
   const a = crowdSourceForOxyService();
   expect(crowdSourceForOxyService()).toBe(a);

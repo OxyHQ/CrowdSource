@@ -142,8 +142,11 @@ const crowdsource = crowdSourceForOxyService();
 The factory uses `OxyServer.createServiceClient` from `@oxy.so/core` 7 with
 CrowdSource's registered audience `oxy-service:6a6947b30fe72510b411252f`.
 The optional peer is loaded only for this integration. Own workloads use no
-application scopes, API keys or permission prompts. A local process without a
-workload returns `undefined`; reports still belong in its durable outbox.
+application scopes, API keys or permission prompts. The default client uses
+`@oxy.so/core/server/aws` and the optional `@aws-sdk/credential-provider-node`
+peer for temporary ECS or development/SSO role credentials. Missing optional SDK
+modules return `undefined`; invalid/revoked workload authority fails the request
+and follows the durable outbox retry policy.
 Pass `oxy` to use an existing shared workload client, `baseUrl` for a local
 receiver, or `logger` for binding diagnostics. `requester` accepts an account
 with its current session, task or ephemeral requester context; these clients
@@ -482,9 +485,8 @@ crowdSource: {
   fails at a token it can never mint — a delivery loop that runs forever and
   delivers nothing.
 - **`'oxy-service'` is `crowdSourceForOxyService()`**, not a second copy of it.
-  Whether this process can attest a workload identity or present an
-  shared workload identity is decided in one place,
-  and the client is built once per process on either path.
+  The shared SDK verifies temporary workload identity live; ECS environment
+  markers do not determine authority. The default client is shared per process.
 - **Which one is in force is in the log.** The mode rides on the startup lines
   the integration already writes — `[CrowdSource] client ready`, and the
   refusals — so nothing new has to be read to answer "which credential is this".

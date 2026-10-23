@@ -25,9 +25,10 @@
  *
  * A specifier that does not resolve is not an error here. It is the honest
  * answer to "is this an Oxy service": a process without Oxy's SDK cannot mint an
- * Oxy service token, which is the same answer a local checkout gets.
+ * Oxy service token, while authenticated development roles use the same temporary provider as ECS.
  */
 
+import type { WorkloadCredentialProvider } from '@oxy.so/core/server';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 
@@ -45,8 +46,10 @@ export interface OxyServiceHost {
   };
 }
 interface OxyServerModule {
-  readonly canAttestWorkloadIdentity?: () => boolean;
-  readonly OxyServer?: new (config: { baseURL: string }) => OxyServiceHost;
+  readonly OxyServer?: new (config: {
+    baseURL: string;
+    workloadCredentials: WorkloadCredentialProvider;
+  }) => OxyServiceHost;
 }
 
 /** Oxy's API origin: `OXY_API_URL`, else production — the SDK's own default. */
@@ -103,15 +106,16 @@ function loadOxyModule<T>(specifier: string): T | null {
   return null;
 }
 
-/**
- * Whether this process can prove what it is to Oxy without a secret.
- *
- * In ECS the task role attests — a signed `GetCallerIdentity` that Oxy replays
- * to AWS, with nothing stored anywhere (oxy ADR 0026). A local checkout must supply a configured shared workload client.
- */
-export function canAttestWorkloadIdentity(): boolean {
-  const server = loadOxyModule<OxyServerModule>('@oxy.so/core/server');
-  return server?.canAttestWorkloadIdentity?.() === true;
+interface OxyAwsModule {
+  createAwsWorkloadCredentialProvider(): WorkloadCredentialProvider;
+}
+
+/** SDK availability is distinct from live workload authority, which Oxy verifies. */
+export function hasOxyServiceSdk(): boolean {
+  return Boolean(
+    loadOxyModule<OxyServerModule>('@oxy.so/core/server')?.OxyServer &&
+      loadOxyModule<OxyAwsModule>('@oxy.so/core/server/aws')?.createAwsWorkloadCredentialProvider,
+  );
 }
 
 let server: OxyServiceHost | undefined;
@@ -120,8 +124,15 @@ export function oxyServiceHost(): OxyServiceHost {
   if (server) return server;
   const OxyServer = loadOxyModule<OxyServerModule>('@oxy.so/core/server')?.OxyServer;
   if (!OxyServer) throw new Error('@oxy.so/core >=7 <8 is required for own service transport.');
+  const createProvider =
+    loadOxyModule<OxyAwsModule>('@oxy.so/core/server/aws')?.createAwsWorkloadCredentialProvider;
+  if (!createProvider)
+    throw new Error(
+      'The Oxy AWS workload provider is required for the default own service transport.',
+    );
   server = new OxyServer({
     baseURL: process.env[OXY_API_URL_ENV_VAR]?.trim() || OXY_API_URL_DEFAULT,
+    workloadCredentials: createProvider(),
   });
   return server;
 }
