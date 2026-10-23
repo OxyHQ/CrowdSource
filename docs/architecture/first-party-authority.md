@@ -35,3 +35,9 @@ files, and all 13 invariant mutations passed. Backend and SDK builds, production
 and test type checks, and changed-file Biome checks passed. The central Oxy test
 also traverses real SDK middleware, HTTP introspection and PostgreSQL authority;
 product tests stub that central authority boundary while verifying signed JWTs.
+
+The own outbox configuration also accepts `crowdSource: {auth: 'oxy-service',
+oxy, ...}`. Passing the application's shared `OxyServer` preserves its temporary
+role/SSO provider outside ECS. The default `service-key` lane ignores this field
+and remains external even if the process also has a workload provider. Report
+rows, tenant derivation, stable delivery payloads and webhook signatures are unchanged.

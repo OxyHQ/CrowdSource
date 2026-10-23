@@ -411,3 +411,45 @@ describe('a disabled integration', () => {
     expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
   });
 });
+
+describe('an explicitly injected shared workload provider', () => {
+  it('works without container detection and preserves the configured tenant transport', async () => {
+    const calls = stubFetch([namesTheTenant()]);
+    const createServiceClient = vi.fn(() => ({
+      fetch: (input: Parameters<typeof fetch>[0], init?: RequestInit) =>
+        globalThis.fetch(input, {
+          ...init,
+          headers: {
+            ...Object.fromEntries(new Headers(init?.headers)),
+            authorization: 'Bearer injected-workload',
+          },
+        }),
+      dispose: () => {},
+    }));
+    const provider = createClientProvider({
+      config: connection({ auth: 'oxy-service', oxy: { createServiceClient }, baseUrl: BASE_URL }),
+      logger: recordingLogger(),
+    });
+    const client = provider.get();
+    expect(await client?.applicationId).toBe(BOUND_APPLICATION);
+    expect(provider.get()).toBe(client);
+    expect(createServiceClient).toHaveBeenCalledExactlyOnceWith({
+      baseURL: BASE_URL,
+      audience: 'oxy-service:6a6947b30fe72510b411252f',
+    });
+    expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
+    expect(oxySdk.oxyServiceHost).not.toHaveBeenCalled();
+    expect(calls[0]?.authorization).toBe('Bearer injected-workload');
+  });
+
+  it('never promotes an external service key when an own provider is also present', () => {
+    const createServiceClient = vi.fn();
+    const client = createClientProvider({
+      config: connection({ serviceKey: SERVICE_KEY, oxy: { createServiceClient } }),
+      logger: recordingLogger(),
+    }).get();
+    expect(client?.applicationId).toBe(KEYED_APPLICATION);
+    expect(createServiceClient).not.toHaveBeenCalled();
+    expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
+  });
+});
