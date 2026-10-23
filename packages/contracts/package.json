@@ -20,8 +20,7 @@
     "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "bun check --noUnusedLocals --noUnusedParameters && bun check -p tsconfig.test.json",
     "test": "bun test ./src/__tests__",
-    "test:watch": "bun test --watch ./src/__tests__",
-    "prepublishOnly": "bun run test && bun run build"
+    "test:watch": "bun test --watch ./src/__tests__"
   },
   "keywords": [
     "crowdsource",
