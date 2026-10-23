@@ -451,6 +451,17 @@ describe('POST /webhooks/oxy/file-events', () => {
     expect(await auditsFor(caseId, 'evidence.restored')).toHaveLength(1);
   });
 
+  it('withholds a lost file from the jury as file_unavailable', async () => {
+    const { caseId, file } = await caseWithImage();
+
+    const lost = await signed(fileEvent(file, 'file.lost', 'lost'));
+    expect(lost.status).toBe(200);
+    expect(await repository.withheldEvidenceFileIds(db, caseId)).toEqual([file]);
+    expect(
+      (await auditsFor(caseId, 'evidence.withheld')).map((row) => [row.subjectId, row.reason]),
+    ).toEqual([[file, 'file_unavailable']]);
+  });
+
   it('records each event once: a redelivery is acknowledged and changes nothing', async () => {
     const { caseId, file } = await caseWithImage();
     const event = fileEvent(file, 'file.trashed', 'trash');
