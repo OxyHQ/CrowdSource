@@ -13,7 +13,6 @@ import type React from 'react';
 import { memo, useCallback } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
@@ -47,68 +46,59 @@ export const AppProviders = memo(function AppProviders({
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <GestureHandlerRootView style={{ flex: 1 }}>
+        {/* No KeyboardProvider here: OxyProvider mounts the one. A second one above it
+            took the native keyboard events, so every keyboard hook under OxyProvider read
+            a closed keyboard. */}
         {/*
-         * react-native-keyboard-controller's root provider. It MUST sit inside
-         * GestureHandlerRootView and above everything that consumes
-         * KeyboardContext — OxyProvider's sheets and Bloom's BottomSheet — or
-         * those hooks log "Couldn't find real values for KeyboardContext". It is
-         * a passthrough no-op on web (the library handles the platform split
-         * internally; no manual .web fork needed), and it is kept here rather
-         * than dropped from a web-only app because the SDK's own screens mount
-         * those consumers whichever platform they run on.
+         * ONE SDK provider owns the session: the device-first cold boot,
+         * account switching and the in-app sign-in modal all live here. The app
+         * adds no auth routes, token providers or Authorization headers of its
+         * own — which is also why neither console surface can be reached with
+         * anything but a real Oxy session.
          */}
-        <KeyboardProvider>
+        <OxyProvider
+          oxyServices={oxyServices}
+          clientId={OXY_CLIENT_ID}
+          authRedirectUri={OXY_AUTH_REDIRECT_URI}
+          // Without this the web flow is a full-page redirect, and the app
+          // bounces to the authorize endpoint before it ever renders. The popup
+          // keeps the operator on the page they were working on.
+          webAuthMode="popup"
+          storageKeyPrefix="crowdsource-console"
+          queryClient={queryClient}
+          // Oxy resolves which language the console shows — the signed-in
+          // account's primary locale, or the device/guest locale while signed
+          // out — and calls `setLanguage` whenever it changes. The console
+          // keeps its own translation catalog (`locales/en.json`,
+          // `locales/es.json`) untouched; it just stops deciding for itself.
+          language={{
+            supportedLocales: SUPPORTED_LANGUAGES,
+            fallbackLocale: DEFAULT_LANGUAGE,
+            onChange: setLanguage,
+            onError: handleLanguageError,
+          }}
+        >
           {/*
-           * ONE SDK provider owns the session: the device-first cold boot,
-           * account switching and the in-app sign-in modal all live here. The app
-           * adds no auth routes, token providers or Authorization headers of its
-           * own — which is also why neither console surface can be reached with
-           * anything but a real Oxy session.
+           * Inside OxyProvider because it reads the SDK's auth state and the
+           * QueryClient the provider publishes; above everything else because a
+           * switch of account has to reach every consumer at once.
            */}
-          <OxyProvider
-            oxyServices={oxyServices}
-            clientId={OXY_CLIENT_ID}
-            authRedirectUri={OXY_AUTH_REDIRECT_URI}
-            // Without this the web flow is a full-page redirect, and the app
-            // bounces to the authorize endpoint before it ever renders. The popup
-            // keeps the operator on the page they were working on.
-            webAuthMode="popup"
-            storageKeyPrefix="crowdsource-console"
-            queryClient={queryClient}
-            // Oxy resolves which language the console shows — the signed-in
-            // account's primary locale, or the device/guest locale while signed
-            // out — and calls `setLanguage` whenever it changes. The console
-            // keeps its own translation catalog (`locales/en.json`,
-            // `locales/es.json`) untouched; it just stops deciding for itself.
-            language={{
-              supportedLocales: SUPPORTED_LANGUAGES,
-              fallbackLocale: DEFAULT_LANGUAGE,
-              onChange: setLanguage,
-              onError: handleLanguageError,
-            }}
-          >
-            {/*
-             * Inside OxyProvider because it reads the SDK's auth state and the
-             * QueryClient the provider publishes; above everything else because a
-             * switch of account has to reach every consumer at once.
-             */}
-            <ConsoleIdentityBoundary>
-              <I18nextProvider i18n={i18n}>
-                <AppErrorBoundary onError={handleBoundaryError}>
-                  {children}
-                  <StatusBar style="auto" />
-                  {/*
-                   * No <ToastOutlet /> here on purpose. Bloom's toast stack must
-                   * be mounted exactly once — every mount subscribes to the same
-                   * store and renders the same rows, so a second outlet shows
-                   * every toast twice. OxyProvider above already mounts one, and
-                   * it carries Bloom's defaults.
-                   */}
-                </AppErrorBoundary>
-              </I18nextProvider>
-            </ConsoleIdentityBoundary>
-          </OxyProvider>
-        </KeyboardProvider>
+          <ConsoleIdentityBoundary>
+            <I18nextProvider i18n={i18n}>
+              <AppErrorBoundary onError={handleBoundaryError}>
+                {children}
+                <StatusBar style="auto" />
+                {/*
+                 * No <ToastOutlet /> here on purpose. Bloom's toast stack must
+                 * be mounted exactly once — every mount subscribes to the same
+                 * store and renders the same rows, so a second outlet shows
+                 * every toast twice. OxyProvider above already mounts one, and
+                 * it carries Bloom's defaults.
+                 */}
+              </AppErrorBoundary>
+            </I18nextProvider>
+          </ConsoleIdentityBoundary>
+        </OxyProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );
