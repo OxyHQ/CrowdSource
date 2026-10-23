@@ -183,6 +183,11 @@ function statusAfter(event: FileEvent): EvidenceFileStatus {
       return 'deleted';
     case 'file.blocked':
       return 'blocked';
+    case 'file.lost':
+      // The bytes are gone from storage but the record remains: nothing can be
+      // shown, and Oxy's status for it is not one this code models, so it is
+      // `unknown` and withholds as `file_unavailable`. A later event may restate it.
+      return 'unknown';
     case 'file.trashed':
       return 'trash';
     default: {

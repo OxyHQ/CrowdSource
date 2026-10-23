@@ -129,6 +129,7 @@ export const OXY_FILE_EVENT_TYPES = [
   'file.restored',
   'file.blocked',
   'file.unblocked',
+  'file.lost',
 ] as const;
 export type OxyFileEventType = (typeof OXY_FILE_EVENT_TYPES)[number];
 

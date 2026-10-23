@@ -118,6 +118,7 @@ What an event does to a row:
 | `file.blocked` | `blocked` | withheld, `file_blocked` |
 | `file.trashed` | `trash` | withheld, `file_trashed` |
 | `file.deleted` | `deleted` (final; the reference is owed a removal) | withheld, `file_deleted` |
+| `file.lost` | `unknown` (the bytes are gone) | withheld, `file_unavailable` |
 | `file.unblocked`, `file.restored` | as Oxy states it | shown again when active and not private |
 | `file.visibility_changed` | unchanged | withheld while `private` (`file_private`) |
 
@@ -156,7 +157,7 @@ task naming a missing parameter does not start:
 ```docs-claims
 entity-type: case
 file-events-path: /webhooks/oxy/file-events
-file-event-types: file.deleted, file.visibility_changed, file.trashed, file.restored, file.blocked, file.unblocked
+file-event-types: file.deleted, file.visibility_changed, file.trashed, file.restored, file.blocked, file.unblocked, file.lost
 withheld-reasons: file_trashed, file_blocked, file_deleted, file_private, file_unavailable, file_unreferenceable
 reconciliation-modes: apply, dry_run, off
 reference-batch-size: 100
