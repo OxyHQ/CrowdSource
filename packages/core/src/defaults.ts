@@ -85,3 +85,6 @@ export function defaultPrivacy(allegationCodes: readonly TaxonomyCode[]): CasePr
     allowCommunityReview: allegationsForbiddingCommunityReview(allegationCodes).length === 0,
   };
 }
+
+/** Registered receiver identity, shared by own service clients. */
+export const CROWDSOURCE_SERVICE_AUDIENCE = 'oxy-service:6a6947b30fe72510b411252f';

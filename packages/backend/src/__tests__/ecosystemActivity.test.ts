@@ -99,7 +99,13 @@ describe('ecosystem activity lifecycle', () => {
     expect(options.service).toBe('crowdsource');
   });
 
+  it('does not turn an API credential pair into own telemetry authority', () => {
+    startEcosystemActivity(() => true);
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('fails boot when the shared collector rejects its configuration', () => {
+    stubEnv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI', '/v2/credentials/abc');
     create.mockImplementationOnce(() => {
       throw new Error('Invalid infrastructure region');
     });
@@ -108,6 +114,7 @@ describe('ecosystem activity lifecycle', () => {
   });
 
   it('installs once and supplies live readiness without retaining request bodies', async () => {
+    stubEnv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI', '/v2/credentials/abc');
     let ready = false;
     startEcosystemActivity(() => ready);
     startEcosystemActivity(() => ready);

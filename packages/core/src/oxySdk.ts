@@ -31,31 +31,22 @@
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 
-/** The api key half of an Oxy service credential. */
-export const OXY_SERVICE_API_KEY_ENV_VAR = 'OXY_SERVICE_API_KEY';
+export type OxyRequester = { accountId: string } & (
+  | { token: string; taskId?: never; requesterContext?: never }
+  | { taskId: string; token?: never; requesterContext?: never }
+  | { requesterContext: string; token?: never; taskId?: never }
+);
 
-/** Its secret half. Both or neither: one alone authenticates nothing. */
-export const OXY_SERVICE_API_SECRET_ENV_VAR = 'OXY_SERVICE_API_SECRET';
-
-/**
- * `@oxy.so/core/server`, narrowed to what this package calls.
- *
- * Declared rather than imported as a type. `import type` from an optional peer
- * compiles only where that peer is installed, so typing this from the package
- * would make `@crowdsource.you/core` fail to build in a tree that deliberately
- * does not have it — including this one.
- *
- * Both members are optional because a peer RANGE is advice, not enforcement:
- * `^4.0.0 || ^5.0.0 || ^6.0.0` is what this package asks for, and a tree that resolved an older copy
- * — no `OxyServer`, no attestation path — has to read as "cannot attest / not
- * installed" rather than as a `TypeError` thrown from inside a moderation client.
- */
+/** The optional shared SDK owns authentication, audience and proof transport. */
+export interface OxyServiceHost {
+  createServiceClient(options: { baseURL: string; audience: string; requester?: OxyRequester }): {
+    fetch: typeof globalThis.fetch;
+    dispose(): void;
+  };
+}
 interface OxyServerModule {
   readonly canAttestWorkloadIdentity?: () => boolean;
-  readonly OxyServer?: new (config: {
-    baseURL: string;
-    serviceAuth?: { apiKey: string; apiSecret: string };
-  }) => { serviceToken(): Promise<string> };
+  readonly OxyServer?: new (config: { baseURL: string }) => OxyServiceHost;
 }
 
 /** Oxy's API origin: `OXY_API_URL`, else production — the SDK's own default. */
@@ -116,62 +107,21 @@ function loadOxyModule<T>(specifier: string): T | null {
  * Whether this process can prove what it is to Oxy without a secret.
  *
  * In ECS the task role attests — a signed `GetCallerIdentity` that Oxy replays
- * to AWS, with nothing stored anywhere (oxy ADR 0026). A local checkout has no
- * attestation to offer and must fall back to a credential.
+ * to AWS, with nothing stored anywhere (oxy ADR 0026). A local checkout must supply a configured shared workload client.
  */
 export function canAttestWorkloadIdentity(): boolean {
   const server = loadOxyModule<OxyServerModule>('@oxy.so/core/server');
   return server?.canAttestWorkloadIdentity?.() === true;
 }
 
-/**
- * The service credential pair this process was given, or `null`.
- *
- * Blank is absent. A task definition that declares the variable and leaves it
- * empty is the shape this actually arrives in, and a pair of empty strings
- * treated as present builds a client whose every request fails at the token
- * call — the failure this whole module exists to answer before it happens.
- */
-export function oxyServiceCredentials(): { apiKey: string; apiSecret: string } | null {
-  const apiKey = process.env[OXY_SERVICE_API_KEY_ENV_VAR]?.trim();
-  const apiSecret = process.env[OXY_SERVICE_API_SECRET_ENV_VAR]?.trim();
-  if (!apiKey || !apiSecret) return null;
-  return { apiKey, apiSecret };
-}
+let server: OxyServiceHost | undefined;
 
-/**
- * A current Oxy service token, minted by `@oxy.so/core`'s `OxyServer`.
- *
- * One server client per credential pair (or one attesting client when there is
- * no pair), built on first use and kept: its token cache and re-mint on expiry
- * live INSIDE it, which is why this can be asked once per request attempt. It
- * is this package's own client, so it never touches one an application
- * configured for itself. With no pair the client attests the task's identity
- * instead — the order the SDK chose deliberately, so a deployment still holding
- * a credential keeps using it and dropping the two variables is the whole
- * migration.
- */
-const servers = new Map<string, { serviceToken(): Promise<string> }>();
-
-export function oxyServiceToken(): Promise<string> {
+export function oxyServiceHost(): OxyServiceHost {
+  if (server) return server;
   const OxyServer = loadOxyModule<OxyServerModule>('@oxy.so/core/server')?.OxyServer;
-  if (OxyServer === undefined) {
-    return Promise.reject(
-      new Error(
-        "@oxy.so/core (^4, ^5 or ^6) is not installed, so this process cannot mint an Oxy service token. Install it, or pass an 'oxyToken' provider of your own.",
-      ),
-    );
-  }
-
-  const credentials = oxyServiceCredentials();
-  const key = credentials?.apiKey ?? '';
-  let server = servers.get(key);
-  if (!server) {
-    server = new OxyServer({
-      baseURL: process.env[OXY_API_URL_ENV_VAR]?.trim() || OXY_API_URL_DEFAULT,
-      ...(credentials ? { serviceAuth: credentials } : {}),
-    });
-    servers.set(key, server);
-  }
-  return server.serviceToken();
+  if (!OxyServer) throw new Error('@oxy.so/core >=7 <8 is required for own service transport.');
+  server = new OxyServer({
+    baseURL: process.env[OXY_API_URL_ENV_VAR]?.trim() || OXY_API_URL_DEFAULT,
+  });
+  return server;
 }

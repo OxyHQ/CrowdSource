@@ -28,7 +28,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 
 const oxySdk = vi.hoisted(() => ({
   canAttestWorkloadIdentity: vi.fn((): boolean => false),
-  oxyServiceToken: vi.fn((): Promise<string> => Promise.resolve('token-from-the-default-provider')),
+  oxyServiceHost: vi.fn(),
 }));
 
 vi.mock('../../oxySdk.js', async (importOriginal) => ({
@@ -118,6 +118,19 @@ beforeEach(() => {
   // test installed in place, so a `mockReturnValue(true)` for the attestation
   // would silently give every later test an identity it never asked for.
   vi.resetAllMocks();
+  oxySdk.oxyServiceHost.mockReturnValue({
+    createServiceClient: () => ({
+      fetch: (input: Parameters<typeof fetch>[0], init?: RequestInit) =>
+        globalThis.fetch(input, {
+          ...init,
+          headers: {
+            ...Object.fromEntries(new Headers(init?.headers)),
+            authorization: 'Bearer token-from-the-default-provider',
+          },
+        }),
+      dispose: () => {},
+    }),
+  });
   // Stated rather than assumed. A developer's shell that happens to export
   // either credential would otherwise make the "configured nothing" tests pass
   // by building a client out of the environment.
@@ -375,7 +388,7 @@ describe('a deployment that configured neither', () => {
       '[CrowdSource] client not built',
       expect.objectContaining({
         auth: 'oxy-service',
-        reason: 'this process cannot obtain an Oxy service token',
+        reason: 'this process has no workload identity',
       }),
     );
   });

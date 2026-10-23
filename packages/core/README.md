@@ -106,9 +106,8 @@ Anything in that table can be overridden per report. Nothing in it has to be.
 
 | Variable | |
 | --- | --- |
-| `CROWDSOURCE_SERVICE_KEY` | Required for a third party. The one value an integration configures. An Oxy service sets `oxyToken` instead and configures nothing — see "Oxy's own services" below. |
+| `CROWDSOURCE_SERVICE_KEY` | Required for a third party. The one value an integration configures. An Oxy service uses `crowdSourceForOxyService()` instead and configures nothing — see "Oxy's own services" below. |
 | `CROWDSOURCE_BASE_URL` | Optional. Overrides the service host — set it only to point at a local backend. `http://` is accepted for `localhost` and refused for anything else, because a service credential sent in clear is a credential you have to rotate. |
-| `OXY_SERVICE_API_KEY` / `OXY_SERVICE_API_SECRET` | Read only by `crowdSourceForOxyService()`, and only where the workload cannot attest. An Oxy service already sets them for the rest of its Oxy calls. Both or neither — one alone, or either left blank, reads as no credential. |
 
 There is **no** `CROWDSOURCE_APP_ID` and there never will be. The application a
 report belongs to is read off the credential; see "The service key" below.
@@ -135,58 +134,35 @@ report belongs to is read off the credential; see "The service key" below.
 
 ## Oxy's own services
 
-Mention, Alia, Homiio and the rest hold no service key. They present the Oxy
-service token their own infrastructure already issues, and CrowdSource resolves
-the tenant from the Oxy application it names — so there is one call and nothing
-to configure:
-
 ```ts
 import { crowdSourceForOxyService } from '@crowdsource.you/core';
-
-const crowdsource = crowdSourceForOxyService();   // undefined where it cannot authenticate
+const crowdsource = crowdSourceForOxyService();
 ```
 
-Three applications each carried their own copy of this: build the client once,
-hand back `undefined` where it cannot be used. None of that was theirs to decide,
-so it lives here now.
+The factory uses `OxyServer.createServiceClient` from `@oxy.so/core` 7 with
+CrowdSource's registered audience `oxy-service:6a6947b30fe72510b411252f`.
+The optional peer is loaded only for this integration. Own workloads use no
+application scopes, API keys or permission prompts. A local process without a
+workload returns `undefined`; reports still belong in its durable outbox.
+Pass `oxy` to use an existing shared workload client, `baseUrl` for a local
+receiver, or `logger` for binding diagnostics. `requester` accepts an account
+with its current session, task or ephemeral requester context; these clients
+are isolated per request. Call `dispose()` when finished with them. Only the
+default application client is shared per process.
 
-- **Built once per process.** Later calls return the same client whatever they
-  ask for; a second one would re-resolve the same tenant and be told the same
-  thing.
-- **`undefined`, never a throw**, where the process can neither attest a workload
-  identity (ADR 0026) nor present an `OXY_SERVICE_API_KEY`/`OXY_SERVICE_API_SECRET`
-  pair. That is a local checkout, and a report filed there must still be stored —
-  the durable row is never gated, and what to do about a missing client is the
-  caller's decision.
-- **`oxyToken` defaults to `OxyServer#serviceToken()` from `@oxy.so/core` 4, 5 or 6**, which is an
-  **optional** peer dependency required lazily on this path only. A third party
-  never installs it, and the root import works in a tree without it. Pass your
-  own provider and it is used in place of the default.
-- **`baseUrl` and `logger` are the only other options.** Timeouts, retries, the
-  idempotency key and the envelope are the client's and are not re-asked here.
-  With a logger, the tenant is resolved once in the background and reported, so a
-  token minted for an Oxy application nobody bound is visible at boot rather than
-  on the first report. Nothing waits on it.
-- **`resetCrowdSourceForOxyService()`** is the test hook.
+The receiver uses the shared service middleware, verifies live identity, and
+resolves its tenant from the active stored application and organization binding.
+Removing or suspending that binding refuses the next request. Audit records
+name the actual workload credential. Own authority permits the application
+surface; staff roles and privileged moderation operations remain separate.
+External CrowdSource keys and external Oxy customer keys retain their real
+scope limits and revocation checks, including keys belonging to an official app.
+The central finite legacy workload bridge is temporary; CrowdSource does not
+infer own authority from branding or legacy token tiers.
 
-`oxyToken` is asked once per request attempt, so a cached token refreshed on
-expiry is the expected shape — which is what `serviceToken()` returns. With it
-set, `CROWDSOURCE_SERVICE_KEY` is neither needed nor read, and there is nothing
-to rotate, store or leak.
-
-The token names an *Oxy* application, so there is no `applicationId` to read off
-it. The client asks `GET /v1/applications/me` once on first use and remembers the
-answer, which is why `applicationId` is a promise on this path and a string on
-the other.
-
-This is not a way around registration: the Oxy application must be bound to a
-CrowdSource one first, and an unbound token authenticates nothing. Third parties
-keep the service key — they run where Oxy cannot vouch for them.
-
-An application that uses `@crowdsource.you/core/outbox` does not call this
-factory — the integration builds its client — so it says the same thing with
-`crowdSource.auth: 'oxy-service'` instead. Same decision, same code, one field.
-See [the outbox integration](#integration) below.
+`applicationId` resolves through `GET /v1/applications/me`; callers cannot choose
+the tenant. `CROWDSOURCE_SERVICE_KEY` remains the external integration path.
+`OXY_SERVICE_API_KEY` and `OXY_SERVICE_API_SECRET` do not configure own access.
 
 ## The service key
 
@@ -507,7 +483,7 @@ crowdSource: {
   delivers nothing.
 - **`'oxy-service'` is `crowdSourceForOxyService()`**, not a second copy of it.
   Whether this process can attest a workload identity or present an
-  `OXY_SERVICE_API_KEY`/`OXY_SERVICE_API_SECRET` pair is decided in one place,
+  shared workload identity is decided in one place,
   and the client is built once per process on either path.
 - **Which one is in force is in the log.** The mode rides on the startup lines
   the integration already writes — `[CrowdSource] client ready`, and the

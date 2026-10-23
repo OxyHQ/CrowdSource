@@ -176,8 +176,9 @@ export class Transport {
       // Resolved per ATTEMPT, not per call: a retry that outlives a short-lived
       // token must carry the new one, and this is the only place that knows an
       // attempt is starting.
-      authorization: `Bearer ${await this.config.bearerToken()}`,
     };
+    const token = await this.config.bearerToken();
+    if (token) headers.authorization = `Bearer ${token}`;
     if (request.body !== undefined) headers['content-type'] = 'application/json';
     if (request.idempotencyKey !== undefined) {
       headers['idempotency-key'] = request.idempotencyKey;
