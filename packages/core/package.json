@@ -68,8 +68,7 @@
     "test:testing": "node ../../node_modules/vitest/vitest.mjs run -c vitest.testing.config.ts",
     "test:invariants": "bun ./scripts/test-invariants.mjs",
     "test:table-type": "bun ./scripts/test-report-table-type.mjs",
-    "test:watch": "node ../../node_modules/vitest/vitest.mjs",
-    "prepublishOnly": "bun run test:without-db && bun run build"
+    "test:watch": "node ../../node_modules/vitest/vitest.mjs"
   },
   "keywords": [
     "crowdsource",
