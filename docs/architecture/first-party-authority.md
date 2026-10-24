@@ -41,3 +41,10 @@ oxy, ...}`. Passing the application's shared `OxyServer` preserves its temporary
 role/SSO provider outside ECS. The default `service-key` lane ignores this field
 and remains external even if the process also has a workload provider. Report
 rows, tenant derivation, stable delivery payloads and webhook signatures are unchanged.
+
+The adoption release pins published core7.0.0/contracts6.0.0/services13.0.0 and
+protocol1.5.1. Core3.1.0 carries the own shared factory, temporary workload
+provider and optional outbox `oxy` injection. Registry validation passed 92 SDK
+unit tests, 8 real HTTP receiver tests, backend/SDK builds, and both application
+type checks. Publish the receiver revision before switching callers to v2;
+external keys retain their existing bounded, revocable authority.
