@@ -28,7 +28,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 
 const oxySdk = vi.hoisted(() => ({
   canAttestWorkloadIdentity: vi.fn((): boolean => false),
-  oxyServiceToken: vi.fn((): Promise<string> => Promise.resolve('token-from-the-default-provider')),
+  oxyServiceHost: vi.fn(),
 }));
 
 vi.mock('../../oxySdk.js', async (importOriginal) => ({
@@ -118,6 +118,19 @@ beforeEach(() => {
   // test installed in place, so a `mockReturnValue(true)` for the attestation
   // would silently give every later test an identity it never asked for.
   vi.resetAllMocks();
+  oxySdk.oxyServiceHost.mockReturnValue({
+    createServiceClient: () => ({
+      fetch: (input: Parameters<typeof fetch>[0], init?: RequestInit) =>
+        globalThis.fetch(input, {
+          ...init,
+          headers: {
+            ...Object.fromEntries(new Headers(init?.headers)),
+            authorization: 'Bearer token-from-the-default-provider',
+          },
+        }),
+      dispose: () => {},
+    }),
+  });
   // Stated rather than assumed. A developer's shell that happens to export
   // either credential would otherwise make the "configured nothing" tests pass
   // by building a client out of the environment.
@@ -375,7 +388,7 @@ describe('a deployment that configured neither', () => {
       '[CrowdSource] client not built',
       expect.objectContaining({
         auth: 'oxy-service',
-        reason: 'this process cannot obtain an Oxy service token',
+        reason: 'this process has no workload identity',
       }),
     );
   });
@@ -395,6 +408,48 @@ describe('a disabled integration', () => {
     expect(logger.info).not.toHaveBeenCalled();
     expect(logger.warn).not.toHaveBeenCalled();
     expect(logger.error).not.toHaveBeenCalled();
+    expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
+  });
+});
+
+describe('an explicitly injected shared workload provider', () => {
+  it('works without container detection and preserves the configured tenant transport', async () => {
+    const calls = stubFetch([namesTheTenant()]);
+    const createServiceClient = vi.fn(() => ({
+      fetch: (input: Parameters<typeof fetch>[0], init?: RequestInit) =>
+        globalThis.fetch(input, {
+          ...init,
+          headers: {
+            ...Object.fromEntries(new Headers(init?.headers)),
+            authorization: 'Bearer injected-workload',
+          },
+        }),
+      dispose: () => {},
+    }));
+    const provider = createClientProvider({
+      config: connection({ auth: 'oxy-service', oxy: { createServiceClient }, baseUrl: BASE_URL }),
+      logger: recordingLogger(),
+    });
+    const client = provider.get();
+    expect(await client?.applicationId).toBe(BOUND_APPLICATION);
+    expect(provider.get()).toBe(client);
+    expect(createServiceClient).toHaveBeenCalledExactlyOnceWith({
+      baseURL: BASE_URL,
+      audience: 'oxy-service:6a6947b30fe72510b411252f',
+    });
+    expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
+    expect(oxySdk.oxyServiceHost).not.toHaveBeenCalled();
+    expect(calls[0]?.authorization).toBe('Bearer injected-workload');
+  });
+
+  it('never promotes an external service key when an own provider is also present', () => {
+    const createServiceClient = vi.fn();
+    const client = createClientProvider({
+      config: connection({ serviceKey: SERVICE_KEY, oxy: { createServiceClient } }),
+      logger: recordingLogger(),
+    }).get();
+    expect(client?.applicationId).toBe(KEYED_APPLICATION);
+    expect(createServiceClient).not.toHaveBeenCalled();
     expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
   });
 });

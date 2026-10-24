@@ -55,12 +55,17 @@ export function hashCredentialSecret(secret: string): string {
 }
 
 /** An authenticated application-API caller. */
-export interface ServiceCredentialCaller {
+interface ServiceCredentialIdentity {
   readonly credentialId: string;
-  readonly scopes: readonly string[];
   /** Derived from the credential's application. Never from the request. */
   readonly tenant: TenantContext;
 }
+
+export type ServiceCredentialCaller = ServiceCredentialIdentity &
+  (
+    | { readonly authority: 'first_party'; readonly scopes?: never }
+    | { readonly authority: 'external'; readonly scopes: readonly string[] }
+  );
 
 interface ParsedToken {
   readonly credentialId: string;
@@ -136,6 +141,7 @@ export async function authenticateServiceCredential(
   if (organization?.status !== 'active' || !organization.oxyAccountId) throw unauthorized;
 
   return {
+    authority: 'external',
     credentialId: credential.credentialId,
     scopes: credential.scopes,
     tenant: createTenantContext(application.organizationId, application.applicationId),

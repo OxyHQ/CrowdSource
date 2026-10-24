@@ -62,6 +62,8 @@ export interface CrowdSourceOptions {
    * key: they run where Oxy cannot vouch for them.
    */
   readonly oxyToken?: () => string | Promise<string>;
+  /** Authenticated shared transport. The Oxy factory owns this workload lane. */
+  readonly oxyTransport?: { readonly fetch: FetchLike; dispose?(): void };
   readonly baseUrl?: string;
   /** Per-attempt deadline. Default 10s. */
   readonly timeoutMs?: number;
@@ -83,6 +85,8 @@ export interface CrowdSourceOptions {
 }
 
 export class CrowdSource {
+  /** Release shared transport resources when a requester-bound client is finished. */
+  readonly dispose: () => void;
   /**
    * The application this client acts as.
    *
@@ -109,10 +113,13 @@ export class CrowdSource {
      * than the secret it still happens to hold. Removing the key is then the
      * cleanup, not the cutover.
      */
+    this.dispose = () => options.oxyTransport?.dispose?.();
     const oxyToken = options.oxyToken;
     let credential: ServiceCredential | null = null;
     let bearerToken: () => string | Promise<string>;
-    if (oxyToken) {
+    if (options.oxyTransport) {
+      bearerToken = () => '';
+    } else if (oxyToken) {
       bearerToken = () => oxyToken();
     } else {
       const parsed = parseServiceKey(options.serviceKey ?? process.env[SERVICE_KEY_ENV_VAR] ?? '');
@@ -124,7 +131,7 @@ export class CrowdSource {
       options.baseUrl ?? process.env[BASE_URL_ENV_VAR] ?? DEFAULT_BASE_URL,
     );
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const fetchImpl = options.fetch ?? globalThis.fetch;
+    const fetchImpl = options.oxyTransport?.fetch ?? options.fetch ?? globalThis.fetch;
     if (typeof fetchImpl !== 'function') {
       throw new CrowdSourceConfigurationError(
         'This runtime has no global fetch. Pass one as the `fetch` option.',

@@ -4,12 +4,14 @@ The backend publishes aggregate traffic and its infrastructure heartbeat to the
 Oxy API, which broadcasts changes to the website dashboard. Collection runs in
 the service process regardless of whether somebody opens the dashboard.
 
-Active whenever both halves of a registered Oxy application credential
-(`OXY_SERVICE_API_KEY` and `OXY_SERVICE_API_SECRET`) are present, plus
-`AWS_REGION`; there is no separate enable flag. Missing required configuration
-otherwise fails at boot. Absent credentials emit a warning and collection stays
-off; that warning must not be interpreted as zero traffic. Provision both
-credentials in the deployment before claiming coverage.
+With `AWS_REGION` configured, the publisher uses the shared temporary AWS role
+provider, including ECS and authenticated development/SSO roles. Oxy validates
+its live application/environment binding (ADR 0049); own apps need no scopes or
+customer keys. Missing region omits only telemetry. Missing/revoked identity is
+reported through the shared publisher's retry policy and is not zero traffic.
+The same provider supports live service introspection and session verification;
+CrowdSource tenant binding, organization status and privileged roles remain
+independent domain checks.
 
 HTTP middleware is mounted before body parsers and routers, including public
 routes, webhooks, failures and authenticated internal calls. Outgoing fetch and

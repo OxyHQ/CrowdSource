@@ -44,6 +44,8 @@ export type { CrowdSourceOptions } from './client.js';
  */
 export { crowdSourceForOxyService, resetCrowdSourceForOxyService } from './oxyService.js';
 export type { OxyServiceClientLogger, OxyServiceClientOptions } from './oxyService.js';
+export type { OxyServiceHost, OxyRequester } from './oxySdk.js';
+export { CROWDSOURCE_SERVICE_AUDIENCE } from './defaults.js';
 
 export { formatServiceKey, parseServiceKey } from './credential.js';
 export type { ServiceCredential } from './credential.js';

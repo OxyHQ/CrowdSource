@@ -164,6 +164,7 @@ function fromOxyIdentity(input: ProviderInput): ClientAttempt {
 
   const built = crowdSourceForOxyService({
     logger: taggedLogger(input.logger),
+    ...(input.config.oxy === undefined ? {} : { oxy: input.config.oxy }),
     ...(input.config.baseUrl === undefined ? {} : { baseUrl: input.config.baseUrl }),
   });
 
