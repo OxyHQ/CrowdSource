@@ -48,3 +48,9 @@ provider and optional outbox `oxy` injection. Registry validation passed 92 SDK
 unit tests, 8 real HTTP receiver tests, backend/SDK builds, and both application
 type checks. Publish the receiver revision before switching callers to v2;
 external keys retain their existing bounded, revocable authority.
+
+The optional Oxy peer is `>=7.0.0 <8`, the supported shared service-client
+contract. A fresh packed consumer with neither `@oxy.so/core` nor the AWS
+credential provider installed successfully imports the root via both CJS and
+ESM. The lazy own-service factory is exported but is not initialized by importing
+the ordinary external client. SDK unit tests also run against published core7.
