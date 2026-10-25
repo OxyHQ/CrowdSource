@@ -18,7 +18,7 @@
     "build:reviewer": "bun run --cwd packages/reviewer build",
     "build:console": "bun run --cwd packages/console build",
     "build:backend": "bun run build:contracts && bun run --cwd packages/backend build",
-    "audit:security": "bun ./scripts/audit-security.mjs",
+    "audit:security": "bun ./scripts/test-zod-audit-paths.mjs && bun ./scripts/audit-security.mjs",
     "check:tests-typechecked": "bun ./.github/scripts/assert-tests-typechecked.mjs",
     "check:lockfile": "bun ./scripts/check-lockfile-sync.mjs",
     "check:injection-sinks": "bun ./scripts/check-injection-sinks.mjs --min-files=200",
@@ -93,6 +93,7 @@
     "proxy-addr": "2.0.8",
     "shell-quote": "1.12.0",
     "source-map-js": "1.2.2",
-    "react-native-css": "3.1.0-rc.0"
+    "react-native-css": "3.1.0-rc.0",
+    "body-parser": "2.4.0"
   }
 }

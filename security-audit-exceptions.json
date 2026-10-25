@@ -23,6 +23,14 @@
       "reason": "No fixed version of node-forge exists: the advisory covers <=1.4.0 and 1.4.0 is the latest published release, so an override has nothing to point at. Its only paths are @expo/cli and @expo/code-signing-certificates, entered through expo by the two app workspaces; @crowdsource/backend reaches it only through @oxy.so/core's optional expo peers, which the backend image omits (--omit=peer --omit=optional).",
       "compensation": "The flaw is lenient RSA PKCS#1 v1.5 signature verification. The repository only runs expo export for static web bundles; it never verifies expo-updates code-signing signatures, and no server request path, published package or shipped app bundle loads node-forge.",
       "expires": "2026-10-31"
+    },
+    {
+      "advisory": "GHSA-mrhx-c7xc-m3w5",
+      "package": "zod",
+      "scope": "Exact expo@58.0.16 \u2192 @expo/cli@58.1.13 \u2192 zod@3.25.76 Node build-tool path only",
+      "reason": "Expo CLI still depends on Zod 3, which has no patched release. Own application parsers and both published packages resolve patched Zod 4.6.7. Overriding the CLI to a breaking parser major would be unverified.",
+      "compensation": "scripts/zod-audit-paths.mjs freezes artifact identities/integrities and checks every incoming lock edge; direct API/SDK CLI consumers, new parents and any other vulnerable Zod resolution fail before audit. Static web export does not ship the Node CLI; backend image omits Expo peers. See docs/architecture/dependency-audit.md.",
+      "expires": "2026-10-31"
     }
   ]
 }
