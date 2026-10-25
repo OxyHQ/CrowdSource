@@ -40,7 +40,7 @@ That is the token `POST /v1/console/applications/{id}/credentials` returns as
 or the external credential (`modules/tenancy/credential.service.ts`), never
 from a caller-supplied account or application header. The Case
 Envelope carries a copy so a mismatch can be **detected**: ingress compares it
-to the credential-derived id and refuses with `403` plus an
+to the verified application id and refuses with `403` plus an
 `application_mismatch` audit row (`modules/ingestion/envelopeValidation.ts`).
 
 Every authentication failure is the same `401` with the same message, whether

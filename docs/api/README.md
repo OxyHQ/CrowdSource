@@ -53,7 +53,8 @@ somebody remembers at each route:
 The tenant follows from the class and is never named by the caller. An
 application's `applicationId` comes from the external credential or the active
 stored tenant binding of its verified Oxy service identity. Own workload access
-uses no internal scope grant; external credentials retain their scope ceilings. A console caller names an *application id in the
+uses no internal scope grant; external credentials retain their scope ceilings.
+A console caller names an *application id in the
 path*, and `organizationId` is read from the stored row before a membership is
 checked (`console/membership.service.ts`, `resolveApplicationForMember`). A
 reviewer carries no tenant at all — a juror is drawn across every application by
