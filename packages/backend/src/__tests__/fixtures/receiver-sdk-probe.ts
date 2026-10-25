@@ -53,6 +53,7 @@ globalThis.fetch = new Proxy(originalFetch, {
 });
 
 async function run(): Promise<void> {
+  let resetOxySession: (() => void) | undefined;
   try {
     issuer = createServer((req, res) => {
       // A server validating the bearer its request carried hands Oxy that bearer
@@ -84,7 +85,7 @@ async function run(): Promise<void> {
       '../../modules/console/consoleAuth.js'
     );
     const { errorHandler } = await import('../../http/errorHandler.js');
-    const { resetOxySession } = await import('../../modules/identity/oxySession.js');
+    ({ resetOxySession } = await import('../../modules/identity/oxySession.js'));
     const middleware = requireConsoleSession();
     const app = express();
     app.get('/owned-fixture', middleware, (req: ExpressRequest, res: ExpressResponse) => {
@@ -137,6 +138,7 @@ async function run(): Promise<void> {
         '\n',
     );
   } finally {
+    resetOxySession?.();
     try {
       await close(receiver);
     } finally {

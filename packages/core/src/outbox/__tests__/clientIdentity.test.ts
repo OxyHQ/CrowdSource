@@ -27,7 +27,7 @@ import postgres from 'postgres';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 const oxySdk = vi.hoisted(() => ({
-  canAttestWorkloadIdentity: vi.fn((): boolean => false),
+  hasOxyServiceSdk: vi.fn((): boolean => false),
   oxyServiceHost: vi.fn(),
 }));
 
@@ -161,7 +161,7 @@ describe('the service key, which is what every deployment did before auth existe
     });
     // Not merely "the key won": the first-party path was never consulted, so a
     // third party's tree is never asked a question about Oxy at all.
-    expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
+    expect(oxySdk.hasOxyServiceSdk).not.toHaveBeenCalled();
   });
 
   it('behaves identically when the default is written out', () => {
@@ -173,7 +173,7 @@ describe('the service key, which is what every deployment did before auth existe
     }).get();
 
     expect(client?.applicationId).toBe(KEYED_APPLICATION);
-    expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
+    expect(oxySdk.hasOxyServiceSdk).not.toHaveBeenCalled();
   });
 
   it('is built once, not once per delivery', () => {
@@ -210,7 +210,7 @@ describe('the service key, which is what every deployment did before auth existe
 
 describe('an Oxy service, which configures no key at all', () => {
   beforeEach(() => {
-    oxySdk.canAttestWorkloadIdentity.mockReturnValue(true);
+    oxySdk.hasOxyServiceSdk.mockReturnValue(true);
   });
 
   it('builds a client that presents the Oxy service token', async () => {
@@ -388,7 +388,7 @@ describe('a deployment that configured neither', () => {
       '[CrowdSource] client not built',
       expect.objectContaining({
         auth: 'oxy-service',
-        reason: 'this process has no workload identity',
+        reason: 'the optional Oxy workload SDK is unavailable',
       }),
     );
   });
@@ -408,7 +408,7 @@ describe('a disabled integration', () => {
     expect(logger.info).not.toHaveBeenCalled();
     expect(logger.warn).not.toHaveBeenCalled();
     expect(logger.error).not.toHaveBeenCalled();
-    expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
+    expect(oxySdk.hasOxyServiceSdk).not.toHaveBeenCalled();
   });
 });
 
@@ -437,7 +437,7 @@ describe('an explicitly injected shared workload provider', () => {
       baseURL: BASE_URL,
       audience: 'oxy-service:6a6947b30fe72510b411252f',
     });
-    expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
+    expect(oxySdk.hasOxyServiceSdk).not.toHaveBeenCalled();
     expect(oxySdk.oxyServiceHost).not.toHaveBeenCalled();
     expect(calls[0]?.authorization).toBe('Bearer injected-workload');
   });
@@ -450,6 +450,6 @@ describe('an explicitly injected shared workload provider', () => {
     }).get();
     expect(client?.applicationId).toBe(KEYED_APPLICATION);
     expect(createServiceClient).not.toHaveBeenCalled();
-    expect(oxySdk.canAttestWorkloadIdentity).not.toHaveBeenCalled();
+    expect(oxySdk.hasOxyServiceSdk).not.toHaveBeenCalled();
   });
 });

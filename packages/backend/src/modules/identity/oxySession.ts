@@ -67,6 +67,7 @@ function builtSessionMiddleware(): RequestHandler {
 
 /** Test seam: forget the built client so a reconfigured environment is picked up. */
 export function resetOxySession(): void {
+  oxyServer?.dispose();
   oxyServer = null;
   sessionMiddleware = null;
 }
