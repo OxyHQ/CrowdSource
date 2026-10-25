@@ -7,7 +7,7 @@ staging host. An application's own pre-production is a property of the *report*
 
 | Document | Caller |
 | --- | --- |
-| [`application.md`](./application.md) | An application, holding a **service credential**. |
+| [`application.md`](./application.md) | An application, with **verified workload identity or an external service credential**. |
 | [`reviewer.md`](./reviewer.md) | A reviewer, holding an **Oxy session**. |
 | [`console.md`](./console.md) | A developer with an **organization membership**, and Trust & Safety with a **staff role**. |
 | [`webhooks.md`](./webhooks.md) | Not a caller — what CrowdSource sends *you*. |
@@ -21,12 +21,12 @@ composes in the route file, and each section names the file.
 ## Four caller classes, and none of them substitutes for another
 
 This is the part of the API easiest to get wrong when reading it quickly, so it
-is stated first. There are **two authentication mechanisms**, and on top of the
-second, **three authorizations**.
+is stated first. Application service identities and user sessions are separate
+lanes; user sessions have three distinct product authorizations.
 
 | Class | Presents | Established by | Reaches |
 | --- | --- | --- | --- |
-| Application | `Authorization: Bearer <credentialId>.<secret>` | `modules/tenancy/credential.service.ts` | `/v1/reports`, `/v1/cases`, `/v1/decisions`, `/v1/cases/{id}/appeals`, `/v1/webhook-endpoints` |
+| Application | Own Oxy workload bearer or bounded external service credential | `modules/tenancy/oxyApplicationAuth.ts` / `credential.service.ts` | `/v1/reports`, `/v1/cases`, `/v1/decisions`, `/v1/cases/{id}/appeals`, `/v1/webhook-endpoints` |
 | Reviewer | An Oxy session | `modules/identity/oxySession.ts` + `modules/reviewer/reviewerAuth.ts` | `/v1/reviewer/*` |
 | Developer | An Oxy session **and** an active organization membership | `modules/console/membership.service.ts` | `/v1/console/*` |
 | Trust & Safety | An Oxy session **and** a staff role | `modules/console/consoleAuth.ts` | `/v1/trust-safety/*` |
@@ -40,10 +40,10 @@ somebody remembers at each route:
   service token as an Oxy session, so the guard behind it answers `401`. A
   leaked integrator key therefore cannot read a console or an assignment.
 - **An Oxy session cannot satisfy an application-API route.**
-  `requireServiceCredential` (`modules/tenancy/serviceCredentialAuth.ts`) parses
-  the bearer as `<credentialId>.<secret>` and looks that credential up; an Oxy
-  access token is not one, and every rejection is the same `401` with the same
-  message.
+  `requireServiceCredential` (`modules/tenancy/serviceCredentialAuth.ts`) routes
+  service JWTs through the shared Oxy service verifier and local credentials
+  through the credential lookup. A user session is neither service authority
+  nor an application credential; it cannot be promoted by its token shape.
 - **A verified session by itself grants nothing.** Every Oxy account in
   existence authenticates. A reviewer profile is created on first sight in the
   `applicant` state and can decide nothing; a membership is granted by an
@@ -51,8 +51,10 @@ somebody remembers at each route:
   out of band, deliberately (`modules/console/staff.service.ts`).
 
 The tenant follows from the class and is never named by the caller. An
-application's `applicationId` comes off its credential
-(`credential.service.ts:135`). A console caller names an *application id in the
+application's `applicationId` comes from the external credential or the active
+stored tenant binding of its verified Oxy service identity. Own workload access
+uses no internal scope grant; external credentials retain their scope ceilings.
+A console caller names an *application id in the
 path*, and `organizationId` is read from the stored row before a membership is
 checked (`console/membership.service.ts`, `resolveApplicationForMember`). A
 reviewer carries no tenant at all — a juror is drawn across every application by

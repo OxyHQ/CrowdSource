@@ -1,6 +1,7 @@
 # Application API
 
-The surface an application talks to, authenticated by a **service credential**.
+The surface an application talks to, authenticated by **verified service identity**:
+own Oxy workload authority or a bounded external credential.
 An Oxy session never satisfies any route here — see
 [the four caller classes](./README.md#four-caller-classes-and-none-of-them-substitutes-for-another).
 
@@ -12,6 +13,20 @@ client in another language.
 
 ## Authentication
 
+Own Oxy applications use `crowdSourceForOxyService({ oxy })` from the public
+SDK. Its shared transport presents a workload token for CrowdSource's exact
+receiving audience. The receiver verifies it through Oxy's live service
+middleware, then resolves the active stored application and organization
+binding (`modules/tenancy/oxyApplicationAuth.ts`). Own authority carries no app
+scopes or consent grant; tenant isolation, operation policy and privileged
+reviewer/staff boundaries still apply.
+
+Oxy-issued external service tokens also pass through the shared verifier. They
+remain external and retain their live scope ceilings; an official application
+name does not promote a customer credential to own workload authority.
+
+External CrowdSource-issued application credentials retain the following format:
+
 ```
 Authorization: Bearer <credentialId>.<secret>
 ```
@@ -21,10 +36,11 @@ That is the token `POST /v1/console/applications/{id}/credentials` returns as
 `applicationId:credentialId:secret` — see
 [the integration guide](../integration.md#the-service-key-has-three-parts-and-the-console-shows-two).
 
-`applicationId` is derived from the credential
-(`modules/tenancy/credential.service.ts`) and from nowhere else. The Case
+`applicationId` is derived from the verified Oxy service identity's stored tenant binding
+or the external credential (`modules/tenancy/credential.service.ts`), never
+from a caller-supplied account or application header. The Case
 Envelope carries a copy so a mismatch can be **detected**: ingress compares it
-to the credential-derived id and refuses with `403` plus an
+to the verified application id and refuses with `403` plus an
 `application_mismatch` audit row (`modules/ingestion/envelopeValidation.ts`).
 
 Every authentication failure is the same `401` with the same message, whether
@@ -34,8 +50,10 @@ audit trail, not in the response.
 
 ## Scopes
 
-Named at the mount point of each route, so what a route needs is visible where
-it is declared. Grantable to an application credential
+Route operation names remain visible at each mount point. For external
+credentials they are scope ceilings; own verified workload authority does not
+require or fabricate a scope list. Privileged operations remain outside the
+application lane in both cases. Grantable to an external application credential
 (`modules/tenancy/scopes.ts`, `APPLICATION_SCOPES`):
 
 `crowdsource:reports:write` · `crowdsource:reports:read` ·
