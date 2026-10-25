@@ -44,10 +44,11 @@ recorded.
   feed serves that does not verify is skipped (it never will); any other failure
   leaves the cursor where it was.
 
-The service's Oxy identity is the task's attested IAM role (oxy ADR 0026); an
-`OXY_SERVICE_API_KEY`/`OXY_SERVICE_API_SECRET` pair, if the task ever carries
-one, is used instead. Both the audience check and the pull feed follow that
-identity.
+The service's Oxy identity comes from its registered temporary workload role
+through the shared AWS provider (`modules/identity/workload.ts`) and OxyServer
+(`modules/identity/oxyService.ts`). Both the audience check and the pull feed
+follow that live-verified identity. Own service API keys do not replace it;
+external customer credentials remain a separate bounded caller contract.
 
 **Nothing infers a deletion.** A missing profile or a `404` from Oxy starts
 nothing. Only a verified event does.
