@@ -29,7 +29,7 @@
     "pino": "^10.4.0",
     "postgres": "^3.4.9",
     "zod": "^4.6.7",
-    "@aws-sdk/credential-provider-node": "3.972.84"
+    "@aws-sdk/credential-provider-node": "3.972.88"
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",
