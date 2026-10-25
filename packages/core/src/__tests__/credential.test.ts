@@ -99,6 +99,7 @@ describe('the client surface', () => {
       // so the caller still cannot choose one. That is the invariant this case
       // protects, and an option that widened it would still fail here.
       | 'oxyToken'
+      | 'oxyTransport'
       | 'baseUrl'
       | 'timeoutMs'
       | 'maxAttempts'

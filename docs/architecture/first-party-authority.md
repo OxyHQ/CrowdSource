@@ -1,0 +1,56 @@
+# First-party service authority
+
+Own services authenticate through shared Oxy workload middleware with audience
+`oxy-service:6a6947b30fe72510b411252f`. Oxy centrally confirms live authority.
+CrowdSource maps the verified application to its active stored tenant and active
+organization. Neither an HTTP body nor an account header chooses that tenant.
+The caller union carries `authority: first_party` without scopes, or `external`
+with actual scopes. Own callers can use the application surface; privileged
+moderation/staff authority remains separate. Audit ids include the exact Oxy
+credential/workload handle. Oxy customer keys remain external even on an official
+application; CrowdSource keys keep their existing scopes, expiry and revocation.
+
+The product SDK factory delegates to `OxyServer.createServiceClient`. It accepts
+an existing `oxy` client and optional verified requester proof. Requester-bound
+clients are never shared across accounts and can be disposed after use. There
+is no own credential-pair fallback. The external `new CrowdSource({serviceKey})`
+interface remains available.
+
+## Validation and release order
+
+Source validation used local candidate Oxy core 7 / contracts 6, including Oxy
+commit `4c4801e83`; temporary file dependencies were restored afterwards. This
+source branch is not a deployment claim. Before publishing/deploying, update
+registry dependency pins and the SDK peer range to the released compatible core,
+release the changed factory contract, and migrate own callers using its removed
+`oxyToken` option to `oxy`. The root client still supports an explicit manual
+`oxyToken` provider for external compatibility; that does not establish own
+authority at the receiver.
+
+Verified: backend full suite 1540 tests in 93 files; final changed-boundary suite
+17 tests including receiver signature/live authority, external narrowing and
+revocation, tenant/organization isolation, privileged-operation denial, own SDK
+HTTP transport and proof redaction. SDK unit/HTTP suites, outbox 140 tests in 18
+files, and all 13 invariant mutations passed. Backend and SDK builds, production
+and test type checks, and changed-file Biome checks passed. The central Oxy test
+also traverses real SDK middleware, HTTP introspection and PostgreSQL authority;
+product tests stub that central authority boundary while verifying signed JWTs.
+
+The own outbox configuration also accepts `crowdSource: {auth: 'oxy-service',
+oxy, ...}`. Passing the application's shared `OxyServer` preserves its temporary
+role/SSO provider outside ECS. The default `service-key` lane ignores this field
+and remains external even if the process also has a workload provider. Report
+rows, tenant derivation, stable delivery payloads and webhook signatures are unchanged.
+
+The adoption release pins published core7.0.0/contracts6.0.0/services13.0.0 and
+protocol1.5.1. Core3.1.0 carries the own shared factory, temporary workload
+provider and optional outbox `oxy` injection. Registry validation passed 92 SDK
+unit tests, 8 real HTTP receiver tests, backend/SDK builds, and both application
+type checks. Publish the receiver revision before switching callers to v2;
+external keys retain their existing bounded, revocable authority.
+
+The optional Oxy peer is `>=7.0.0 <8`, the supported shared service-client
+contract. A fresh packed consumer with neither `@oxy.so/core` nor the AWS
+credential provider installed successfully imports the root via both CJS and
+ESM. The lazy own-service factory is exported but is not initialized by importing
+the ordinary external client. SDK unit tests also run against published core7.

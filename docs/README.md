@@ -54,3 +54,5 @@ for what is genuinely missing — and a *removed* capability and an *unbuilt* on
 look identical in a list while calling for opposite responses. So each bullet in
 [`api/README.md`](./api/README.md#what-is-not-served) says which it is and is a
 pattern no served route may match.
+
+[Own workload authority and external credentials](architecture/first-party-authority.md)

@@ -3,8 +3,12 @@ import type { Request, RequestHandler } from 'express';
 import type { TenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';
 import { authenticateServiceCredential, type ServiceCredentialCaller } from './credential.service';
-import { authenticateOxyServiceToken, looksLikeOxyServiceToken } from './oxyApplicationAuth';
-import type { Scope } from './scopes';
+import {
+  authenticateOxyServiceToken,
+  looksLikeOxyServiceToken,
+  verifyOxyApplication,
+} from './oxyApplicationAuth';
+import { isApplicationScope, type Scope } from './scopes';
 
 /**
  * The application-API authentication middleware.
@@ -40,70 +44,41 @@ function presentedToken(request: Request): string | null {
  * point makes what a route needs visible where the route is declared.
  */
 export function requireServiceCredential(scope: Scope): RequestHandler {
-  return async (request, _response, next) => {
-    try {
-      const token = presentedToken(request);
-      if (!token) {
-        throw new ApiError('unauthorized', 'This endpoint requires a service credential.');
-      }
-
-      /**
-       * Two ways to be an application here, and the token says which.
-       *
-       * A CrowdSource credential is `credentialId:secret`; an Oxy service token
-       * is a JWT. Oxy's own services present the latter and hold no credential
-       * at all (`oxyApplicationAuth.ts`), which is what removes the hand-issued
-       * key from every first-party integration. A third party is unaffected:
-       * it presents a credential and takes the path below exactly as before.
-       *
-       * The shape only picks the verifier. Each path verifies its own token in
-       * full, and a malformed one fails whichever it reached.
-       */
-      const caller = looksLikeOxyServiceToken(token)
-        ? await authenticateOxyServiceToken(token, request)
-        : await authenticateServiceCredential(token);
-      if (!caller.scopes.includes(scope)) {
-        // 403, not 401: the credential is valid, the capability is not granted
-        // (§10.5). Answering 401 would send an integrator to rotate a working
-        // credential instead of adding the scope.
-        throw new ApiError('forbidden', `This endpoint requires the '${scope}' scope.`);
-      }
-
-      authenticatedCallers.set(request, caller);
-      next();
-    } catch (error: unknown) {
-      next(error);
-    }
-  };
+  return authenticateApplication(scope);
 }
 
-/**
- * Authenticates without requiring any scope.
- *
- * For the one question that is not about data: "who am I here". A caller that
- * has authenticated already knows it is entitled to that answer, and demanding a
- * data scope to learn one's own application id would mean an integrator needs
- * `reports:read` to find out where its reports would go.
- *
- * Exported for exactly one route, and it should stay that way: a route mounted
- * with authentication and no authorization is the mistake
- * `requireServiceCredential` exists to prevent, and the single caller is an
- * identity echo that reads nothing.
- */
+/** Identity echo only; data routes must declare their application operation. */
 export function requireAnyServiceCredential(): RequestHandler {
-  return async (request, _response, next) => {
-    try {
-      const token = presentedToken(request);
-      if (!token) {
-        throw new ApiError('unauthorized', 'This endpoint requires a service credential.');
-      }
+  return authenticateApplication();
+}
+
+function authenticateApplication(scope?: Scope): RequestHandler {
+  return (request, response, next) => {
+    const token = presentedToken(request);
+    if (!token)
+      return next(new ApiError('unauthorized', 'This endpoint requires a service credential.'));
+    const complete = async () => {
       const caller = looksLikeOxyServiceToken(token)
-        ? await authenticateOxyServiceToken(token, request)
+        ? await authenticateOxyServiceToken(request)
         : await authenticateServiceCredential(token);
+      if (
+        scope &&
+        (caller.authority === 'first_party'
+          ? !isApplicationScope(scope)
+          : !caller.scopes.includes(scope))
+      ) {
+        throw new ApiError('forbidden', `This endpoint requires the '${scope}' authority.`);
+      }
       authenticatedCallers.set(request, caller);
       next();
-    } catch (error: unknown) {
-      next(error);
+    };
+    if (looksLikeOxyServiceToken(token)) {
+      verifyOxyApplication()(request, response, (error) => {
+        if (error) return next(error);
+        void complete().catch(next);
+      });
+    } else {
+      void complete().catch(next);
     }
   };
 }

@@ -1,3 +1,4 @@
+import { workloadCredentials } from './workload';
 import { OxyServer, createOptionalOxyAuth } from '@oxy.so/core/server';
 import type { Request, RequestHandler } from 'express';
 
@@ -49,7 +50,7 @@ function builtSessionMiddleware(): RequestHandler {
     );
   }
 
-  oxyServer ??= new OxyServer({ baseURL: apiUrl });
+  oxyServer ??= new OxyServer({ baseURL: apiUrl, workloadCredentials });
   /**
    * The OPTIONAL variant, and then each surface's own guard.
    *
@@ -66,6 +67,7 @@ function builtSessionMiddleware(): RequestHandler {
 
 /** Test seam: forget the built client so a reconfigured environment is picked up. */
 export function resetOxySession(): void {
+  oxyServer?.dispose();
   oxyServer = null;
   sessionMiddleware = null;
 }
