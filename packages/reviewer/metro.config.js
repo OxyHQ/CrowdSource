@@ -82,7 +82,8 @@ config.transformer = {
       keep_fnames: false,
     },
     output: {
-      ascii_only: true,
+      // Emit UTF-8 translations directly; ASCII escapes multiply non-Latin locale chunks.
+      ascii_only: false,
       quote_style: 3,
       wrap_iife: true,
     },
