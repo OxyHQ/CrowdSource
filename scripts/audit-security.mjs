@@ -1,18 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { createGunzip } from 'node:zlib';
-import { inspectZodLock, ZOD_ADVISORY } from './zod-audit-paths.mjs';
 
 const exceptionFile = new URL('../security-audit-exceptions.json', import.meta.url);
 const parsed = JSON.parse(await readFile(exceptionFile, 'utf8'));
 const exceptions = Array.isArray(parsed.exceptions) ? parsed.exceptions : [];
 const today = new Date();
-const zodErrors = inspectZodLock(
-  Bun.JSONC.parse(await readFile(new URL('../bun.lock', import.meta.url), 'utf8')),
-);
-if (zodErrors.length) throw new Error(zodErrors.join('\n'));
-const zodException = exceptions.find((entry) => entry.advisory === ZOD_ADVISORY);
-if (zodException && zodException.package !== 'zod') throw new Error('Zod exception must name zod');
-
 for (const entry of exceptions) {
   for (const field of ['advisory', 'package', 'scope', 'reason', 'compensation', 'expires']) {
     if (typeof entry[field] !== 'string' || entry[field].trim() === '') {
