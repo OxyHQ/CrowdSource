@@ -160,8 +160,9 @@ touched. It reads exactly like someone else's broken commit.
   and an Oxy session must never satisfy an application-API route.
 - **THREE authorizations on that one identity, not interchangeable** — a reviewer
   profile, an organization membership, a Trust & Safety role (the Oxy application
-  permission `trust_safety.<role>`). A verified session grants none of them:
-  every Oxy account authenticates. No route here grants a staff role.
+  permission `trust_safety.<role>`, declared in oxy's first-party registry and
+  held by a role in the owning org, oxy ADR 0056 — never a per-person grant or a
+  local list). A verified session grants none of them. No route here grants one.
 - **A console caller names a resource; it never names a tenant.**
   `organizationId` is read off the STORED row, and a membership is required
   before a `TenantContext` exists. No console handler reads one from a body or

@@ -35,8 +35,10 @@ import { appendStaffAuditEvent } from './staffAudit.collection';
  * A different caller class from the application API and a different AUTHORIZATION
  * from the developer console, even though it shares the latter's authentication: an
  * Oxy session plus a `trust_safety.<role>` permission on CrowdSource's Oxy
- * application. Every Oxy account in existence satisfies the session; a handful
- * hold the permission.
+ * application, held through a role in the organization that owns CrowdSource
+ * (declared in Oxy's first-party registry, oxy ADR 0056 — see `consoleAuth.ts`).
+ * Every Oxy account in existence satisfies the session; a handful hold the
+ * permission.
  *
  * ## What is here, and what is deliberately not
  *

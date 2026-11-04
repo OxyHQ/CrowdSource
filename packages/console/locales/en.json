@@ -27,7 +27,7 @@
     "tagline": "Manage your CrowdSource applications: service credentials, webhook delivery, quotas, and the cases and decisions for your own tenant.",
     "action": "Sign in with Oxy",
     "unconfigured": "Sign-in is unavailable: no Oxy client has been registered for this app yet.",
-    "audiences": "Trust & Safety views need a staff role, which is granted outside this service. Without one you will see your own organizations and nothing else."
+    "audiences": "Trust & Safety views need a staff role, which comes from your role in the Oxy organization that owns CrowdSource. Without one you will see your own organizations and nothing else."
   },
   "notFound": {
     "heading": "Not found",
@@ -76,7 +76,7 @@
     },
     "forbiddenStaff": {
       "title": "This needs a Trust & Safety role",
-      "body": "Reading application trust needs the security or policy role; moving a standing and reading the dead-letter queue need security. No route in this service grants a role."
+      "body": "Reading application trust needs the security or policy role; moving a standing and reading the dead-letter queue need security. The roles come from your role in the Oxy organization that owns CrowdSource; no route in this service grants one."
     },
     "conflict": {
       "title": "That change conflicts with the current state",

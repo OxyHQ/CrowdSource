@@ -22,9 +22,10 @@ import {
  *    person belongs to, and that read is what yields the tenant a console session
  *    acts on. A policy would be circular.
  *  - `trust_safety_staff` has NO tenant dimension. It no longer grants anything:
- *    Trust & Safety roles are Oxy application permissions (`consoleAuth.ts`). The
- *    rows stay as the record of whom to grant them to — no code reads them, and
- *    account erasure still deletes them — until a migration retires the table.
+ *    Trust & Safety roles are Oxy application permissions held through a role in
+ *    the organization that owns CrowdSource (`consoleAuth.ts`, oxy ADR 0056). No
+ *    code reads it and production holds no rows; account erasure still deletes
+ *    by `oxyUserId` until a migration retires the table.
  *  - `staff_audit_events` NAMES a tenant without belonging to one. Its
  *    `application_id` is the application acted on — nullable, because most
  *    actions name none — and the row is the operator's act, not the customer's

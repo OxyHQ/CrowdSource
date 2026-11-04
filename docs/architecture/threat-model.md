@@ -721,9 +721,22 @@ What follows is the general privilege problem.
 written by `appendAuditEvent` with a closed action vocabulary and a closed refusal
 vocabulary — a free-text reason is where an envelope fragment ends up.
 
+Trust & Safety authority is not held in CrowdSource at all. The four
+`trust_safety.<role>` keys are Oxy application permissions declared in code in
+Oxy's first-party registry, each naming the roles of the organization that owns
+CrowdSource that hold it (oxy ADR 0056; today owners and admins). Oxy answers
+which keys a session's person holds from their role there; there is no
+per-person grant (Oxy refuses one with `409 FIRST_PARTY_ROLES_IN_CODE`), no
+user-id list in the environment and no local staff table, so nobody with
+CrowdSource database or deploy access can make themselves staff. Who holds a
+key changes only with an organization role in Oxy or a reviewed registry change.
+
 **Gaps.** The console has organization and Trust & Safety roles plus separate
 audit trails, but there is still no just-in-time access, step-up authentication
-or dual review for exports. Audit tables expose no update/delete through the
+or dual review for exports. §13.2's separation of the four Trust & Safety roles
+is enforced per route but not yet per person: today all four keys are held by
+the same holder set (the owning organization's owners and admins), and a
+narrower desk needs an Oxy account role that expresses it. Audit tables expose no update/delete through the
 runtime, yet PostgreSQL does not currently enforce append-only storage with a
 trigger or privilege split; that property still depends on repository reachability.
 

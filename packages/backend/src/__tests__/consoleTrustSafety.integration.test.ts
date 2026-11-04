@@ -12,8 +12,9 @@ import { stubOxySession } from './support/reviewers';
  *
  * The property this suite exists for: **a valid Oxy session is not staff.** Every Oxy
  * account in existence authenticates; the cross-tenant surface is reachable only with a
- * `trust_safety.<role>` application permission, granted in Oxy — there is no route in
- * this service that grants one. So the staff check is asserted from three sides — no
+ * `trust_safety.<role>` application permission, which Oxy answers from the caller's role
+ * in the organization that owns CrowdSource (oxy ADR 0056) — there is no route in this
+ * service that confers one. `grantStaffRoles` stands in for that answer. So the staff check is asserted from three sides — no
  * permission at all, a different role, and the right role — because "403 for a
  * stranger" is equally consistent with a working check and a route that refuses
  * everybody.

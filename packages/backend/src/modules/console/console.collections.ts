@@ -80,7 +80,11 @@ export const organizationMembers = defineUnscopedCollection<OrganizationMemberDo
  * them both.
  *
  * Held in Oxy, not here: each role is the application permission
- * `trust_safety.<role>` on CrowdSource's own Oxy application (`consoleAuth.ts`).
+ * `trust_safety.<role>` on CrowdSource's own Oxy application, declared in Oxy's
+ * first-party registry and held through a role in the owning organization
+ * (`consoleAuth.ts`, oxy ADR 0056). Today all four are held by that
+ * organization's owners and admins, so the separation is enforced per route and
+ * a narrower desk is an Oxy organization-role question, not a grant.
  */
 export { STAFF_ROLES } from '../../domain/closedValues';
 export type StaffRole = (typeof STAFF_ROLES)[number];

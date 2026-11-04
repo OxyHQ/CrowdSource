@@ -99,8 +99,8 @@ row security holds for every statement.
   A later rescoring runs without them; the recorded status revisions keep the
   counts they were computed from.
 - **Console access**: organization memberships, and the retired Trust & Safety
-  staff rows (roles are Oxy application permissions now; Oxy removes a deleted
-  account's grants).
+  staff rows (roles are Oxy application permissions held through a role in the
+  organization that owns CrowdSource; a deleted account holds no role there).
   An organization whose only owner was the person is left without an owner, and
   staff restore one through the console.
 - **Reviewer data about the person**: the application accounts they linked as

@@ -64,8 +64,8 @@ export default function SignInScreen() {
 
         {/* Said here rather than after the 403: an operator who signs in expecting
             the Trust & Safety views and finds only their own tenants should know
-            why. The roles are granted outside this service and no route in it
-            hands one out. */}
+            why. The roles follow their role in the Oxy organization that owns
+            CrowdSource and no route in this service hands one out. */}
         <Text className="mt-2 max-w-[320px] text-center text-xs leading-4 text-muted-foreground">
           {t('signIn.audiences')}
         </Text>

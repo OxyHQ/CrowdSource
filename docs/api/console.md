@@ -21,10 +21,17 @@ console.
 Every Oxy account in existence authenticates. A membership is granted by an
 `admin` of the organization; a staff role is the application permission
 `trust_safety.<role>` (`policy`, `appeals`, `evidence`, `security`) on
-CrowdSource's own Oxy application, granted in Oxy by an owner or admin of the
-account that owns it — audited and append-only there, and never by the grantee.
-CrowdSource has **no route that grants one**: §13.2 requires privileged authority
-not to be self-grantable. An Oxy that cannot answer is `503`, never a refusal.
+CrowdSource's own Oxy application. CrowdSource is one of Oxy's own applications,
+so the keys and the roles that hold them are declared in code in Oxy's
+first-party registry and applied by Oxy's "Seed Oxy applications" workflow (oxy
+ADR 0056). A person holds a key while their role in the organization that owns
+CrowdSource is one the key names — today its owners and admins. To make someone
+an operator, give them that role in the organization; to remove them, change or
+remove it. There are no per-person grants (Oxy answers
+`409 FIRST_PARTY_ROLES_IN_CODE`), no user-id list and no staff table.
+CrowdSource has **no route that confers one**: §13.2 requires privileged
+authority not to be self-grantable. An Oxy that cannot answer is `503`, never a
+refusal.
 
 ## How a tenant is established
 

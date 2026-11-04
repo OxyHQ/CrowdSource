@@ -18,12 +18,22 @@ import { STAFF_ROLES, type StaffRole } from './console.collections';
  *     resolved per request in `membership.service.ts`. Not established here,
  *     because it depends on WHICH application the route is about.
  *  3. **Trust & Safety staff authority** — an application permission
- *     (`trust_safety.<role>`) on CrowdSource's own Oxy application, declared and
- *     granted in Oxy (application roles, `~/Oxy/docs/application-roles.md`).
+ *     (`trust_safety.<role>`) on CrowdSource's own Oxy application. CrowdSource is
+ *     one of Oxy's own applications, so the four keys and the roles that hold them
+ *     are declared IN CODE in Oxy's first-party registry (`operatorPermissions` on
+ *     CrowdSource's entry in oxy's `seedOxyApplicationsSpecs.ts`, applied by the
+ *     "Seed Oxy applications" workflow; oxy ADR 0056). A person holds a key while
+ *     their role in the organization that owns CrowdSource is one the key names —
+ *     today its owners and admins. There are no per-person grants (Oxy refuses
+ *     them on its own applications with `409 FIRST_PARTY_ROLES_IN_CODE`), no
+ *     user-id list in the environment and no staff table here: making someone an
+ *     operator is giving them that role in the organization
+ *     (`~/Oxy/docs/application-roles.md`). `staffPermission` must name exactly
+ *     the keys the registry declares; a key renamed on one side only refuses
+ *     everybody.
  *     §10.1 is explicit that this is "sesión Oxy con roles internos y autorización
  *     explícita": the session is necessary and nowhere near sufficient. Every Oxy
- *     account in existence satisfies (1); a handful satisfy (3). Grants are
- *     append-only and audited in Oxy, and nobody grants themselves one.
+ *     account in existence satisfies (1); a handful satisfy (3).
  *
  * A service credential can satisfy NONE of them. It presents a bearer token that
  * `@oxy.so/core/server` does not recognise as an Oxy session, so it never gets past
