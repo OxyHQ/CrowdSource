@@ -8,14 +8,15 @@
  * the right place is how a token acquires a trailing space and an integration fails
  * with an authentication error nobody can explain.
  *
- * The clipboard is reached through `navigator.clipboard`, which is the platform API
- * on the only platform this app ships to. It can legitimately be unavailable — an
+ * The clipboard is Bloom's web clipboard (`writeClipboardText`), the platform API on
+ * the only platform this app ships to. It can legitimately be unavailable — an
  * insecure origin, a browser that refuses the permission — so the failure is
  * reported rather than swallowed, and the value stays on screen and selectable
  * either way. Nothing is logged but the outcome: the value is the secret.
  */
 
 import { Button } from '@oxy.so/bloom/button';
+import { clipboardAvailable, writeClipboardText } from '@oxy.so/bloom/hooks';
 import { toast } from '@oxy.so/bloom/toast';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -41,13 +42,13 @@ export function CopyValue({ value, label, layout = 'inline' }: CopyValueProps) {
   const { t } = useTranslation();
 
   const handleCopy = useCallback(() => {
-    if (typeof navigator === 'undefined' || navigator.clipboard === undefined) {
+    if (!clipboardAvailable()) {
       // Not a defect and not silent: the value is still selectable on screen.
       logger.warn('Clipboard is unavailable in this context', { label });
       toast.error(t('copy.unavailable'));
       return;
     }
-    navigator.clipboard.writeText(value).then(
+    writeClipboardText(value).then(
       () => {
         toast.success(t('copy.copied', { label }));
       },
