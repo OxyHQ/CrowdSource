@@ -830,7 +830,9 @@ watermark value, so nothing populates it today.
     different shape than the one it was written against.
 20. Three unique indexes are owed with the tenancy work and are not in `AGENTS.md`'s
     list: `organizationId + oxyUserId` on membership, `applicationId + day` on the
-    usage counter, `oxyUserId` on `trust_safety_staff`. The first has teeth: without
+    usage counter, `oxyUserId` on `trust_safety_staff` (since dropped: Trust &
+    Safety roles moved to Oxy, oxy ADR 0056, and migration 0022 retired the
+    table). The first has teeth: without
     it two concurrent invitations give one person two role rows and every later
     permission check answers whichever row the database returns first — an intermittent
     authorization bug, not a visible duplicate.

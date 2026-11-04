@@ -5,7 +5,7 @@ import {
   accountEventCursors,
   type AccountErasureSource,
 } from '../schema/accountErasure';
-import { organizationMembers, staffAuditEvents, trustSafetyStaff } from '../schema/console';
+import { organizationMembers, staffAuditEvents } from '../schema/console';
 import { appTrustSnapshots } from '../schema/infrastructure';
 import {
   reviewerAffinities,
@@ -27,7 +27,7 @@ import { requireTransaction, type PgHandle, type PgTransactionHandle } from '../
  *    person belongs to no application;
  *  - the erasure statements on tables the registry already files as unscoped
  *    (`tableRegistry.ts`): reviewer profiles and everything keyed on a reviewer,
- *    console memberships and staff rows, the operator audit trail, application
+ *    console memberships, the operator audit trail, application
  *    standing, and webhook deliveries.
  *
  * The TENANT-scoped statements are in `scoped/accountErasure.ts` and take the
@@ -372,7 +372,6 @@ export interface ConsoleErasureCounts {
   readonly organizationsDetached: number;
   readonly membershipsDeleted: number;
   readonly invitationsAnonymised: number;
-  readonly staffDeleted: number;
   readonly staffAuditAnonymised: number;
   readonly standingChangesAnonymised: number;
 }
@@ -403,10 +402,6 @@ export async function eraseConsoleIdentity(
     .set({ invitedByOxyUserId: erased })
     .where(eq(organizationMembers.invitedByOxyUserId, oxyUserId))
     .returning({ id: organizationMembers.membershipId });
-  const staff = await tx
-    .delete(trustSafetyStaff)
-    .where(eq(trustSafetyStaff.oxyUserId, oxyUserId))
-    .returning({ id: trustSafetyStaff.oxyUserId });
   const audit = await tx
     .update(staffAuditEvents)
     .set({ actorOxyUserId: erased })
@@ -422,7 +417,6 @@ export async function eraseConsoleIdentity(
     organizationsDetached: detached.length,
     membershipsDeleted: memberships.length,
     invitationsAnonymised: invitations.length,
-    staffDeleted: staff.length,
     staffAuditAnonymised: audit.length,
     standingChangesAnonymised: standing.length,
   };

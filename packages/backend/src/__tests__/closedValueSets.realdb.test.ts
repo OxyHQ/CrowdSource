@@ -22,8 +22,9 @@ import { OUTBOX_STATUSES } from '../db/postgres/schema/infrastructure';
  * theirs, and it was noticed only by luck. This file exists so the next one is
  * not found by luck.
  *
- * The ledger below freezes 41 value-set decisions, and the migrated PostgreSQL
- * catalogue is the authority that may refuse its mappings.
+ * The ledger below holds 39 value-set decisions (41 at the freeze, less the two
+ * on `trust_safety_staff`, dropped with its table in migration 0022), and the
+ * migrated PostgreSQL catalogue is the authority that may refuse its mappings.
  *
  * ## Why the CHECK side is read from the DATABASE
  *
@@ -272,16 +273,6 @@ const MAPPED: Readonly<
     column: 'roles',
     constraint: 'staff_audit_events_roles_check',
   },
-  'TrustSafetyStaff.roles': {
-    table: 'trust_safety_staff',
-    column: 'roles',
-    constraint: 'trust_safety_staff_roles_check',
-  },
-  'TrustSafetyStaff.status': {
-    table: 'trust_safety_staff',
-    column: 'status',
-    constraint: 'trust_safety_staff_status_check',
-  },
   'WebhookAttempt.failureKind': {
     table: 'webhook_attempts',
     column: 'failure_kind',
@@ -410,7 +401,7 @@ const KNOWN_GAPS: readonly EnumKey[] = [];
 /** Ratcheted to zero by the backend PostgreSQL-only cut; never raise it. */
 const KNOWN_GAP_COUNT = 0;
 
-/** The 41 frozen value-set decisions. */
+/** The 39 value-set decisions still standing (41 at the freeze; 0022 dropped two). */
 const PORTED_VALUE_SET_KEYS = [
   ...Object.keys(MAPPED),
   ...Object.keys(NOT_APPLICABLE),
@@ -446,8 +437,8 @@ async function checkConstraints(): Promise<CheckConstraint[]> {
 }
 
 describe('the PostgreSQL port ledger can see what it claims to see', () => {
-  it('retains all 41 frozen value-set decisions exactly once', () => {
-    expect(PORTED_VALUE_SET_KEYS).toHaveLength(41);
+  it('retains all 39 standing value-set decisions exactly once', () => {
+    expect(PORTED_VALUE_SET_KEYS).toHaveLength(39);
     expect(new Set(PORTED_VALUE_SET_KEYS).size).toBe(PORTED_VALUE_SET_KEYS.length);
   });
 

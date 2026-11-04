@@ -11,21 +11,19 @@ import {
 } from '../../../domain/closedValues';
 
 /**
- * The console's own tables: who may operate a tenant, who may operate the
- * platform, and what the latter did.
+ * The console's own tables: who may operate a tenant, and what Trust & Safety
+ * operators did. Who may operate the PLATFORM is not stored here at all: Trust &
+ * Safety roles are Oxy application permissions held through a role in the
+ * organization that owns CrowdSource (`consoleAuth.ts`, oxy ADR 0056). The
+ * `trust_safety_staff` table that once held them was dropped in migration 0022.
  *
- * Three tables, three DIFFERENT exemption kinds, which is why they are worth
+ * Two tables, two DIFFERENT exemption kinds, which is why they are worth
  * reading together:
  *
  *  - `organization_members` DEFINES a tenant. `membership.service.ts:83` reads
  *    `find({ oxyUserId, status: 'active' })` to discover which organizations a
  *    person belongs to, and that read is what yields the tenant a console session
  *    acts on. A policy would be circular.
- *  - `trust_safety_staff` has NO tenant dimension. It no longer grants anything:
- *    Trust & Safety roles are Oxy application permissions held through a role in
- *    the organization that owns CrowdSource (`consoleAuth.ts`, oxy ADR 0056). No
- *    code reads it and production holds no rows; account erasure still deletes
- *    by `oxyUserId` until a migration retires the table.
  *  - `staff_audit_events` NAMES a tenant without belonging to one. Its
  *    `application_id` is the application acted on — nullable, because most
  *    actions name none — and the row is the operator's act, not the customer's
@@ -76,36 +74,6 @@ export const organizationMembers = pgTable(
     ),
     check(
       'organization_members_status_check',
-      sql`${table.status} in (${sql.raw(inList(MEMBER_STATUSES))})`,
-    ),
-  ],
-);
-
-export const trustSafetyStaff = pgTable(
-  'trust_safety_staff',
-  {
-    /**
-     * The Oxy account IS the identity here — one staff row per person, so it is
-     * the primary key.
-     */
-    oxyUserId: text('oxy_user_id').primaryKey(),
-
-    roles: text('roles').array().notNull(),
-    status: text('status').notNull(),
-
-    revokedAt: timestamptz(),
-    createdAt: createdAt(),
-    updatedAt: updatedAt(),
-  },
-  // No index beyond the primary key: the only statement left is account
-  // erasure's delete by `oxyUserId`, which the key serves.
-  (table) => [
-    check(
-      'trust_safety_staff_roles_check',
-      sql`${table.roles} <@ array[${sql.raw(inList(STAFF_ROLES))}]::text[]`,
-    ),
-    check(
-      'trust_safety_staff_status_check',
       sql`${table.status} in (${sql.raw(inList(MEMBER_STATUSES))})`,
     ),
   ],
