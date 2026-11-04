@@ -72,8 +72,8 @@ and nothing else in the database carries the id any more.
 
 ## Where the id is matched
 
-As an **Oxy account**: reviewer profiles, console memberships and staff rows, the
-operator trail and the tenant audit trail.
+As an **Oxy account**: reviewer profiles, console memberships, the operator trail
+and the tenant audit trail.
 
 As an **application principal**, in every tenant: any principal id equal to the
 Oxy id. That covers an `oxy_user` binding (whose `bindingProofId` is the Oxy
@@ -98,9 +98,10 @@ row security holds for every statement.
 - **The person's ratings** of other notes, and their open rating assignments.
   A later rescoring runs without them; the recorded status revisions keep the
   counts they were computed from.
-- **Console access**: organization memberships, and the retired Trust & Safety
-  staff rows (roles are Oxy application permissions held through a role in the
-  organization that owns CrowdSource; a deleted account holds no role there).
+- **Console access**: organization memberships. Trust & Safety roles are not
+  stored here (they are Oxy application permissions held through a role in the
+  organization that owns CrowdSource, and a deleted account holds no role
+  there), so there is nothing of them to erase.
   An organization whose only owner was the person is left without an owner, and
   staff restore one through the console.
 - **Reviewer data about the person**: the application accounts they linked as

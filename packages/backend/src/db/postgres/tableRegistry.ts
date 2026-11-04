@@ -228,12 +228,6 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
   },
 
   // ── no_tenant_dimension ───────────────────────────────────────────────────
-  trust_safety_staff: {
-    kind: 'no_tenant_dimension',
-    shape: 'neither',
-    why: 'Retired authority: Trust & Safety roles are Oxy application permissions held through a role in the organization that owns CrowdSource (consoleAuth.ts, oxy ADR 0056). No code reads it; account erasure still deletes by oxyUserId until a migration drops it.',
-    readers: ['src/db/postgres/repositories/accountErasure.ts#eraseConsoleIdentity'],
-  },
   reviewer_profiles: {
     kind: 'no_tenant_dimension',
     shape: 'neither',

@@ -300,9 +300,6 @@ beforeAll(async () => {
       invitedByOxyUserId: PERSON,
     },
   ]);
-  await db
-    .insert(schema.trustSafetyStaff)
-    .values({ oxyUserId: PERSON, roles: ['policy'], status: 'active' });
   await db.insert(schema.staffAuditEvents).values({
     staffAuditId: `sta_${randomUUID().replace(/-/g, '')}`,
     action: 'staff.metrics.read',
@@ -447,7 +444,6 @@ describe('before the erasure', () => {
         'reviewer_profiles',
         'reviewer_relations',
         'staff_audit_events',
-        'trust_safety_staff',
         'webhook_deliveries',
       ].sort(),
     );
@@ -508,7 +504,6 @@ describe('the erasure', () => {
       'console.organizationsDetached': 1,
       'console.membershipsDeleted': 1,
       'console.invitationsAnonymised': 1,
-      'console.staffDeleted': 1,
       'console.staffAuditAnonymised': 1,
       'console.standingChangesAnonymised': 1,
       'reviewer.assignmentsVacated': 1,
@@ -599,12 +594,6 @@ describe('the erasure', () => {
       .where(eq(schema.organizationMembers.organizationId, tenant.organizationId));
     expect(members.map((member) => member.oxyUserId)).toEqual([OTHER]);
     expect(members[0]?.invitedByOxyUserId).toBe('erased-account');
-    expect(
-      await db
-        .select()
-        .from(schema.trustSafetyStaff)
-        .where(eq(schema.trustSafetyStaff.oxyUserId, PERSON)),
-    ).toHaveLength(0);
     const [trust] = await db
       .select()
       .from(schema.appTrustSnapshots)

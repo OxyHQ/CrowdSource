@@ -48,7 +48,7 @@ import type { OxyAccountEvent } from './oxyAccountEvents';
  *
  * The person's id is matched in two roles:
  *
- *  - as an OXY ACCOUNT: a reviewer profile, console memberships and staff rows,
+ *  - as an OXY ACCOUNT: a reviewer profile, console memberships,
  *    and the operator and tenant audit trails;
  *  - as an APPLICATION PRINCIPAL: in every tenant, wherever a principal id equals
  *    the Oxy id — an `oxy_user` binding's proof, or a principal id an
@@ -195,7 +195,6 @@ export async function eraseAccount(
     add(counts, 'console.organizationsDetached', consoleCounts.organizationsDetached);
     add(counts, 'console.membershipsDeleted', consoleCounts.membershipsDeleted);
     add(counts, 'console.invitationsAnonymised', consoleCounts.invitationsAnonymised);
-    add(counts, 'console.staffDeleted', consoleCounts.staffDeleted);
     add(counts, 'console.staffAuditAnonymised', consoleCounts.staffAuditAnonymised);
     add(counts, 'console.standingChangesAnonymised', consoleCounts.standingChangesAnonymised);
   });
