@@ -10,8 +10,9 @@ moderation/staff authority remains separate. Audit ids include the exact Oxy
 credential/workload handle. Oxy customer keys remain external even on an official
 application; CrowdSource keys keep their existing scopes, expiry and revocation.
 
-The product SDK factory delegates to `OxyServer.createServiceClient`. It accepts
-an existing `oxy` client and optional verified requester proof. Requester-bound
+The product SDK factory delegates to `OxyServer.createServiceClient`. It requires
+the caller's one `oxy` server (since `core@4.0.0`; it never builds its own) and
+accepts optional verified requester proof. Requester-bound
 clients are never shared across accounts and can be disposed after use. There
 is no own credential-pair fallback. The external `new CrowdSource({serviceKey})`
 interface remains available.
@@ -36,9 +37,8 @@ and test type checks, and changed-file Biome checks passed. The central Oxy test
 also traverses real SDK middleware, HTTP introspection and PostgreSQL authority;
 product tests stub that central authority boundary while verifying signed JWTs.
 
-The own outbox configuration also accepts `crowdSource: {auth: 'oxy-service',
-oxy, ...}`. Passing the application's shared `OxyServer` preserves its temporary
-role/SSO provider outside ECS. The default `service-key` lane ignores this field
+The own outbox configuration is `crowdSource: {auth: 'oxy-service', oxy, ...}`;
+without the application's shared `OxyServer` it is a configuration error. The default `service-key` lane ignores this field
 and remains external even if the process also has a workload provider. Report
 rows, tenant derivation, stable delivery payloads and webhook signatures are unchanged.
 
@@ -49,8 +49,6 @@ unit tests, 8 real HTTP receiver tests, backend/SDK builds, and both application
 type checks. Publish the receiver revision before switching callers to v2;
 external keys retain their existing bounded, revocable authority.
 
-The optional Oxy peer is `>=7.0.0 <8`, the supported shared service-client
-contract. A fresh packed consumer with neither `@oxy.so/core` nor the AWS
-credential provider installed successfully imports the root via both CJS and
-ESM. The lazy own-service factory is exported but is not initialized by importing
-the ordinary external client. SDK unit tests also run against published core7.
+Since `core@4.0.0` the SDK has no `@oxy.so/core` or AWS credential-provider
+peer: `OxyServiceHost` is structural, satisfied by any core 7 `OxyServer`, and
+the root imports nothing from Oxy.

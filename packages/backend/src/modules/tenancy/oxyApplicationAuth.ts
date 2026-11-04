@@ -3,31 +3,22 @@ import type { Request, RequestHandler } from 'express';
 
 import { createTenantContext } from '../../db/tenantScope';
 import { ApiError } from '../../http/apiError';
-import { oxyServiceServer } from '../identity/oxyService';
+import { oxyMiddleware } from '../identity/oxyService';
 import type { ServiceCredentialCaller } from './credential.service';
 import { applications, organizations } from './tenancy.collections';
-
-/** Canonical receiver identity; never an authority decision about the caller. */
-export const CROWDSOURCE_SERVICE_AUDIENCE = 'oxy-service:6a6947b30fe72510b411252f';
 
 /** Token shape only selects a verifier; each verifier authenticates independently. */
 export function looksLikeOxyServiceToken(token: string): boolean {
   return token.split('.').length === 3;
 }
 
-/** Run the shared service verifier on the real request and response. */
-export function verifyOxyApplication(): RequestHandler {
-  return (request, response, next) => {
-    try {
-      const verifier = oxyServiceServer().middleware.service({
-        expectedAudience: CROWDSOURCE_SERVICE_AUDIENCE,
-      });
-      void Promise.resolve(verifier(request, response, next)).catch(next);
-    } catch (error) {
-      next(error);
-    }
-  };
-}
+/**
+ * The shared service verifier, built once. Its audience is the server's own
+ * (`expectedAudience`, `identity/oxyService.ts`), never repeated here.
+ */
+export const verifyOxyApplication: RequestHandler = oxyMiddleware((oxy) =>
+  oxy.middleware.service(),
+);
 
 /** A verified identity still needs an active stored tenant binding on every call. */
 export async function authenticateOxyServiceToken(

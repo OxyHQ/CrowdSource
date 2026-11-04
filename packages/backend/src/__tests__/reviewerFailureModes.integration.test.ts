@@ -447,8 +447,8 @@ describe('the reviewer API when no Oxy API is configured', () => {
     stubEnv('OXY_API_URL', '');
 
     const isolated = await import('../app');
-    const { resetOxySession } = await import('../modules/identity/oxySession');
-    resetOxySession();
+    const { resetOxyServiceServer } = await import('../modules/identity/oxyService');
+    resetOxyServiceServer();
 
     const response = await request(isolated.createApp())
       .get('/v1/reviewer/profile')
@@ -459,7 +459,7 @@ describe('the reviewer API when no Oxy API is configured', () => {
 
     unstubAllEnvs();
     resetModules();
-    resetOxySession();
+    resetOxyServiceServer();
   });
 });
 
