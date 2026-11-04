@@ -84,7 +84,7 @@ export default function TrainingScreen() {
                 <Text className="text-base font-semibold text-foreground">{module.title}</Text>
                 <Text className="text-sm text-muted-foreground">
                   {module.families
-                    .map((family) => t(`category.${family}`, { defaultValue: family }))
+                    .map((family) => t(`category.${family}.label`, { defaultValue: family }))
                     .join(t('history.familySeparator'))}
                 </Text>
                 {module.completed ? (

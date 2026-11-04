@@ -128,7 +128,7 @@ export default function OnboardingScreen() {
             key={family.id}
             checked={categories.includes(family.id)}
             onCheckedChange={() => setCategories((current) => toggle(current, family.id))}
-            label={t(`category.${family.id}`)}
+            label={t(`category.${family.id}.label`)}
             description={t(`category.${family.id}.help`)}
           />
         ))}
@@ -144,7 +144,7 @@ export default function OnboardingScreen() {
             checked={sensitiveCategories.includes(family.id)}
             onCheckedChange={() => setSensitiveCategories((current) => toggle(current, family.id))}
             disabled={!categories.includes(family.id)}
-            label={t(`category.${family.id}`)}
+            label={t(`category.${family.id}.label`)}
             description={
               categories.includes(family.id)
                 ? t('onboarding.sensitive.consentHelp')

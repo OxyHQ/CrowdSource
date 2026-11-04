@@ -136,7 +136,7 @@ function ReviewFlow({ assignment, onSubmit, submitting, submitError }: ReviewFlo
       <Text className="text-base leading-6 text-muted-foreground">
         {t(assignment.language === null ? 'review.subtitleNoLanguage' : 'review.subtitle', {
           category: assignment.families
-            .map((family) => t(`category.${family}`, { defaultValue: family }))
+            .map((family) => t(`category.${family}.label`, { defaultValue: family }))
             .join(t('history.familySeparator')),
           language: assignment.language,
         })}
