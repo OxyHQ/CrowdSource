@@ -1,3 +1,4 @@
+import type { OxyAuthRequest } from '@oxy.so/core/server';
 import {
   registrationOrganizations,
   requireRegistrationOrganization,
@@ -75,6 +76,12 @@ import {
  */
 
 export const consoleRouter: Router = Router();
+
+/** The SDK's verified human session, never a service acting-as credential. */
+function organizationSessionToken(request: OxyAuthRequest): string | undefined {
+  if (request.serviceApp) throw new ApiError('unauthorized', 'An Oxy human session is required.');
+  return request.accessToken;
+}
 
 const CreateOrganizationSchema = z.strictObject({
   oxyAccountId: z.string().min(1).max(200),
@@ -176,7 +183,7 @@ consoleRouter.get('/console/session', ...requireConsoleSession(), async (request
   const oxyUserId = consoleUser(request);
   const [memberships, staffRoles] = await Promise.all([
     membershipsWithOrganizations(oxyUserId),
-    staffRolesOf(request),
+    staffRolesOf(oxyUserId),
   ]);
 
   response.status(200).json({
@@ -244,8 +251,10 @@ consoleRouter.post(
       throw new ApiError('invalid_request', 'Choose an Oxy organization and a workspace handle.');
     }
 
-    // The SDK's verified human session; a service token is refused as no person.
-    const identity = await requireRegistrationOrganization(request, parsed.data.oxyAccountId);
+    const identity = await requireRegistrationOrganization(
+      organizationSessionToken(request),
+      parsed.data.oxyAccountId,
+    );
     const organization = await createModerationWorkspace({
       oxyAccountId: identity.accountId,
       slug: parsed.data.slug,
@@ -871,7 +880,7 @@ consoleRouter.get(
   '/console/organization-options',
   ...requireConsoleSession(),
   async (request, response) => {
-    const items = await registrationOrganizations(request);
+    const items = await registrationOrganizations(organizationSessionToken(request));
     response.json({
       organizations: items.map((item) => ({ accountId: item.accountId, name: item.name })),
     });

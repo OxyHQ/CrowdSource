@@ -10,9 +10,8 @@ Web + Bloom, **web only** — one static export, no native build.
   quotas and usage, their own cases and decisions, organization members. They see
   their own tenant and nothing else.
 - **Trust & Safety** — sees across tenants: application standing, promotion and
-  restriction, the dead-letter queue, platform metrics. Reachable only with a
-  `trust_safety.<role>` permission on CrowdSource's Oxy application, granted in
-  Oxy — no route in the service grants one.
+  restriction, the dead-letter queue, platform metrics. Reachable only with a role
+  on a `trust_safety_staff` row, which no route in the service grants.
 
 Both are one app and one deployment. The Trust & Safety views are gated by a role,
 not by a second build — but the API behind them is a separate router with its own

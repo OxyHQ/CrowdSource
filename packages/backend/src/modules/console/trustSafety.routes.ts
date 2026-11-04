@@ -34,9 +34,8 @@ import { appendStaffAuditEvent } from './staffAudit.collection';
  *
  * A different caller class from the application API and a different AUTHORIZATION
  * from the developer console, even though it shares the latter's authentication: an
- * Oxy session plus a `trust_safety.<role>` permission on CrowdSource's Oxy
- * application. Every Oxy account in existence satisfies the session; a handful
- * hold the permission.
+ * Oxy session plus a role on a `trust_safety_staff` row. Every Oxy account in
+ * existence satisfies the session; a handful satisfy the role.
  *
  * ## What is here, and what is deliberately not
  *
@@ -159,7 +158,7 @@ trustSafetyRouter.get(
     const staff = requestStaff(request);
     await appendStaffAuditEvent({
       action: 'staff.applications.read',
-      actorOxyUserId: staff.operatorId,
+      actorOxyUserId: staff.oxyUserId,
       roles: staff.roles,
     });
 
@@ -202,9 +201,9 @@ trustSafetyRouter.post(
       applicationId,
       standing: parsed.data.standing,
       reason: parsed.data.reason,
-      // The operator Oxy resolved from the session, never from the body: "who
-      // changed this" is worthless if the actor is a value the actor supplies.
-      byOxyUserId: requestStaff(request).operatorId,
+      // Taken from the authenticated staff row, never from the body: "who changed
+      // this" is worthless if the actor is a value the actor supplies.
+      byOxyUserId: requestStaff(request).oxyUserId,
       ...(parsed.data.globalReputationEffectsAllowed === undefined
         ? {}
         : { globalReputationEffectsAllowed: parsed.data.globalReputationEffectsAllowed }),
@@ -212,7 +211,7 @@ trustSafetyRouter.post(
 
     await appendStaffAuditEvent({
       action: 'staff.standing.changed',
-      actorOxyUserId: requestStaff(request).operatorId,
+      actorOxyUserId: requestStaff(request).oxyUserId,
       roles: requestStaff(request).roles,
       applicationId,
     });
@@ -247,7 +246,7 @@ trustSafetyRouter.get(
     const staff = requestStaff(request);
     await appendStaffAuditEvent({
       action: 'staff.deadletter.read',
-      actorOxyUserId: staff.operatorId,
+      actorOxyUserId: staff.oxyUserId,
       roles: staff.roles,
     });
 
@@ -284,7 +283,7 @@ trustSafetyRouter.get(
     const staff = requestStaff(request);
     await appendStaffAuditEvent({
       action: 'staff.escalated.read',
-      actorOxyUserId: staff.operatorId,
+      actorOxyUserId: staff.oxyUserId,
       roles: staff.roles,
     });
 
@@ -310,7 +309,7 @@ trustSafetyRouter.get(
     const staff = requestStaff(request);
     await appendStaffAuditEvent({
       action: 'staff.metrics.read',
-      actorOxyUserId: staff.operatorId,
+      actorOxyUserId: staff.oxyUserId,
       roles: staff.roles,
     });
 

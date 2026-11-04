@@ -25,10 +25,10 @@ entry points of that same package.
 | `@crowdsource.you/core/outbox` | not in this guide — the PostgreSQL application half, in [`packages/core/README.md`](../packages/core/README.md) | `express @oxy.so/db drizzle-orm postgres` |
 
 **The line above is the whole install for an application that only files
-reports.** `express`, `drizzle-orm`, `postgres` and `@oxy.so/db` are optional
-peers of `core`, reached only through `/express` and `/outbox`, so importing the
-root pulls none of them into your graph. Nothing imports `@oxy.so/core`: [an Oxy
-service](#oxys-own-services) hands in its own `OxyServer`.
+reports.** `express`, `drizzle-orm`, `postgres`, `@oxy.so/db` and `@oxy.so/core`
+are optional peers of `core`, reached only through `/express`, `/outbox` and —
+for `@oxy.so/core` — [an Oxy service's own factory](#oxys-own-services-hold-no-key),
+so importing the root pulls none of them into your graph.
 
 > **Coming from `@oxy.so/crowdsource*`?**
 >
@@ -52,7 +52,7 @@ service](#oxys-own-services) hands in its own `OxyServer`.
 > **An Oxy service does not do this step at all.** Mention, Alia, Homiio and the
 > rest hold no CrowdSource key: they present the Oxy service token their own
 > infrastructure already issues, and CrowdSource resolves the tenant from the
-> application it names. See [Oxy's own services](#oxys-own-services)
+> application it names. See [Oxy's own services](#oxys-own-services-hold-no-key)
 > below. Everything from here to the end of this section is for a third party,
 > which is who registration exists for.
 
@@ -351,18 +351,22 @@ what that means and what a jury will actually be asked.
 
 ```ts
 import { crowdSourceForOxyService } from '@crowdsource.you/core';
-const crowdsource = crowdSourceForOxyService({ oxy }); // the process's one OxyServer
+const crowdsource = crowdSourceForOxyService();
 ```
 
-`oxy` is required (since `core@4.0.0`): the factory calls
-`oxy.createServiceClient` with CrowdSource's registered audience
-`oxy-service:6a6947b30fe72510b411252f` and never builds an `OxyServer` of its
-own. Own workloads use no application scopes, API keys or permission prompts;
-invalid or revoked workload authority fails the request and follows the durable
-outbox retry policy. `baseUrl` points at a local receiver and `logger` reports
-the binding. `requester` accepts an account with its current session, task or
-ephemeral requester context; such a client belongs to one request — call
-`dispose()` when finished with it.
+The factory uses `OxyServer.createServiceClient` from `@oxy.so/core` 7 with
+CrowdSource's registered audience `oxy-service:6a6947b30fe72510b411252f`.
+The optional peer is loaded only for this integration. Own workloads use no
+application scopes, API keys or permission prompts. The default client uses
+`@oxy.so/core/server/aws` and the optional `@aws-sdk/credential-provider-node`
+peer for temporary ECS or development/SSO role credentials. Missing optional SDK
+modules return `undefined`; invalid/revoked workload authority fails the request
+and follows the durable outbox retry policy.
+Pass `oxy` to use an existing shared workload client, `baseUrl` for a local
+receiver, or `logger` for binding diagnostics. `requester` accepts an account
+with its current session, task or ephemeral requester context; these clients
+are isolated per request. Call `dispose()` when finished with them. Only the
+default application client is shared per process.
 
 The receiver uses the shared service middleware, verifies live identity, and
 resolves its tenant from the active stored application and organization binding.
@@ -394,7 +398,6 @@ createModerationIntegration({
   crowdSource: {
     enabled: true,
     auth: 'oxy-service',          // no serviceKey anywhere
-    oxy,                          // the process's one OxyServer
     webhookSecret: process.env.CROWDSOURCE_WEBHOOK_SECRET,
     enforcementMode: 'observe',
   },
@@ -409,9 +412,8 @@ it cannot mint — an outbox loop that runs forever and delivers nothing.
 
 - **`'service-key'` is the default, and a third party keeps it.** Omit `auth`
   entirely and nothing about an existing integration changes.
-- **`'oxy-service'` reuses `crowdSourceForOxyService({ oxy })`**, so the
-  process's identity is its one `OxyServer`; without `oxy` it is a
-  configuration error.
+- **`'oxy-service'` reuses `crowdSourceForOxyService()`**, so the decision about
+  what this process can prove is made in exactly one place.
 - **Both log which one is in force.** The mode rides on the integration's
   existing startup lines (`[CrowdSource] client ready`), so "which credential is
   this deployment using" is answered by the log an operator already reads.
@@ -449,7 +451,7 @@ service that owns it.
 
 | Variable | Package | |
 | --- | --- | --- |
-| `CROWDSOURCE_SERVICE_KEY` | `@crowdsource.you/core` | Required for a third party. `applicationId:credentialId:secret`. An Oxy service uses `crowdSourceForOxyService({ oxy })` instead — or, on the outbox half, `crowdSource: { auth: 'oxy-service', oxy }` — and configures no key. |
+| `CROWDSOURCE_SERVICE_KEY` | `@crowdsource.you/core` | Required for a third party. `applicationId:credentialId:secret`. An Oxy service uses `crowdSourceForOxyService()` instead — or, on the outbox half, `crowdSource.auth: 'oxy-service'` — and configures nothing. |
 | `CROWDSOURCE_BASE_URL` | `@crowdsource.you/core` | Optional. Overrides the host. `http://` is accepted for `localhost` and refused otherwise. |
 | `CROWDSOURCE_WEBHOOK_SECRET` | `@crowdsource.you/core/express` | The active signing secret. |
 | `CROWDSOURCE_WEBHOOK_SECRET_PREVIOUS` | `@crowdsource.you/core/express` | The secret being retired. Set during a rotation overlap; clear it after `previousSecret.expiresAt`. |

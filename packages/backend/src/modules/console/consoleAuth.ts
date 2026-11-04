@@ -1,10 +1,13 @@
-import { getOxyUserId, type OxyAuthRequest } from '@oxy.so/core/server';
+import { getOxyUserId } from '@oxy.so/core/server';
 import type { Request, RequestHandler } from 'express';
 
 import { ApiError } from '../../http/apiError';
-import { oxyRefusal, oxyServiceServer } from '../identity/oxyService';
 import { verifyOxySession } from '../identity/oxySession';
-import { STAFF_ROLES, type StaffRole } from './console.collections';
+import {
+  trustSafetyStaff,
+  type StaffRole,
+  type TrustSafetyStaffDocument,
+} from './console.collections';
 
 /**
  * The console authentication and authorization boundary.
@@ -17,13 +20,10 @@ import { STAFF_ROLES, type StaffRole } from './console.collections';
  *  2. **A developer's authority over one tenant** — an organization membership,
  *     resolved per request in `membership.service.ts`. Not established here,
  *     because it depends on WHICH application the route is about.
- *  3. **Trust & Safety staff authority** — an application permission
- *     (`trust_safety.<role>`) on CrowdSource's own Oxy application, declared and
- *     granted in Oxy (application roles, `~/Oxy/docs/application-roles.md`).
+ *  3. **Trust & Safety staff authority** — a role on a `trust_safety_staff` row.
  *     §10.1 is explicit that this is "sesión Oxy con roles internos y autorización
  *     explícita": the session is necessary and nowhere near sufficient. Every Oxy
- *     account in existence satisfies (1); a handful satisfy (3). Grants are
- *     append-only and audited in Oxy, and nobody grants themselves one.
+ *     account in existence satisfies (1); a handful satisfy (3).
  *
  * A service credential can satisfy NONE of them. It presents a bearer token that
  * `@oxy.so/core/server` does not recognise as an Oxy session, so it never gets past
@@ -31,44 +31,8 @@ import { STAFF_ROLES, type StaffRole } from './console.collections';
  * console, rather than a rule somebody has to remember at each route.
  */
 
-/** A Trust & Safety operator, as Oxy answered for this request. */
-export interface StaffOperator {
-  /** The HUMAN behind the session — the actor every audit row names. */
-  readonly operatorId: string;
-  /** The roles held, in `STAFF_ROLES` order. */
-  readonly roles: readonly StaffRole[];
-}
-
-/** The application permission a Trust & Safety role is held as. */
-export function staffPermission(role: StaffRole): string {
-  return `trust_safety.${role}`;
-}
-
 const authenticatedUsers = new WeakMap<Request, string>();
-const authenticatedStaff = new WeakMap<Request, StaffOperator>();
-
-/**
- * What Oxy says this session's operator holds.
- *
- * Asked fresh before anything but a read, so a revocation stops a write at once;
- * reads reuse an answer for at most 30 s. An Oxy that cannot answer is a 503 —
- * the SDK caches only answers, so the next request asks again — and never a
- * "no roles" that would read as a revocation.
- */
-async function staffOperator(request: OxyAuthRequest, fresh: boolean): Promise<StaffOperator> {
-  try {
-    const held = await oxyServiceServer().appPermissionsFor(request, { fresh });
-    return {
-      operatorId: held.operatorId,
-      roles: STAFF_ROLES.filter((role) => held.has(staffPermission(role))),
-    };
-  } catch (error: unknown) {
-    throw oxyRefusal(error, {
-      denied: 'This endpoint requires a Trust & Safety role.',
-      unavailable: 'Trust & Safety authority is temporarily unavailable.',
-    });
-  }
-}
+const authenticatedStaff = new WeakMap<Request, TrustSafetyStaffDocument>();
 
 /**
  * Requires a verified Oxy session, and nothing else.
@@ -123,11 +87,8 @@ export function requireStaffRole(...roles: readonly StaffRole[]): RequestHandler
 
   const resolveStaff: RequestHandler = async (request, _response, next) => {
     try {
-      consoleUser(request); // throws unless mounted behind the session, which it always is here
-      const staff = await staffOperator(
-        request,
-        request.method !== 'GET' && request.method !== 'HEAD',
-      );
+      const oxyUserId = consoleUser(request);
+      const staff = await trustSafetyStaff.findOne({ oxyUserId, status: 'active' });
 
       /**
        * 403 and not 404: unlike a tenant resource, the EXISTENCE of the Trust &
@@ -135,10 +96,10 @@ export function requireStaffRole(...roles: readonly StaffRole[]): RequestHandler
        * would tell an operator whose role was revoked that the route disappeared
        * rather than that their authority did.
        *
-       * No role and the wrong role answer identically. Which roles a given account
+       * Absent row and wrong role answer identically. Which roles a given account
        * holds is not something an unauthorised caller should be able to probe for.
        */
-      if (!roles.some((role) => staff.roles.includes(role))) {
+      if (!staff || !roles.some((role) => staff.roles.includes(role))) {
         throw new ApiError(
           'forbidden',
           `This endpoint requires one of the Trust & Safety roles: ${roles.join(', ')}.`,
@@ -173,8 +134,8 @@ export function consoleUser(request: Request): string {
   return oxyUserId;
 }
 
-/** The staff operator this request belongs to. */
-export function requestStaff(request: Request): StaffOperator {
+/** The staff member this request belongs to. */
+export function requestStaff(request: Request): TrustSafetyStaffDocument {
   const staff = authenticatedStaff.get(request);
   if (!staff) {
     throw new Error('This route read a staff member but is not mounted behind requireStaffRole.');
@@ -190,6 +151,7 @@ export function requestStaff(request: Request): StaffOperator {
  * boundary: every T&S route checks its own role, so a client that ignored this and
  * called anyway is refused by the route.
  */
-export async function staffRolesOf(request: OxyAuthRequest): Promise<readonly StaffRole[]> {
-  return (await staffOperator(request, false)).roles;
+export async function staffRolesOf(oxyUserId: string): Promise<readonly StaffRole[]> {
+  const staff = await trustSafetyStaff.findOne({ oxyUserId, status: 'active' });
+  return staff?.roles ?? [];
 }

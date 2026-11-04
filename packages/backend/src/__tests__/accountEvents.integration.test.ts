@@ -454,7 +454,7 @@ describe('the Oxy client', () => {
     resetModules();
     stubEnv('OXY_API_URL', '');
     const isolated = await import('../modules/accountErasure/oxyAccountEvents');
-    expect(() => isolated.accountEventClient()).toThrow('no Oxy API configured');
+    expect(() => isolated.accountEventClient()).toThrow('No Oxy API is configured');
     unstubAllEnvs();
     resetModules();
   });

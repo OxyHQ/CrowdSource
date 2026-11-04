@@ -18,9 +18,8 @@ const { config } = await import('../config');
 const originalApiUrl = config.oxy.apiUrl;
 let issuer: ReturnType<typeof Bun.serve>;
 let callerApplicationId = '';
-const { looksLikeOxyServiceToken } = await import('../modules/tenancy/oxyApplicationAuth');
-const { CROWDSOURCE_SERVICE_AUDIENCE, resetOxyServiceServer } = await import(
-  '../modules/identity/oxyService'
+const { CROWDSOURCE_SERVICE_AUDIENCE, looksLikeOxyServiceToken } = await import(
+  '../modules/tenancy/oxyApplicationAuth'
 );
 const { requireServiceCredential, requireAnyServiceCredential, serviceCredentialCaller } =
   await import('../modules/tenancy/serviceCredentialAuth');
@@ -159,7 +158,8 @@ beforeAll(async () => {
   Reflect.set(config.oxy, 'apiUrl', issuer.url.toString().replace(/\/$/, ''));
 });
 afterAll(async () => {
-  resetOxyServiceServer();
+  const { oxyServiceServer } = await import('../modules/identity/oxyService');
+  oxyServiceServer().dispose();
   issuer.stop(true);
   Reflect.set(config.oxy, 'apiUrl', originalApiUrl);
   await stopDatabase();

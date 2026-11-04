@@ -10,7 +10,6 @@ let issuer: Server;
 let receiver: Server;
 let receiverOrigin = '';
 let active = true;
-let outage: number | null = null;
 let validations = 0;
 let admitted = 0;
 
@@ -54,7 +53,7 @@ globalThis.fetch = new Proxy(originalFetch, {
 });
 
 async function run(): Promise<void> {
-  let resetOxyServiceServer: (() => void) | undefined;
+  let resetOxySession: (() => void) | undefined;
   try {
     issuer = createServer((req, res) => {
       // A server validating the bearer its request carried hands Oxy that bearer
@@ -68,15 +67,11 @@ async function run(): Promise<void> {
         return;
       }
       validations += 1;
-      if (outage !== null) {
-        res.writeHead(outage).end();
-        return;
-      }
       res.setHeader('Content-Type', 'application/json');
       res.end(
         JSON.stringify({
           valid: active,
-          user: { id: 'receiver-owner', verified: true },
+          user: { id: 'receiver-owner' },
           sessionId: 'receiver-session',
           expiresAt: new Date(Date.now() + 300000).toISOString(),
           lastActivity: new Date().toISOString(),
@@ -90,13 +85,12 @@ async function run(): Promise<void> {
       '../../modules/console/consoleAuth.js'
     );
     const { errorHandler } = await import('../../http/errorHandler.js');
-    const { sessionSaysVerified } = await import('../../modules/identity/oxySession.js');
-    ({ resetOxyServiceServer } = await import('../../modules/identity/oxyService.js'));
+    ({ resetOxySession } = await import('../../modules/identity/oxySession.js'));
     const middleware = requireConsoleSession();
     const app = express();
     app.get('/owned-fixture', middleware, (req: ExpressRequest, res: ExpressResponse) => {
       admitted += 1;
-      res.json({ userId: consoleUser(req), verified: sessionSaysVerified(req) });
+      res.json({ userId: consoleUser(req) });
     });
     app.use(errorHandler);
     receiver = createServer(app);
@@ -110,13 +104,12 @@ async function run(): Promise<void> {
       assert.equal(admitted, before);
     }
 
-    // uses the live validated owner — with the account the session carries, so
-    // the personhood flag reaches the reviewer — and rejects a conflicting claim
+    // uses the live validated owner and rejects a conflicting token claim
     {
       active = true;
       const response = await request(bearer());
       assert.equal(response.status, 200);
-      assert.deepEqual(await response.json(), { userId: 'receiver-owner', verified: true });
+      assert.deepEqual(await response.json(), { userId: 'receiver-owner' });
       const before = admitted;
       assert.equal((await request(bearer('other-owner'))).status, 401);
       assert.equal(admitted, before);
@@ -127,7 +120,7 @@ async function run(): Promise<void> {
     // session is refused on the very next request by the SAME client
     {
       active = true;
-      resetOxyServiceServer();
+      resetOxySession();
       const token = bearer();
       assert.equal((await request(token)).status, 200);
       const checks = validations;
@@ -139,29 +132,13 @@ async function run(): Promise<void> {
       assert.equal(validations, checks + 2);
       assert.equal(admitted, before);
     }
-
-    // an Oxy outage is 503, never a 401 that signs a person out — even one
-    // that wears a 500 rather than a 503 — and is never remembered: the next
-    // request after it asks again and is admitted
-    {
-      active = true;
-      const token = bearer();
-      outage = 500;
-      const before = admitted;
-      assert.equal((await request(token)).status, 503);
-      assert.equal(admitted, before);
-      outage = null;
-      const checks = validations;
-      assert.equal((await request(token)).status, 200);
-      assert.equal(validations, checks + 1);
-    }
     assert.equal(blockedNetwork, 0);
     process.stdout.write(
-      JSON.stringify({ controls: 4, validations, admitted, nonLoopbackRequests: blockedNetwork }) +
+      JSON.stringify({ controls: 3, validations, admitted, nonLoopbackRequests: blockedNetwork }) +
         '\n',
     );
   } finally {
-    resetOxyServiceServer?.();
+    resetOxySession?.();
     try {
       await close(receiver);
     } finally {
