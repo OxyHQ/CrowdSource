@@ -1,6 +1,6 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 
-import { organizationMembers, staffAuditEvents, trustSafetyStaff } from '../schema/console';
+import { organizationMembers, staffAuditEvents } from '../schema/console';
 import type { PgHandle } from '../withTenant';
 
 /**
@@ -11,14 +11,12 @@ import type { PgHandle } from '../withTenant';
  * rather than introducing a second one. The console services call these paths,
  * while `consoleRepositories.realdb.test.ts` proves them against the real schema.
  *
- * Three tables, three different exemption kinds, and the repositories make the
+ * Two tables, two different exemption kinds, and the repositories make the
  * difference visible rather than uniform:
  *
  *  - `organization_members` DEFINES a tenant. `findActiveMembershipsByUser` takes
  *    an Oxy user id and NO tenant, because that read is what produces the set of
  *    tenants a console session may act on.
- *  - `trust_safety_staff` has no tenant dimension at all; nothing in its signature
- *    could accept one.
  *  - `staff_audit_events` NAMES an application without belonging to it, and its
  *    `applicationId` is nullable — most staff actions name none. `appendStaffAudit`
  *    takes `string | null` rather than an optional parameter, so a caller with no
@@ -151,51 +149,6 @@ export async function listOrganizationMembers(db: PgHandle, organizationId: stri
     .where(eq(organizationMembers.organizationId, organizationId))
     .orderBy(asc(organizationMembers.createdAt))
     .limit(limit);
-}
-
-export interface NewTrustSafetyStaff {
-  readonly oxyUserId: string;
-  readonly roles: readonly string[];
-  readonly status: string;
-}
-
-export async function insertTrustSafetyStaff(
-  db: PgHandle,
-  staff: NewTrustSafetyStaff,
-): Promise<void> {
-  await db.insert(trustSafetyStaff).values({ ...staff, roles: [...staff.roles] });
-}
-
-export async function findTrustSafetyStaff(db: PgHandle, oxyUserId: string) {
-  const [row] = await db
-    .select()
-    .from(trustSafetyStaff)
-    .where(eq(trustSafetyStaff.oxyUserId, oxyUserId))
-    .limit(1);
-
-  return row ?? null;
-}
-
-export async function updateTrustSafetyStaff(
-  db: PgHandle,
-  oxyUserId: string,
-  patch: {
-    readonly roles?: readonly string[];
-    readonly status?: string;
-    readonly revokedAt?: Date | null;
-  },
-): Promise<number> {
-  const rows = await db
-    .update(trustSafetyStaff)
-    .set({
-      ...(patch.roles === undefined ? {} : { roles: [...patch.roles] }),
-      ...(patch.status === undefined ? {} : { status: patch.status }),
-      ...(patch.revokedAt === undefined ? {} : { revokedAt: patch.revokedAt }),
-    })
-    .where(eq(trustSafetyStaff.oxyUserId, oxyUserId))
-    .returning({ oxyUserId: trustSafetyStaff.oxyUserId });
-
-  return rows.length;
 }
 
 export interface NewStaffAuditEvent {

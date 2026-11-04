@@ -1,24 +1,7 @@
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-const sdk = vi.hoisted(() => ({
-  hasOxyServiceSdk: vi.fn(() => false),
-  oxyServiceHost: vi.fn(),
-}));
-vi.mock('../oxySdk.js', async (original) => ({
-  ...(await original<typeof import('../oxySdk.js')>()),
-  ...sdk,
-}));
-import { crowdSourceForOxyService, resetCrowdSourceForOxyService } from '../oxyService.js';
+import { expect, it, vi } from 'vitest';
 import { CROWDSOURCE_SERVICE_AUDIENCE } from '../defaults.js';
-import type { OxyServiceHost } from '../oxySdk.js';
-beforeEach(() => {
-  resetCrowdSourceForOxyService();
-  vi.clearAllMocks();
-  sdk.hasOxyServiceSdk.mockReturnValue(false);
-});
-afterEach(() => {
-  vi.unstubAllEnvs();
-  resetCrowdSourceForOxyService();
-});
+import { crowdSourceForOxyService, type OxyServiceHost } from '../oxyService.js';
+
 function host() {
   const fetch = vi.fn<typeof globalThis.fetch>(async () =>
     Response.json({ applicationId: 'bound-tenant' }),
@@ -30,24 +13,30 @@ function host() {
   }));
   return { createServiceClient, fetch, dispose };
 }
-it('customer keys do not replace an unavailable workload SDK', () => {
-  vi.stubEnv('OXY_SERVICE_API_KEY', 'external-key');
-  vi.stubEnv('OXY_SERVICE_API_SECRET', 'external-secret');
-  expect(crowdSourceForOxyService()).toBeUndefined();
-  expect(sdk.oxyServiceHost).not.toHaveBeenCalled();
-});
-it('uses shared canonical transport with no manual bearer or scope map', async () => {
+
+it('uses the caller server transport with no manual bearer or scope map', async () => {
   const oxy = host();
   const client = crowdSourceForOxyService({ oxy, baseUrl: 'https://crowdsource.test' });
   expect(oxy.createServiceClient).toHaveBeenCalledWith({
     baseURL: 'https://crowdsource.test',
     audience: CROWDSOURCE_SERVICE_AUDIENCE,
   });
-  expect(await client?.applicationId).toBe('bound-tenant');
+  expect(await client.applicationId).toBe('bound-tenant');
   expect(new Headers(oxy.fetch.mock.calls[0]?.[1]?.headers).has('authorization')).toBe(false);
-  client?.dispose();
+  client.dispose();
   expect(oxy.dispose).toHaveBeenCalledTimes(1);
 });
+
+it('builds one client per call, so a caller decides what is shared', () => {
+  const oxy = host();
+  const a = crowdSourceForOxyService({ oxy });
+  const b = crowdSourceForOxyService({ oxy });
+  expect(a).not.toBe(b);
+  expect(oxy.createServiceClient).toHaveBeenCalledTimes(2);
+  a.dispose();
+  b.dispose();
+});
+
 it('never reuses a requester client across accounts and snapshots proof options', async () => {
   const oxy = host();
   const requester = { accountId: 'A', requesterContext: 'context-A' };
@@ -61,25 +50,17 @@ it('never reuses a requester client across accounts and snapshots proof options'
     requesterContext: 'context-A',
   });
   expect(oxy.createServiceClient.mock.calls[1]?.[0].requester).toEqual(requester);
-  a?.dispose();
-  b?.dispose();
+  a.dispose();
+  b.dispose();
 });
-it('shares only the default application client and disposes it on reset', () => {
-  const oxy = host();
-  sdk.hasOxyServiceSdk.mockReturnValue(true);
-  sdk.oxyServiceHost.mockReturnValue(oxy);
-  const a = crowdSourceForOxyService();
-  expect(crowdSourceForOxyService()).toBe(a);
-  expect(oxy.createServiceClient).toHaveBeenCalledTimes(1);
-  resetCrowdSourceForOxyService();
-  expect(oxy.dispose).toHaveBeenCalledTimes(1);
-});
+
 it('logs an unavailable binding without leaking response details', async () => {
   const oxy = host();
   oxy.fetch.mockRejectedValue(new Error('secret bearer must not reach logs'));
   const logger = { info: vi.fn(), error: vi.fn() };
   const client = crowdSourceForOxyService({ oxy, logger });
-  await expect(client?.applicationId).rejects.toThrow();
+  await expect(client.applicationId).rejects.toThrow();
+  await vi.waitFor(() => expect(logger.error).toHaveBeenCalled());
   expect(JSON.stringify(logger.error.mock.calls)).not.toContain('secret bearer');
-  client?.dispose();
+  client.dispose();
 });

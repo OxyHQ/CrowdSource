@@ -145,39 +145,6 @@ describe('organization members — the read that establishes a tenant', () => {
   });
 });
 
-describe('trust and safety staff — no tenant dimension at all', () => {
-  it('inserts, finds and updates a staff row', async () => {
-    await consoleRepository.insertTrustSafetyStaff(database.db, {
-      oxyUserId: STAFF_USER,
-      roles: ['security'],
-      status: 'active',
-    });
-
-    expect((await consoleRepository.findTrustSafetyStaff(database.db, STAFF_USER))?.roles).toEqual([
-      'security',
-    ]);
-
-    const revokedAt = new Date();
-    expect(
-      await consoleRepository.updateTrustSafetyStaff(database.db, STAFF_USER, {
-        status: 'revoked',
-        revokedAt,
-      }),
-    ).toBe(1);
-
-    const stored = await consoleRepository.findTrustSafetyStaff(database.db, STAFF_USER);
-    expect(stored?.status).toBe('revoked');
-    expect(stored?.revokedAt?.getTime()).toBe(revokedAt.getTime());
-
-    expect(await consoleRepository.findTrustSafetyStaff(database.db, 'oxy_absent')).toBeNull();
-    expect(
-      await consoleRepository.updateTrustSafetyStaff(database.db, 'oxy_absent', {
-        status: 'active',
-      }),
-    ).toBe(0);
-  });
-});
-
 describe('the staff audit trail — names an application without belonging to one', () => {
   /**
    * Both shapes of the nullable column, which is the distinction the registry
@@ -244,7 +211,7 @@ describe('the suite exercises the whole module', () => {
       .map(([name]) => name)
       .sort();
 
-    expect(exported.length).toBeGreaterThanOrEqual(10);
+    expect(exported.length).toBeGreaterThanOrEqual(7);
 
     const source = readFileSync(path.join(__dirname, 'consoleRepositories.realdb.test.ts'), 'utf8');
     const unexercised = exported.filter((name) => !source.includes(`consoleRepository.${name}(`));
