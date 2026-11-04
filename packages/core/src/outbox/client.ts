@@ -26,7 +26,7 @@ export interface CrowdSourceClientProvider {
    * is nowhere to send it.
    *
    * A MISCONFIGURED client — a malformed service key, or an `'oxy-service'`
-   * deployment that cannot obtain an Oxy token — is a different thing and is
+   * deployment that passed no `oxy` server — is a different thing and is
    * logged once at error level. Once, because the alternative is one line per
    * delivery attempt per report, which buries the cause it is meant to reveal.
    */
@@ -130,24 +130,13 @@ function fromServiceKey(input: ProviderInput): ClientAttempt {
 }
 
 /**
- * The first-party path: the same decision `crowdSourceForOxyService()` already
- * makes, asked rather than repeated.
+ * The first-party path: `crowdSourceForOxyService()` with the process's own
+ * `OxyServer`, asked rather than repeated.
  *
- * Nothing here decides whether this process can be an Oxy service, which token
- * provider to use or when to give up — all three live in the factory, and three
- * applications' worth of duplicated copies is exactly why they were moved there.
  * What this adds is the part the factory cannot know: that an integration which
- * asked for this identity and did not get one is MISCONFIGURED. The factory
- * answers `undefined` for a laptop, where that is correct and unremarkable; an
- * outbox deployment that set `auth: 'oxy-service'` and switched delivery on
- * meant it, so the same answer is an error here.
- *
- * The factory's client is one per PROCESS. Two integrations in one process on
- * this path therefore share it, which is right — the token names one Oxy
- * application, so a second client would ask CrowdSource which tenant that is all
- * over again and be told the same thing. It is also why `baseUrl` here is the
- * first caller's: a test that needs a different one calls
- * `resetCrowdSourceForOxyService()`, which is what that hook is for.
+ * asked for this identity without handing over the server that holds it is
+ * MISCONFIGURED. It is an error, not silence — an outbox deployment that set
+ * `auth: 'oxy-service'` and switched delivery on meant it.
  */
 function fromOxyIdentity(input: ProviderInput): ClientAttempt {
   /**
@@ -162,28 +151,27 @@ function fromOxyIdentity(input: ProviderInput): ClientAttempt {
     });
   }
 
-  const built = crowdSourceForOxyService({
-    logger: taggedLogger(input.logger),
-    ...(input.config.oxy === undefined ? {} : { oxy: input.config.oxy }),
-    ...(input.config.baseUrl === undefined ? {} : { baseUrl: input.config.baseUrl }),
-  });
-
-  if (built === undefined) {
+  if (input.config.oxy === undefined) {
     return {
       message: '[CrowdSource] enabled but not configured',
       reason:
-        "crowdSource.auth is 'oxy-service' but this process cannot obtain an Oxy service token",
+        "crowdSource.auth is 'oxy-service' but no `oxy` (this process's OxyServer) was passed",
     };
   }
-  return built;
+
+  return crowdSourceForOxyService({
+    oxy: input.config.oxy,
+    logger: taggedLogger(input.logger),
+    ...(input.config.baseUrl === undefined ? {} : { baseUrl: input.config.baseUrl }),
+  });
 }
 
 /**
  * The factory's own lines, each carrying the identity this deployment chose.
  *
- * The factory is reached by an application that configured nothing, so it cannot
- * name a mode it was never told about — and which credential is in use is the
- * first thing an operator needs when nothing is being delivered. Added to the
+ * The factory knows nothing of the outbox's `auth` field, so it cannot name the
+ * mode — and which credential is in use is the first thing an operator needs
+ * when nothing is being delivered. Added to the
  * lines that already exist rather than announced on one of its own: a second
  * "client ready" per boot is how a startup log stops being read.
  *

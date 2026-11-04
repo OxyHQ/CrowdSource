@@ -28,6 +28,8 @@ mock.module('@oxy.so/core/server', () => ({
   createOptionalOxyAuth: () => stubOxySession(),
 }));
 
+// `/console/session` asks Oxy for the caller's Trust & Safety roles.
+await import('./support/appPermissions');
 const { createApp } = await import('../app');
 const { grantMembership } = await import('../modules/console/membership.service');
 const { organizationMembers } = await import('../modules/console/console.collections');

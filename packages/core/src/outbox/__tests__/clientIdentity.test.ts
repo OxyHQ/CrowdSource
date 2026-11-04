@@ -10,9 +10,9 @@
  * have switched delivery off in the one direction nothing fails on.
  *
  * Nothing here reaches the network. `globalThis.fetch` is replaced per test and
- * the two functions that would reach `@oxy.so/core` are stubbed by name, so an
+ * the process's `OxyServer` is a stand-in that stamps its own bearer, so an
  * assertion about the `Authorization` header is an assertion about which
- * provider was asked — not about Oxy being reachable from a test runner. The
+ * identity was used — not about Oxy being reachable from a test runner. The
  * credential read is NOT stubbed, so the environment-pair path runs for real.
  *
  * These guards need no mutation entry in `scripts/test-invariants.mjs`: each one
@@ -26,18 +26,8 @@ import { pgTable } from 'drizzle-orm/pg-core';
 import postgres from 'postgres';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
-const oxySdk = vi.hoisted(() => ({
-  hasOxyServiceSdk: vi.fn((): boolean => false),
-  oxyServiceHost: vi.fn(),
-}));
-
-vi.mock('../../oxySdk.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../oxySdk.js')>()),
-  ...oxySdk,
-}));
-
 import { formatServiceKey } from '../../credential.js';
-import { resetCrowdSourceForOxyService } from '../../index.js';
+import type { OxyServiceHost } from '../../index.js';
 import { createClientProvider } from '../client.js';
 import { createModerationIntegration } from '../integration.js';
 import { moderationReportColumns, moderationReportTableExtras } from '../postgres/reportColumns.js';
@@ -112,25 +102,24 @@ function connection(overrides: Partial<CrowdSourceConnectionConfig>): CrowdSourc
   return { enabled: true, enforcementMode: 'observe', baseUrl: BASE_URL, ...overrides };
 }
 
+/** The process's one `OxyServer`, reduced to the method this package uses. */
+let oxy: { createServiceClient: Mock<OxyServiceHost['createServiceClient']> };
+
 beforeEach(() => {
-  resetCrowdSourceForOxyService();
-  // `reset`, not `clear`: `clearAllMocks` leaves an implementation a previous
-  // test installed in place, so a `mockReturnValue(true)` for the attestation
-  // would silently give every later test an identity it never asked for.
   vi.resetAllMocks();
-  oxySdk.oxyServiceHost.mockReturnValue({
-    createServiceClient: () => ({
+  oxy = {
+    createServiceClient: vi.fn<OxyServiceHost['createServiceClient']>(() => ({
       fetch: (input: Parameters<typeof fetch>[0], init?: RequestInit) =>
         globalThis.fetch(input, {
           ...init,
           headers: {
             ...Object.fromEntries(new Headers(init?.headers)),
-            authorization: 'Bearer token-from-the-default-provider',
+            authorization: 'Bearer token-from-the-process-server',
           },
         }),
       dispose: () => {},
-    }),
-  });
+    })),
+  };
   // Stated rather than assumed. A developer's shell that happens to export
   // either credential would otherwise make the "configured nothing" tests pass
   // by building a client out of the environment.
@@ -140,7 +129,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  resetCrowdSourceForOxyService();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -161,7 +149,7 @@ describe('the service key, which is what every deployment did before auth existe
     });
     // Not merely "the key won": the first-party path was never consulted, so a
     // third party's tree is never asked a question about Oxy at all.
-    expect(oxySdk.hasOxyServiceSdk).not.toHaveBeenCalled();
+    expect(oxy.createServiceClient).not.toHaveBeenCalled();
   });
 
   it('behaves identically when the default is written out', () => {
@@ -173,7 +161,7 @@ describe('the service key, which is what every deployment did before auth existe
     }).get();
 
     expect(client?.applicationId).toBe(KEYED_APPLICATION);
-    expect(oxySdk.hasOxyServiceSdk).not.toHaveBeenCalled();
+    expect(oxy.createServiceClient).not.toHaveBeenCalled();
   });
 
   it('is built once, not once per delivery', () => {
@@ -209,16 +197,12 @@ describe('the service key, which is what every deployment did before auth existe
 });
 
 describe('an Oxy service, which configures no key at all', () => {
-  beforeEach(() => {
-    oxySdk.hasOxyServiceSdk.mockReturnValue(true);
-  });
-
   it('builds a client that presents the Oxy service token', async () => {
     const logger = recordingLogger();
     const calls = stubFetch([namesTheTenant()]);
 
     const client = createClientProvider({
-      config: connection({ auth: 'oxy-service' }),
+      config: connection({ auth: 'oxy-service', oxy }),
       logger,
     }).get();
 
@@ -234,7 +218,7 @@ describe('an Oxy service, which configures no key at all', () => {
     );
 
     expect(calls[0].url).toBe(`${BASE_URL}/v1/applications/me`);
-    expect(calls[0].authorization).toBe('Bearer token-from-the-default-provider');
+    expect(calls[0].authorization).toBe('Bearer token-from-the-process-server');
   });
 
   /**
@@ -251,7 +235,7 @@ describe('an Oxy service, which configures no key at all', () => {
     stubFetch([namesTheTenant()]);
 
     const client = createClientProvider({
-      config: connection({ auth: 'oxy-service', serviceKey: SERVICE_KEY }),
+      config: connection({ auth: 'oxy-service', oxy, serviceKey: SERVICE_KEY }),
       logger,
     }).get();
 
@@ -265,7 +249,7 @@ describe('an Oxy service, which configures no key at all', () => {
     stubFetch([namesTheTenant()]);
 
     const provider = createClientProvider({
-      config: connection({ auth: 'oxy-service', serviceKey: SERVICE_KEY }),
+      config: connection({ auth: 'oxy-service', oxy, serviceKey: SERVICE_KEY }),
       logger,
     });
 
@@ -285,7 +269,7 @@ describe('an Oxy service, which configures no key at all', () => {
     const logger = recordingLogger();
     stubFetch([namesTheTenant()]);
     const provider = createClientProvider({
-      config: connection({ auth: 'oxy-service' }),
+      config: connection({ auth: 'oxy-service', oxy }),
       logger,
     });
 
@@ -322,7 +306,7 @@ describe('an Oxy service, which configures no key at all', () => {
 
       const integration = createModerationIntegration({
         store,
-        crowdSource: connection({ auth: 'oxy-service' }),
+        crowdSource: connection({ auth: 'oxy-service', oxy }),
         subjects: [],
         taxonomy: { version: '2026.07', allegationsFor: () => ['other.unclassifiable'] },
         enforcement: {
@@ -336,7 +320,7 @@ describe('an Oxy service, which configures no key at all', () => {
 
       expect(integration.client.get()).toBeDefined();
       await vi.waitFor(() => expect(calls).toHaveLength(1));
-      expect(calls[0].authorization).toBe('Bearer token-from-the-default-provider');
+      expect(calls[0].authorization).toBe('Bearer token-from-the-process-server');
     } finally {
       await sql.end();
     }
@@ -360,13 +344,11 @@ describe('a deployment that configured neither', () => {
   });
 
   /**
-   * The same `undefined` the shared factory hands a laptop, and NOT the same
-   * thing. A local checkout that cannot mint a token is unremarkable; a
-   * deployment that named this identity and switched delivery on meant it, and
-   * an info line is not what an operator finds three days later with a full
-   * outbox.
+   * A deployment that named this identity and switched delivery on meant it:
+   * without the process's server there is no token to present, and that is an
+   * error an operator finds at boot rather than a full outbox three days later.
    */
-  it("is an error under 'oxy-service' too, not the factory's quiet answer", () => {
+  it("is an error under 'oxy-service' without the process's OxyServer", () => {
     const logger = recordingLogger();
     const provider = createClientProvider({
       config: connection({ auth: 'oxy-service' }),
@@ -380,17 +362,9 @@ describe('a deployment that configured neither', () => {
     expect(logger.error).toHaveBeenCalledWith('[CrowdSource] enabled but not configured', {
       auth: 'oxy-service',
       reason:
-        "crowdSource.auth is 'oxy-service' but this process cannot obtain an Oxy service token",
+        "crowdSource.auth is 'oxy-service' but no `oxy` (this process's OxyServer) was passed",
     });
-    // The factory's own account of what it found, carrying the mode it was
-    // never told about.
-    expect(logger.info).toHaveBeenCalledWith(
-      '[CrowdSource] client not built',
-      expect.objectContaining({
-        auth: 'oxy-service',
-        reason: 'the optional Oxy workload SDK is unavailable',
-      }),
-    );
+    expect(logger.info).not.toHaveBeenCalled();
   });
 });
 
@@ -400,7 +374,7 @@ describe('a disabled integration', () => {
 
     expect(
       createClientProvider({
-        config: connection({ enabled: false, auth: 'oxy-service', serviceKey: SERVICE_KEY }),
+        config: connection({ enabled: false, auth: 'oxy-service', oxy, serviceKey: SERVICE_KEY }),
         logger,
       }).get(),
     ).toBeUndefined();
@@ -408,7 +382,7 @@ describe('a disabled integration', () => {
     expect(logger.info).not.toHaveBeenCalled();
     expect(logger.warn).not.toHaveBeenCalled();
     expect(logger.error).not.toHaveBeenCalled();
-    expect(oxySdk.hasOxyServiceSdk).not.toHaveBeenCalled();
+    expect(oxy.createServiceClient).not.toHaveBeenCalled();
   });
 });
 
@@ -437,8 +411,6 @@ describe('an explicitly injected shared workload provider', () => {
       baseURL: BASE_URL,
       audience: 'oxy-service:6a6947b30fe72510b411252f',
     });
-    expect(oxySdk.hasOxyServiceSdk).not.toHaveBeenCalled();
-    expect(oxySdk.oxyServiceHost).not.toHaveBeenCalled();
     expect(calls[0]?.authorization).toBe('Bearer injected-workload');
   });
 
@@ -450,6 +422,5 @@ describe('an explicitly injected shared workload provider', () => {
     }).get();
     expect(client?.applicationId).toBe(KEYED_APPLICATION);
     expect(createServiceClient).not.toHaveBeenCalled();
-    expect(oxySdk.hasOxyServiceSdk).not.toHaveBeenCalled();
   });
 });

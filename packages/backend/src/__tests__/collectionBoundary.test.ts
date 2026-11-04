@@ -196,12 +196,6 @@ describe('collections that are exempt from tenant scoping', () => {
        */
       'StaffAuditEvent',
       /**
-       * Trust & Safety staff act ACROSS every tenant by definition (§4.3), so there
-       * is no tenant to scope the row by. The row grants authority rather than
-       * belonging to a customer.
-       */
-      'TrustSafetyStaff',
-      /**
        * The webhook delivery worker's CLAIM spans every tenant, exactly like the
        * outbox dispatcher's, so the row it claims cannot be found through a
        * tenant filter. Its attempts are tenant-scoped — the worker derives a
@@ -266,8 +260,8 @@ describe('collections that are exempt from tenant scoping', () => {
    * one that fails when the total moves at all, in either direction.
    */
   it('registers every declared collection', () => {
-    // 11 tenant-owned above, 15 exempt in the list before it.
-    expect(registeredCollectionNames()).toHaveLength(26);
-    expect(unscopedCollectionReasons().size).toBe(15);
+    // 11 tenant-owned above, 14 exempt in the list before it.
+    expect(registeredCollectionNames()).toHaveLength(25);
+    expect(unscopedCollectionReasons().size).toBe(14);
   });
 });

@@ -12,10 +12,11 @@ import { stubOxySession } from './support/reviewers';
  *
  * The property this suite exists for: **a valid Oxy session is not staff.** Every Oxy
  * account in existence authenticates; the cross-tenant surface is reachable only with a
- * role on a `trust_safety_staff` row, and there is no route in the service that grants
- * one. So the staff check is asserted from three sides — no row at all, a row with a
- * different role, and a row with the right role — because "403 for a stranger" is
- * equally consistent with a working check and a route that refuses everybody.
+ * `trust_safety.<role>` application permission, granted in Oxy — there is no route in
+ * this service that grants one. So the staff check is asserted from three sides — no
+ * permission at all, a different role, and the right role — because "403 for a
+ * stranger" is equally consistent with a working check and a route that refuses
+ * everybody.
  */
 const actualOxyServer = await import('@oxy.so/core/server');
 mock.module('@oxy.so/core/server', () => ({
@@ -25,7 +26,8 @@ mock.module('@oxy.so/core/server', () => ({
 
 const { createApp } = await import('../app');
 const { grantMembership } = await import('../modules/console/membership.service');
-const { grantStaffRoles, revokeStaff } = await import('../modules/console/staff.service');
+const { appPermissionReads, grantStaffRoles, revokeStaffRoles, setAppPermissionsUnavailable } =
+  await import('./support/appPermissions');
 const { applicationTrustFor } = await import('../modules/trust/applicationTrust.service');
 const { usageCounters, utcDayKey } = await import('../modules/trust/usageCounter.collection');
 const { incrementUsageCounter } = await import('../db/postgres/repositories/scoped/governance');
@@ -52,7 +54,7 @@ function newOxyUserId(): string {
 
 async function staffWith(...roles: readonly ('policy' | 'appeals' | 'evidence' | 'security')[]) {
   const oxyUserId = newOxyUserId();
-  await grantStaffRoles(oxyUserId, roles);
+  grantStaffRoles(oxyUserId, roles);
   return oxyUserId;
 }
 
@@ -73,7 +75,7 @@ afterAll(async () => {
 });
 
 describe('the staff check', () => {
-  it('refuses a perfectly valid Oxy session with no staff row', async () => {
+  it('refuses a perfectly valid Oxy session with no staff permission', async () => {
     const stranger = newOxyUserId();
 
     for (const path of STAFF_READS) {
@@ -101,7 +103,7 @@ describe('the staff check', () => {
     }
   });
 
-  it('accepts a staff row, so the refusals above are about authority', async () => {
+  it('accepts a staff permission, so the refusals above are about authority', async () => {
     const operator = await staffWith('security');
 
     for (const path of STAFF_READS) {
@@ -110,7 +112,7 @@ describe('the staff check', () => {
     }
   });
 
-  it('distinguishes the four roles rather than treating any row as staff (§13.2)', async () => {
+  it('distinguishes the four roles rather than treating any permission as staff (§13.2)', async () => {
     const evidence = await staffWith('evidence');
     const security = await staffWith('security');
     const tenant = await provisionTenant();
@@ -134,11 +136,48 @@ describe('the staff check', () => {
       200,
     );
 
-    await revokeStaff(operator);
+    revokeStaffRoles(operator);
 
     expect((await request(app).get('/v1/trust-safety/metrics').set(asUser(operator))).status).toBe(
       403,
     );
+  });
+
+  it('answers an Oxy that cannot say with 503, never a refusal, and asks again', async () => {
+    const operator = await staffWith('security');
+
+    setAppPermissionsUnavailable(true);
+    try {
+      const unavailable = await request(app).get('/v1/trust-safety/metrics').set(asUser(operator));
+      expect(unavailable.status).toBe(503);
+      expect(unavailable.body.error.code).toBe('service_unavailable');
+      // The console's navigation is not told "no roles" either.
+      expect((await request(app).get('/v1/console/session').set(asUser(operator))).status).toBe(
+        503,
+      );
+    } finally {
+      setAppPermissionsUnavailable(false);
+    }
+
+    const before = appPermissionReads.length;
+    expect((await request(app).get('/v1/trust-safety/metrics').set(asUser(operator))).status).toBe(
+      200,
+    );
+    expect(appPermissionReads.length).toBe(before + 1);
+  });
+
+  it('asks fresh before a write and lets reads reuse an answer', async () => {
+    const tenant = await provisionTenant();
+    const operator = await staffWith('security');
+
+    await request(app).get('/v1/trust-safety/metrics').set(asUser(operator));
+    expect(appPermissionReads.at(-1)).toEqual({ userId: operator, fresh: false });
+
+    await request(app)
+      .post(`/v1/trust-safety/applications/${tenant.applicationId}/standing`)
+      .set(asUser(operator))
+      .send({ standing: 'trusted', reason: 'promotion_review_passed' });
+    expect(appPermissionReads.at(-1)).toEqual({ userId: operator, fresh: true });
   });
 
   it('is not reachable through the developer console, and vice versa', async () => {
@@ -207,7 +246,7 @@ describe('standing changes', () => {
     expect(promoted.status).toBe(200);
     expect(promoted.body.standing).toBe('trusted');
     expect(promoted.body.globalReputationEffectsAllowed).toBe(true);
-    // Who did it, taken from the authenticated staff row rather than from the body.
+    // Who did it: the operator Oxy resolved from the session, never the body.
     expect(promoted.body.standingChangedByOxyUserId).toBe(security);
     expect(promoted.body.lastStandingReason).toBe('promotion_review_passed');
   });

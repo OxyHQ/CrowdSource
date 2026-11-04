@@ -21,9 +21,10 @@ import {
  *    `find({ oxyUserId, status: 'active' })` to discover which organizations a
  *    person belongs to, and that read is what yields the tenant a console session
  *    acts on. A policy would be circular.
- *  - `trust_safety_staff` has NO tenant dimension. Staff act across every tenant
- *    by definition (§4.3); the row grants authority rather than belonging to a
- *    customer, and it carries neither tenant column.
+ *  - `trust_safety_staff` has NO tenant dimension. It no longer grants anything:
+ *    Trust & Safety roles are Oxy application permissions (`consoleAuth.ts`). The
+ *    rows stay as the record of whom to grant them to — no code reads them, and
+ *    account erasure still deletes them — until a migration retires the table.
  *  - `staff_audit_events` NAMES a tenant without belonging to one. Its
  *    `application_id` is the application acted on — nullable, because most
  *    actions name none — and the row is the operator's act, not the customer's
@@ -95,9 +96,8 @@ export const trustSafetyStaff = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  // No index beyond the primary key: every read is `findOne({ oxyUserId })` from
-  // `consoleAuth.ts`, which the key already serves. An index on `status` would
-  // answer a question nothing asks.
+  // No index beyond the primary key: the only statement left is account
+  // erasure's delete by `oxyUserId`, which the key serves.
   (table) => [
     check(
       'trust_safety_staff_roles_check',
