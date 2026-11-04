@@ -24,6 +24,7 @@
     "check:injection-sinks": "bun ./scripts/check-injection-sinks.mjs --min-files=200",
     "doctor": "bun ./scripts/doctor.mjs",
     "doctor:oxy": "oxy-doctor --ci",
+    "i18n:check": "oxy-doctor-i18n --ci",
     "check": "bun run doctor && bun run validate:workflows && bun run validate:agents-md && bun run audit:security && bun run check:injection-sinks && bun run check:peers && bun run build && bun run check:dist && bun run check:migrations && bun run check:schemas && bun run check:module-format && bun run --cwd packages/reviewer typecheck && bun run --cwd packages/console typecheck && bun run lint",
     "test": "bun run test:contracts && bun run test:backend && bun run test:core && bun run test:reviewer && bun run test:console",
     "test:contracts": "bun run --cwd packages/contracts test",
@@ -57,7 +58,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
-    "@oxy.so/doctor": "1.5.0",
+    "@oxy.so/doctor": "1.6.0",
     "@types/node": "^26.6.5",
     "typescript": "~5.9.3",
     "yaml": "^2.9.1"

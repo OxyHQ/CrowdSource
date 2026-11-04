@@ -91,7 +91,7 @@ export default function RecuseScreen() {
         {RECUSAL_REASONS.map((candidate) => (
           <ChoiceRow
             key={candidate}
-            label={t(`recusalReason.${candidate}`)}
+            label={t(`recusalReason.${candidate}.label`)}
             description={t(`recusalReason.${candidate}.help`)}
             selected={reason === candidate}
             onSelect={() => setReason(candidate)}

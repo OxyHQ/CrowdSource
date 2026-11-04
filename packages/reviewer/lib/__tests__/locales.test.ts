@@ -118,7 +118,7 @@ describe('every key the app uses exists in en-US', () => {
   /**
    * Literal `t('…')` keys only.
    *
-   * A template key — `` t(`category.${family}`) `` — cannot be resolved by reading
+   * A template key — `` t(`category.${family}.label`) `` — cannot be resolved by reading
    * the source, so those families are covered by the exhaustive blocks below
    * instead. Every literal is resolvable and is therefore checked.
    */
@@ -149,16 +149,16 @@ describe('every key the app uses exists in en-US', () => {
    * needs a label here, and without this it would render as its own identifier.
    */
   it.each([
-    ['category', TAXONOMY_FAMILIES],
-    ['reviewerState', REVIEWER_STATES],
-    ['eligibility', REVIEWER_ELIGIBILITY_REQUIREMENTS],
-    ['sensitivity', REVIEWER_SENSITIVITY_CLASSES],
-    ['findingContext', FINDING_CONTEXTS],
-    ['relation', RELATION_TYPES],
-    ['review.resource.kind', RESOURCE_TYPES],
-  ])('has a %s label for every value the contract defines', (prefix, values) => {
+    ['category', TAXONOMY_FAMILIES, '.label'],
+    ['reviewerState', REVIEWER_STATES, ''],
+    ['eligibility', REVIEWER_ELIGIBILITY_REQUIREMENTS, ''],
+    ['sensitivity', REVIEWER_SENSITIVITY_CLASSES, ''],
+    ['findingContext', FINDING_CONTEXTS, ''],
+    ['relation', RELATION_TYPES, ''],
+    ['review.resource.kind', RESOURCE_TYPES, ''],
+  ])('has a %s label for every value the contract defines', (prefix, values, leaf) => {
     expect(values.length).toBeGreaterThan(2);
-    const missing = values.filter((value) => valueAt(BASE, `${prefix}.${value}`) === '');
+    const missing = values.filter((value) => valueAt(BASE, `${prefix}.${value}${leaf}`) === '');
     expect(missing).toEqual([]);
   });
 

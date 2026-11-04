@@ -97,7 +97,7 @@ export function PolicyStep({ state, dispatch, policy, allegations }: PolicyStepP
           {REVIEW_OUTCOMES.map((outcome) => (
             <ChoiceRow
               key={outcome}
-              label={t(`outcome.${outcome}`)}
+              label={t(`outcome.${outcome}.label`)}
               description={t(`outcome.${outcome}.help`)}
               selected={state.outcome === outcome}
               onSelect={() => dispatch({ type: 'setOutcome', outcome })}

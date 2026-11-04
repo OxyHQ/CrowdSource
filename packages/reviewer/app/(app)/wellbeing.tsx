@@ -190,7 +190,7 @@ function WellbeingForm({ profile }: { profile: ReviewerProfileView }) {
                 categories: toggle(current.categories, family.id),
               }))
             }
-            label={t(`category.${family.id}`)}
+            label={t(`category.${family.id}.label`)}
             description={t(`category.${family.id}.help`)}
           />
         ))}
@@ -208,7 +208,7 @@ function WellbeingForm({ profile }: { profile: ReviewerProfileView }) {
               }))
             }
             disabled={!draft.categories.includes(family.id)}
-            label={t(`category.${family.id}`)}
+            label={t(`category.${family.id}.label`)}
             description={
               draft.categories.includes(family.id)
                 ? t('wellbeing.consent.revocable')

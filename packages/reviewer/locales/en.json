@@ -26,28 +26,50 @@
     "wellbeing": "Wellbeing"
   },
   "category": {
-    "child_safety": "Child safety",
-    "child_safety.help": "Reviewed only by trained specialists.",
-    "commerce": "Commerce",
-    "commerce.help": "Prohibited items, counterfeits, misleading listings and unsafe products.",
-    "harassment": "Harassment",
-    "harassment.help": "Insults, targeted abuse, sexual harassment, doxxing and credible threats.",
-    "hate": "Hate",
-    "hate.help": "Dehumanisation, slurs, incitement and targeting of protected groups.",
-    "integrity": "Integrity",
-    "integrity.help": "Spam, scams, fraud, impersonation and coordinated manipulation.",
-    "other": "Other",
-    "other.help": "Policy-specific and unclassifiable material.",
-    "platform_abuse": "Platform abuse",
-    "platform_abuse.help": "Ban evasion, abuse of the report system and automation abuse.",
-    "privacy": "Privacy",
-    "privacy.help": "Personal information, intimate media and exposure of someone's location.",
-    "self_harm": "Self-harm",
-    "self_harm.help": "Promotion, instruction and imminent risk.",
-    "sexual_content": "Sexual content",
-    "sexual_content.help": "Nudity, explicit activity, and non-consensual or exploitative material.",
-    "violence": "Violence",
-    "violence.help": "Graphic violence, threats, instructions and celebration of violence."
+    "child_safety": {
+      "label": "Child safety",
+      "help": "Reviewed only by trained specialists."
+    },
+    "commerce": {
+      "label": "Commerce",
+      "help": "Prohibited items, counterfeits, misleading listings and unsafe products."
+    },
+    "harassment": {
+      "label": "Harassment",
+      "help": "Insults, targeted abuse, sexual harassment, doxxing and credible threats."
+    },
+    "hate": {
+      "label": "Hate",
+      "help": "Dehumanisation, slurs, incitement and targeting of protected groups."
+    },
+    "integrity": {
+      "label": "Integrity",
+      "help": "Spam, scams, fraud, impersonation and coordinated manipulation."
+    },
+    "other": {
+      "label": "Other",
+      "help": "Policy-specific and unclassifiable material."
+    },
+    "platform_abuse": {
+      "label": "Platform abuse",
+      "help": "Ban evasion, abuse of the report system and automation abuse."
+    },
+    "privacy": {
+      "label": "Privacy",
+      "help": "Personal information, intimate media and exposure of someone's location."
+    },
+    "self_harm": {
+      "label": "Self-harm",
+      "help": "Promotion, instruction and imminent risk."
+    },
+    "sexual_content": {
+      "label": "Sexual content",
+      "help": "Nudity, explicit activity, and non-consensual or exploitative material."
+    },
+    "violence": {
+      "label": "Violence",
+      "help": "Graphic violence, threats, instructions and celebration of violence."
+    }
   },
   "certainty": {
     "high": "Very",
@@ -200,26 +222,44 @@
     }
   },
   "outcome": {
-    "content_unavailable": "The material is missing or broken",
-    "content_unavailable.help": "The evidence needed is not there, or did not load.",
-    "insufficient_context": "I cannot tell without more",
-    "insufficient_context.help": "Not a no. The case needs more material or context before anyone can decide.",
-    "no_violation": "It does not break the policy",
-    "no_violation.help": "You are confident it does not break the policy you were given.",
-    "violation": "It breaks the policy",
-    "violation.help": "You are confident this material breaks a specific rule you can name."
+    "content_unavailable": {
+      "label": "The material is missing or broken",
+      "help": "The evidence needed is not there, or did not load."
+    },
+    "insufficient_context": {
+      "label": "I cannot tell without more",
+      "help": "Not a no. The case needs more material or context before anyone can decide."
+    },
+    "no_violation": {
+      "label": "It does not break the policy",
+      "help": "You are confident it does not break the policy you were given."
+    },
+    "violation": {
+      "label": "It breaks the policy",
+      "help": "You are confident this material breaks a specific rule you can name."
+    }
   },
   "recusalReason": {
-    "conflict_of_interest": "I know someone involved",
-    "conflict_of_interest.help": "Or I have some other reason to be partial here.",
-    "insufficient_context": "I do not have the context this needs",
-    "insufficient_context.help": "Local, cultural or situational knowledge somebody else will have.",
-    "language": "I do not read this language well enough",
-    "language.help": "Well enough to judge intent, sarcasm and idiom.",
-    "too_sensitive": "I do not want to look at this",
-    "too_sensitive.help": "No explanation needed, now or later.",
-    "unavailable": "I cannot finish this now",
-    "unavailable.help": "Better handed back than left to expire."
+    "conflict_of_interest": {
+      "label": "I know someone involved",
+      "help": "Or I have some other reason to be partial here."
+    },
+    "insufficient_context": {
+      "label": "I do not have the context this needs",
+      "help": "Local, cultural or situational knowledge somebody else will have."
+    },
+    "language": {
+      "label": "I do not read this language well enough",
+      "help": "Well enough to judge intent, sarcasm and idiom."
+    },
+    "too_sensitive": {
+      "label": "I do not want to look at this",
+      "help": "No explanation needed, now or later."
+    },
+    "unavailable": {
+      "label": "I cannot finish this now",
+      "help": "Better handed back than left to expire."
+    }
   },
   "recuse": {
     "action": "Step back",

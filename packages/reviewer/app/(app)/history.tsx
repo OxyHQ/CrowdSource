@@ -65,7 +65,7 @@ export default function HistoryScreen() {
                 {entry.families.length === 0
                   ? t('history.familiesUnknown')
                   : entry.families
-                      .map((family) => t(`category.${family}`, { defaultValue: family }))
+                      .map((family) => t(`category.${family}.label`, { defaultValue: family }))
                       .join(t('history.familySeparator'))}
               </Text>
               <Text className="text-sm text-muted-foreground">
@@ -79,12 +79,12 @@ export default function HistoryScreen() {
                     })}
               </Text>
               <Text className="text-sm text-muted-foreground">
-                {t('history.yourOutcome', { outcome: t(`outcome.${entry.outcome}`) })}
+                {t('history.yourOutcome', { outcome: t(`outcome.${entry.outcome}.label`) })}
               </Text>
               <Text className="text-sm text-muted-foreground">
                 {entry.decision
                   ? t('history.decision', {
-                      outcome: t(`outcome.${entry.decision.outcome}`, {
+                      outcome: t(`outcome.${entry.decision.outcome}.label`, {
                         defaultValue: entry.decision.outcome,
                       }),
                       date: new Date(entry.decision.publishedAt).toLocaleDateString(),

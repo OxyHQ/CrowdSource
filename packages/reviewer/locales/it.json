@@ -26,28 +26,50 @@
     "wellbeing": "Benessere"
   },
   "category": {
-    "child_safety": "Tutela dei minori",
-    "child_safety.help": "Revisionata solo da specialisti formati.",
-    "commerce": "Commercio",
-    "commerce.help": "Articoli vietati, contraffazioni, annunci ingannevoli e prodotti pericolosi.",
-    "harassment": "Molestie",
-    "harassment.help": "Insulti, abusi mirati, molestie sessuali, doxxing e minacce credibili.",
-    "hate": "Odio",
-    "hate.help": "Disumanizzazione, epiteti d'odio, istigazione e attacchi a gruppi protetti.",
-    "integrity": "Integrità",
-    "integrity.help": "Spam, truffe, frode, impersonificazione e manipolazione coordinata.",
-    "other": "Altro",
-    "other.help": "Materiale specifico di una policy o non classificabile.",
-    "platform_abuse": "Abuso della piattaforma",
-    "platform_abuse.help": "Elusione dei blocchi, abuso del sistema di segnalazione e abuso di automazione.",
-    "privacy": "Privacy",
-    "privacy.help": "Informazioni personali, materiale intimo ed esposizione della posizione di qualcuno.",
-    "self_harm": "Autolesionismo",
-    "self_harm.help": "Promozione, istruzioni e rischio imminente.",
-    "sexual_content": "Contenuti sessuali",
-    "sexual_content.help": "Nudità, atti espliciti e materiale non consensuale o di sfruttamento.",
-    "violence": "Violenza",
-    "violence.help": "Violenza esplicita, minacce, istruzioni e celebrazione della violenza."
+    "child_safety": {
+      "label": "Tutela dei minori",
+      "help": "Revisionata solo da specialisti formati."
+    },
+    "commerce": {
+      "label": "Commercio",
+      "help": "Articoli vietati, contraffazioni, annunci ingannevoli e prodotti pericolosi."
+    },
+    "harassment": {
+      "label": "Molestie",
+      "help": "Insulti, abusi mirati, molestie sessuali, doxxing e minacce credibili."
+    },
+    "hate": {
+      "label": "Odio",
+      "help": "Disumanizzazione, epiteti d'odio, istigazione e attacchi a gruppi protetti."
+    },
+    "integrity": {
+      "label": "Integrità",
+      "help": "Spam, truffe, frode, impersonificazione e manipolazione coordinata."
+    },
+    "other": {
+      "label": "Altro",
+      "help": "Materiale specifico di una policy o non classificabile."
+    },
+    "platform_abuse": {
+      "label": "Abuso della piattaforma",
+      "help": "Elusione dei blocchi, abuso del sistema di segnalazione e abuso di automazione."
+    },
+    "privacy": {
+      "label": "Privacy",
+      "help": "Informazioni personali, materiale intimo ed esposizione della posizione di qualcuno."
+    },
+    "self_harm": {
+      "label": "Autolesionismo",
+      "help": "Promozione, istruzioni e rischio imminente."
+    },
+    "sexual_content": {
+      "label": "Contenuti sessuali",
+      "help": "Nudità, atti espliciti e materiale non consensuale o di sfruttamento."
+    },
+    "violence": {
+      "label": "Violenza",
+      "help": "Violenza esplicita, minacce, istruzioni e celebrazione della violenza."
+    }
   },
   "certainty": {
     "high": "Molto",
@@ -200,26 +222,44 @@
     }
   },
   "outcome": {
-    "content_unavailable": "Il materiale manca o è danneggiato",
-    "content_unavailable.help": "La prova necessaria non c'è, oppure non si è caricata.",
-    "insufficient_context": "Non posso dirlo senza altro",
-    "insufficient_context.help": "Non è un no. Al caso serve più materiale o contesto prima che qualcuno possa decidere.",
-    "no_violation": "Non viola la policy",
-    "no_violation.help": "Sei sicuro che non violi la policy che ti è stata data.",
-    "violation": "Viola la policy",
-    "violation.help": "Sei sicuro che questo materiale violi una regola precisa che sai indicare."
+    "content_unavailable": {
+      "label": "Il materiale manca o è danneggiato",
+      "help": "La prova necessaria non c'è, oppure non si è caricata."
+    },
+    "insufficient_context": {
+      "label": "Non posso dirlo senza altro",
+      "help": "Non è un no. Al caso serve più materiale o contesto prima che qualcuno possa decidere."
+    },
+    "no_violation": {
+      "label": "Non viola la policy",
+      "help": "Sei sicuro che non violi la policy che ti è stata data."
+    },
+    "violation": {
+      "label": "Viola la policy",
+      "help": "Sei sicuro che questo materiale violi una regola precisa che sai indicare."
+    }
   },
   "recusalReason": {
-    "conflict_of_interest": "Conosco qualcuno dei coinvolti",
-    "conflict_of_interest.help": "Oppure ho un altro motivo per non essere imparziale qui.",
-    "insufficient_context": "Non ho il contesto che questo richiede",
-    "insufficient_context.help": "Conoscenza locale, culturale o della situazione che qualcun altro avrà.",
-    "language": "Non leggo questa lingua abbastanza bene",
-    "language.help": "Abbastanza bene da valutare intenzione, sarcasmo e modi di dire.",
-    "too_sensitive": "Non voglio guardare questo",
-    "too_sensitive.help": "Non serve spiegarlo, né ora né dopo.",
-    "unavailable": "Non posso finirlo adesso",
-    "unavailable.help": "Meglio restituirlo che lasciarlo scadere."
+    "conflict_of_interest": {
+      "label": "Conosco qualcuno dei coinvolti",
+      "help": "Oppure ho un altro motivo per non essere imparziale qui."
+    },
+    "insufficient_context": {
+      "label": "Non ho il contesto che questo richiede",
+      "help": "Conoscenza locale, culturale o della situazione che qualcun altro avrà."
+    },
+    "language": {
+      "label": "Non leggo questa lingua abbastanza bene",
+      "help": "Abbastanza bene da valutare intenzione, sarcasmo e modi di dire."
+    },
+    "too_sensitive": {
+      "label": "Non voglio guardare questo",
+      "help": "Non serve spiegarlo, né ora né dopo."
+    },
+    "unavailable": {
+      "label": "Non posso finirlo adesso",
+      "help": "Meglio restituirlo che lasciarlo scadere."
+    }
   },
   "recuse": {
     "action": "Fai un passo indietro",

@@ -63,7 +63,7 @@ export default function ReliabilityScreen() {
                 }
               >
                 <Text className="text-base font-semibold text-foreground">
-                  {t(`category.${standing.category}`, { defaultValue: standing.category })}
+                  {t(`category.${standing.category}.label`, { defaultValue: standing.category })}
                 </Text>
                 {/* Per category and not per (category, language): reliability is
                     seeded by calibration and moved by gold cases and audits, none
