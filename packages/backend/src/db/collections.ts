@@ -199,7 +199,6 @@ const COLLECTION_BINDINGS: Readonly<Record<string, CollectionBinding>> = {
   ReviewerRelation: { table: tables.reviewerRelations, codec: identityCodec },
   SortitionDraw: { table: tables.sortitionDraws, codec: identityCodec },
   StaffAuditEvent: { table: tables.staffAuditEvents, codec: identityCodec },
-  TrustSafetyStaff: { table: tables.trustSafetyStaff, codec: identityCodec },
   UsageCounter: { table: tables.usageCounters, codec: identityCodec },
   WebhookAttempt: { table: tables.webhookAttempts, codec: identityCodec },
   WebhookDelivery: { table: tables.webhookDeliveries, codec: identityCodec },

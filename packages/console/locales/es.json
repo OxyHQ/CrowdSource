@@ -27,7 +27,7 @@
     "tagline": "Gestiona tus aplicaciones de CrowdSource: credenciales de servicio, entrega de webhooks, cuotas, y los casos y decisiones de tu propio tenant.",
     "action": "Iniciar sesión con Oxy",
     "unconfigured": "El inicio de sesión no está disponible: aún no hay ningún cliente de Oxy registrado para esta app.",
-    "audiences": "Las vistas de Confianza y Seguridad requieren un rol interno, que se concede fuera de este servicio. Sin él verás tus propias organizaciones y nada más."
+    "audiences": "Las vistas de Confianza y Seguridad requieren un rol interno, que viene de tu rol en la organización de Oxy propietaria de CrowdSource. Sin él verás tus propias organizaciones y nada más."
   },
   "notFound": {
     "heading": "No encontrado",
@@ -76,7 +76,7 @@
     },
     "forbiddenStaff": {
       "title": "Esto requiere un rol de Confianza y Seguridad",
-      "body": "Leer la confianza de aplicaciones requiere el rol security o policy; mover un estado y leer la cola de fallos requieren security. Ninguna ruta de este servicio concede un rol."
+      "body": "Leer la confianza de aplicaciones requiere el rol security o policy; mover un estado y leer la cola de fallos requieren security. Los roles vienen de tu rol en la organización de Oxy propietaria de CrowdSource; ninguna ruta de este servicio concede uno."
     },
     "conflict": {
       "title": "Ese cambio entra en conflicto con el estado actual",

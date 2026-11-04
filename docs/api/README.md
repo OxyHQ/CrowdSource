@@ -47,8 +47,10 @@ somebody remembers at each route:
 - **A verified session by itself grants nothing.** Every Oxy account in
   existence authenticates. A reviewer profile is created on first sight in the
   `applicant` state and can decide nothing; a membership is granted by an
-  organization `admin`; a staff role has **no HTTP route at all** and is created
-  out of band, deliberately (`modules/console/staff.service.ts`).
+  organization `admin`; a staff role is a `trust_safety.<role>` application
+  permission that Oxy answers from the person's role in the organization that
+  owns CrowdSource (declared in Oxy's first-party registry, oxy ADR 0056), and
+  CrowdSource has no route that confers one (`modules/console/consoleAuth.ts`).
 
 The tenant follows from the class and is never named by the caller. An
 application's `applicationId` comes from the external credential or the active
@@ -115,8 +117,10 @@ off to build it**, so each says which it is.
   chooses the case they review" a property of the routing table rather than a
   rule somebody enforces.
 - **Any route that grants a Trust & Safety role.** Privileged authority must not
-  be self-grantable, and the way to guarantee that is for there to be no route —
-  `modules/console/staff.service.ts` says so.
+  be self-grantable: roles are Oxy application permissions held through a role
+  in the organization that owns CrowdSource, declared in code in Oxy's
+  first-party registry. Nobody, here or in the Oxy Console, grants one to a
+  person.
 
 **Not built yet:**
 

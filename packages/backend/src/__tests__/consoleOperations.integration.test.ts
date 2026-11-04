@@ -33,7 +33,7 @@ const {
   resolveApplicationForMember,
   revokeMembership,
 } = await import('../modules/console/membership.service');
-const { grantStaffRoles, revokeStaff } = await import('../modules/console/staff.service');
+const { grantStaffRoles } = await import('./support/appPermissions');
 const { organizationMembers } = await import('../modules/console/console.collections');
 const { createApplicationTrust, setApplicationStanding } = await import(
   '../modules/trust/applicationTrust.service'
@@ -761,36 +761,6 @@ describe('the membership service at its edges', () => {
   });
 });
 
-describe('the staff service at its edges', () => {
-  it('requires at least one role', async () => {
-    await expect(grantStaffRoles(newOxyUserId(), [])).rejects.toMatchObject({
-      code: 'invalid_request',
-    });
-  });
-
-  it('refuses a role outside the four of §13.2', async () => {
-    await expect(
-      // The cast is the point of the test: the compiler stops this, and the runtime must
-      // stop it too, because the value can arrive from a database row nobody typechecked.
-      grantStaffRoles(newOxyUserId(), ['superuser' as 'policy']),
-    ).rejects.toMatchObject({ code: 'invalid_request' });
-  });
-
-  it('replaces the whole role set rather than adding to it', async () => {
-    const oxyUserId = newOxyUserId();
-    await grantStaffRoles(oxyUserId, ['policy', 'appeals']);
-    const replaced = await grantStaffRoles(oxyUserId, ['evidence']);
-
-    // Removing one role has to be expressible, or the only way to drop a role is to
-    // revoke the person and start again.
-    expect(replaced.roles).toEqual(['evidence']);
-  });
-
-  it('refuses to revoke an account that holds nothing', async () => {
-    await expect(revokeStaff(newOxyUserId())).rejects.toMatchObject({ code: 'not_found' });
-  });
-});
-
 describe('the guards refuse to be mounted wrongly', () => {
   it('will not build a staff guard that requires no role', () => {
     // A guard that requires nothing is worse than no guard: it reads as protection.
@@ -828,7 +798,7 @@ describe('application trust at its edges', () => {
     ).rejects.toMatchObject({ code: 'not_found' });
   });
 
-  it('refuses a standing change from a session with no staff row at all', async () => {
+  it('refuses a standing change from a session with no staff permission at all', async () => {
     const tenant = await provisionTenant();
     const response = await request(app)
       .post(`/v1/trust-safety/applications/${tenant.applicationId}/standing`)
@@ -839,7 +809,7 @@ describe('application trust at its edges', () => {
 
   it('refuses a malformed application id on the standing route', async () => {
     const security = newOxyUserId();
-    await grantStaffRoles(security, ['security']);
+    grantStaffRoles(security, ['security']);
 
     const response = await request(app)
       .post('/v1/trust-safety/applications/not-an-app/standing')

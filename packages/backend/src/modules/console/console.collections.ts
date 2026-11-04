@@ -78,22 +78,13 @@ export const organizationMembers = defineUnscopedCollection<OrganizationMemberDo
  * just-in-time access, append-only audit" as the control. The person who edits a
  * taxonomy has no reason to open sensitive evidence, and a single flag would give
  * them both.
+ *
+ * Held in Oxy, not here: each role is the application permission
+ * `trust_safety.<role>` on CrowdSource's own Oxy application, declared in Oxy's
+ * first-party registry and held through a role in the owning organization
+ * (`consoleAuth.ts`, oxy ADR 0056). Today all four are held by that
+ * organization's owners and admins, so the separation is enforced per route and
+ * a narrower desk is an Oxy organization-role question, not a grant.
  */
 export { STAFF_ROLES } from '../../domain/closedValues';
 export type StaffRole = (typeof STAFF_ROLES)[number];
-
-export interface TrustSafetyStaffDocument {
-  oxyUserId: string;
-  roles: StaffRole[];
-  status: MemberStatus;
-  revokedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export const trustSafetyStaff = defineUnscopedCollection<TrustSafetyStaffDocument>(
-  'TrustSafetyStaff',
-  {
-    why: 'Staff act ACROSS every tenant by definition (§4.3), so there is no tenant to scope the row by.',
-  },
-);

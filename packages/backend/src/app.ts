@@ -1,8 +1,7 @@
 import { ecosystemActivityMiddleware } from './ecosystemActivity';
-import { createOxyCors, oxyTrustProxy } from '@oxy.so/core/server';
+import { createOxyCors, createOxySecurityHeaders, oxyTrustProxy } from '@oxy.so/core/server';
 import compression from 'compression';
 import express, { type Express, Router } from 'express';
-import helmet from 'helmet';
 
 import { errorHandler, notFoundHandler } from './http/errorHandler';
 import { createAccountEventsRouter } from './modules/accountErasure/accountEvents.routes';
@@ -19,6 +18,7 @@ import { reviewsRouter } from './modules/review/reviews.routes';
 import { reviewerRouter } from './modules/reviewer/reviewer.routes';
 import { assignmentsRouter } from './modules/sortition/assignments.routes';
 import { webhookEndpointsRouter } from './modules/webhooks/webhookEndpoints.routes';
+import { limitOxySessions, verifyOxySession } from './modules/identity/oxySession';
 import { healthRouter } from './routes/health.routes';
 
 /**
@@ -62,7 +62,7 @@ export function createApp(): Express {
 
   app.disable('x-powered-by');
 
-  app.use(helmet());
+  app.use(createOxySecurityHeaders());
   /**
    * Deny-by-default CORS from `@oxy.so/core/server`, never a hand-rolled
    * allowlist: the shared helper echoes the exact matched origin, refuses to
@@ -112,6 +112,15 @@ export function createApp(): Express {
   v1.use(communityNotesRouter);
   v1.use(decisionsRouter);
   v1.use(webhookEndpointsRouter);
+
+  /**
+   * Every Oxy-session surface — reviewer, console, Trust & Safety — is limited
+   * per PERSON, so the session is verified first and the shared limiter keys on
+   * it; an anonymous caller is limited by address. The application API above is
+   * not under it: its callers are tenants behind shared egress, already held to
+   * their per-tenant quota (`modules/trust/quota.ts`).
+   */
+  v1.use(['/reviewer', '/console', '/trust-safety'], verifyOxySession(), limitOxySessions());
 
   /**
    * The reviewer API (§10.3). A different caller class entirely: an Oxy session,
