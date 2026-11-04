@@ -231,8 +231,14 @@ export const UNSCOPED_TABLES: Readonly<Record<string, UnscopedReason>> = {
   trust_safety_staff: {
     kind: 'no_tenant_dimension',
     shape: 'neither',
-    why: 'Retired authority: Trust & Safety roles are Oxy application permissions (consoleAuth.ts). The rows are kept only as the record of whom to grant them to, and are still erased on account deletion.',
-    readers: ['src/db/postgres/repositories/accountErasure.ts#eraseConsoleIdentity'],
+    why: 'Trust & Safety staff act ACROSS every tenant by definition (§4.3); the row grants authority rather than belonging to a customer.',
+    readers: [
+      'src/db/postgres/repositories/accountErasure.ts#eraseConsoleIdentity',
+      'src/modules/console/consoleAuth.ts#requireStaffRole',
+      'src/modules/console/consoleAuth.ts#staffRolesOf',
+      'src/modules/console/staff.service.ts#grantStaffRoles',
+      'src/modules/console/staff.service.ts#revokeStaff',
+    ],
   },
   reviewer_profiles: {
     kind: 'no_tenant_dimension',

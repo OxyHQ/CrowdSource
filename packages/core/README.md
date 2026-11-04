@@ -14,11 +14,11 @@ transactional outbox and the test sandbox are entry points of the same package.
 | `@crowdsource.you/core/outbox/postgres` | The PostgreSQL store behind `/outbox`: table definitions and the store itself. | as above |
 | `@crowdsource.you/core/testing` | Fixtures, a webhook simulator and an in-process sandbox. | nothing beyond contracts |
 
-**Importing the root pulls in none of `express`, `drizzle-orm`, `postgres` or
-`@oxy.so/db`.** They are OPTIONAL peer dependencies, reached only through
-`/express` and `/outbox`, so an application that files reports and nothing else
-installs a client and a contracts package and stops there. Nothing in this
-package imports `@oxy.so/core`: an Oxy service hands in its own `OxyServer`. That is
+**Importing the root pulls in none of `express`, `drizzle-orm`, `postgres`,
+`@oxy.so/db` or `@oxy.so/core`.** They are OPTIONAL peer dependencies, reached
+only through `/express`, `/outbox` and — for `@oxy.so/core` — a lazy require
+inside `crowdSourceForOxyService()`, so an application that files reports and
+nothing else installs a client and a contracts package and stops there. That is
 the whole reason the receiver and the outbox are subpaths rather than a second
 package: there is no version of this package that can disagree with itself.
 
@@ -136,26 +136,22 @@ report belongs to is read off the credential; see "The service key" below.
 
 ```ts
 import { crowdSourceForOxyService } from '@crowdsource.you/core';
-import { oxy } from './oxy'; // the process's one OxyServer
-
-const crowdsource = crowdSourceForOxyService({ oxy });
+const crowdsource = crowdSourceForOxyService();
 ```
 
-`oxy` is required: the factory calls `oxy.createServiceClient` with CrowdSource's
-registered audience `oxy-service:6a6947b30fe72510b411252f` and never builds an
-`OxyServer` of its own, so a process keeps exactly one workload identity and one
-token cache. Own workloads use no application scopes, API keys or permission
-prompts; invalid or revoked workload authority fails the request and follows
-the durable outbox retry policy. `baseUrl` points at a local receiver and
-`logger` reports the binding. `requester` accepts an account with its current
-session, task or ephemeral requester context; such a client belongs to one
-request — `dispose()` it when finished. Every call builds a new client, so hold
-the one your process shares in a module-level constant.
-
-**4.0.0 made `oxy` required.** 3.x built a second `OxyServer` when it was
-omitted, beside the one the application already ran; `resetCrowdSourceForOxyService`
-went with that hidden shared client, and `@oxy.so/core` and
-`@aws-sdk/credential-provider-node` are no longer peers.
+The factory uses `OxyServer.createServiceClient` from `@oxy.so/core` 7 with
+CrowdSource's registered audience `oxy-service:6a6947b30fe72510b411252f`.
+The optional peer is loaded only for this integration. Own workloads use no
+application scopes, API keys or permission prompts. The default client uses
+`@oxy.so/core/server/aws` and the optional `@aws-sdk/credential-provider-node`
+peer for temporary ECS or development/SSO role credentials. Missing optional SDK
+modules return `undefined`; invalid/revoked workload authority fails the request
+and follows the durable outbox retry policy.
+Pass `oxy` to use an existing shared workload client, `baseUrl` for a local
+receiver, or `logger` for binding diagnostics. `requester` accepts an account
+with its current session, task or ephemeral requester context; these clients
+are isolated per request. Call `dispose()` when finished with them. Only the
+default application client is shared per process.
 
 The receiver uses the shared service middleware, verifies live identity, and
 resolves its tenant from the active stored application and organization binding.
@@ -478,7 +474,6 @@ so an integration written before the field existed is unchanged by it.
 crowdSource: {
   enabled: true,
   auth: 'oxy-service',            // and no serviceKey, here or in the environment
-  oxy,                            // the process's one OxyServer
   webhookSecret: process.env.CROWDSOURCE_WEBHOOK_SECRET,
   enforcementMode: 'observe',
 }
@@ -489,9 +484,9 @@ crowdSource: {
   as "use the Oxy identity" and give a third party a client whose every request
   fails at a token it can never mint — a delivery loop that runs forever and
   delivers nothing.
-- **`'oxy-service'` is `crowdSourceForOxyService({ oxy })`**, not a second copy
-  of it. The shared SDK verifies workload identity live; ECS environment markers
-  do not determine authority. The outbox builds its client once.
+- **`'oxy-service'` is `crowdSourceForOxyService()`**, not a second copy of it.
+  The shared SDK verifies temporary workload identity live; ECS environment
+  markers do not determine authority. The default client is shared per process.
 - **Which one is in force is in the log.** The mode rides on the startup lines
   the integration already writes — `[CrowdSource] client ready`, and the
   refusals — so nothing new has to be read to answer "which credential is this".
@@ -501,8 +496,9 @@ crowdSource: {
 - **A key left behind by a migration is reported once as unused**, so deleting
   it is a step somebody is reminded to take rather than one nothing ever mentions
   again.
-- **`'oxy-service'` without `oxy` is an error, not silence.** An integration
-  that named this identity and set `enabled: true` meant it.
+- **`'oxy-service'` with no obtainable token is an error, not silence.** The
+  shared factory answers `undefined` for a laptop, where that is unremarkable; an
+  integration that named this identity and set `enabled: true` meant it.
 
 [adr-0026]: https://github.com/OxyHQ/oxy/blob/main/docs/adr/0026-first-party-services-authenticate-as-workloads.md
 

@@ -1,30 +1,36 @@
-import type { AccountNode, Organization } from '@oxy.so/core';
-import type { OxyAuthRequest, OxyUserClient } from '@oxy.so/core/server';
-
+import { OxyApiError, OxyServices, type AccountNode, type Organization } from '@oxy.so/core';
+import { config } from '../../config';
 import { ApiError } from '../../http/apiError';
-import { oxyRefusal, oxyServiceServer } from '../identity/oxyService';
 
-/** The person a call is made as: a verified console request, or an operator's bearer. */
-export type OrganizationSessionSource = OxyAuthRequest | string;
+function client(): OxyServices {
+  if (!config.oxy.apiUrl)
+    throw new ApiError('service_unavailable', 'Organization directory unavailable.');
+  return new OxyServices({
+    baseURL: config.oxy.apiUrl,
+    enableCache: false,
+    enableRetry: false,
+    requestTimeout: 5000,
+  });
+}
 
-/**
- * Run `run` as the person behind `source` — the console request itself, or the
- * operator bearer the bootstrap script was handed — through the process's one
- * `OxyServer`. The client is isolated, uncached and disposed when `run` settles;
- * a request with no person (anonymous, or a service token) is a 401.
- */
 export async function withOrganizationSession<T>(
-  source: OrganizationSessionSource | undefined,
-  run: (oxy: OxyUserClient) => Promise<T>,
+  token: string | undefined,
+  run: (oxy: OxyServices) => Promise<T>,
 ): Promise<T> {
-  if (!source) throw new ApiError('unauthorized', 'An Oxy session is required.');
+  if (!token) throw new ApiError('unauthorized', 'An Oxy session is required.');
+  const oxy = client();
+  oxy.session.setAccessToken(token);
   try {
-    return await oxyServiceServer().withUser(source, run);
+    return await run(oxy);
   } catch (error) {
-    throw oxyRefusal(error, {
-      denied: 'Organization administration is required.',
-      unavailable: 'Organization access is temporarily unavailable.',
-    });
+    if (error instanceof ApiError) throw error;
+    if (error instanceof OxyApiError && error.status === 401)
+      throw new ApiError('unauthorized', 'Your Oxy session is no longer valid.');
+    if (error instanceof OxyApiError && (error.status === 403 || error.status === 404))
+      throw new ApiError('forbidden', 'Organization administration is required.');
+    throw new ApiError('service_unavailable', 'Organization access is temporarily unavailable.');
+  } finally {
+    oxy.dispose();
   }
 }
 
@@ -45,10 +51,8 @@ export async function organizationDirectory(
   const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
   const result = new Map<string, Organization>();
   if (!unique.length) return result;
+  const oxy = client();
   try {
-    // The service's own identity, never a person's: a public read charged to
-    // this application rather than to the shared NAT address.
-    const oxy = oxyServiceServer();
     for (let start = 0; start < unique.length; start += 100) {
       const batch = await oxy.organizations.batch({ ids: unique.slice(start, start + 100) });
       for (const item of batch.items)
@@ -58,26 +62,17 @@ export async function organizationDirectory(
     return result;
   } catch {
     throw new ApiError('service_unavailable', 'Organization directory temporarily unavailable.');
+  } finally {
+    oxy.dispose();
   }
 }
 
 export async function requireRegistrationOrganization(
-  source: OrganizationSessionSource | undefined,
+  token: string | undefined,
   accountId: string,
 ): Promise<Organization> {
-  if (!source) throw new ApiError('unauthorized', 'An Oxy session is required.');
-  // The public company record is read as this service; only the authority
-  // question below carries the person's bearer.
-  let organization: Organization;
-  try {
-    organization = await oxyServiceServer().organizations.get(accountId);
-  } catch (error) {
-    throw oxyRefusal(error, {
-      denied: 'An active organization you administer in Oxy is required.',
-      unavailable: 'Organization access is temporarily unavailable.',
-    });
-  }
-  return withOrganizationSession(source, async (oxy) => {
+  return withOrganizationSession(token, async (oxy) => {
+    const organization = await oxy.organizations.get(accountId);
     const node = await oxy.accounts.get(organization.accountId);
     if (
       !canRegisterOrganization(node) ||
@@ -91,9 +86,9 @@ export async function requireRegistrationOrganization(
 }
 
 export async function registrationOrganizations(
-  source: OrganizationSessionSource | undefined,
+  token: string | undefined,
 ): Promise<Organization[]> {
-  return withOrganizationSession(source, async (oxy) => {
+  return withOrganizationSession(token, async (oxy) => {
     const forest = await oxy.accounts.list();
     const ids = forest.filter(canRegisterOrganization).map((node) => node.accountId);
     const directory = await organizationDirectory(ids);

@@ -1,4 +1,4 @@
-import type { OxyServiceHost } from '../oxyService.js';
+import type { OxyServiceHost } from '../oxySdk.js';
 
 /**
  * The public surface an application implements.
@@ -612,11 +612,8 @@ export interface CrowdSourceConnectionConfig {
    * `serviceKey`. See {@link CrowdSourceAuth}.
    */
   readonly auth?: CrowdSourceAuth;
-  /**
-   * The process's one `OxyServer`. Required under `auth: 'oxy-service'` — the
-   * own lane presents ITS service token and this package never builds a server.
-   * Ignored by the default/external service-key lane.
-   */
+  /** Existing workload client for the own lane, including temporary local role/SSO credentials.
+   * Ignored by the default/external service-key lane. */
   readonly oxy?: OxyServiceHost;
   /**
    * `applicationId:credentialId:secret`. The only source of `applicationId`.

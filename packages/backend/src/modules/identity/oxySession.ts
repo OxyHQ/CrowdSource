@@ -1,7 +1,9 @@
-import { createOptionalOxyAuth, createOxyRateLimit } from '@oxy.so/core/server';
+import { workloadCredentials } from './workload';
+import { OxyServer, createOptionalOxyAuth } from '@oxy.so/core/server';
 import type { Request, RequestHandler } from 'express';
 
-import { oxyMiddleware } from './oxyService';
+import { config } from '../../config';
+import { ApiError } from '../../http/apiError';
 
 /**
  * Oxy session verification, defined ONCE for the whole service.
@@ -25,48 +27,75 @@ import { oxyMiddleware } from './oxyService';
  * owns it.
  */
 
-/**
- * How a session is verified, stated once and shared with the session rate
- * limiter, which resolves a session itself when nothing has yet. Two sets of
- * options would let whichever ran first decide — the SDK never re-resolves a
- * request that already has a user.
- *
- *  - `loadUser`: the validated session already carries the account, so the
- *    `verified` flag `sessionSaysVerified` reads costs no round trip. Without it
- *    the request holds only an id and the personhood signal is never seen.
- *  - `strictOptionalBearer`: a PRESENTED credential that cannot be verified is
- *    refused rather than downgraded to anonymous, and an Oxy outage is a 503 —
- *    never a 401 that tells a reviewer to sign in again. Those refusals are the
- *    SDK's own answer; an anonymous request still reaches each surface's guard,
- *    which answers in this service's convention.
- */
-export const OXY_SESSION_AUTH = { loadUser: true, strictOptionalBearer: true } as const;
-
-const sessionVerifier = oxyMiddleware((oxy) =>
-  createOptionalOxyAuth(oxy, { auth: OXY_SESSION_AUTH }),
-);
+let oxyServer: OxyServer | null = null;
+let sessionMiddleware: RequestHandler | null = null;
 
 /**
- * Verifies the Oxy session, if one was presented — once per request, whoever
- * mounts it first (`app.ts` on the session surfaces, then each guard).
+ * The Oxy client, built once and only when a session route is first used.
  *
- * Deliberately does NOT refuse an anonymous request: it populates the identity
- * and the surface behind it decides. Every route pairs it with a guard
- * (`requireReviewerSession`, `requireConsoleSession`, `requireStaffRole`), so
- * there is no route reachable with this alone.
+ * `OXY_API_URL` has no default and the application still boots without it: the
+ * application API does not need it, and inventing a default would point session
+ * verification at a host nobody chose. A deployment that has not configured it
+ * answers `503` on every session surface — the capability is genuinely
+ * unavailable — rather than accepting sessions it cannot verify.
  */
-export function verifyOxySession(): RequestHandler {
-  return sessionVerifier;
+function builtSessionMiddleware(): RequestHandler {
+  if (sessionMiddleware) return sessionMiddleware;
+
+  const apiUrl = config.oxy.apiUrl;
+  if (!apiUrl) {
+    throw new ApiError(
+      'service_unavailable',
+      'This surface is unavailable: this deployment has no Oxy API configured.',
+    );
+  }
+
+  oxyServer ??= new OxyServer({ baseURL: apiUrl, workloadCredentials });
+  /**
+   * The OPTIONAL variant, and then each surface's own guard.
+   *
+   * `createOxyAuthMiddleware` would be one call, but it writes its own 401 body
+   * and never reaches the next handler — so a session surface would answer
+   * authentication failures in a different shape from every other failure it can
+   * produce. The optional variant does the same session verification and leaves
+   * the decision to the caller, which keeps §10.5's error convention true across
+   * the whole service while verification stays entirely the shared SDK's.
+   */
+  sessionMiddleware = createOptionalOxyAuth(oxyServer);
+  return sessionMiddleware;
+}
+
+/** Test seam: forget the built client so a reconfigured environment is picked up. */
+export function resetOxySession(): void {
+  oxyServer?.dispose();
+  oxyServer = null;
+  sessionMiddleware = null;
 }
 
 /**
- * The shared per-person rate limit for the session surfaces, one per app.
- * Mounted after `verifyOxySession()`, so it keys on the resolved person; it is
- * handed the same options all the same, so it could never resolve a session
- * differently.
+ * Verifies the Oxy session, if one was presented.
+ *
+ * Deliberately does NOT refuse an anonymous request: it populates the identity
+ * and the surface behind it decides. Every caller in this service pairs it with a
+ * guard in the same middleware array, so there is no route reachable with this
+ * alone.
+ *
+ * Two handlers rather than one wrapping the other. Express middleware signals
+ * "stop here" by NOT calling `next`, so wrapping the SDK's handler in a promise
+ * that only settles on `next` deadlocks the request the first time it refuses.
+ * Deferring to it directly lets it behave exactly as it was written to.
  */
-export function limitOxySessions(): RequestHandler {
-  return oxyMiddleware((oxy) => createOxyRateLimit(oxy, { auth: OXY_SESSION_AUTH }));
+export function verifyOxySession(): RequestHandler {
+  return (request, response, next) => {
+    let middleware: RequestHandler;
+    try {
+      middleware = builtSessionMiddleware();
+    } catch (error: unknown) {
+      next(error);
+      return;
+    }
+    middleware(request, response, next);
+  };
 }
 
 /**

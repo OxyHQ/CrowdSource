@@ -73,7 +73,7 @@ function authenticateApplication(scope?: Scope): RequestHandler {
       next();
     };
     if (looksLikeOxyServiceToken(token)) {
-      verifyOxyApplication(request, response, (error) => {
+      verifyOxyApplication()(request, response, (error) => {
         if (error) return next(error);
         void complete().catch(next);
       });

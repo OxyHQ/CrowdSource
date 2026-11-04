@@ -19,12 +19,9 @@ console.
 | Trust & Safety role | `console/consoleAuth.ts` | nothing |
 
 Every Oxy account in existence authenticates. A membership is granted by an
-`admin` of the organization; a staff role is the application permission
-`trust_safety.<role>` (`policy`, `appeals`, `evidence`, `security`) on
-CrowdSource's own Oxy application, granted in Oxy by an owner or admin of the
-account that owns it — audited and append-only there, and never by the grantee.
-CrowdSource has **no route that grants one**: §13.2 requires privileged authority
-not to be self-grantable. An Oxy that cannot answer is `503`, never a refusal.
+`admin` of the organization; a staff role has **no HTTP route at all** and is
+created out of band, deliberately — §13.2 requires privileged authority not to be
+self-grantable, and the way to guarantee that is for there to be no route.
 
 ## How a tenant is established
 

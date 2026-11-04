@@ -159,9 +159,9 @@ touched. It reads exactly like someone else's broken commit.
   are service credentials. A service credential must never reach a session route,
   and an Oxy session must never satisfy an application-API route.
 - **THREE authorizations on that one identity, not interchangeable** — a reviewer
-  profile, an organization membership, a Trust & Safety role (the Oxy application
-  permission `trust_safety.<role>`). A verified session grants none of them:
-  every Oxy account authenticates. No route here grants a staff role.
+  profile, an organization membership, a Trust & Safety role. A verified session
+  grants none of them: every Oxy account authenticates. There is deliberately no
+  HTTP route that grants a staff role.
 - **A console caller names a resource; it never names a tenant.**
   `organizationId` is read off the STORED row, and a membership is required
   before a `TenantContext` exists. No console handler reads one from a body or
