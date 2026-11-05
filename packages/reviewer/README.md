@@ -34,3 +34,17 @@ bun run build        # static web export -> dist/
 bun run typecheck    # tsc --noEmit
 bun run test         # jest
 ```
+
+## Bundling
+
+`babel.config.js` is `@oxy.so/app-preset/babel`, which is exactly
+`babel-preset-expo` in development and adds the Oxy build id in production.
+Development bundles use Noxcturnal, Expo's oxc transformer
+(`experiments.noxcturnalTransformWorker` in `app.config.js`). It stays inactive,
+silently, when the Babel config is anything other than the bare Expo preset, so
+add no Babel plugins: `@/` resolves through `tsconfig.json` `paths` (Jest maps it
+in `moduleNameMapper`), and `babel-preset-expo` adds the worklets plugin and the
+`import.meta` transform itself. Production exports (`NODE_ENV=production`) stay on
+Babel, because Noxcturnal keeps the requires of dead platform branches. Run an
+export with `LOG_EVENTS=<file>` to see which files fall back to Babel and why
+(`transform:noxcturnal:fallback`).
