@@ -88,8 +88,11 @@ jobs:
           OXY_API_URL: https://api.oxy.so
           SHIP_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
+          # The commit's subject line only: Oxy Updates keeps a message of at
+          # most 500 characters, and a squash merge's body is routinely longer.
+          message="$(printf '%s\n' "$SHIP_MESSAGE" | head -n 1 | cut -c 1-500)"
           bunx --no-install oxy-ship publish \
             --channel production \
             --platform all \
             --git-commit "$GITHUB_SHA" \
-            --message "$SHIP_MESSAGE"
+            --message "$message"
