@@ -20,7 +20,9 @@ let unavailable = false;
 export const appPermissionReads: { userId: string; fresh: boolean }[] = [];
 
 spyOn(OxyServer.prototype, 'appPermissionsFor').mockImplementation(async (request, options) => {
-  const userId = request.userId;
+  // The backend's gates pass an Express request after `middleware.auth()`; an MCP
+  // tool call (the source's other shape) carries no user id and reads as none.
+  const userId = 'userId' in request ? request.userId : undefined;
   if (!userId) {
     throw new OxyAppPermissionError('APP_PERMISSION_SESSION_REQUIRED', 'No session');
   }

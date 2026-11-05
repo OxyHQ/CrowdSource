@@ -1,8 +1,22 @@
 const pkg = require('./package.json');
 
+/**
+ * CrowdSource's registered Oxy client id: the ApplicationCredential publicKey
+ * (`oxy_dk_…`), public by construction. The binary's Oxy Updates manifest URL is
+ * baked from it, so it is the same id the production build signs in with
+ * (`EXPO_PUBLIC_OXY_CLIENT_ID` in eas.json's `production` env) and the one
+ * `.github/workflows/publish-update.yml` publishes under.
+ */
+const OXY_CLIENT_ID = 'oxy_dk_609770191a2478cda9dd190a338b1f7a827375634a589cb8';
+
 module.exports = (_config) => {
   /**
-   * App version number. Should be incremented as part of a release cycle.
+   * App version, MAJOR.MINOR.PATCH. The store build number is derived from it
+   * (@oxy.so/app-preset: 1.2.3 → 1002003) and it is the OTA compatibility
+   * boundary (withOxyUpdates, runtime policy `appVersion`): bump it for any
+   * native change, and the next push to main releases a new Android binary
+   * (`.github/workflows/android-release.yml`). A JS-only change keeps it and
+   * ships as an OTA update.
    */
   const VERSION = pkg.version;
 
@@ -185,6 +199,10 @@ module.exports = (_config) => {
         // so.oxy.permission.IDENTITY and DEVICE_SESSION and adds the
         // <queries> for their providers.
         '@oxy.so/services/plugins/withOxySharedPermissions',
+        // OTA updates from Oxy Updates (oxy-api), verified against the ecosystem
+        // code-signing certificate; also derives the store build number from
+        // `version`. Published by `.github/workflows/publish-update.yml`.
+        ['@oxy.so/app-preset/plugin/withOxyUpdates', { clientId: OXY_CLIENT_ID }],
       ],
       extra: {
         // No `eas.projectId`: no EAS project has been created for CrowdSource.
