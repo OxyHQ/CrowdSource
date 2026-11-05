@@ -23,10 +23,11 @@ export const OXY_BASE_URL =
  * CrowdSource's registered Oxy OAuth client id (ApplicationCredential publicKey),
  * required by @oxy.so/services for the cross-app device sign-in flow.
  *
- * There is deliberately NO fallback: no client has been registered for
- * CrowdSource yet, so a hard-coded value here would be another product's
- * identity. Until `EXPO_PUBLIC_OXY_CLIENT_ID` is supplied, interactive sign-in
- * cannot start; cold boot and anonymous surfaces are unaffected.
+ * Supplied per build: eas.json's `production` env for the native release, the
+ * deploy's repository variable for the web. There is deliberately NO fallback:
+ * a local build without `EXPO_PUBLIC_OXY_CLIENT_ID` cannot start interactive
+ * sign-in rather than silently signing in as production; cold boot and anonymous
+ * surfaces are unaffected.
  */
 export const OXY_CLIENT_ID = process.env.EXPO_PUBLIC_OXY_CLIENT_ID;
 
