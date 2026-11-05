@@ -73,7 +73,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.0",
-    "@oxy.so/bloom": "17.5.0",
+    "@oxy.so/bloom": "17.9.0",
     "@oxy.so/core": "7.23.0",
     "@oxy.so/services": "14.3.8",
     "brace-expansion": "2.1.7",
