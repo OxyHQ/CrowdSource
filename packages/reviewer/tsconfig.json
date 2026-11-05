@@ -33,5 +33,14 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "nativewind-env.d.ts"]
+  // `worker/*.js` is the Cloudflare Worker that serves the web build; listed so
+  // its tests can import it (a composite project must list every file).
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "worker/**/*.js",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
+  ]
 }
