@@ -84,6 +84,11 @@ module.exports = (_config) => {
           backgroundImage: './assets/images/adaptive-icon-background.png',
           monochromeImage: './assets/images/adaptive-icon-monochrome.png',
         },
+        // App Links for the one host this app owns: `crowdsource.oxy.so` serves
+        // `/.well-known/assetlinks.json` (`worker/appAssociation.js`) naming
+        // this package and the Oxy release key. Never add a host whose site
+        // does not serve that document: on Android 11 and older one host
+        // failing verification fails the whole filter.
         intentFilters: [
           {
             action: 'VIEW',
@@ -92,10 +97,6 @@ module.exports = (_config) => {
               {
                 scheme: 'https',
                 host: 'crowdsource.oxy.so',
-              },
-              {
-                scheme: 'https',
-                host: 'oxy.so',
               },
               IS_DEV && {
                 scheme: 'http',
