@@ -57,7 +57,7 @@
     "test:worker": "bun test scripts/frontend-worker.test.ts"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.6",
     "@oxy.so/doctor": "1.8.0",
     "@types/node": "^26.6.6",
     "typescript": "~5.9.3",
