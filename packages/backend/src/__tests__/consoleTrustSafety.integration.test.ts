@@ -39,6 +39,12 @@ const { newPublicId } = await import('../utils/identifiers');
 const { webhookEndpoints } = await import('../modules/webhooks/webhook.collections');
 const { cases } = await import('../modules/cases/case.collection');
 const { staffAuditEvents } = await import('../modules/console/staffAudit.collection');
+const { publishDecision } = await import('../modules/decision/decision.service');
+const { BASELINE_POLICY_SET_ID, BASELINE_POLICY_VERSION } = await import(
+  '../modules/policy/policyBaseline'
+);
+const { reviews } = await import('../modules/review/review.collection');
+const { webhookDeliveries } = await import('../modules/webhooks/webhook.collections');
 const { deliveryBody, provisionTenant, startDatabase, stopDatabase } = await import(
   './support/tenants'
 );
@@ -67,8 +73,96 @@ const STAFF_READS = [
   '/v1/trust-safety/escalated',
 ] as const;
 
+/**
+ * One decided case with a review and one dead-lettered delivery, so the cross-tenant
+ * reads below have rows to aggregate whatever ran before this file. The suite shares one
+ * database and the file order is the runner's, so leaving this to earlier files made the
+ * coverage floor depend on that order.
+ */
+async function seedCrossTenantRows(): Promise<void> {
+  const tenant = await provisionTenant();
+  const delivered = await request(app)
+    .post('/v1/reports')
+    .set('authorization', `Bearer ${tenant.token}`)
+    .set('idempotency-key', `staff-seed-${randomUUID()}`)
+    .send(deliveryBody(tenant, `staff-seed-report-${randomUUID()}`, { text: 'reported material' }));
+  expect(delivered.status).toBe(202);
+  const caseId: string = delivered.body.caseId;
+  const reviewerId = `rvw_${randomUUID().replace(/-/g, '')}`;
+  const now = new Date();
+
+  const decision = await publishDecision({
+    context: tenant.tenant,
+    caseId,
+    revision: 1,
+    outcome: 'violation',
+    contextSufficiency: 'sufficient',
+    confidence: 0.9,
+    findings: [
+      {
+        code: 'harassment.targeted_abuse',
+        resourceIds: ['res_post'],
+        severity: 'medium',
+        scope: 'application_local',
+      },
+    ],
+    recommendedActions: [{ action: 'remove_or_restrict' }],
+    jury: { size: 3, decisiveVotes: 3, winningVotes: 3, agreement: 1, specialistPresent: false },
+    policyVersions: {
+      taxonomy: 'crowdsource.taxonomy.2026.1',
+      application: `${BASELINE_POLICY_SET_ID}@${BASELINE_POLICY_VERSION}`,
+      oxyConduct: 'oxy.conduct.2026.1',
+    },
+    agreeingReviewerIds: [reviewerId],
+    supersedes: null,
+    now,
+  });
+  expect(decision.published).toBe(true);
+
+  await reviews.insertOne({
+    reviewId: `rev_${randomUUID().replace(/-/g, '')}`,
+    organizationId: tenant.organizationId,
+    applicationId: tenant.applicationId,
+    assignmentId: `asg_${randomUUID().replace(/-/g, '')}`,
+    caseId,
+    caseRevision: 1,
+    reviewerId,
+    outcome: 'violation',
+    contextSufficiency: 'sufficient',
+    findings: [],
+    recommendedActions: [],
+    notes: null,
+    submittedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await webhookDeliveries.insertOne({
+    organizationId: tenant.organizationId,
+    applicationId: tenant.applicationId,
+    deliveryId: newPublicId('webhookDelivery'),
+    webhookEndpointId: newPublicId('webhookEndpoint'),
+    eventId: newPublicId('outboxEvent'),
+    eventType: 'case.decided',
+    body: '{}',
+    status: 'dead_letter',
+    attemptCount: 6,
+    cycleAttemptCount: 6,
+    nextAttemptAt: null,
+    leaseExpiresAt: null,
+    lastResponseStatus: 500,
+    deadLetterReason: 'attempts_exhausted',
+    succeededAt: null,
+    deadLetteredAt: now,
+    replayCount: 0,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
 beforeAll(async () => {
   await startDatabase();
+  await seedCrossTenantRows();
 }, 120_000);
 
 afterAll(async () => {
