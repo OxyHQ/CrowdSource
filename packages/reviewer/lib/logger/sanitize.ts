@@ -26,7 +26,10 @@ const URL_RE = /\b(?:https?|wss?):\/\/[^\s<>"')\]]+/gi;
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const IPV4_RE = /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g;
 const IPV6_RE = /(?:^|[\s[(])(?:[A-F0-9]{1,4}:){2,7}[A-F0-9]{0,4}(?=$|[\s)\],])/gi;
-const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi;
+// Any uuid version: account ids minted since the cutover are v7. The shared
+// `isLiveEntityId` lives in `@oxy.so/db` (server-only), so a client package
+// redacts the broader uuid shape instead of pinning a version.
+const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const OBJECT_ID_RE = /\b[0-9a-f]{24}\b/gi;
 const BEARER_RE = /\bBearer\s+[A-Za-z0-9._~+/=-]+/gi;
 const CREDENTIAL_ASSIGNMENT_RE =
