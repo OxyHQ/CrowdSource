@@ -58,6 +58,15 @@ config.resolver = {
   // unused assets. This app imports icon-family subpaths directly; only the
   // exact legacy barrel request is narrowed here.
   resolveRequest: (context, moduleName, platform) => {
+    // Bloom links its 70 agent-avatar vector assets (~30 MB of JSON) through this one lazy import.
+    // This app draws no character (`lib/avatarCatalog.ts` ships an empty catalog), and Metro inlines
+    // no env var inside node_modules, so resolve the import to an empty module.
+    if (
+      moduleName === './vector-assets' &&
+      /agent-avatar[\\/]default-catalog\.(ts|js)$/.test(context.originModulePath)
+    ) {
+      return { type: 'empty' };
+    }
     return context.resolveRequest(
       context,
       exactModuleAliases.get(moduleName) ?? moduleName,

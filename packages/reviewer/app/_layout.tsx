@@ -10,6 +10,7 @@ import { enableFreeze } from 'react-native-screens';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { AskAliaProvider } from '@/context/AskAliaContext';
 import { registerChunkErrorRecovery } from '@/lib/chunkReload';
+import { avatarCatalog } from '@/lib/avatarCatalog';
 import { oxyServices } from '@/lib/oxyServices';
 import { queryClient } from '@/lib/queryClient';
 import { BLOOM_THEME_PERSIST_KEY, BLOOM_THEME_STORAGE } from '@/lib/themePersistence';
@@ -42,6 +43,7 @@ export default function RootLayout() {
     // `useMinimizeState()` silently hands out a private fallback, so the bottom
     // bar simply never minimizes with no error anywhere.
     <BloomProvider
+      avatarCatalog={avatarCatalog}
       imageResolver={resolveImageSource}
       defaultMode="system"
       defaultColorPreset="green"
