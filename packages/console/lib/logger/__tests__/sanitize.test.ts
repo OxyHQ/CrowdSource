@@ -139,4 +139,10 @@ describe('frontend logger sanitizer', () => {
     expect(message).not.toContain('203.0.113.8');
     expect(message.match(/\[REDACTED\]/g)?.length).toBeGreaterThanOrEqual(6);
   });
+
+  it('redacts a uuid v7 account id as well as a legacy ObjectId', () => {
+    const message = sanitizeLogMessage('viewer 0192f4c8-7b1e-7a3d-8c5f-2e9d4b6a1c70 signed in');
+
+    expect(message).toBe('viewer [REDACTED] signed in');
+  });
 });
