@@ -9,9 +9,10 @@ const rootManifest = await readJson('package.json');
 const expectedBunVersion = String(rootManifest.packageManager || '').replace(/^bun@/, '');
 const expectedNodeVersion = '22.17.0';
 // The Bloom release the whole workspace is pinned to — manifest range, root
-// override and installed copy must all agree on it. Bump this ONE constant when
-// taking a new Bloom.
-const expectedBloomVersion = '17.9.0';
+// override and installed copy must all agree on it. The root override is the
+// source of truth, so the shared Oxy autobump (oxy-autobump.yml) can move every
+// pin without a hand edit here.
+const expectedBloomVersion = String(rootManifest.overrides?.['@oxy.so/bloom'] ?? '');
 const failures = [];
 
 if (!expectedBunVersion) {

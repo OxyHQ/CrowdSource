@@ -108,8 +108,9 @@ updates:
       # manifest disagreeing with the override and lockfile. Take these by hand,
       # override first:
       #   * async-storage 2.2.0 is what Expo SDK 56 ships; @oxy.so/core peers <3.
-      #   * Bloom must also move `expectedBloomVersion` in scripts/doctor.mjs
-      #     and stay inside @oxy.so/services' Bloom peer window.
+      #   * Bloom, core and services are pinned in root `overrides`, which
+      #     Dependabot never edits; the shared oxy-autobump.yml workflow moves
+      #     them daily.
       - dependency-name: "@react-native-async-storage/async-storage"
       - dependency-name: "@oxy.so/bloom"
       - dependency-name: "@oxy.so/core"
