@@ -9,6 +9,7 @@ import { Redirect, Slot, useSegments } from 'expo-router';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { AskAliaProvider } from '@/context/AskAliaContext';
 import { registerChunkErrorRecovery } from '@/lib/chunkReload';
+import { avatarCatalog } from '@/lib/avatarCatalog';
 import { oxyServices } from '@/lib/oxyServices';
 import { queryClient } from '@/lib/queryClient';
 import { BLOOM_THEME_PERSIST_KEY, BLOOM_THEME_STORAGE } from '@/lib/themePersistence';
@@ -38,6 +39,7 @@ export default function RootLayout() {
     // `useTheme()` throws for anything rendered beside a provider rather than under
     // it.
     <BloomProvider
+      avatarCatalog={avatarCatalog}
       imageResolver={resolveImageSource}
       defaultMode="system"
       defaultColorPreset="green"
