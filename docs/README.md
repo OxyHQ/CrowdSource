@@ -15,6 +15,7 @@ first decision, in five steps.
 | [`api/`](./api/README.md) | The HTTP contracts, organised by the four caller classes: application service credentials, reviewer sessions, developer-console sessions, Trust & Safety staff sessions. |
 | [`policies/`](./policies/README.md) | The universal taxonomy, the baseline policy set, and what a jury is actually asked. For the people who judge cases. |
 | [`runbooks/`](./runbooks/README.md) | Dead letters, outbox backlogs, cases that cannot empanel, and the two audit trails. |
+| [`agent-rules.md`](./agent-rules.md) | The reasoning behind the rules in the root `AGENTS.md`: tenancy, outbox, idempotency, Oxy integration, deployment. |
 | [`architecture/`](./architecture/README.md) | Decision records and the threat model: why CrowdSource diverges from the plan's infrastructure, the universal case envelope, the reputation axes, and appeals. |
 
 [Canonical organization identity and cutover](architecture/central-organizations.md)

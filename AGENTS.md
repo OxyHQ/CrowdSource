@@ -1,203 +1,104 @@
 # CrowdSource
 
-Multi-tenant **participatory moderation infrastructure**: applications send
-universal reports, randomly drawn juries review them blind, a consensus engine
-publishes versioned decisions, and webhooks return those decisions to the
-application. A product of its own, not a feature of any app that uses it.
-
-The repository began as a fork of Mention, taken for its Expo/Bloom/monorepo
-foundation only. Nothing of Mention the product survives, and no code should ever
-reach back for one.
-
-> **For anything about how this works, read `docs/README.md`** —
-> `docs/architecture/` holds the decisions and
-> `docs/architecture/engineering-rules.md` the reasoning behind every rule below.
-> `.plan/PLAN.md` is binding on PRODUCT; where its plumbing and the ecosystem
-> disagree, the ecosystem wins.
->
-> **This file carries only RULES — things that break silently if you get them
-> wrong.** Org-wide standards are at
-> <https://github.com/OxyHQ/engineering/blob/main/AGENTS.md>; the parent files
-> (`~/AGENTS.md`, `~/Oxy/AGENTS.md`) hold the agent team, the shared-SDK rules
-> and the Bloom/Expo gotchas. Do not repeat any of them here.
->
-> **Budget: under 12 KB**, enforced by `scripts/check-agents-md-size.mjs`
-> (`bun run validate:agents-md`). It is prepended to EVERY agent session, so its
-> bytes are paid on every task forever, and it grows by accretion — one
-> reasonable paragraph at a time, invisible per-commit. An addition that pushes
-> it over is paid for in the SAME edit.
-
-## Invariants (no change may break these)
-
-From the approved product specification. Not preferences: a change that violates
-one is wrong even if it passes review.
-
-- **Nobody chooses the case they review.** The server issues an assignment. No
-  case search, no shareable case link, no public queue.
-- **A reviewer never sees partial votes**, other jurors' identities, the
-  reporter's identity, or anyone's reputation.
-- **One qualified person, one vote.** Reputation affects eligibility and
-  selection probability, never the weight of a vote inside a jury.
-- **A published decision is never edited, only superseded.** An appeal creates a
-  new revision.
-- **One penalty per incident.** A hundred reports about the same material produce
-  one case and one consequence.
-- **Every effect is idempotent, explainable and reversible**, and carries the
-  policy version it was decided under.
-- **Sensitive content never reaches logs, metrics or attestations.**
-- **Absence of consensus is neither guilt nor innocence.** `inconclusive` is its
-  own outcome and must never collapse into `no_violation`.
-- **`applicationId` comes from the credential, never from the request body.**
-- **No binding proof, no Oxy Trust effect.** An application emits a report;
-  CrowdSource emits a decision. That direction is one-way.
-
-## Layout
-
-```
-packages/
-  contracts/    @crowdsource.you/contracts    Zod + JSON Schema contracts (published)
-  core/         @crowdsource.you/core         TypeScript client (published), plus
-                  src/express   -> /express   Webhook middleware
-                  src/outbox    -> /outbox    The application half (+ /outbox/postgres)
-                  src/testing   -> /testing   Fixtures + webhook simulator
-  backend/      @crowdsource/backend          Express modular monolith
-  reviewer/     @crowdsource/reviewer         Expo Router reviewer app (web + native)
-  console/      @crowdsource/console          Developer + Trust & Safety console (web only)
-```
-
-**TWO published packages, not five.** `contracts` stays its own because it must
-exist EXACTLY ONCE in a consumer's tree — two copies type-check clean and fail
-every delivery at runtime — and because a React Native UI package needs its types
-without a server-only client in the phone bundle. Everything else is one package
-with four entry points, so a consumer cannot install a client and a receiver that
-disagree. **The ROOT of `core` must stay importable by a consumer that only files
-reports**: express, drizzle, postgres and `@oxy.so/db` are optional peers reached
-only through `/express` and `/outbox`, and an import added to `src/index.ts` that
-pulls one in is a regression no test will name.
-
-**Do NOT record per-package build status here** — read the tree. The sentence
-that used to sit in this spot called the reviewer app "the foundation without
-review surfaces" long after six review screens had shipped, so it read as an
-instruction not to go looking.
+Multi-tenant participatory moderation infrastructure: applications send universal
+reports, randomly drawn juries review them blind, a consensus engine publishes
+versioned decisions, and webhooks return them. A product of its own; no code reaches back for Mention.
 
 ## Commands
 
-npm releases: merging a version bump to main publishes it (`release-packages.yml`, Oxy's
-shared workflow, OIDC, once CI passed on that commit); a package's gates are CI. Never publish
-from a laptop — `~/Oxy/docs/npm-releases.md`.
-
 ```bash
-bun run dev / dev:backend / dev:reviewer / dev:console
-bun run build              # contracts, backend, SDKs
-bun run build:reviewer / build:console
-bun run check              # doctor + workflows + security audit + build + typecheck + lint
+bun install
+bun run dev                # or dev:backend / dev:reviewer / dev:console
+bun run build              # contracts, backend, core
 bun run test               # contracts + backend (bun test), core (vitest), apps (jest)
-bun run lint               # Biome (whole tree) + per-package bun check + Expo env-var ESLint
-bun run format             # Biome formatter; `lint:fix` also applies safe lint fixes
-bun run validate:agents-md
+bun run lint               # Biome + per-package lint; lint:fix and format write
+bun run check              # full CI gate: doctor, audit, build, typecheck, lint
+bun run validate:agents-md # size budget for AGENTS.md
 ```
 
-**Rebuild `contracts` before believing a red typecheck.** Every other package
-imports its BUILT `dist`, so after a rebase they compile against the previous
-build and report newly-landed symbols as missing (`TS2305`) in files nobody
-touched. It reads exactly like someone else's broken commit.
+Rebuild `contracts` (`bun run build:contracts`) before believing a red typecheck:
+other packages import its built `dist` (why: [agent-rules](docs/agent-rules.md)).
 
-## The rules
+## Map
 
-- **The PostgreSQL outbox row is the durable work record.** There is no queue
-  dependency. A domain write and its outbox row commit through the SAME Drizzle
-  transaction; workers claim durable rows with bounded leases. Never create work
-  without the outbox row that makes it re-derivable.
-- **Isolation is enforced by PostgreSQL RLS and the scoped repository types.** A
-  `TenantContext` is built ONLY by `createTenantContext`, from the authenticated
-  service credential — never from a body, path, query or header. Tenant-owned
-  repositories require `TenantScopedHandle`, minted only after both `SET LOCAL`
-  parameters are written and read back inside a transaction. Never bypass it
-  with the pool. Public ids are ULID or UUID, never sequential.
-- **Idempotency lives in unique compound indexes and they are REQUIRED** — one
-  per retry-safe operation, applied by PostgreSQL migrations. The list is
-  in `docs/architecture/engineering-rules.md`; each is what makes a retry safe
-  rather than duplicating a case, a review or a penalty.
-- **`applicationId` is read off the credential and no surface can carry one.**
-  Never add an `applicationId` option, field or parameter — the envelope's copy
-  exists so a mismatch can be DETECTED.
-- **A default must be a pinned version, never "whatever is current".**
-  `DEFAULT_POLICY` must equal the backend's baseline constants; a resolved-at-
-  ingress "latest" would move the policy under an application that changed
-  nothing and split the dedup key, giving one post two cases.
-- **Nothing the client composes may vary between two deliveries of one report.**
-  Ingress fingerprints the whole envelope, so an invented timestamp, a random id
-  or an unsorted list turns a legitimate outbox retry into a permanent 409 —
-  silently, days later, as moderation work stuck in a queue.
-- **A backend data cutover is freeze/export/import/reconcile, never an in-place
-  guess.** Preserve every existing identifier, prove the PostgreSQL target empty,
-  and compare canonical counts plus SHA-256 digests before deploy.
-- **Take a reviewer `(family, language)` cell from
-  `src/__tests__/support/reviewerAxes.ts`; never declare a pair inline.** Every
-  integration file shares ONE disposable PostgreSQL database, so the eligibility
-  pair is the only thing keeping two files apart. When checking for this class of bug, assert on
-  the FAIL count — a collision throws in a hook, which `bun test` reports as
-  one failed `(unnamed)` test while the file's own tests drop out of the total.
-- **`app/_layout.tsx` is the SOLE authority for the `(auth)` ↔ `(app)` swap.** A
-  child screen must never navigate across that boundary on the same signal.
-- **Case material must never reach device storage, logs or analytics.**
-  `utils/storage.ts` is for preferences only.
-- **Every place an Oxy id or principal id lands is erased on `account.deleted`**
-  (`docs/architecture/account-erasure.md`). A new one joins the seed of
-  `accountErasure.integration.test.ts`, whose sweep then fails until it is handled.
-- **Every guard is mutation-proven.** `packages/core/scripts/test-invariants.mjs`
-  deletes each guard in turn and asserts the SPECIFIC named test goes red. **A
-  mutation whose failure mode is a timeout carries no information** — bound it so
-  it fails fast and NAMED.
+- `packages/contracts` and `packages/core` are the two published packages
+  (`@crowdsource.you/*`); `backend`, `reviewer` (Expo) and `console` are apps.
+- `docs/README.md` indexes everything; `docs/architecture/engineering-rules.md`
+  holds the reasoning behind each rule; `docs/runbooks/` covers operations.
 
-## Oxy integration
+## Invariants (a change that breaks one is wrong even if it passes review)
 
-- **Two authentication surfaces, neither bypassing the other.** Reviewer, console
-  and Trust & Safety callers are Oxy sessions verified with `@oxy.so/core/server`
-  — never an app-local bearer parser or `AuthRequest` type — defined ONCE in
-  `src/modules/identity/oxySession.ts`. Application-API callers
-  are service credentials. A service credential must never reach a session route,
-  and an Oxy session must never satisfy an application-API route.
-- **THREE authorizations on that one identity, not interchangeable** — a reviewer
-  profile, an organization membership, a Trust & Safety role (the Oxy application
-  permission `trust_safety.<role>`, declared in oxy's first-party registry and
-  held by a role in the owning org, oxy ADR 0056 — never a per-person grant or a
-  local list). A verified session grants none of them. No route here grants one.
-- **A console caller names a resource; it never names a tenant.**
-  `organizationId` is read off the STORED row, and a membership is required
-  before a `TenantContext` exists. No console handler reads one from a body or
-  query string.
-- Security helpers come from the SDK: `safeFetch`, `createOxyCors`,
-  `verifySecret`. Media is `oxyServices.getFileDownloadUrl` plus Bloom's
-  `ImageResolver` — never a per-app URL helper or an `avatarUrl` DTO field.
-- **ONE `OxyProvider`**, web and native alike. No app-local auth routes, token
-  providers or `Authorization` headers.
-- **`EXPO_PUBLIC_OXY_CLIENT_ID` has no default** — no OAuth client is registered
-  yet, and hard-coding one would borrow another product's identity.
+- Nobody chooses the case they review: the server issues assignments; no case
+  search, shareable case link or public queue.
+- A reviewer never sees partial votes, other jurors, the reporter or anyone's reputation.
+- One qualified person, one vote; reputation affects eligibility and selection, never vote weight.
+- A published decision is never edited, only superseded by a new revision.
+- One penalty per incident, however many reports.
+- Every effect is idempotent, explainable, reversible and carries its policy version.
+- Sensitive content never reaches logs, metrics or attestations.
+- `inconclusive` is its own outcome and never collapses into `no_violation`.
+- `applicationId` comes from the credential, never from a request body, option or parameter.
+- No binding proof, no Oxy Trust effect; applications emit reports, CrowdSource emits decisions.
 
-## Deployment
+## Conventions that differ from defaults
 
-Port `3000` · `api.crowdsource.oxy.so` · reviewer and console are Cloudflare
-**Workers** (`packages/*/wrangler.toml`), never Pages · ECR `oxy/crowdsource` ·
-`git push origin main` → `deploy-aws.yml` + `deploy-frontends.yml`, both gated on
-CI. Detail: `docs/architecture/engineering-rules.md` § AWS deployment.
+- Work is durable only via the PostgreSQL outbox row, written in the same Drizzle
+  transaction as the domain write; there is no queue (otherwise work is not re-derivable).
+- `TenantContext` is built only by `createTenantContext` from the service
+  credential; tenant repositories take `TenantScopedHandle` (RLS isolation).
+- Every retry-safe operation has a required unique compound index (otherwise a retry duplicates a case).
+- Defaults are pinned versions, never "latest"; `DEFAULT_POLICY` equals the backend baseline constants.
+- Nothing the client composes may vary between deliveries of one report
+  (no invented timestamps, random ids or unsorted lists), or retries become permanent 409s.
+- `core` root imports no optional peer (express, drizzle, postgres, `@oxy.so/db`); those live behind `/express` and `/outbox`.
+- Take reviewer `(family, language)` cells from `packages/backend/src/__tests__/support/reviewerAxes.ts`, never inline pairs.
+- Session callers use `@oxy.so/core/server` via `packages/backend/src/modules/identity/oxySession.ts`;
+  service credentials never reach session routes, nor sessions application routes.
+- Trust & Safety access is the Oxy application permission `trust_safety.<role>` held by an org role (oxy ADR 0056).
+- A console caller names a resource, never a tenant; `organizationId` is read off the stored row.
+- `packages/reviewer/app/_layout.tsx` alone swaps `(auth)` and `(app)`; one `OxyProvider`; no app-local auth routes or tokens.
+- Case material never reaches device storage, logs or analytics.
+- `EXPO_PUBLIC_OXY_CLIENT_ID` has no default; no OAuth client is registered yet.
+- Reviewer and console deploy as Cloudflare Workers, never Pages; frontend hostnames get
+  no hand-written DNS records and keep `workers_dev = false`.
+- Data cutovers are freeze, export, import, reconcile with count and SHA-256 comparison.
 
-- **A frontend hostname carries no hand-written DNS record.** `custom_domain`
-  claims it and Cloudflare writes the record; a Worker custom domain REFUSES a
-  hostname that already has externally managed records (`code: 100117`), so
-  adding one back breaks the deploy rather than helping it. `workers_dev = false`
-  is likewise load-bearing: without it the app gets a second public hostname that
-  is in no CORS allowlist and no redirect-URI list.
+## Boundaries
 
-- **`DATABASE_URL` is required to boot** — absent, the task exits at start rather
-  than degrading a route, so it must be live in the task definition before an
-  image requiring it rolls out.
-- **`RUN_MIGRATIONS` stays `false` until the migration task definition lands**
-  with the MIGRATOR credential, which the serving task must never carry. Turned
-  on earlier, every deploy fails at the migration step.
-- One environment. There is no sandbox or staging deployment.
+Never:
+- bypass RLS or scoped repositories with the pool (tenant isolation);
+- add a queue dependency (the outbox is the work record);
+- set `RUN_MIGRATIONS=true` before the migrator task definition exists (every deploy fails);
+- delete or commit `.plan/` (local-only specification);
+- record per-package build status here (it goes stale).
 
-## Planning
+Ask first: new `account.deleted` erasure sites (add to the seed of
+`accountErasure.integration.test.ts`), new deployment environments (there is only one).
 
-`.plan/` holds the approved specification and the working checklist. It is
-gitignored, local-only, and must never be deleted or committed.
+## Testing
+
+`bun run test` for logic; `bun run check` before a PR. Every guard is
+mutation-proven by `packages/core/scripts/test-invariants.mjs`; bound mutations
+so they fail fast and named. Done means `check` and the affected package tests pass.
+
+## PR and commits
+
+Branch from `main`; one concern per PR. Merging a version bump publishes npm
+packages through `release-packages.yml`; never publish from a laptop
+([npm releases](https://github.com/OxyHQ/oxy/blob/main/docs/npm-releases.md)).
+
+## Secrets
+
+`DATABASE_URL` is required to boot and comes from the ECS task definition; the
+migrator credential never reaches the serving task. Never print `*_DATABASE_URL` values.
+
+## Links
+
+[docs index](docs/README.md) | [agent-rules](docs/agent-rules.md) |
+[engineering rules](docs/architecture/engineering-rules.md) |
+[Oxy lint and format](https://github.com/OxyHQ/oxy/blob/main/docs/engineering/lint-and-format.md) |
+[Oxy engineering standards](https://github.com/OxyHQ/oxy/blob/main/docs/engineering/standards.md) |
+[Bloom app conventions](https://github.com/OxyHQ/Bloom/blob/main/docs/app-conventions.mdx) |
+[Oxy build and runtime traps](https://github.com/OxyHQ/oxy/blob/main/docs/engineering/build-and-runtime-traps.md)
+
+Owner: Nate Isern (@NateIsern). Last reviewed: 2026-11-11.
