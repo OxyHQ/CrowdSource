@@ -30,7 +30,7 @@ export function useAskAlia(): AskAliaContextValue {
 }
 
 /**
- * Owns the one `AliaChatSheet` and the way to open it. The sheet mounts after the first press, so
+ * Owns the one `GemieChatSheet` and the way to open it. The sheet mounts after the first press, so
  * the Alia SDK stays out of the entry bundle. Must sit inside `AppProviders` (auth, i18n) and the
  * portal provider.
  */
