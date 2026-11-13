@@ -42,6 +42,11 @@ module.exports = (_config) => {
       experiments: {
         typedRoutes: true,
         reactCompiler: true,
+        // Expo's oxc transformer, about 2x faster cold bundles than Babel. Development
+        // only: in a production export it keeps the requires of dead platform branches
+        // (`if (Platform.OS !== 'web') require(...)`), pulling native-only packages into
+        // the web bundle. The CLI sets NODE_ENV before it reads this config.
+        noxcturnalTransformWorker: process.env.NODE_ENV !== 'production',
       },
       // The launcher mark, opaque and full-bleed at 1024px as iOS requires (it
       // rejects an alpha channel and applies its own corner mask). Android and
