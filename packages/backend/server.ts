@@ -1,5 +1,6 @@
-import { startEcosystemActivity, stopEcosystemActivity } from './src/ecosystemActivity';
 import http from 'node:http';
+
+import { startEcosystemTraffic } from '@oxy.so/core/server';
 
 import { createApp } from './src/app';
 import { config } from './src/config';
@@ -8,6 +9,7 @@ import {
   startOutboxDispatcher,
   stopOutboxDispatcher,
 } from './src/modules/outbox/outbox.dispatcher';
+import { workloadCredentials } from './src/modules/identity/workload';
 import { registerOutboxWorkers } from './src/modules/outbox/workers';
 import {
   startWebhookDeliveryWorker,
@@ -51,8 +53,13 @@ process.on('uncaughtException', (_error: Error) => {
   process.exit(1);
 });
 
-const server = http.createServer(createApp());
-startEcosystemActivity(() => server.listening);
+// `ready` is read on the heartbeat, after this module has finished evaluating.
+const traffic = startEcosystemTraffic({
+  service: 'crowdsource',
+  ready: () => server.listening,
+  workloadCredentials,
+});
+const server = http.createServer(createApp({ traffic }));
 
 /**
  * Connect BEFORE listening. A task that accepts traffic without its database
@@ -173,7 +180,7 @@ function shutdown(signal: NodeJS.Signals): void {
     // would still be retried from its lapsed lease, but only after ten minutes.
     settleBackgroundErasures()
       .catch(() => undefined)
-      .then(() => Promise.allSettled([closePostgresDatabase(), stopEcosystemActivity()]))
+      .then(() => Promise.allSettled([closePostgresDatabase(), traffic.stop()]))
       .then(([postgres]) => {
         if (postgres.status === 'rejected') {
           logger.error(

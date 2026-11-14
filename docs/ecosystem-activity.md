@@ -4,10 +4,13 @@ The backend publishes aggregate traffic and its infrastructure heartbeat to the
 Oxy API, which broadcasts changes to the website dashboard. Collection runs in
 the service process regardless of whether somebody opens the dashboard.
 
-With `AWS_REGION` configured, the publisher uses the shared temporary AWS role
+`startEcosystemTraffic` from `@oxy.so/core/server` starts it at process bootstrap
+(`packages/backend/server.ts`). `OXY_ECOSYSTEM_ACTIVITY_ENABLED` is `true` or `false`
+and wins when set (production sets `true`); unset, it publishes where `AWS_REGION`
+is configured, and a missing region once it should publish fails at boot. The publisher uses the shared temporary AWS role
 provider, including ECS and authenticated development/SSO roles. Oxy validates
 its live application/environment binding (ADR 0049); own apps need no scopes or
-customer keys. Missing region omits only telemetry. Missing/revoked identity is
+customer keys. Missing/revoked identity is
 reported through the shared publisher's retry policy and is not zero traffic.
 The same provider supports live service introspection and session verification;
 CrowdSource tenant binding, organization status and privileged roles remain

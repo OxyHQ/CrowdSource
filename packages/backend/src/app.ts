@@ -1,5 +1,9 @@
-import { ecosystemActivityMiddleware } from './ecosystemActivity';
-import { createOxyCors, createOxySecurityHeaders, oxyTrustProxy } from '@oxy.so/core/server';
+import {
+  createOxyCors,
+  createOxySecurityHeaders,
+  type EcosystemTraffic,
+  oxyTrustProxy,
+} from '@oxy.so/core/server';
 import compression from 'compression';
 import express, { type Express, Router } from 'express';
 
@@ -46,7 +50,7 @@ import { healthRouter } from './routes/health.routes';
  */
 const CONSOLE_ORIGIN = 'https://console.crowdsource.oxy.so';
 
-export function createApp(): Express {
+export function createApp({ traffic }: { traffic?: EcosystemTraffic } = {}): Express {
   const app = express();
   /**
    * Before every middleware, so nothing reads `req.ip` under another rule. The
@@ -58,7 +62,7 @@ export function createApp(): Express {
    * webhook limiters on a few counters — and a forged header is never believed.
    */
   app.set('trust proxy', oxyTrustProxy);
-  app.use(ecosystemActivityMiddleware);
+  if (traffic) app.use(traffic.observeHttp);
 
   app.disable('x-powered-by');
 
