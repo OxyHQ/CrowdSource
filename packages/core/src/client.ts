@@ -85,7 +85,7 @@ export interface CrowdSourceOptions {
 }
 
 export class CrowdSource {
-  /** Release shared transport resources when a requester-bound client is finished. */
+  /** Release shared transport resources when a client acting for an account is finished. */
   readonly dispose: () => void;
   /**
    * The application this client acts as.

@@ -37,19 +37,22 @@ it('builds one client per call, so a caller decides what is shared', () => {
   b.dispose();
 });
 
-it('never reuses a requester client across accounts and snapshots proof options', async () => {
+it('never reuses an actingFor client across accounts and snapshots the account', async () => {
   const oxy = host();
-  const requester = { accountId: 'A', requesterContext: 'context-A' };
-  const a = crowdSourceForOxyService({ oxy, requester });
-  requester.accountId = 'B';
-  requester.requesterContext = 'context-B';
-  const b = crowdSourceForOxyService({ oxy, requester });
-  expect(a).not.toBe(b);
-  expect(oxy.createServiceClient.mock.calls[0]?.[0].requester).toEqual({
+  const actingFor: { accountId: string; requesterAccountId?: string } = {
     accountId: 'A',
-    requesterContext: 'context-A',
+    requesterAccountId: 'person-A',
+  };
+  const a = crowdSourceForOxyService({ oxy, actingFor });
+  actingFor.accountId = 'B';
+  actingFor.requesterAccountId = undefined;
+  const b = crowdSourceForOxyService({ oxy, actingFor });
+  expect(a).not.toBe(b);
+  expect(oxy.createServiceClient.mock.calls[0]?.[0].actingFor).toEqual({
+    accountId: 'A',
+    requesterAccountId: 'person-A',
   });
-  expect(oxy.createServiceClient.mock.calls[1]?.[0].requester).toEqual(requester);
+  expect(oxy.createServiceClient.mock.calls[1]?.[0].actingFor).toEqual(actingFor);
   a.dispose();
   b.dispose();
 });

@@ -44,7 +44,7 @@ export type { CrowdSourceOptions } from './client.js';
  */
 export { crowdSourceForOxyService } from './oxyService.js';
 export type {
-  OxyRequester,
+  OxyActingFor,
   OxyServiceClientLogger,
   OxyServiceClientOptions,
   OxyServiceHost,

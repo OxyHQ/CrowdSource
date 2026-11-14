@@ -129,7 +129,7 @@
     },
     "packages/core": {
       "name": "@crowdsource.you/core",
-      "version": "4.0.0",
+      "version": "5.0.0",
       "dependencies": {
         "zod": "^4.6.7",
       },

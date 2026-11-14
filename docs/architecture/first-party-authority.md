@@ -12,8 +12,10 @@ application; CrowdSource keys keep their existing scopes, expiry and revocation.
 
 The product SDK factory delegates to `OxyServer.createServiceClient`. It requires
 the caller's one `oxy` server (since `core@4.0.0`; it never builds its own) and
-accepts optional verified requester proof. Requester-bound
-clients are never shared across accounts and can be disposed after use. There
+accepts an optional `actingFor: { accountId, requesterAccountId? }` (since
+`core@5.0.0`, oxy ADR 0066) in place of the retired requester proof. Clients
+acting for an account are never shared across accounts and can be disposed
+after use. There
 is no own credential-pair fallback. The external `new CrowdSource({serviceKey})`
 interface remains available.
 
