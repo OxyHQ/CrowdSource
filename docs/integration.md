@@ -360,9 +360,11 @@ const crowdsource = crowdSourceForOxyService({ oxy }); // the process's one OxyS
 own. Own workloads use no application scopes, API keys or permission prompts;
 invalid or revoked workload authority fails the request and follows the durable
 outbox retry policy. `baseUrl` points at a local receiver and `logger` reports
-the binding. `requester` accepts an account with its current session, task or
-ephemeral requester context; such a client belongs to one request — call
-`dispose()` when finished with it.
+the binding. `actingFor: { accountId, requesterAccountId? }` (since
+`core@5.0.0`) names the account an Oxy service acts for, and the person when
+they operate it (oxy ADR 0066): Oxy checks the service's first-party
+declaration and the accounts live, with no session, task or consent. Such a
+client belongs to one account — call `dispose()` when finished with it.
 
 The receiver uses the shared service middleware, verifies live identity, and
 resolves its tenant from the active stored application and organization binding.

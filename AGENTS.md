@@ -55,6 +55,8 @@ other packages import its built `dist` (why: [agent-rules](docs/agent-rules.md))
 - Session callers use `@oxy.so/core/server` via `packages/backend/src/modules/identity/oxySession.ts`;
   service credentials never reach session routes, nor sessions application routes.
 - Trust & Safety access is the Oxy application permission `trust_safety.<role>` held by an org role (oxy ADR 0056).
+- First-party never asks people for permissions: this service acts for a person with `actingFor` on what oxy's
+  first-party registry declares (oxy ADR 0066); permissions, scopes and consent are only for third parties.
 - A console caller names a resource, never a tenant; `organizationId` is read off the stored row.
 - `packages/reviewer/app/_layout.tsx` alone swaps `(auth)` and `(app)`; one `OxyProvider`; no app-local auth routes or tokens.
 - Case material never reaches device storage, logs or analytics.

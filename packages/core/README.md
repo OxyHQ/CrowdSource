@@ -147,10 +147,17 @@ registered audience `oxy-service:6a6947b30fe72510b411252f` and never builds an
 token cache. Own workloads use no application scopes, API keys or permission
 prompts; invalid or revoked workload authority fails the request and follows
 the durable outbox retry policy. `baseUrl` points at a local receiver and
-`logger` reports the binding. `requester` accepts an account with its current
-session, task or ephemeral requester context; such a client belongs to one
-request — `dispose()` it when finished. Every call builds a new client, so hold
+`logger` reports the binding. `actingFor: { accountId, requesterAccountId? }`
+names the account an Oxy service acts for, and the person when they operate it
+rather than own it (oxy ADR 0066): Oxy checks the service's first-party
+declaration and the accounts live, with no session, task or consent. Such a
+client belongs to one account — `dispose()` it when finished. Every call builds a new client, so hold
 the one your process shares in a module-level constant.
+
+**5.0.0 replaced `requester` with `actingFor`.** `requester: { accountId, token |
+taskId | requesterContext }` and the `OxyRequester` type are gone; pass
+`actingFor: { accountId, requesterAccountId? }` (type `OxyActingFor`) instead,
+which the caller's `OxyServer` (`@oxy.so/core` 7.52.0 or later) forwards.
 
 **4.0.0 made `oxy` required.** 3.x built a second `OxyServer` when it was
 omitted, beside the one the application already ran; `resetCrowdSourceForOxyService`
