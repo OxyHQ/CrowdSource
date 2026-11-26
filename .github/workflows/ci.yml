@@ -249,7 +249,7 @@ jobs:
 
   # quality's hosted twin in the Seldon race: the same name and steps.
   quality-hosted:
-    name: Build, lint and typecheck
+    name: ${{ vars.CI_SELDON_RACE == 'true' && 'Build, lint and typecheck' || 'Build, lint and typecheck (seldon twin, off)' }}
     needs: race
     if: ${{ !cancelled() && needs.race.outputs.race == 'true' }}
     runs-on: ubuntu-latest
@@ -262,7 +262,7 @@ jobs:
   # quality's rescue: reruns it hosted when its Seldon lane failed (the house
   # network drops connections); a genuine failure fails again.
   quality-rescue:
-    name: Build, lint and typecheck
+    name: ${{ vars.CI_SELDON_RACE == 'true' && 'Build, lint and typecheck' || 'Build, lint and typecheck (seldon rescue, off)' }}
     needs: quality
     if: ${{ !cancelled() && needs.quality.result == 'failure' && vars.CI_SELDON_RACE == 'true' && github.run_attempt == 1 && (github.event_name == 'pull_request' || github.event_name == 'merge_group') && !github.event.pull_request.head.repo.fork }}
     runs-on: ubuntu-latest
@@ -460,7 +460,7 @@ jobs:
 
   # tests' hosted twin in the Seldon race: the same name, strategy and steps.
   tests-hosted:
-    name: Test ${{ matrix.package }}
+    name: ${{ vars.CI_SELDON_RACE == 'true' && format('Test {0}', matrix.package) || format('Test {0} (seldon twin, off)', matrix.package) }}
     needs: [changes, race]
     if: >-
       !cancelled() && needs.race.outputs.race == 'true' &&
@@ -477,7 +477,7 @@ jobs:
   # tests' rescue: reruns the suites hosted when a Seldon lane failed (the house
   # network drops connections); a genuine failure fails again.
   tests-rescue:
-    name: Test ${{ matrix.package }}
+    name: ${{ vars.CI_SELDON_RACE == 'true' && format('Test {0}', matrix.package) || format('Test {0} (seldon rescue, off)', matrix.package) }}
     needs: [changes, tests]
     if: >-
       !cancelled() && needs.tests.result == 'failure' &&
@@ -547,7 +547,7 @@ jobs:
 
   # reviewer-bundle's hosted twin in the Seldon race: the same name and steps.
   reviewer-bundle-hosted:
-    name: Reviewer bundle budget
+    name: ${{ vars.CI_SELDON_RACE == 'true' && 'Reviewer bundle budget' || 'Reviewer bundle budget (seldon twin, off)' }}
     needs: [changes, race]
     if: >-
       !cancelled() && needs.race.outputs.race == 'true' &&
@@ -563,7 +563,7 @@ jobs:
   # reviewer-bundle's rescue: reruns it hosted when its Seldon lane failed (the
   # house network drops connections); a genuine failure fails again.
   reviewer-bundle-rescue:
-    name: Reviewer bundle budget
+    name: ${{ vars.CI_SELDON_RACE == 'true' && 'Reviewer bundle budget' || 'Reviewer bundle budget (seldon rescue, off)' }}
     needs: [changes, reviewer-bundle]
     if: >-
       !cancelled() && needs.reviewer-bundle.result == 'failure' &&
